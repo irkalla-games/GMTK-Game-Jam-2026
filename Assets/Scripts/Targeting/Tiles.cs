@@ -30,17 +30,17 @@ public class Tiles : MonoBehaviour
         if (Occupant != null) { Occupant.Heal(amount); }
     }
 
-    public void addShield(int amount)
+    public void GainShield(int amount)
     {
         if (Occupant != null) { Occupant.AddShield(amount); }
     }
 
-    public void gainBlock(int amount, int count)
+    public void GainBlock(int amount, int count)
     {
         if (Occupant != null) { Occupant.GainBlock(amount, count); }
     }
 
-    public void gainParry(int reflectTotal, int count)
+    public void GainParry(int reflectTotal, int count)
     {
         if (Occupant != null) { Occupant.GainParry(reflectTotal, count); }
     }

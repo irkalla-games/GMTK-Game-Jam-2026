@@ -1,5 +1,5 @@
 using System.Collections;
-using UnityEngine;
+using System.Collections.Generic;
 
 public class ShieldAction : GameAction
 {
@@ -14,7 +14,7 @@ public class ShieldAction : GameAction
     {
         foreach (Tiles target in ctx.targets)
         {
-            target.addShield(shieldAmount);
+            target.GainShield(shieldAmount);
         }
         yield return new WaitForSeconds(0.15f);
     }

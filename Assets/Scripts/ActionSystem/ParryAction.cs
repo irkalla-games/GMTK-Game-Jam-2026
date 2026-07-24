@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ParryAction : GameAction
@@ -17,7 +18,7 @@ public class ParryAction : GameAction
     {
         foreach (Tiles target in ctx.targets)
         {
-            target.gainParry(reflectTotal, parryCount);
+            target.GainParry(reflectTotal, parryCount);
         }
         yield return new WaitForSeconds(0.15f);
     }

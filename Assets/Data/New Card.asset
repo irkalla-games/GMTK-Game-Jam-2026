@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
   m_Name: New Card
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: Block
-  cost: 1
-  description: +1 Defense
-  image: {fileID: 21300230, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
+  cardName: 
+  cost: 0
+  description: 
+  image: {fileID: 0}
+  gameActions: []

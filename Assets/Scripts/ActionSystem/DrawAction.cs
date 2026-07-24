@@ -7,7 +7,7 @@ using UnityEngine.TextCore.Text;
 public class DrawAction : GameAction
 {
     private Character drawSource;
-    private List<Character> drawTargets;
+    private List<Tiles> drawTargets;
     private int drawAmount;
 
 

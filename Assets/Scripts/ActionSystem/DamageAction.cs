@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class DamageAction : GameAction
 {
@@ -10,7 +11,6 @@ public class DamageAction : GameAction
     private List<Tiles> damageTargets;
     private int damageAmount;
 
-    //Not sure why people use IEnumerator so need Andrew to clarify this
     public override IEnumerator Execute()
     {
         //Runs a loop that deals damage to each target in the list

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class ShieldAction : GameAction
 {
@@ -13,7 +14,7 @@ public class ShieldAction : GameAction
         //Runs a loop that adds Shield to each target.
         foreach (var target in shieldTargets)
         {
-            target.addShield(shieldAmount);
+            target.GainShield(shieldAmount);
         }
         yield return new WaitForSeconds(0.15f);
     }

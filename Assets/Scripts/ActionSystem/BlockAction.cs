@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BlockAction : GameAction
@@ -17,7 +18,7 @@ public class BlockAction : GameAction
         {
             //Having a certain amount of block, each will lower the damage taken by a certain value (this is different than shield which adds essentially extra health)
             //Will need to add code for characters to gain status effects such as block (and maybe poison down the line)
-            target.gainBlock(blockAmount, blockCount);
+            target.GainBlock(blockAmount, blockCount);
 
         }
         yield return new WaitForSeconds(0.15f);

@@ -1,19 +1,22 @@
-using NUnit.Framework;
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class ParryAction : GameAction
 {
-    private Character parrySource;
-    private List<Tiles> parryTargets;
-    private int reflectTotal;
-    private int parryCount;
+    private readonly int reflectTotal;
+    private readonly int parryCount;
 
-    public override IEnumerator Execute()
+    public ParryAction(int reflectTotal, int parryCount)
     {
-        //Runs a loop that adds parry to each target in the list. This would negate damage and then reflect a certain amount back (maybe half, maybe full, unsure at this point)
-        foreach (var target in parryTargets)
+        this.reflectTotal = reflectTotal;
+        this.parryCount = parryCount;
+    }
+
+    //Parry negates damage and reflects some amount of it back.
+    public override IEnumerator Execute(ActionContext ctx)
+    {
+        foreach (Tiles target in ctx.targets)
         {
             target.GainParry(reflectTotal, parryCount);
         }

@@ -1,22 +1,21 @@
-using NUnit.Framework;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 public class DrawAction : GameAction
 {
-    private Character drawSource;
-    private List<Tiles> drawTargets;
-    private int drawAmount;
+    private readonly int drawAmount;
 
-
-    public override IEnumerator Execute()
+    public DrawAction(int drawAmount)
     {
-        //Runs a loop that has every target in the list draw a certain amount of cards
-        foreach (var target in drawTargets)
+        this.drawAmount = drawAmount;
+    }
+
+    public override IEnumerator Execute(ActionContext ctx)
+    {
+        //Drawing is about the character resolving the action, not about a tile on the board.
+        if (ctx.source != null)
         {
-            target.DrawCards(drawAmount);
+            ctx.source.DrawCards(drawAmount);
         }
         yield return new WaitForSeconds(0.15f);
     }

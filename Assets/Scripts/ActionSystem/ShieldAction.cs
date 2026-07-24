@@ -1,18 +1,18 @@
-using NUnit.Framework;
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 public class ShieldAction : GameAction
 {
-    private Character shieldSource;
-    private List<Tiles> shieldTargets;
-    private int shieldAmount;
+    private readonly int shieldAmount;
 
-    public override IEnumerator Execute()
+    public ShieldAction(int shieldAmount)
     {
-        //Runs a loop that adds Shield to each target.
-        foreach (var target in shieldTargets)
+        this.shieldAmount = shieldAmount;
+    }
+
+    public override IEnumerator Execute(ActionContext ctx)
+    {
+        foreach (Tiles target in ctx.targets)
         {
             target.GainShield(shieldAmount);
         }

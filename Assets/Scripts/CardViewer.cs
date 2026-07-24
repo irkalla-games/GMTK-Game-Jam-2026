@@ -1,6 +1,4 @@
 using TMPro;
-using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
 
 public class CardViewer : MonoBehaviour
@@ -17,6 +15,11 @@ public class CardViewer : MonoBehaviour
 
     public Card card { get; private set; }
 
+    public bool isSelected { get; private set; }
+
+    /// True once the card has been played and is tweening away - hover must stop touching it.
+    private bool isPlaying;
+
     public void Setup(Card newCard)
     {
         this.card = newCard;
@@ -26,8 +29,26 @@ public class CardViewer : MonoBehaviour
         image.sprite = card.image;
     }
 
+    public void SetSelected(bool value)
+    {
+        isSelected = value;
+        // The hover preview swaps this off; restore it here so a card can't get stuck invisible when
+        // selection suppresses the OnMouseExit that would normally put it back.
+        wrapper.SetActive(true);
+    }
+
+    public void BeginPlay()
+    {
+        isPlaying = true;
+        isSelected = false;
+    }
+
+    private bool HoverSuppressed =>
+        isPlaying || isSelected || (CardPlayManager.Instance != null && CardPlayManager.Instance.HasSelection);
+
     public void OnMouseEnter()
     {
+        if (HoverSuppressed) { return; }
         wrapper.SetActive(false);
         Vector3 pos = new Vector3(transform.position.x, 3, 0);
         CardHoverManager.Instance.ShowLargeCard(card, pos);
@@ -35,7 +56,16 @@ public class CardViewer : MonoBehaviour
 
     public void OnMouseExit()
     {
+        if (isPlaying) { return; }
         CardHoverManager.Instance.HideLargeCard();
         wrapper.SetActive(true);
+    }
+
+    public void OnMouseDown()
+    {
+        if (CardPlayManager.Instance != null)
+        {
+            CardPlayManager.Instance.OnCardClicked(this);
+        }
     }
 }

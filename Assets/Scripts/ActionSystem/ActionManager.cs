@@ -4,13 +4,13 @@ using System.Collections;
 
 public class ActionManager : MonoBehaviour
 {
-    private Queue<GameAction> actions = new();
+    private readonly Queue<(GameAction action, ActionContext ctx)> actions = new();
 
     private bool isRunning;
 
-    public void AddAction(GameAction action)
+    public void AddAction(GameAction action, ActionContext ctx)
     {
-        actions.Enqueue(action);
+        actions.Enqueue((action, ctx));
 
         if (!isRunning)
             StartCoroutine(ProcessQueue());
@@ -22,7 +22,8 @@ public class ActionManager : MonoBehaviour
 
         while (actions.Count > 0)
         {
-            yield return actions.Dequeue().Execute();
+            var (action, ctx) = actions.Dequeue();
+            yield return action.Execute(ctx);
         }
 
         isRunning = false;

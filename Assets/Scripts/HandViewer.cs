@@ -1,21 +1,35 @@
-using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Splines;
 using System.Collections.Generic;
 using System.Collections;
 using DG.Tweening;
-using Unity.VisualScripting;
 
 
 public class HandViewer : MonoBehaviour
 {
     [SerializeField] private SplineContainer splineContainer;
 
+    [SerializeField] private float selectRaise = 0.75f;
+
     private readonly List<CardViewer> cardsInHand = new();
+
+    public bool Contains(CardViewer cardViewer) => cardsInHand.Contains(cardViewer);
 
     public IEnumerator AddCard(CardViewer cardViewer)
     {
         cardsInHand.Add(cardViewer);
+        yield return UpdateCardPosition(0.15f);
+    }
+
+    public IEnumerator RemoveCard(CardViewer cardViewer)
+    {
+        cardsInHand.Remove(cardViewer);
+        yield return UpdateCardPosition(0.15f);
+    }
+
+    /// Re-runs the layout without changing the hand - used when a card's selected state changes.
+    public IEnumerator Relayout()
+    {
         yield return UpdateCardPosition(0.15f);
     }
 
@@ -33,21 +47,12 @@ public class HandViewer : MonoBehaviour
             Vector3 forward = spline.EvaluateTangent(p);
             Vector3 up = spline.EvaluateUpVector(p);
             Quaternion rotation = Quaternion.LookRotation(Vector3.Cross(forward, up).normalized, up);
-            cardsInHand[i].transform.DOMove(splinePosition + transform.position + .01f * i * Vector3.back, duration);
+            // The raise has to be applied here rather than tweened separately, or any AddCard/RemoveCard
+            // during a selection would pull the selected card back down.
+            Vector3 selectOffset = cardsInHand[i].isSelected ? Vector3.up * selectRaise : Vector3.zero;
+            cardsInHand[i].transform.DOMove(splinePosition + transform.position + .01f * i * Vector3.back + selectOffset, duration);
             cardsInHand[i].transform.DORotate(rotation.eulerAngles, duration);
         }
         yield return new WaitForSeconds(duration);
-    }
-    
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

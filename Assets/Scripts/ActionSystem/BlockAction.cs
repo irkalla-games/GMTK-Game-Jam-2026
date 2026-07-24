@@ -1,26 +1,24 @@
-using NUnit.Framework;
 using System.Collections;
 using UnityEngine;
 
 public class BlockAction : GameAction
 {
-    private Character blockSource;
-    private List<Tiles> blockTargets;
-    private int blockAmount;
-    private int blockCount;
+    private readonly int blockAmount;
+    private readonly int blockCount;
 
-    //Block is going to be a reduction in each damage instance 
-    public override IEnumerator Execute()
+    public BlockAction(int blockAmount, int blockCount)
     {
-        //Runs a loop that adds block to each target in the list
-        foreach (var target in blockTargets)
-        {
-            //Having a certain amount of block, each will lower the damage taken by a certain value (this is different than shield which adds essentially extra health)
-            //Will need to add code for characters to gain status effects such as block (and maybe poison down the line)
-            target.gainBlock(blockAmount, blockCount);
+        this.blockAmount = blockAmount;
+        this.blockCount = blockCount;
+    }
 
+    //Block is a reduction on each instance of damage, unlike shield which is extra health.
+    public override IEnumerator Execute(ActionContext ctx)
+    {
+        foreach (Tiles target in ctx.targets)
+        {
+            target.gainBlock(blockAmount, blockCount);
         }
         yield return new WaitForSeconds(0.15f);
     }
-
 }

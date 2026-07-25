@@ -23,9 +23,9 @@ public class Character : MonoBehaviour
     public bool IsDead => Health <= 0;
 
     /// The tile this character is standing on.
-    public Tiles Tile { get; private set; }
+    public GridTile Tile { get; private set; }
 
-    public void SetTile(Tiles tile)
+    public void SetTile(GridTile tile)
     {
         if (Tile != null && Tile.Occupant == this) { Tile.SetOccupant(null); }
         Tile = tile;
@@ -54,6 +54,11 @@ public class Character : MonoBehaviour
     public void GainBlock(int amount, int count) { }
 
     public void GainParry(int reflectTotal, int count) { }
+
+    public void MoveTo(GridTile moveTo)
+    {
+
+    }
 
     //TODO: there is one shared deck and hand right now, so this draws into it regardless of who asked.
     //Once characters own their own decks this routes to this character's pile instead.

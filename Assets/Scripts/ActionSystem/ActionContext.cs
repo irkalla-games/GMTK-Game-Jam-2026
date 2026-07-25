@@ -11,21 +11,23 @@ using System.Collections.Generic;
 /// </summary>
 public class ActionContext
 {
+    public readonly Card card;
     /// The character resolving this action.
     public readonly Character source;
 
     /// The tiles this action lands on. Empty for actions that don't touch the board.
-    public readonly IReadOnlyList<Tiles> targets;
+    public readonly IReadOnlyList<GridTile> targets;
 
-    public ActionContext(Character source, IReadOnlyList<Tiles> targets)
+    public ActionContext(Card card, Character source, IReadOnlyList<GridTile> targets)
     {
+        this.card = card;
         this.source = source;
-        this.targets = targets ?? Array.Empty<Tiles>();
+        this.targets = targets ?? Array.Empty<GridTile>();
     }
 
     /// Convenience for the common single-tile case.
-    public ActionContext(Character source, Tiles target)
-        : this(source, target != null ? new[] { target } : Array.Empty<Tiles>()) { }
+    public ActionContext(Card card, Character source, GridTile target)
+        : this(card, source, target != null ? new[] { target } : Array.Empty<GridTile>()) { }
 
-    public ActionContext(Character source) : this(source, Array.Empty<Tiles>()) { }
+    public ActionContext(Card card, Character source) : this(card, source, Array.Empty<GridTile>()) { }
 }

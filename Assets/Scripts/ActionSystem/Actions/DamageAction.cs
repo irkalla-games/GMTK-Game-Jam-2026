@@ -17,6 +17,6 @@ public class DamageAction : GameAction
         {
             target.DealDamage(damageAmount);
         }
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

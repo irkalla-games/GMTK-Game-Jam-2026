@@ -5,7 +5,7 @@ public class MoveEffect : CardEffect
 {
     public override void Resolve(ActionContext ctx)
     {
-        CardPlayManager.Instance.actionManager.AddAction(new MoveAction(), ctx);
+        ActionManager.Instance.AddAction(new MoveAction(), ctx);
     }
 
     // The same method MoveCharacter itself consults, so the pre-flight check and the last line of

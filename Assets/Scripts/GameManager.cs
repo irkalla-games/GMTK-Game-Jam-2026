@@ -14,8 +14,6 @@ public class GameManager : Singleton<GameManager>
              + "opening hands.")]
     [SerializeField] private List<Character> characters = new();
 
-    [SerializeField] private HandViewer handViewer;
-
     [SerializeField] private int openingHandSize = 5;
 
     /// Whose hand is on screen. Cards are played by this character and spend its energy.
@@ -37,8 +35,12 @@ public class GameManager : Singleton<GameManager>
         SetActiveCharacter(FirstPlayableCharacter());
     }
 
-    private void OnDestroy()
+    /// Override rather than a plain OnDestroy: Unity dispatches the message to the most-derived
+    /// method only, so hiding the base would silently stop Singleton from clearing Instance.
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
+
         foreach (Character character in characters)
         {
             if (character != null) { character.CardDrawn -= OnCardDrawn; }
@@ -93,7 +95,7 @@ public class GameManager : Singleton<GameManager>
 
     private void ShowHandFor(Character character)
     {
-        handViewer.ClearHand();
+        HandViewer.Instance.ClearHand();
 
         foreach (Card card in character.Hand) { AddToVisibleHand(card); }
     }
@@ -101,7 +103,7 @@ public class GameManager : Singleton<GameManager>
     private void AddToVisibleHand(Card card)
     {
         CardViewer cardViewer = CreateCardViewer.Instance.CreateCard(card, transform.position, Quaternion.identity);
-        StartCoroutine(handViewer.AddCard(cardViewer));
+        StartCoroutine(HandViewer.Instance.AddCard(cardViewer));
     }
 
     private Character FirstPlayableCharacter()

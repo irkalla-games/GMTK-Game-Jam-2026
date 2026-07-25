@@ -5,7 +5,12 @@ using System.Collections;
 using DG.Tweening;
 
 
-public class HandViewer : MonoBehaviour
+/// <summary>
+/// The row of cards on screen. A singleton because it is a scene-level service like the other
+/// managers - it used to be serialized separately into both GameManager and CardPlayManager, which
+/// is two hand-wired references to one object waiting to be pointed at different things.
+/// </summary>
+public class HandViewer : Singleton<HandViewer>
 {
     [SerializeField] private SplineContainer splineContainer;
 

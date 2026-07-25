@@ -18,6 +18,6 @@ public class HealAction : GameAction
         {
             target.Heal(healAmount);
         }
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

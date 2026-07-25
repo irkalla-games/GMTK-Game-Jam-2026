@@ -11,7 +11,7 @@ public class DamageEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        CardPlayManager.Instance.actionManager.AddAction(new DamageAction(damageAmount), ctx);
+        ActionManager.Instance.AddAction(new DamageAction(damageAmount), ctx);
     }
 
     /// <summary>

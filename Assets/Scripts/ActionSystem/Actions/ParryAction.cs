@@ -20,6 +20,6 @@ public class ParryAction : GameAction
         {
             target.GainParry(reflectTotal, parryCount);
         }
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

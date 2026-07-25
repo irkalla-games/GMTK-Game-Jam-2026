@@ -3,10 +3,8 @@ using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
 using DG.Tweening;
 
-public class GridManager : MonoBehaviour
+public class GridManager : Singleton<GridManager>
 {
-    public static GridManager Instance { get; private set; }
-
     [Header("Grid Settings")]
     [SerializeField] private int width = 5;
     [SerializeField] private int height = 6;
@@ -18,15 +16,14 @@ public class GridManager : MonoBehaviour
     private Dictionary<Vector2Int, GridTile> tiles = new();
 
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        base.Awake();
 
-        Instance = this;
+        // base.Awake() destroys a duplicate and returns, but returning from it does not return from
+        // here - without this guard a second GridManager would build a whole second grid on its way
+        // out. Any Singleton subclass that overrides Awake needs the same check.
+        if (Instance != this) { return; }
 
         CreateGrid();
     }

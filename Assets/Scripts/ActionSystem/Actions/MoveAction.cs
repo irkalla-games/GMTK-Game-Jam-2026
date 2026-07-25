@@ -14,6 +14,6 @@ public class MoveAction : GameAction
         // GridManager owns the move: it guards against occupied tiles, swaps occupancy, and tweens
         // the character's transform. Going through Character.MoveTo alone would only swap references.
         GridManager.Instance.MoveCharacter(ctx.source, ctx.targets[0]);
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

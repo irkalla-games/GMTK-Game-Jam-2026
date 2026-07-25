@@ -23,6 +23,6 @@ public class BlockAction : GameAction
             target.GainBlock(blockAmount, blockCount);
 
         }
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

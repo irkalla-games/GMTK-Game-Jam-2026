@@ -33,6 +33,10 @@ public class Character : MonoBehaviour
 
     private readonly List<Card> discardPile = new();
 
+    /// Current health. Serialized only so the live value is watchable in the Inspector during Play
+    /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
+    /// saved, so the stored value is a readout, never authoring data - edit Max Health instead.
+    [field: SerializeField, ReadOnlyField]
     public int Health { get; private set; }
 
     /// Each character has their own pool; playing a card spends the acting character's energy.
@@ -156,6 +160,14 @@ public class Character : MonoBehaviour
             int j = UnityEngine.Random.Range(0, i + 1);
             (cards[i], cards[j]) = (cards[j], cards[i]);
         }
+    }
+
+    /// Keeps the Inspector's Health readout honest outside Play Mode. Without this it would show
+    /// whatever was last serialized - 0 on a character that has never been played - which reads as a
+    /// dead unit sitting in the scene. Guarded on isPlaying so it never fights Awake or combat.
+    private void OnValidate()
+    {
+        if (!Application.isPlaying && Health != maxHealth) { Health = maxHealth; }
     }
 
     private void Awake()

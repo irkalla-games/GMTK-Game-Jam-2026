@@ -79,7 +79,7 @@ public class GridManager : MonoBehaviour
         character.Tile.SetOccupant(null);
         destination.SetOccupant(character);
 
-        character.SetTile(destination);
+        character.MoveTo(destination);
         character.transform.DOMove(destination.transform.position, .15f);
 
         return true;

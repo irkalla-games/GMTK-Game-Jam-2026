@@ -1,0 +1,131 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using DG.Tweening;
+
+/// Click a card to select it, then click a tile to play it there.
+public class CardPlayManager : Singleton<CardPlayManager>
+{
+    [SerializeField] private HandViewer handViewer;
+
+    [SerializeField] public ActionManager actionManager;
+
+    [SerializeField] private GameManager gameManager;
+
+    [SerializeField] private Transform discardAnchor;
+
+    [SerializeField] private float discardDuration = 0.15f;
+
+    private CardViewer selected;
+
+    public bool HasSelection => selected != null;
+
+    public void OnCardClicked(CardViewer cardViewer)
+    {
+        // CardHoverManager's preview card is also a CardViewer with a collider, so it fires this too.
+        if (cardViewer == null || !handViewer.Contains(cardViewer)) { return; }
+
+        if (selected == cardViewer)
+        {
+            Deselect();
+            return;
+        }
+
+        Select(cardViewer);
+    }
+
+    public void OnTileClicked(GridTile tile)
+    {
+        if (!HasSelection || tile == null) { return; }
+
+        CardViewer cardViewer = selected;
+        Card card = cardViewer.card;
+
+        // Energy belongs to the character taking the turn, so there is nobody to pay the cost
+        // outside of a turn.
+        Character actor = gameManager.ActiveCharacter;
+
+        if (actor == null || !actor.CanAfford(card.cost))
+        {
+            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
+            return;
+        }
+
+        selected = null;
+        actor.SpendEnergy(card.cost);
+        foreach (var effect in card.effects)
+        {
+            effect.Resolve(new ActionContext(card, gameManager.ActiveCharacter, tile));
+        }
+
+        StartCoroutine(Discard(cardViewer));
+    }
+
+    private void Select(CardViewer cardViewer)
+    {
+        if (HasSelection) { selected.SetSelected(false); }
+
+        selected = cardViewer;
+        cardViewer.SetSelected(true);
+        CardHoverManager.Instance.HideLargeCard();
+        StartCoroutine(handViewer.Relayout());
+    }
+
+    private void Deselect()
+    {
+        if (!HasSelection) { return; }
+
+        selected.SetSelected(false);
+        selected = null;
+        StartCoroutine(handViewer.Relayout());
+    }
+
+    private IEnumerator Discard(CardViewer cardViewer)
+    {
+        cardViewer.BeginPlay();
+
+        Vector3 target = discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
+        cardViewer.transform.DOMove(target, discardDuration);
+        cardViewer.transform.DOScale(Vector3.zero, discardDuration);
+
+        gameManager.Discard(cardViewer.card);
+
+        yield return handViewer.RemoveCard(cardViewer);
+        Destroy(cardViewer.gameObject);
+    }
+
+    private void Update()
+    {
+        if (!HasSelection) { return; }
+
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            Deselect();
+            return;
+        }
+
+        if (Mouse.current == null) { return; }
+
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            Deselect();
+            return;
+        }
+
+        // Left click that hit no collider at all. Checking for "hit nothing" keeps this from racing
+        // OnMouseDown - a click on a card or a tile always hits something.
+        if (Mouse.current.leftButton.wasPressedThisFrame && ClickedEmptySpace())
+        {
+            Deselect();
+        }
+    }
+
+    private bool ClickedEmptySpace()
+    {
+        Camera cam = Camera.main;
+        if (cam == null) { return false; }
+
+        Vector3 world = cam.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+        return Physics2D.OverlapPoint(world) == null;
+    }
+}

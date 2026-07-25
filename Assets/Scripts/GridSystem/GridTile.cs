@@ -68,6 +68,11 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.MoveTo(moveTo); }
     }
 
+    public void DrawCards(int drawAmount)
+    {
+        if (Occupant != null) { Occupant.DrawCards(drawAmount); }
+    }
+
     private void OnMouseDown()
     {
         // GameManager decides what the click means - playing the selected card, or switching to the

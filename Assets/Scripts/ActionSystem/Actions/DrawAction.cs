@@ -13,9 +13,11 @@ public class DrawAction : GameAction
     public override IEnumerator Execute(ActionContext ctx)
     {
         //Drawing is about the character resolving the action, not about a tile on the board.
-        if (ctx.source != null)
+        if (ctx.targets != null)
         {
-            ctx.source.DrawCards(drawAmount);
+            foreach (var target in ctx.targets) {
+                target.DrawCards(drawAmount);
+            }
         }
         yield return new WaitForSeconds(0.15f);
     }

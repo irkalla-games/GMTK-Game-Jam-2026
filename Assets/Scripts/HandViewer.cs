@@ -21,6 +21,18 @@ public class HandViewer : MonoBehaviour
         yield return UpdateCardPosition(0.15f);
     }
 
+    /// Empties the hand and destroys the viewers. The Card objects behind them are owned by the
+    /// character, so nothing is lost - switching characters just rebuilds the row from the new hand.
+    public void ClearHand()
+    {
+        foreach (CardViewer cardViewer in cardsInHand)
+        {
+            if (cardViewer != null) { Destroy(cardViewer.gameObject); }
+        }
+
+        cardsInHand.Clear();
+    }
+
     public IEnumerator RemoveCard(CardViewer cardViewer)
     {
         cardsInHand.Remove(cardViewer);

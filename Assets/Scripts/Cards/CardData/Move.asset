@@ -12,9 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
   m_Name: Move
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: Move
+  <cardName>k__BackingField: Move 1
   <cost>k__BackingField: 1
-  <description>k__BackingField: Move to the target tile.
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 1
+    maxDistance: 1
+  <description>k__BackingField: Move one tile in any direction, diagonals included.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: d537771370c9446baed97512da971480, type: 2}

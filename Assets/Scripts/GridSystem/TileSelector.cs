@@ -1,27 +1,61 @@
 using UnityEngine;
 
+/// <summary>
+/// The tile's colour. One component owns the SpriteRenderer so nothing fights over it.
+///
+/// Two layers: a base colour saying whether this tile is a legal target for the selected card, and a
+/// hover tint on top. Leaving the tile returns it to its base colour rather than a hard-coded one -
+/// that is what lets a range highlight survive the mouse passing over it.
+/// </summary>
 public class TileSelector : MonoBehaviour
 {
-    SpriteRenderer renderer;
+    [Tooltip("Resting colour. Matches the alpha authored on the tile prefab.")]
+    [SerializeField] private Color idleColor = new(1f, 1f, 1f, 0.08627451f);
 
+    [Tooltip("A legal target for the card currently selected.")]
+    [SerializeField] private Color inRangeColor = new(0.3f, 1f, 0.5f, 0.35f);
 
-    void Start()
+    [SerializeField] private Color hoverColor = new(1f, 1f, 0f, 0.5f);
+
+    private SpriteRenderer spriteRenderer;
+
+    private bool isInRange;
+
+    private bool isHovered;
+
+    /// Called by GridManager for every tile when a card is selected or put down.
+    public void SetInRange(bool value)
     {
-        renderer = GetComponent<SpriteRenderer>();
+        if (isInRange == value) { return; }
+
+        isInRange = value;
+        ApplyColor();
     }
 
-    void OnMouseEnter()
+    private void Awake()
     {
-        renderer.color = new Color(1, 1, 0, .5f);
+        // Awake, not Start: GridManager builds the grid in its own Awake and a highlight can arrive
+        // before any Start has run.
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        ApplyColor();
     }
 
-    void OnMouseExit()
+    private void ApplyColor()
     {
-        renderer.color = new Color(1, 1, 1, .10f);
+        if (spriteRenderer == null) { return; }
+
+        spriteRenderer.color = isHovered ? hoverColor : isInRange ? inRangeColor : idleColor;
     }
 
-    void OnMouseDown()
+    private void OnMouseEnter()
     {
-        Debug.Log("Tile Selected");
+        isHovered = true;
+        ApplyColor();
+    }
+
+    private void OnMouseExit()
+    {
+        isHovered = false;
+        ApplyColor();
     }
 }

@@ -40,21 +40,17 @@ public class CardPlayManager : Singleton<CardPlayManager>
         Select(cardViewer);
     }
 
-    public void OnTileClicked(GridTile tile)
+    /// Plays the selected card onto this tile. GameManager routes tile clicks here once it knows a
+    /// card is selected; with nothing selected a tile click means something else entirely.
+    public void PlaySelectedOn(GridTile tile)
     {
-        if (tile == null) { return; }
-
-        if (!HasSelection)
-        {
-            Debug.Log($"tile clicked: {tile.Coordinates} - no card selected");
-            return;
-        }
+        if (tile == null || !HasSelection) { return; }
 
         CardViewer cardViewer = selected;
         Card card = cardViewer.card;
 
-        // Energy belongs to the character taking the turn, so there is nobody to pay the cost
-        // outside of a turn.
+        // Energy belongs to the character, and the card came out of that character's hand, so there is
+        // nobody to pay the cost until one has been clicked.
         Character actor = gameManager.ActiveCharacter;
 
         if (actor == null)
@@ -71,13 +67,25 @@ public class CardPlayManager : Singleton<CardPlayManager>
             return;
         }
 
+        // Targeting is settled here, and only here. Past the commit point below the energy is gone and
+        // the card is in the discard pile, so a rule that refuses any later refuses at a price.
+        string refusal = card.Refusal(actor, tile);
+
+        if (refusal != null)
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {refusal}");
+            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
+            return;
+        }
+
         Debug.Log($"tile clicked: {tile.Coordinates} - playing {card.cardName} as {actor.name}, occupant {(tile.Occupant != null ? tile.Occupant.name : "none")}");
 
         selected = null;
+        ClearHighlights();
         actor.SpendEnergy(card.cost);
         card.ResolveEffects(actor, tile);
 
-        StartCoroutine(Discard(cardViewer));
+        StartCoroutine(Discard(cardViewer, actor));
     }
 
     private static string Name(CardViewer cardViewer) =>
@@ -91,6 +99,11 @@ public class CardPlayManager : Singleton<CardPlayManager>
         cardViewer.SetSelected(true);
         CardHoverManager.Instance.HideLargeCard();
         StartCoroutine(handViewer.Relayout());
+
+        if (GridManager.Instance != null)
+        {
+            GridManager.Instance.ShowPlayableTiles(cardViewer.card, gameManager.ActiveCharacter);
+        }
     }
 
     private void Deselect()
@@ -99,10 +112,16 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         selected.SetSelected(false);
         selected = null;
+        ClearHighlights();
         StartCoroutine(handViewer.Relayout());
     }
 
-    private IEnumerator Discard(CardViewer cardViewer)
+    private static void ClearHighlights()
+    {
+        if (GridManager.Instance != null) { GridManager.Instance.ClearPlayableTiles(); }
+    }
+
+    private IEnumerator Discard(CardViewer cardViewer, Character actor)
     {
         cardViewer.BeginPlay();
 
@@ -110,7 +129,8 @@ public class CardPlayManager : Singleton<CardPlayManager>
         cardViewer.transform.DOMove(target, discardDuration);
         cardViewer.transform.DOScale(Vector3.zero, discardDuration);
 
-        gameManager.Discard(cardViewer.card);
+        // Into the actor's own discard pile - the card came out of that character's hand.
+        actor.Discard(cardViewer.card);
 
         yield return handViewer.RemoveCard(cardViewer);
         Destroy(cardViewer.gameObject);

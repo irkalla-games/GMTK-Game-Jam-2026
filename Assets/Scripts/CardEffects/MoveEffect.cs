@@ -7,4 +7,9 @@ public class MoveEffect : CardEffect
     {
         CardPlayManager.Instance.actionManager.AddAction(new MoveAction(), ctx);
     }
+
+    // The same method MoveCharacter itself consults, so the pre-flight check and the last line of
+    // defence can never disagree about where a character may stand.
+    public override string Refusal(Character source, GridTile target) =>
+        GridManager.MoveRefusal(source, target);
 }

@@ -1,5 +1,3 @@
-using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,6 +19,11 @@ public class CardData : ScriptableObject
 
     [field: SerializeField] public string cardName { get; private set; }
     [field: SerializeField] public int cost { get; private set; }
+
+    [field: Tooltip("Which tiles this card may be aimed at, measured from the acting character's tile. "
+                    + "Left at Anywhere, any tile on the board is legal.")]
+    [field: SerializeField] public TargetRange range { get; private set; }
+
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }

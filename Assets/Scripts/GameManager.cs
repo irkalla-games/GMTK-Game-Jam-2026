@@ -1,177 +1,126 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// Owns the main game loop: whose turn it is, when energy refreshes, when the battle ends.
+/// <summary>
+/// Owns which character you are currently playing as, and the hand on screen.
+///
+/// There is no turn order: every character holds its own deck, and clicking one makes it active. The
+/// hand you see always belongs to the active character, so switching swaps the whole hand over.
+/// </summary>
 public class GameManager : Singleton<GameManager>
 {
-    [Tooltip("The deck as authored. Card objects are built from this once, at the start of a battle.")]
-    public List<CardData> deck;
+    [Tooltip("Every character on the board. Each one owns its own deck; this is only used to deal the "
+             + "opening hands.")]
+    [SerializeField] private List<Character> characters = new();
 
     [SerializeField] private HandViewer handViewer;
 
-    [SerializeField] private List<Character> turnOrder = new();
+    [SerializeField] private int openingHandSize = 5;
 
-    [SerializeField] private int cardsPerTurn = 5;
-
-    /// Whose turn it is. Cards are played by this character and spend its energy.
+    /// Whose hand is on screen. Cards are played by this character and spend its energy.
     public Character ActiveCharacter { get; private set; }
 
-    public int TurnNumber { get; private set; }
-
-    // Card objects live here for the whole battle and move between piles. They are *not* rebuilt on
-    // each draw - a Card carries per-copy state (temporary cost, ethereal) that has to survive being
-    // played and redrawn.
-    private readonly List<Card> drawPile = new();
-
-    public readonly List<Card> discardPile = new();
-
-    private bool turnEnded;
-
-    private IEnumerator Start()
+    private void Start()
     {
-        yield return RunGame();
+        // Characters build their decks in Awake, so every draw pile is ready by now. Nothing is on
+        // screen yet either - ActiveCharacter is still null, so these opening draws build no viewers
+        // and SetActiveCharacter lays out the whole hand in one go below.
+        foreach (Character character in characters)
+        {
+            if (character == null) { continue; }
+
+            character.CardDrawn += OnCardDrawn;
+            character.DrawCards(openingHandSize);
+        }
+
+        SetActiveCharacter(FirstPlayableCharacter());
     }
 
-    private IEnumerator RunGame()
+    private void OnDestroy()
     {
-        BuildDrawPile();
-
-        while (!IsBattleOver())
+        foreach (Character character in characters)
         {
-            TurnNumber++;
-
-            foreach (Character character in turnOrder)
-            {
-                if (character == null || character.IsDead) { continue; }
-
-                yield return RunTurn(character);
-
-                if (IsBattleOver()) { break; }
-            }
+            if (character != null) { character.CardDrawn -= OnCardDrawn; }
         }
     }
 
-    private IEnumerator RunTurn(Character character)
+    /// Keeps the row on screen honest: a card drawn by the active character shows up straight away,
+    /// one drawn by anybody else stays in their hand until you switch to them.
+    private void OnCardDrawn(Character character, Card card)
     {
-        ActiveCharacter = character;
-        character.ResetEnergy();
-        turnEnded = false;
-
-        if (character.IsPlayerControlled)
-        {
-            DrawCards(cardsPerTurn);
-
-            while (!turnEnded) { yield return null; }
-        }
-        else
-        {
-            //TODO: AI turn. Non-player characters pass immediately for now.
-            yield return null;
-        }
-
-        ActiveCharacter = null;
+        if (character == ActiveCharacter) { AddToVisibleHand(card); }
     }
 
-    /// Ends the active player's turn. Hook to an end-turn button; also bound to Enter below.
-    public void EndTurn()
+    /// Every tile click lands here. With a card selected it is a play; with nothing selected it means
+    /// "play as whoever is standing here" - characters have no colliders of their own, so the tile
+    /// under one is what you click to pick it up.
+    public void OnTileClicked(GridTile tile)
     {
-        turnEnded = true;
-    }
+        if (tile == null) { return; }
 
-    private bool IsBattleOver()
-    {
-        //TODO: real win/loss conditions. The battle runs while both sides still have someone alive.
-        bool anyPlayer = false;
-        bool anyEnemy = false;
+        CardPlayManager cardPlayManager = CardPlayManager.Instance;
 
-        foreach (Character character in turnOrder)
+        if (cardPlayManager != null && cardPlayManager.HasSelection)
         {
-            if (character == null || character.IsDead) { continue; }
-
-            if (character.IsPlayerControlled) { anyPlayer = true; }
-            else { anyEnemy = true; }
-        }
-
-        return !anyPlayer || !anyEnemy;
-    }
-
-    private void BuildDrawPile()
-    {
-        drawPile.Clear();
-        discardPile.Clear();
-
-        foreach (CardData data in deck)
-        {
-            if (data != null) { drawPile.Add(new Card(data)); }
-        }
-
-        Shuffle(drawPile);
-    }
-
-    public void Discard(Card card)
-    {
-        discardPile.Add(card);
-    }
-
-    public void DrawCards(int amount)
-    {
-        for (int i = 0; i < amount; i++)
-        {
-            DrawCard();
-        }
-    }
-
-    public void DrawCard()
-    {
-        if (drawPile.Count == 0)
-        {
-            Debug.Log("drawPile is empty, reshuffling");
-            ReshuffleDiscardIntoDrawPile();
+            cardPlayManager.PlaySelectedOn(tile);
             return;
         }
-        
-        Debug.Log($"drawPile is {drawPile.Count}");
-        int last = drawPile.Count - 1;
-        Card card = drawPile[last];
-        drawPile.RemoveAt(last);
-        Debug.Log($"drew {card}, removed from drawPile");
 
+        Character occupant = tile.Occupant;
+
+        if (occupant == null || !occupant.IsPlayerControlled)
+        {
+            string who = occupant != null ? $"{occupant.name} is not player controlled" : "nobody here";
+            Debug.Log($"tile clicked: {tile.Coordinates} - no card selected, {who}");
+            return;
+        }
+
+        Debug.Log($"tile clicked: {tile.Coordinates} - activating {occupant.name}");
+        SetActiveCharacter(occupant);
+    }
+
+    /// Makes this character the one you are playing as and swaps the hand on screen over to its cards.
+    public void SetActiveCharacter(Character character)
+    {
+        if (character == null || character == ActiveCharacter) { return; }
+
+        ActiveCharacter = character;
+        Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
+
+        ShowHandFor(character);
+    }
+
+    private void ShowHandFor(Character character)
+    {
+        handViewer.ClearHand();
+
+        foreach (Card card in character.Hand) { AddToVisibleHand(card); }
+    }
+
+    private void AddToVisibleHand(Card card)
+    {
         CardViewer cardViewer = CreateCardViewer.Instance.CreateCard(card, transform.position, Quaternion.identity);
         StartCoroutine(handViewer.AddCard(cardViewer));
     }
 
-    private void ReshuffleDiscardIntoDrawPile()
+    private Character FirstPlayableCharacter()
     {
-        if (discardPile.Count == 0) { return; }
-
-        drawPile.AddRange(discardPile);
-        discardPile.Clear();
-        Shuffle(drawPile);
-    }
-
-    private static void Shuffle(List<Card> cards)
-    {
-        for (int i = cards.Count - 1; i > 0; i--)
+        foreach (Character character in characters)
         {
-            int j = Random.Range(0, i + 1);
-            (cards[i], cards[j]) = (cards[j], cards[i]);
+            if (character != null && character.IsPlayerControlled && !character.IsDead) { return character; }
         }
+
+        return null;
     }
 
-    void Update()
+    private void Update()
     {
-        if (Keyboard.current == null) { return; }
+        if (Keyboard.current == null || ActiveCharacter == null) { return; }
 
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            DrawCard();
-        }
-
-        if (Keyboard.current.enterKey.wasPressedThisFrame)
-        {
-            EndTurn();
+            ActiveCharacter.DrawCard();
         }
     }
 }

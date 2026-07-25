@@ -15,6 +15,10 @@ public class Card
     /// Mutable per copy: seeded from the asset, then free to change during a run.
     public int cost;
 
+    /// Also per copy, so a relic granting +1 range writes here. TargetRange is a value type, so this
+    /// is a copy - writing to it can never reach back into the shared CardData asset.
+    public TargetRange range;
+
     public string cardName => data.cardName;
     public string description => data.description;
     public Sprite image => data.image;
@@ -25,8 +29,35 @@ public class Card
     {
         this.data = newData;
         this.cost = newData.cost;
+        this.range = newData.range;
         // Effects are shared, stateless ScriptableObject resolvers, so aliasing the asset's list is safe.
         this.effects = newData.effects;
+    }
+
+    /// <summary>
+    /// Why this card cannot be played onto `target` by `source`, or null if it can.
+    ///
+    /// Asked once per click, before anything is spent - see CardPlayManager.PlaySelectedOn - and again
+    /// by GridManager to decide which tiles to light up, so the highlight can never disagree with what
+    /// a click actually does. Range is the card's own rule; anything past that is a rule only the
+    /// effect knows, so each effect gets asked in turn.
+    /// </summary>
+    public string Refusal(Character source, GridTile target)
+    {
+        if (!range.Contains(source != null ? source.Tile : null, target))
+        {
+            string where = target != null ? target.Coordinates.ToString() : "nowhere";
+            return $"{where} is out of range ({range})";
+        }
+
+        foreach (var effect in effects)
+        {
+            string refusal = effect != null ? effect.Refusal(source, target) : null;
+
+            if (refusal != null) { return refusal; }
+        }
+
+        return null;
     }
 
     /// Resolves every effect on this card, each against a context aimed at the played tile.

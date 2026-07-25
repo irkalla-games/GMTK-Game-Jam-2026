@@ -1,9 +1,14 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Skeleton. Everything a card can do to a character arrives through the tile it's standing on, so
-/// these are the entry points Tiles forwards to. Combat rules (how block/shield/parry actually reduce
-/// incoming damage, death, statuses) are not implemented here.
+/// A unit on the board. Everything a card can do to a character arrives through the tile it's standing
+/// on, so these are the entry points GridTile forwards to. Combat rules (how block/shield/parry
+/// actually reduce incoming damage, death, statuses) are not implemented here.
+///
+/// Each character owns its own deck and piles. Clicking a character makes it the active one, and its
+/// hand is what you see; there is no turn order.
 /// </summary>
 public class Character : MonoBehaviour
 {
@@ -16,6 +21,18 @@ public class Character : MonoBehaviour
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
+    [Tooltip("This character's deck as authored. Card objects are built from it once, in Awake.")]
+    [SerializeField] private List<CardData> deck = new();
+
+    // Card objects live here for the whole battle and move between piles. They are *not* rebuilt on
+    // each draw - a Card carries per-copy state (temporary cost, ethereal) that has to survive being
+    // played and redrawn.
+    private readonly List<Card> drawPile = new();
+
+    private readonly List<Card> hand = new();
+
+    private readonly List<Card> discardPile = new();
+
     public int Health { get; private set; }
 
     /// Each character has their own pool; playing a card spends the acting character's energy.
@@ -27,6 +44,13 @@ public class Character : MonoBehaviour
 
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
+
+    /// The cards currently held. GameManager builds the viewers for whichever character is active.
+    public IReadOnlyList<Card> Hand => hand;
+
+    /// Raised when a card lands in this hand. GameManager listens so the row on screen can follow the
+    /// active character - drawing itself is none of its business.
+    public event Action<Character, Card> CardDrawn;
 
     public bool CanAfford(int cost) => cost <= Energy;
 
@@ -61,21 +85,84 @@ public class Character : MonoBehaviour
         if (moveTo != null)
         {
             moveTo.SetOccupant(this);
-            
+
         }
     }
 
-    //TODO: there is one shared deck and hand right now, so this draws into it regardless of who asked.
-    //Once characters own their own decks this routes to this character's pile instead.
     public void DrawCards(int amount)
     {
-        if (GameManager.Instance != null) { GameManager.Instance.DrawCards(amount); }
+        for (int i = 0; i < amount; i++) { DrawCard(); }
+    }
+
+    /// Moves one card from this character's draw pile into its own hand and returns it, or null if
+    /// there is nothing left to draw even after reshuffling.
+    public Card DrawCard()
+    {
+        if (drawPile.Count == 0)
+        {
+            ReshuffleDiscardIntoDrawPile();
+
+            if (drawPile.Count == 0)
+            {
+                Debug.Log($"{name} has nothing left to draw");
+                return null;
+            }
+        }
+
+        int last = drawPile.Count - 1;
+        Card card = drawPile[last];
+        drawPile.RemoveAt(last);
+        hand.Add(card);
+
+        CardDrawn?.Invoke(this, card);
+
+        return card;
+    }
+
+    public void Discard(Card card)
+    {
+        hand.Remove(card);
+        discardPile.Add(card);
+    }
+
+    private void BuildDeck()
+    {
+        drawPile.Clear();
+        hand.Clear();
+        discardPile.Clear();
+
+        foreach (CardData data in deck)
+        {
+            if (data != null) { drawPile.Add(new Card(data)); }
+        }
+
+        Shuffle(drawPile);
+    }
+
+    private void ReshuffleDiscardIntoDrawPile()
+    {
+        if (discardPile.Count == 0) { return; }
+
+        drawPile.AddRange(discardPile);
+        discardPile.Clear();
+        Shuffle(drawPile);
+    }
+
+    private static void Shuffle(List<Card> cards)
+    {
+        for (int i = cards.Count - 1; i > 0; i--)
+        {
+            // Qualified: `using System` is in scope for Action, and System.Random would shadow this.
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (cards[i], cards[j]) = (cards[j], cards[i]);
+        }
     }
 
     private void Awake()
     {
         Health = maxHealth;
         Energy = maxEnergy;
+        BuildDeck();
     }
 
     private void Start()

@@ -10,9 +10,16 @@ public class GridTile : MonoBehaviour
 {
     private Vector2Int coordinates;
 
+    private TileSelector selector;
+
     public Vector2Int Coordinates => coordinates;
 
     public Character Occupant { get; private set; }
+
+    private void Awake()
+    {
+        selector = GetComponent<TileSelector>();
+    }
 
     public void Init(Vector2Int coordinates)
     {
@@ -22,6 +29,13 @@ public class GridTile : MonoBehaviour
     public void SetOccupant(Character character)
     {
         Occupant = character;
+    }
+
+    /// Lights this tile up as a legal target for the selected card. The colour itself belongs to
+    /// TileSelector, which owns the SpriteRenderer.
+    public void SetInRange(bool value)
+    {
+        if (selector != null) { selector.SetInRange(value); }
     }
 
     public void DealDamage(int amount)
@@ -56,9 +70,11 @@ public class GridTile : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (CardPlayManager.Instance != null)
+        // GameManager decides what the click means - playing the selected card, or switching to the
+        // character standing here.
+        if (GameManager.Instance != null)
         {
-            CardPlayManager.Instance.OnTileClicked(this);
+            GameManager.Instance.OnTileClicked(this);
         }
     }
 }

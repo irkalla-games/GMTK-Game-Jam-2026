@@ -25,13 +25,6 @@ public class Character : MonoBehaviour
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
 
-    public void SetTile(GridTile tile)
-    {
-        if (Tile != null && Tile.Occupant == this) { Tile.SetOccupant(null); }
-        Tile = tile;
-        if (tile != null) { tile.SetOccupant(this); }
-    }
-
     public bool CanAfford(int cost) => cost <= Energy;
 
     public void SpendEnergy(int cost)
@@ -57,7 +50,16 @@ public class Character : MonoBehaviour
 
     public void MoveTo(GridTile moveTo)
     {
-
+        if (Tile != null && Tile.Occupant == this)
+        {
+            Tile.SetOccupant(null);
+        }
+        Tile = moveTo;
+        if (moveTo != null)
+        {
+            moveTo.SetOccupant(this);
+            
+        }
     }
 
     //TODO: there is one shared deck and hand right now, so this draws into it regardless of who asked.

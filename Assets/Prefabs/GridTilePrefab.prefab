@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2817321457260048663}
   - component: {fileID: 1315722343972705636}
   - component: {fileID: 6478779665273333604}
+  - component: {fileID: 9185129640257608174}
   m_Layer: 0
   m_Name: GridTilePrefab
   m_TagString: Untagged
@@ -157,3 +158,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a09f77237d865542a62cac655046cc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+--- !u!114 &9185129640257608174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8821622835236939241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5aec2f8c2c6d51e41b391fe41df09f44, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridTile

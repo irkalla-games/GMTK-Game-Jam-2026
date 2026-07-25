@@ -13,6 +13,9 @@ public class Character : MonoBehaviour
 
     [SerializeField] private bool isPlayerControlled;
 
+    [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
+    [SerializeField] private Vector2Int startCoordinates;
+
     public int Health { get; private set; }
 
     /// Each character has their own pool; playing a card spends the acting character's energy.
@@ -73,5 +76,16 @@ public class Character : MonoBehaviour
     {
         Health = maxHealth;
         Energy = maxEnergy;
+    }
+
+    private void Start()
+    {
+        // GridManager builds the grid in Awake, which always runs before any Start, so tiles exist here.
+        GridTile tile = GridManager.Instance != null ? GridManager.Instance.GetTile(startCoordinates) : null;
+        if (tile != null)
+        {
+            MoveTo(tile);
+            transform.position = tile.transform.position;
+        }
     }
 }

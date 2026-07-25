@@ -990,7 +990,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef55c846337371c4d96bae064ab3de37, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  deck: []
+  deck:
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   handViewer: {fileID: 708147022}
   turnOrder: []
   cardsPerTurn: 5

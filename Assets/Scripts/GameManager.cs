@@ -32,6 +32,11 @@ public class GameManager : Singleton<GameManager>
     private IEnumerator Start()
     {
         yield return RunGame();
+
+        //TODO: remove once a player Character is in turnOrder. With it empty the battle is over before
+        //it starts, so RunGame builds the draw pile and returns without anyone drawing - deal the
+        //opening hand here so the deck is visible on screen.
+        if (TurnNumber == 0) { DrawCards(cardsPerTurn); }
     }
 
     private IEnumerator RunGame()
@@ -125,12 +130,18 @@ public class GameManager : Singleton<GameManager>
 
     public void DrawCard()
     {
-        if (drawPile.Count == 0) { ReshuffleDiscardIntoDrawPile(); }
-        if (drawPile.Count == 0) { return; }
-
+        if (drawPile.Count == 0)
+        {
+            Debug.Log("drawPile is empty, reshuffling");
+            ReshuffleDiscardIntoDrawPile();
+            return;
+        }
+        
+        Debug.Log($"drawPile is {drawPile.Count}");
         int last = drawPile.Count - 1;
         Card card = drawPile[last];
         drawPile.RemoveAt(last);
+        Debug.Log($"drew {card}, removed from drawPile");
 
         CardViewer cardViewer = CreateCardViewer.Instance.CreateCard(card, transform.position, Quaternion.identity);
         StartCoroutine(handViewer.AddCard(cardViewer));

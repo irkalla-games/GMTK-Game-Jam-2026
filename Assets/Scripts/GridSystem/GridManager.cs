@@ -40,7 +40,14 @@ public class GridManager : MonoBehaviour
             {
                 Vector2Int position = new Vector2Int(x, y);
 
-                GridTile tile = new GridTile(tilePrefab, position, IsoToWorld(position.x, position.y));
+                // Instantiate the prefab, then attach/init a GridTile component on the real GameObject.
+                // GridTile is a MonoBehaviour, so it must live on an instance - never `new`'d.
+                GameObject go = Instantiate(tilePrefab, tileParent);
+                go.transform.position = IsoToWorld(position.x, position.y);
+
+                GridTile tile = go.GetComponent<GridTile>();
+                if (tile == null) { tile = go.AddComponent<GridTile>(); }
+                tile.Init(position);
 
                 tiles.Add(position, tile);
             }

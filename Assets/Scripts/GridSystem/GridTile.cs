@@ -1,25 +1,23 @@
-using System;
 using UnityEngine;
-using UnityEngine.UIElements;
 
+/// <summary>
+/// One board tile. Cards target tiles; a tile forwards what happens to it onto its Occupant.
+///
+/// This is a component that lives on an instantiated tile GameObject - never `new`'d. GridManager
+/// instantiates the prefab and calls Init() to give the tile its grid coordinates.
+/// </summary>
 public class GridTile : MonoBehaviour
 {
     private Vector2Int coordinates;
-    private Vector3 worldCoordinates;
-    private GameObject tilePrefab;
-    private Vector2Int position;
-
-    public GridTile(GameObject tilePrefab, Vector2Int position, Vector3 worldCoordinates)
-    {
-        this.tilePrefab = tilePrefab;
-        this.position = position;
-        this.worldCoordinates = worldCoordinates;
-        GameObject tile = Instantiate(tilePrefab, worldCoordinates, Quaternion.identity);
-    }
 
     public Vector2Int Coordinates => coordinates;
 
     public Character Occupant { get; private set; }
+
+    public void Init(Vector2Int coordinates)
+    {
+        this.coordinates = coordinates;
+    }
 
     public void SetOccupant(Character character)
     {
@@ -63,6 +61,4 @@ public class GridTile : MonoBehaviour
             CardPlayManager.Instance.OnTileClicked(this);
         }
     }
-
-
 }

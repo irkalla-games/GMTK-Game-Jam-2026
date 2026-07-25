@@ -19,14 +19,22 @@ public class Card
     public string description => data.description;
     public Sprite image => data.image;
 
-    public List<CardEffect> effects;
+    private List<CardEffect> effects;
 
     public Card(CardData newData)
     {
         this.data = newData;
         this.cost = newData.cost;
+        // Effects are shared, stateless ScriptableObject resolvers, so aliasing the asset's list is safe.
+        this.effects = newData.effects;
     }
 
-
-
+    /// Resolves every effect on this card, each against a context aimed at the played tile.
+    public void ResolveEffects(Character source, GridTile target)
+    {
+        foreach (var effect in effects)
+        {
+            effect.Resolve(new ActionContext(this, source, target));
+        }
+    }
 }

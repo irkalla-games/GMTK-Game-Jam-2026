@@ -23,20 +23,32 @@ public class CardPlayManager : Singleton<CardPlayManager>
     public void OnCardClicked(CardViewer cardViewer)
     {
         // CardHoverManager's preview card is also a CardViewer with a collider, so it fires this too.
-        if (cardViewer == null || !handViewer.Contains(cardViewer)) { return; }
+        if (cardViewer == null || !handViewer.Contains(cardViewer))
+        {
+            Debug.Log($"card clicked: {Name(cardViewer)} - ignored, not in hand (hover preview?)");
+            return;
+        }
 
         if (selected == cardViewer)
         {
+            Debug.Log($"card clicked: {Name(cardViewer)} - deselecting");
             Deselect();
             return;
         }
 
+        Debug.Log($"card clicked: {Name(cardViewer)} (cost {cardViewer.card.cost}) - selecting");
         Select(cardViewer);
     }
 
     public void OnTileClicked(GridTile tile)
     {
-        if (!HasSelection || tile == null) { return; }
+        if (tile == null) { return; }
+
+        if (!HasSelection)
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} - no card selected");
+            return;
+        }
 
         CardViewer cardViewer = selected;
         Card card = cardViewer.card;
@@ -45,21 +57,31 @@ public class CardPlayManager : Singleton<CardPlayManager>
         // outside of a turn.
         Character actor = gameManager.ActiveCharacter;
 
-        if (actor == null || !actor.CanAfford(card.cost))
+        if (actor == null)
         {
+            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - no active character to pay the cost");
             cardViewer.transform.DOShakePosition(0.25f, 0.15f);
             return;
         }
 
+        if (!actor.CanAfford(card.cost))
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {actor.name} cannot afford {card.cost} (energy {actor.Energy})");
+            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
+            return;
+        }
+
+        Debug.Log($"tile clicked: {tile.Coordinates} - playing {card.cardName} as {actor.name}, occupant {(tile.Occupant != null ? tile.Occupant.name : "none")}");
+
         selected = null;
         actor.SpendEnergy(card.cost);
-        foreach (var effect in card.effects)
-        {
-            effect.Resolve(new ActionContext(card, gameManager.ActiveCharacter, tile));
-        }
+        card.ResolveEffects(actor, tile);
 
         StartCoroutine(Discard(cardViewer));
     }
+
+    private static string Name(CardViewer cardViewer) =>
+        cardViewer != null && cardViewer.card != null ? cardViewer.card.cardName : "null";
 
     private void Select(CardViewer cardViewer)
     {

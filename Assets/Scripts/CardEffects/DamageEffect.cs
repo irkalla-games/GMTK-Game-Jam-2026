@@ -25,18 +25,11 @@ public class DamageEffect : CardEffect
     /// </summary>
     public override string Refusal(Character source, GridTile target)
     {
-        Character occupant = target != null ? target.Occupant : null;
-
-        if (occupant == null) { return "there is nobody there to damage"; }
-
-        if (canHitAllies) { return null; }
-
-        // Sides are just "player controlled or not" for now - there are no teams beyond that yet.
-        if (source != null && occupant.IsPlayerControlled == source.IsPlayerControlled)
+        if (canHitAllies)
         {
-            return $"{occupant.name} is on your own side";
+            return target != null && target.Occupant != null ? null : "there is nobody there to damage";
         }
 
-        return null;
+        return RefuseByOccupant(source, target, wantAlly: false);
     }
 }

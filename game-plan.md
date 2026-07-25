@@ -77,6 +77,8 @@ nothing in a scene references it by GUID.
 
 ### 2.1 Representation
 
+Every temporary modifier is a status: buffs and curses alike, differing only in their numbers.
+
 ```csharp
 /// Written into .asset files by StatusEffect — append only, never reorder.
 /// None = 0 so an effect whose dropdown was never set does nothing loudly, rather than
@@ -84,32 +86,75 @@ nothing in a scene references it by GUID.
 /// which had to preserve pre-existing assets. There are no status assets yet.)
 public enum StatusType {
     None = 0,
-    Strength = 1,           // flat bonus to outgoing damage, permanent for the combat
-    DoubleNextAttack = 2,   // x2 outgoing damage, consumed by the next attack, never decays
+    Strength = 1,           // buff  - +stacks to outgoing damage
+    DoubleNextAttack = 2,   // buff  - x2 outgoing damage, spent by the next attack
+    Poison = 3,             // curse - stacks damage at the start of each of your turns
+    Frozen = 4,             // curse - cannot act at all
+}
+
+public enum StatusKind { Buff = 0, Curse = 1 }
+```
+
+**Two independent expiry mechanisms**, and a status may use either, both, or neither:
+
+| | expires by | example |
+|---|---|---|
+| **Duration** | `turnsRemaining` ticking to 0 at `TurnStart` | Poison 3 turns, Frozen 1 turn |
+| **Charge** | an event spending a stack | DoubleNextAttack, spent by an attack |
+| **Neither** | `Indefinite` — lasts the whole combat | Strength |
+
+Keeping these separate is what lets one type cover all four. Collapsing duration into stacks (the
+Slay the Spire trick, where poison's stack count *is* its remaining turns) would make Strength and
+Poison need different storage.
+
+```csharp
+/// One status on one character. Mutable and per-character - the enum is the type,
+/// this is the copy, the same split as CardData/Card.
+public class Status {
+    public const int Indefinite = -1;
+
+    public readonly StatusType type;
+    public int stacks;           // magnitude, or remaining charges
+    public int turnsRemaining;   // Indefinite never ticks down
 }
 ```
+
+`StatusDefinition` is a static lookup giving each type its unchanging metadata — `Kind` for UI
+colouring and for future "remove all curses" effects, plus a display name. Static rather than a
+ScriptableObject: nothing about "Poison is a curse" varies per asset, and an SO per status is four
+files of ceremony for four constants.
 
 On `Character`, matching the existing `readonly` collection pattern:
 
 ```csharp
-private readonly Dictionary<StatusType, int> statuses = new();
+private readonly List<Status> statuses = new();
 
-public int StatusStacks(StatusType type) => statuses.TryGetValue(type, out int n) ? n : 0;
-
-public void AddStatus(StatusType type, int stacks) {
-    if (type == StatusType.None || stacks <= 0) { return; }
-    statuses[type] = StatusStacks(type) + stacks;
-}
-
-private bool ConsumeStatus(StatusType type) {
-    int n = StatusStacks(type);
-    if (n <= 0) { return false; }
-    statuses[type] = n - 1;
-    return true;
-}
+public IReadOnlyList<Status> Statuses => statuses;
+public int StatusStacks(StatusType type);
+public void AddStatus(StatusType type, int stacks, int turns);   // stacks up if already present
+public bool ConsumeStatus(StatusType type);                      // spends one charge
+public void TickStatuses();                                      // called from TurnStart
 ```
 
+`AddStatus` on an existing status adds stacks and takes the **longer** of the two durations, so
+re-applying Poison never shortens it.
+
 Enemies get statuses for free — both sides are `Character`.
+
+### 2.1b What each type does, and where
+
+- **Strength** — `+stacks` in `PreviewOutgoingDamage`. Indefinite.
+- **DoubleNextAttack** — `×2`, spent in `ConsumeOutgoingDamage`. Charge-based, no duration.
+- **Poison** — `TickStatuses` deals `stacks` damage at `TurnStart`, **bypassing armor** (it's not an
+  attack). Then the duration decrements.
+- **Frozen** — `Character.CanAct` returns false while any stack remains. For enemies, the brain is
+  skipped and the AP is burnt; for players, `CardPlayManager.PlaySelectedOn` refuses **above the
+  commit point** so a frozen character's click costs nothing. Frozen is an actor-state rule, not a
+  targeting rule, so it does *not* belong in `Card.Refusal` — that answers "may this card go on this
+  tile", and the answer here doesn't depend on the tile.
+
+`CanAnyoneAct()` must also treat a frozen character as unable to act, or a fully frozen party stalls
+`PlayerActing` forever.
 
 ### 2.2 The damage pipeline
 

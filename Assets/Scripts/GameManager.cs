@@ -19,6 +19,10 @@ public class GameManager : Singleton<GameManager>
     /// Whose hand is on screen. Cards are played by this character and spend its energy.
     public Character ActiveCharacter { get; private set; }
 
+    /// Everyone on the board, both sides. BattleRunner walks this to refresh energy, tick statuses
+    /// and find whose turn it is.
+    public IReadOnlyList<Character> Characters => characters;
+
     private void Start()
     {
         // Characters build their decks in Awake, so every draw pile is ready by now. Nothing is on

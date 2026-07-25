@@ -1,16 +1,15 @@
 using UnityEngine;
 
-public class DrawEffect : MonoBehaviour
+[CreateAssetMenu(menuName = "Card Effects/Draw Cards")]
+public class DrawEffect : CardEffect
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private int drawAmount = 1;
+
+    public override void Resolve(ActionContext ctx)
     {
-        
+        ActionManager.Instance.AddAction(new DrawAction(drawAmount), ctx);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    /// No refusal and no aiming to get wrong: DrawAction always draws for ctx.source, so this cannot
+    /// be pointed at anybody else however the asset is authored.
 }

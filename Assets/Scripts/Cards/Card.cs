@@ -52,7 +52,14 @@ public class Card
 
         foreach (var effect in effects)
         {
-            string refusal = effect != null ? effect.Refusal(source, target) : null;
+            if (effect == null) { continue; }
+
+            // Source-aimed effects are not asked. They land on the caster no matter where the click
+            // went, so letting one object would mean Steely Attack refusing itself the moment
+            // ShieldEffect grew a rule - the caster's own tile is, of course, occupied by the caster.
+            if (effect.AimsAt == EffectTarget.Source) { continue; }
+
+            string refusal = effect.Refusal(source, target);
 
             if (refusal != null) { return refusal; }
         }
@@ -60,12 +67,23 @@ public class Card
         return null;
     }
 
-    /// Resolves every effect on this card, each against a context aimed at the played tile.
+    /// <summary>
+    /// Resolves every effect on this card, each against its own context.
+    ///
+    /// A context per effect, not per card - that is what lets one card point its effects at different
+    /// things. Steely Attack damages the tile you clicked and armors the character who played it.
+    /// </summary>
     public void ResolveEffects(Character source, GridTile target)
     {
         foreach (var effect in effects)
         {
-            effect.Resolve(new ActionContext(this, source, target));
+            if (effect == null) { continue; }
+
+            GridTile aim = effect.AimsAt == EffectTarget.Source
+                ? (source != null ? source.Tile : null)
+                : target;
+
+            effect.Resolve(new ActionContext(this, source, aim));
         }
     }
 }

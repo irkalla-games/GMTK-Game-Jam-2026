@@ -22,6 +22,13 @@ public class ActionManager : Singleton<ActionManager>
 
     private bool isRunning;
 
+    /// <summary>
+    /// Nothing left to resolve. The turn loop waits on this before letting the next enemy act -
+    /// StartCoroutine runs synchronously up to the first yield, so AddAction resolves the first
+    /// action *inside* the call and "I queued it" is not the same as "it finished".
+    /// </summary>
+    public bool IsIdle => !isRunning && actions.Count == 0;
+
     public void AddAction(GameAction action, ActionContext ctx)
     {
         actions.Enqueue((action, ctx));

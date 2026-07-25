@@ -18,6 +18,13 @@ public class Character : MonoBehaviour
 
     [SerializeField] private bool isPlayerControlled;
 
+    [Tooltip("Which cards this character may hold. Cards not matching are skipped when the deck is "
+             + "built.")]
+    [SerializeField] private CharacterClass characterClass;
+
+    [Tooltip("Actions this character takes per turn. Enemies only - players spend energy instead.")]
+    [SerializeField] private int actionPoints = 2;
+
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
@@ -33,6 +40,9 @@ public class Character : MonoBehaviour
 
     private readonly List<Card> discardPile = new();
 
+    /// Buffs and curses alike. One list, because they are the same machinery - see StatusType.
+    private readonly List<Status> statuses = new();
+
     /// Current health. Serialized only so the live value is watchable in the Inspector during Play
     /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
     /// saved, so the stored value is a readout, never authoring data - edit Max Health instead.
@@ -42,9 +52,24 @@ public class Character : MonoBehaviour
     /// Each character has their own pool; playing a card spends the acting character's energy.
     public int Energy { get; private set; }
 
+    /// Absorbs damage ahead of health and is wiped at the start of every turn. Serialized purely as
+    /// an Inspector readout, same as Health.
+    [field: SerializeField, ReadOnlyField]
+    public int Armor { get; private set; }
+
     public bool IsPlayerControlled => isPlayerControlled;
 
+    public CharacterClass Class => characterClass;
+
+    public int ActionPoints => actionPoints;
+
     public bool IsDead => Health <= 0;
+
+    /// Frozen stops a character dead. Checked before a card is paid for, and by the turn loop when it
+    /// asks whether anybody can still act - a fully frozen party would otherwise stall the turn.
+    public bool CanAct => !IsDead && StatusStacks(StatusType.Frozen) <= 0;
+
+    public IReadOnlyList<Status> Statuses => statuses;
 
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
@@ -55,6 +80,9 @@ public class Character : MonoBehaviour
     /// Raised when a card lands in this hand. GameManager listens so the row on screen can follow the
     /// active character - drawing itself is none of its business.
     public event Action<Character, Card> CardDrawn;
+
+    /// Raised once, when this character drops to 0 and leaves the board.
+    public event Action<Character> Died;
 
     public bool CanAfford(int cost) => cost <= Energy;
 
@@ -68,16 +96,167 @@ public class Character : MonoBehaviour
         Energy = maxEnergy;
     }
 
-    //TODO: block/shield/parry mitigation. Right now damage goes straight to health.
-    public void TakeDamage(int amount) { Health = Mathf.Max(0, Health - amount); }
+    /// Armor is spent before health and does not carry between turns. Persistent armor would not
+    /// survive this card set - Steely Attack grants 5 for 1 energy while also dealing damage, so at
+    /// three plays a turn the Knight would bank 15 a turn and stop being killable.
+    public void ResetArmor()
+    {
+        Armor = 0;
+    }
+
+    public void TakeDamage(int amount)
+    {
+        if (amount <= 0) { return; }
+
+        int absorbed = Mathf.Min(Armor, amount);
+        Armor -= absorbed;
+        Health = Mathf.Max(0, Health - (amount - absorbed));
+
+        CheckDeath();
+    }
+
+    /// Damage that ignores armor. Poison is not an attack - armor is a shield you hold up, and it
+    /// does nothing about something already in your blood.
+    public void TakeUnblockableDamage(int amount)
+    {
+        if (amount <= 0) { return; }
+
+        Health = Mathf.Max(0, Health - amount);
+
+        CheckDeath();
+    }
+
+    /// <summary>
+    /// Leaves the board on death. MoveTo(null) is the only path that clears GridTile.Occupant, so
+    /// without this a corpse holds its tile for the rest of the battle - blocking movement, refusing
+    /// Move cards aimed at it, and soaking attacks that should have hit somebody alive.
+    /// </summary>
+    private void CheckDeath()
+    {
+        if (!IsDead || Tile == null) { return; }
+
+        Debug.Log($"{name} is down");
+
+        MoveTo(null);
+        Died?.Invoke(this);
+    }
 
     public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); }
 
-    public void AddShield(int amount) { }
+    public void AddShield(int amount) { Armor += Mathf.Max(0, amount); }
 
+    //TODO: block is per-instance damage reduction, unlike armor which is a pool. Not needed by any
+    //card in either kit yet - if it stays unwanted, delete BlockAction rather than leave a second
+    //half-built mitigation system next to a working one.
     public void GainBlock(int amount, int count) { }
 
+    //TODO: parry reflects damage back at the attacker. Same story as block.
     public void GainParry(int reflectTotal, int count) { }
+
+    public int StatusStacks(StatusType type)
+    {
+        foreach (Status status in statuses)
+        {
+            if (status.type == type) { return status.stacks; }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Applies a status, stacking onto one already present. Re-applying takes the *longer* of the two
+    /// durations so a top-up can never shorten what is already there - and Indefinite, being -1, has
+    /// to be special-cased or Mathf.Max would treat it as the shortest.
+    /// </summary>
+    public void AddStatus(StatusType type, int stacks, int turnsRemaining)
+    {
+        if (type == StatusType.None || stacks <= 0) { return; }
+
+        foreach (Status existing in statuses)
+        {
+            if (existing.type != type) { continue; }
+
+            existing.stacks += stacks;
+
+            if (existing.turnsRemaining != Status.Indefinite)
+            {
+                existing.turnsRemaining = turnsRemaining == Status.Indefinite
+                    ? Status.Indefinite
+                    : Mathf.Max(existing.turnsRemaining, turnsRemaining);
+            }
+
+            return;
+        }
+
+        statuses.Add(new Status(type, stacks, turnsRemaining));
+    }
+
+    /// Spends one charge of a status, for the ones an event uses up rather than time. True if there
+    /// was one to spend.
+    public bool ConsumeStatus(StatusType type)
+    {
+        for (int i = 0; i < statuses.Count; i++)
+        {
+            if (statuses[i].type != type || statuses[i].stacks <= 0) { continue; }
+
+            statuses[i].stacks--;
+            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// One turn passing: curses that deal damage do it, then every timed status ages by one and the
+    /// expired ones drop. Statuses with no duration (Strength, and charge-spent ones like
+    /// DoubleNextAttack) are untouched.
+    ///
+    /// Iterated backwards because expiring a status removes it mid-loop.
+    /// </summary>
+    public void TickStatuses()
+    {
+        for (int i = statuses.Count - 1; i >= 0; i--)
+        {
+            Status status = statuses[i];
+
+            if (status.type == StatusType.Poison) { TakeUnblockableDamage(status.stacks); }
+
+            if (status.turnsRemaining > 0) { status.turnsRemaining--; }
+
+            if (status.IsExpired) { statuses.RemoveAt(i); }
+        }
+    }
+
+    /// <summary>
+    /// What this character's attack would hit for, without changing anything. Safe for tooltips,
+    /// damage previews and enemy AI scoring.
+    ///
+    /// Additive before multiplicative, so Quick Attack at 9 with +3 Strength and a Double Attack
+    /// lands (9 + 3) x 2 = 24, not (9 x 2) + 3 = 21. That makes Strengthen-then-Buff the correct
+    /// order to play them in, which is the more interesting decision.
+    /// </summary>
+    public int PreviewOutgoingDamage(int amount)
+    {
+        amount += StatusStacks(StatusType.Strength);
+
+        if (StatusStacks(StatusType.DoubleNextAttack) > 0) { amount *= 2; }
+
+        return amount;
+    }
+
+    /// <summary>
+    /// The same sum, but it spends the Double Attack charge. Exactly one call site - DamageAction -
+    /// and it must stay that way: anything calling this to *display* a number would destroy the buff
+    /// without an attack ever happening. Use PreviewOutgoingDamage to look.
+    /// </summary>
+    public int ConsumeOutgoingDamage(int amount)
+    {
+        if (ConsumeStatus(StatusType.DoubleNextAttack)) { amount *= 2; }
+        amount += StatusStacks(StatusType.Strength);
+        return amount;
+    }
 
     public void MoveTo(GridTile moveTo)
     {

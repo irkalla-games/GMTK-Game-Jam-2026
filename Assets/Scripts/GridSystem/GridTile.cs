@@ -63,14 +63,26 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.GainParry(reflectTotal, count); }
     }
 
+    /// <summary>
+    /// Routed through GridManager, not straight to Occupant.MoveTo. MoveTo only swaps occupancy
+    /// references - it does not move the transform and does not consult MoveRefusal - so calling it
+    /// directly leaves the sprite standing on one tile while the board thinks it is on another.
+    /// </summary>
     public void MoveCharacter(GridTile moveTo)
     {
-        if (Occupant != null) { Occupant.MoveTo(moveTo); }
+        if (Occupant == null || GridManager.Instance == null) { return; }
+
+        GridManager.Instance.MoveCharacter(Occupant, moveTo);
     }
 
     public void DrawCards(int drawAmount)
     {
         if (Occupant != null) { Occupant.DrawCards(drawAmount); }
+    }
+
+    public void ApplyStatus(StatusType status, int stacks, int turnsRemaining)
+    {
+        if (Occupant != null) { Occupant.AddStatus(status, stacks, turnsRemaining); }
     }
 
     private void OnMouseDown()

@@ -328,11 +328,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b8079a4f0e74a04ea4655e0c6a74515, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   maxHealth: 10
   maxEnergy: 5
   isPlayerControlled: 1
+  characterClass: 0
+  actionPoints: 2
   startCoordinates: {x: 4, y: 4}
   deck:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
@@ -342,6 +344,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: 000c1f73e085eb64b8d858c64dfdfcda, type: 2}
   - {fileID: 11400000, guid: 000c1f73e085eb64b8d858c64dfdfcda, type: 2}
+  <Health>k__BackingField: 10
+  <Armor>k__BackingField: 0
 --- !u!1 &282495234
 GameObject:
   m_ObjectHideFlags: 0
@@ -947,11 +951,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b8079a4f0e74a04ea4655e0c6a74515, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   maxHealth: 10
   maxEnergy: 5
   isPlayerControlled: 0
+  characterClass: 0
+  actionPoints: 2
   startCoordinates: {x: 3, y: 5}
   deck:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
@@ -959,6 +965,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  <Health>k__BackingField: 10
+  <Armor>k__BackingField: 0
 --- !u!1001 &526219089
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1039,11 +1047,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b8079a4f0e74a04ea4655e0c6a74515, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   maxHealth: 10
   maxEnergy: 5
   isPlayerControlled: 1
+  characterClass: 0
+  actionPoints: 2
   startCoordinates: {x: 0, y: 0}
   deck:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
@@ -1053,6 +1063,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: 000c1f73e085eb64b8d858c64dfdfcda, type: 2}
   - {fileID: 11400000, guid: 000c1f73e085eb64b8d858c64dfdfcda, type: 2}
+  <Health>k__BackingField: 10
+  <Armor>k__BackingField: 0
 --- !u!1 &708147020
 GameObject:
   m_ObjectHideFlags: 0
@@ -2773,6 +2785,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76952bc3ee747c74fb7ecd78b5c1a7f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActionManager
+  defaultResolveDelay: 0.15
 --- !u!1 &2118511623
 GameObject:
   m_ObjectHideFlags: 0
@@ -2988,7 +3001,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3781914325811438519, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9961947
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3781914325811438519, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_LocalRotation.x
@@ -3000,7 +3013,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3781914325811438519, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.08715578
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3781914325811438519, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -3012,7 +3025,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3781914325811438519, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 10
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8821622835236939241, guid: 4f3d237c41899ca48afd24574da0a026, type: 3}
       propertyPath: m_Name

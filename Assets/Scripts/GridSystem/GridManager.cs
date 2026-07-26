@@ -179,8 +179,8 @@ public class GridManager : Singleton<GridManager>
     
     Vector3 IsoToWorld(int x, int y)
     {
-        float tileWidth = 2.6f;
-        float tileHeight = 1.4f;
+        float tileWidth = 3f;
+        float tileHeight = 1.5f;
 
         return new Vector3(
             ((x - y) * tileWidth / 2) + 3,

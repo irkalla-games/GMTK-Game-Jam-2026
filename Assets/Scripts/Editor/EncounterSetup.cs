@@ -22,9 +22,12 @@ public static class EncounterSetup
         "Assets/Extra Assets/Dark fantasy - popular enemies- Free Sample/Goblin/Goblin_Thief.prefab";
 
     /// <summary>
-    /// Warriors outnumber archers, and both together outnumber the party. Six enemies against two
-    /// heroes is roughly 12 enemy actions against 6 player plays - deliberately lopsided, which is
-    /// what makes armor and position matter rather than raw damage.
+    /// Three warriors against two heroes: six enemy actions a turn against six player plays, and
+    /// every one of them wants to be adjacent to you. Enough to make position matter without the
+    /// archers' straight-line problem on top of it while melee is still being tuned.
+    ///
+    /// Spread across the back row rather than stacked, so they arrive on different turns and the
+    /// party is not simply swarmed on turn one.
     /// </summary>
     private static readonly (string name, BrainType brain, int health, int damage, int move, int reach,
                              Vector2Int cell)[] Encounter =
@@ -32,14 +35,12 @@ public static class EncounterSetup
         ("Goblin Warrior 1", BrainType.Warrior, 34, 6, 3, 1, new Vector2Int(0, 5)),
         ("Goblin Warrior 2", BrainType.Warrior, 34, 6, 3, 1, new Vector2Int(2, 5)),
         ("Goblin Warrior 3", BrainType.Warrior, 34, 6, 3, 1, new Vector2Int(4, 5)),
-        ("Goblin Archer 1",  BrainType.Archer,  24, 5, 2, 4, new Vector2Int(1, 4)),
-        ("Goblin Archer 2",  BrainType.Archer,  24, 5, 2, 4, new Vector2Int(3, 4)),
     };
 
     [MenuItem("Tools/Battle/Set Up Goblin Encounter")]
     public static void SetUp()
     {
-        BattleManager battle = Object.FindFirstObjectByType<BattleManager>();
+        BattleManager battle = Object.FindAnyObjectByType<BattleManager>();
 
         if (battle == null)
         {
@@ -63,7 +64,9 @@ public static class EncounterSetup
 
         // Surviving player characters keep their place at the front of the roster - FirstPlayableCharacter
         // walks it in order, so whoever is listed first is who you start the battle as.
-        foreach (Character existing in Object.FindObjectsByType<Character>(FindObjectsSortMode.None)
+        // Ordered by name rather than by whatever the scene hands back: BattleManager walks this list
+        // to pick who you start as, so it should not depend on find order.
+        foreach (Character existing in Object.FindObjectsByType<Character>()
                                              .Where(c => c.IsPlayerControlled)
                                              .OrderBy(c => c.name))
         {

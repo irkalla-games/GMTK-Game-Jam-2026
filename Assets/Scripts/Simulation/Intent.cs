@@ -1,46 +1,29 @@
-using System.Collections.Generic;
 using UnityEngine;
 
-public enum ActionType
-{
-    Wait = 0,
-    Move = 1,
-    Attack = 2,
-}
-
 /// <summary>
-/// One thing an enemy means to do, in coordinates. A brain's whole output.
+/// One thing an enemy means to do: play this card on that tile.
 ///
-/// Targets a tile, never a character - the same rule cards follow. Whoever is standing there is
-/// resolved at execution time, which is exactly what makes an intent able to miss: the player has a
-/// whole turn to move the target out from under a committed attack.
+/// Not a bespoke Move/Attack pair. An enemy's damage, reach and movement distance are properties of
+/// its cards, exactly as they are for the player - a goblin hits for 6 because it holds a card that
+/// deals 6, not because a number on the goblin says so. Two systems for "how far can this thing
+/// reach" is one too many, and the card one already answers it.
 ///
-/// Move stores the full path rather than just the destination. A blocked move advances as far as it
-/// can and stops, and that needs the route - with only an endpoint there is no way to tell "somebody
-/// is standing on my destination" from "somebody is standing halfway along it".
+/// Targets a tile, never a character. Whoever is standing there is resolved when the card actually
+/// resolves, which is what lets a committed intent miss: the player has a whole turn to move the
+/// target out from under it.
 /// </summary>
 public struct Intent
 {
-    public ActionType type;
+    public Card card;
 
-    /// Step by step, excluding the tile the mover starts on. Move only.
-    public List<Vector2Int> path;
-
-    /// The tile being struck. Attack only.
     public Vector2Int target;
 
-    public static Intent Wait() => new() { type = ActionType.Wait };
+    public bool IsWait => card == null;
 
-    public static Intent MoveAlong(List<Vector2Int> path) =>
-        path == null || path.Count == 0 ? Wait() : new Intent { type = ActionType.Move, path = path };
+    public static Intent Wait() => default;
 
-    public static Intent AttackAt(Vector2Int target) =>
-        new() { type = ActionType.Attack, target = target };
+    public static Intent Play(Card card, Vector2Int target) => new() { card = card, target = target };
 
-    public override string ToString() => type switch
-    {
-        ActionType.Move => $"Move to {(path != null && path.Count > 0 ? path[^1].ToString() : "nowhere")}",
-        ActionType.Attack => $"Attack {target}",
-        _ => "Wait",
-    };
+    public override string ToString() =>
+        IsWait ? "Wait" : $"{card.cardName} at {target}";
 }

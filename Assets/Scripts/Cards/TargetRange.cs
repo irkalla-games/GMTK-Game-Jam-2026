@@ -55,6 +55,12 @@ public struct TargetRange
 
     public RangeShape Shape => shape;
 
+    public int MinDistance => minDistance;
+
+    /// How far this card reaches. Enemy brains read it to decide where to stand - an enemy's reach is
+    /// whatever its cards say it is, not a stat of its own.
+    public int MaxDistance => maxDistance;
+
     public TargetRange(RangeShape shape, int minDistance, int maxDistance)
     {
         this.shape = shape;

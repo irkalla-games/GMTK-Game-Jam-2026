@@ -166,8 +166,12 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
-    /// Draws what an enemy has committed to doing: a line along the route for a move, a line to the
-    /// victim for an attack.
+    /// Draws what an enemy has committed to doing: a line from it to the tile its card is aimed at.
+    ///
+    /// Red when the tile has somebody on it, amber when it does not - which distinguishes a swing
+    /// from a walk without needing to know anything about the card. That is the same trick the brains
+    /// use to tell attacks from moves: what a card does is settled by where it is legal, not by a
+    /// label on it.
     ///
     /// Here rather than in a TelegraphViewer of its own - that would be two public methods, which is
     /// a function looking for a file rather than a concept. GridManager is already what draws on the
@@ -178,31 +182,15 @@ public class GridManager : Singleton<GridManager>
     /// </summary>
     public void ShowIntent(Character enemy, Intent intent)
     {
-        if (enemy == null || enemy.Tile == null || intent.type == ActionType.Wait) { return; }
+        if (enemy == null || enemy.Tile == null || intent.IsWait) { return; }
 
-        List<Vector3> points = new() { enemy.Tile.transform.position };
+        GridTile tile = GetTile(intent.target);
 
-        if (intent.type == ActionType.Move)
-        {
-            if (intent.path == null) { return; }
+        if (tile == null) { return; }
 
-            foreach (Vector2Int cell in intent.path)
-            {
-                GridTile tile = GetTile(cell);
-                if (tile != null) { points.Add(tile.transform.position); }
-            }
-        }
-        else
-        {
-            GridTile tile = GetTile(intent.target);
-            if (tile == null) { return; }
+        List<Vector3> points = new() { enemy.Tile.transform.position, tile.transform.position };
 
-            points.Add(tile.transform.position);
-        }
-
-        if (points.Count < 2) { return; }
-
-        telegraphs.Add(DrawTelegraph(points, intent.type == ActionType.Attack));
+        telegraphs.Add(DrawTelegraph(points, tile.Occupant != null));
     }
 
 

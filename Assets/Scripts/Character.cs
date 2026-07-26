@@ -28,16 +28,10 @@ public class Character : MonoBehaviour
     [Tooltip("Which rule list this enemy runs. None means it stands there - correct for players.")]
     [SerializeField] private BrainType brain;
 
-    [Tooltip("Damage one enemy attack deals. Tuned against 60 HP heroes and ~10 armor a turn, so "
-             + "5-7 is the band where armor matters but cannot outpace the whole board.")]
-    [SerializeField] private int attackDamage = 6;
-
-    [Tooltip("Tiles this enemy can cross in a single action.")]
-    [SerializeField] private int moveRange = 3;
-
-    [Tooltip("How far this enemy can strike. 1 is melee - the warrior. Anything more is a shooter, "
-             + "and only counts down the four straight lines.")]
-    [SerializeField] private int attackRange = 1;
+    // No attack damage, reach or move speed here. Those are properties of the cards a character
+    // holds - a goblin hits for 6 because it is holding a card that deals 6, and reaches two tiles
+    // because that card's TargetRange says two. Duplicating them onto the character would be a
+    // second answer to a question the card already answers, and the two would drift.
 
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
@@ -79,11 +73,6 @@ public class Character : MonoBehaviour
 
     public BrainType Brain => brain;
 
-    public int AttackDamage => attackDamage;
-
-    public int MoveRange => moveRange;
-
-    public int AttackRange => attackRange;
 
     /// <summary>
     /// What this enemy told the player it was going to do, decided at the start of the turn.

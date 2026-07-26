@@ -11,14 +11,17 @@ public enum BrainType
 }
 
 /// <summary>
-/// Decides one action for one enemy. Plain C#, no Unity types beyond Vector2Int, no state - so the
-/// same instance serves every goblin and can be exercised in a test without a scene.
+/// Decides one card to play, and where.
 ///
-/// One action, not a plan. Only an enemy's first action of a turn is committed in advance; the rest
-/// are decided as they happen, so there is nothing to chain and nothing to simulate.
+/// A brain supplies *tactics*, never capability. How hard an enemy hits, how far it reaches and how
+/// far it walks are all properties of the cards in its hand - so a goblin is made dangerous by giving
+/// it a better card, not by editing a number on the goblin. What separates a warrior from an archer
+/// is what it does with the same information: one wants to be next to you, the other wants to be
+/// exactly as far away as its longest card reaches.
 ///
-/// Rules are written as literal ordered ifs. Readability beats cleverness here - when a goblin does
-/// something baffling, the fix should be findable by reading top to bottom.
+/// That also means legality is never re-derived here. Card.Refusal already answers "may this card be
+/// played on that tile", and it is the same call the player's click is gated on - so an enemy can
+/// never play something a player in its position could not.
 /// </summary>
 public abstract class EnemyBrain
 {
@@ -32,142 +35,160 @@ public abstract class EnemyBrain
         _ => null,
     };
 
-    /// <param name="self">Where this enemy is standing.</param>
-    /// <param name="isPlayerControlled">Which side it is on - so brains work for either.</param>
-    /// <param name="moveRange">How many steps it may take in one action.</param>
-    /// <param name="attackRange">How far it can strike. 1 is melee.</param>
-    public abstract Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
-                                  int attackRange, Board board);
-}
+    public abstract Intent Decide(Character self, Board board);
 
-/// <summary>
-/// Closes to melee and swings. Everything it wants is at range 1, so its whole job is to be adjacent
-/// to somebody - which makes body-blocking the counter, since a warrior with no reachable target
-/// simply walks and never gets to spend the swing.
-/// </summary>
-public class WarriorBrain : EnemyBrain
-{
-    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
-                                  int attackRange, Board board)
+    /// <summary>
+    /// The best card this character could play at something on the other side, or none.
+    ///
+    /// A card counts as an attack purely because it is legal on a tile holding an enemy - DamageEffect
+    /// refuses empty tiles and its own side, so only attacks pass there, and MoveEffect refuses
+    /// occupied tiles so it never does. No card needs to be labelled; the refusal rules already
+    /// separate them.
+    ///
+    /// Ties break toward the most hurt target, which is what makes a pack finish somebody off rather
+    /// than spreading damage evenly across the party.
+    /// </summary>
+    protected static bool TryFindAttack(Character self, out Intent intent)
     {
-        // 1. Already in reach? Hit them. Cheapest check, and the one that matters most.
-        //    Chebyshev, so the diagonals count - the same metric the Move card uses.
-        foreach (Vector2Int cell in InReach(self, attackRange))
+        intent = Intent.Wait();
+
+        if (self.Tile == null || GridManager.Instance == null) { return false; }
+
+        int weakest = int.MaxValue;
+
+        foreach (Card card in self.Hand)
         {
-            if (board.IsEnemyOf(cell, isPlayerControlled)) { return Intent.AttackAt(cell); }
-        }
-
-        // 2. Otherwise close the distance toward whoever is nearest.
-        if (!board.TryNearestEnemy(self, isPlayerControlled, out Vector2Int quarry)) { return Intent.Wait(); }
-
-        Dictionary<Vector2Int, int> distance = board.Flood(self, moveRange);
-
-        Vector2Int best = self;
-        int bestGap = int.MaxValue;
-
-        foreach (KeyValuePair<Vector2Int, int> reachable in distance)
-        {
-            int gap = Board.ChebyshevDistance(reachable.Key, quarry);
-
-            // Ties broken by the shorter walk, so it does not wander to reach the same spot.
-            if (gap < bestGap || (gap == bestGap && reachable.Value < distance[best]))
+            foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
             {
-                best = reachable.Key;
-                bestGap = gap;
+                Character occupant = tile.Occupant;
+
+                if (occupant == null || occupant.IsPlayerControlled == self.IsPlayerControlled) { continue; }
+
+                if (card.Refusal(self, tile) != null) { continue; }
+
+                if (occupant.Health >= weakest) { continue; }
+
+                weakest = occupant.Health;
+                intent = Intent.Play(card, tile.Coordinates);
             }
         }
 
-        return best == self ? Intent.Wait() : Intent.MoveAlong(board.PathTo(distance, self, best));
-    }
-
-    private static IEnumerable<Vector2Int> InReach(Vector2Int cell, int range)
-    {
-        for (int dx = -range; dx <= range; dx++)
-        {
-            for (int dy = -range; dy <= range; dy++)
-            {
-                if (dx != 0 || dy != 0) { yield return cell + new Vector2Int(dx, dy); }
-            }
-        }
-    }
-}
-
-/// <summary>
-/// Keeps its distance and shoots down straight lines. Retreating when threatened is what makes it
-/// read as an archer rather than a warrior with reach.
-/// </summary>
-public class ArcherBrain : EnemyBrain
-{
-    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
-                                  int attackRange, Board board)
-    {
-        Dictionary<Vector2Int, int> distance = board.Flood(self, moveRange);
-
-        // 1. Somebody is in melee. Get out first - a cornered archer that keeps shooting just dies,
-        //    and this is the rule that makes it read as an archer rather than a warrior with reach.
-        if (board.HasAdjacentEnemy(self, isPlayerControlled))
-        {
-            Vector2Int retreat = BestCell(board, distance, isPlayerControlled, self, attackRange,
-                                          preferSafety: true);
-
-            if (retreat != self) { return Intent.MoveAlong(board.PathTo(distance, self, retreat)); }
-
-            // Nowhere to run. Shoot whatever is in front of you rather than doing nothing.
-        }
-
-        // 2. A clear line right now? Take the shot. Straight lines only, and it stops at the first
-        //    body - so standing an ally in the way genuinely blocks it.
-        if (board.TryLineTarget(self, isPlayerControlled, attackRange, out Vector2Int hit))
-        {
-            return Intent.AttackAt(hit);
-        }
-
-        // 3. Otherwise walk to somewhere that *would* have a line. This is the step that produces
-        //    move-then-shoot across two action points without any code saying so: the move happens,
-        //    and next time round the line check above is simply true.
-        Vector2Int firing = BestCell(board, distance, isPlayerControlled, self, attackRange,
-                                     preferSafety: false);
-
-        return firing == self ? Intent.Wait() : Intent.MoveAlong(board.PathTo(distance, self, firing));
+        return !intent.IsWait;
     }
 
     /// <summary>
-    /// Scores every reachable tile and returns the best. preferSafety puts "not next to anybody"
-    /// above "can shoot"; otherwise a firing line wins.
+    /// The best legal move, scored by the brain's own idea of a good place to stand. Lower is better.
+    ///
+    /// Movement distance is the move card's range, so a card that reaches three tiles moves three
+    /// tiles - there is no separate move speed, and giving an enemy a longer stride means giving it a
+    /// better card.
     /// </summary>
-    private static Vector2Int BestCell(Board board, Dictionary<Vector2Int, int> distance,
-                                       bool isPlayerControlled, Vector2Int self, int attackRange,
-                                       bool preferSafety)
+    protected static bool TryFindMove(Character self, System.Func<Vector2Int, int> score, out Intent intent)
     {
-        Vector2Int best = self;
-        int bestScore = Score(board, self, isPlayerControlled, attackRange, preferSafety);
+        intent = Intent.Wait();
 
-        foreach (KeyValuePair<Vector2Int, int> reachable in distance)
+        if (self.Tile == null || GridManager.Instance == null) { return false; }
+
+        int best = score(self.Tile.Coordinates);
+
+        foreach (Card card in self.Hand)
         {
-            if (reachable.Key == self) { continue; }
-
-            int score = Score(board, reachable.Key, isPlayerControlled, attackRange, preferSafety);
-
-            if (score > bestScore)
+            foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
             {
-                bestScore = score;
-                best = reachable.Key;
+                if (tile.Occupant != null || card.Refusal(self, tile) != null) { continue; }
+
+                int value = score(tile.Coordinates);
+
+                if (value >= best) { continue; }
+
+                best = value;
+                intent = Intent.Play(card, tile.Coordinates);
             }
         }
 
-        return best;
+        return !intent.IsWait;
     }
 
-    private static int Score(Board board, Vector2Int cell, bool isPlayerControlled, int attackRange,
-                             bool preferSafety)
+    /// The longest reach among this character's cards. An enemy's "range" is whatever it is holding.
+    protected static int LongestReach(Character self)
     {
-        bool safe = !board.HasAdjacentEnemy(cell, isPlayerControlled);
-        bool canShoot = board.TryLineTarget(cell, isPlayerControlled, attackRange, out _);
+        int longest = 1;
 
-        int safety = safe ? 1 : 0;
-        int firing = canShoot ? 1 : 0;
+        foreach (Card card in self.Hand)
+        {
+            longest = Mathf.Max(longest, card.range.MaxDistance);
+        }
 
-        // Weighted rather than sorted so one comparison covers both, and the loser still breaks ties.
-        return preferSafety ? safety * 4 + firing : firing * 4 + safety;
+        return longest;
+    }
+}
+
+/// <summary>
+/// Closes and swings. Everything it can do is at short range, so its whole job is standing next to
+/// somebody - which makes bodies in the way the counter, since a warrior that cannot reach anyone
+/// spends its turn walking.
+/// </summary>
+public class WarriorBrain : EnemyBrain
+{
+    public override Intent Decide(Character self, Board board)
+    {
+        // Attack first. Cheapest to check and always better than repositioning.
+        if (TryFindAttack(self, out Intent attack)) { return attack; }
+
+        // Otherwise get closer to whoever is nearest.
+        if (!board.TryNearestEnemy(self.Tile.Coordinates, self.IsPlayerControlled, out Vector2Int quarry))
+        {
+            return Intent.Wait();
+        }
+
+        return TryFindMove(self, cell => Board.ChebyshevDistance(cell, quarry), out Intent move)
+            ? move
+            : Intent.Wait();
+    }
+}
+
+/// <summary>
+/// Wants to be exactly as far away as its longest card reaches, and never adjacent.
+///
+/// Retreating before shooting is what makes it read as an archer rather than a warrior with reach -
+/// an archer that stands and trades in melee is just a bad warrior.
+/// </summary>
+public class ArcherBrain : EnemyBrain
+{
+    public override Intent Decide(Character self, Board board)
+    {
+        Vector2Int here = self.Tile.Coordinates;
+        bool threatened = board.HasAdjacentEnemy(here, self.IsPlayerControlled);
+
+        // Cornered comes first: back off before taking a shot, unless there is nowhere to back off to.
+        if (threatened && TryFindMove(self, Standoff(self, board), out Intent retreat)) { return retreat; }
+
+        if (TryFindAttack(self, out Intent shot)) { return shot; }
+
+        return TryFindMove(self, Standoff(self, board), out Intent reposition) ? reposition : Intent.Wait();
+    }
+
+    /// <summary>
+    /// Scores a tile by how far it is from the ideal firing position: at the edge of its own reach,
+    /// and never in melee. Being too close is punished hard, which is what produces the backing-away
+    /// behaviour without a separate retreat rule.
+    /// </summary>
+    private static System.Func<Vector2Int, int> Standoff(Character self, Board board)
+    {
+        int reach = LongestReach(self);
+
+        return cell =>
+        {
+            if (!board.TryNearestEnemy(cell, self.IsPlayerControlled, out Vector2Int quarry))
+            {
+                return 0;
+            }
+
+            int gap = Board.ChebyshevDistance(cell, quarry);
+            int penalty = Mathf.Abs(gap - reach);
+
+            // Adjacent is far worse than merely badly spaced, so it will give up a shot to step away.
+            return gap <= 1 ? penalty + 10 : penalty;
+        };
     }
 }

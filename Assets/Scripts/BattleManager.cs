@@ -300,7 +300,7 @@ public class BattleManager : Singleton<BattleManager>
         {
             enemy.CommittedIntent = Decide(enemy, board);
 
-            if (enemy.CommittedIntent.type == ActionType.Wait) { continue; }
+            if (enemy.CommittedIntent.IsWait) { continue; }
 
             Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
             GridManager.Instance.ShowIntent(enemy, enemy.CommittedIntent);
@@ -356,7 +356,7 @@ public class BattleManager : Singleton<BattleManager>
                     ? enemy.CommittedIntent
                     : Decide(enemy, GridManager.Instance.Read());
 
-                if (step.type == ActionType.Wait) { break; }
+                if (step.IsWait) { break; }
 
                 yield return StartCoroutine(Execute(enemy, step));
 
@@ -379,67 +379,41 @@ public class BattleManager : Singleton<BattleManager>
 
         if (brain == null || character.Tile == null) { return Intent.Wait(); }
 
-        return brain.Decide(character.Tile.Coordinates, character.IsPlayerControlled,
-                            character.MoveRange, character.AttackRange, board);
+        return brain.Decide(character, board);
     }
 
     /// <summary>
-    /// Carries out one intent. Both branches can come up empty, and that is the point - a committed
-    /// intent is a promise made a whole turn ago against a board the player has been rearranging.
+    /// Plays the committed card, if it is still legal.
+    ///
+    /// The fizzle is Card.Refusal saying no - the same call the player's click is gated on. An intent
+    /// is a promise made a whole turn ago against a board you have spent the turn rearranging, so a
+    /// goblin that meant to walk somewhere you are now standing, or swing at somebody who has moved
+    /// or died, simply finds its card illegal and burns the action point.
+    ///
+    /// Resolution goes through ResolveEffects exactly as a played card does, so enemy attacks pick up
+    /// Strength, Double Attack and the target's armor for free. Nothing in the card pipeline needed
+    /// to learn that enemies exist.
     /// </summary>
     private IEnumerator Execute(Character enemy, Intent step)
     {
-        if (step.type == ActionType.Move)
-        {
-            yield return StartCoroutine(Advance(enemy, step));
-            yield break;
-        }
-
         GridTile tile = GridManager.Instance.GetTile(step.target);
-        Character victim = tile != null ? tile.Occupant : null;
 
-        // The miss. Whoever was standing here moved or died during your turn, and the swing still
-        // costs the action point. This is what body-blocking and killing early actually buys.
-        if (victim == null || victim.IsPlayerControlled == enemy.IsPlayerControlled)
+        string refusal = tile == null ? "that tile is gone" : step.card.Refusal(enemy, tile);
+
+        if (refusal != null)
         {
-            //TODO: a whiff animation. A swing at nothing currently only reads in the console, and a
-            //silent no-op looks like a bug rather than like your dodge working.
-            Debug.Log($"{enemy.name} attacks {step.target} and hits nothing");
+            //TODO: a visible fizzle. This currently only reads in the console, so a plan you broke
+            //looks like an enemy that did nothing rather than like your block working.
+            Debug.Log($"{enemy.name} tries {step.card.cardName} at {step.target} - {refusal}");
             yield break;
         }
 
-        // Through the action queue with a null card, so enemy attacks pick up Strength, Double Attack
-        // and the target's armor by the same path a played card would. Nothing about the damage
-        // pipeline needed to know enemies exist.
-        ActionManager.Instance.AddAction(new DamageAction(enemy.AttackDamage),
-                                         new ActionContext(null, enemy, tile));
-    }
+        Debug.Log($"{enemy.name} plays {step.card.cardName} at {step.target}");
 
-    /// <summary>
-    /// Walks the committed path one tile at a time, stopping at the first tile somebody is standing
-    /// on rather than cancelling outright. A goblin shouldering up against the Knight reads far
-    /// better than one that decided not to bother.
-    ///
-    /// MoveCharacter already refuses occupied tiles via MoveRefusal, so the block check is just its
-    /// return value - checked per step rather than once, which is the whole difference between
-    /// "destination taken" and "somebody is standing halfway along the route".
-    /// </summary>
-    private IEnumerator Advance(Character enemy, Intent step)
-    {
-        if (step.path == null) { yield break; }
+        enemy.Discard(step.card);
+        step.card.ResolveEffects(enemy, tile);
 
-        foreach (Vector2Int cell in step.path)
-        {
-            GridTile tile = GridManager.Instance.GetTile(cell);
-
-            if (tile == null || !GridManager.Instance.MoveCharacter(enemy, tile))
-            {
-                Debug.Log($"{enemy.name} is blocked at {cell} and stops short");
-                yield break;
-            }
-
-            yield return new WaitForSeconds(stepDuration);
-        }
+        yield return new WaitForSeconds(stepDuration);
     }
 
     private IEnumerable<Character> LivingEnemies()

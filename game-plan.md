@@ -91,9 +91,10 @@ public enum StatusType {
     Poison = 3,             // curse - stacks damage at the start of each of your turns
     Frozen = 4,             // curse - cannot act at all
 }
-
-public enum StatusKind { Buff = 0, Curse = 1 }
 ```
+
+Buff vs curse is a comment, not a type. Nothing consumes the distinction yet — when a "remove all
+curses" card or a status-icon tint needs it, the enum's doc comments say which is which.
 
 **Two independent expiry mechanisms**, and a status may use either, both, or neither:
 
@@ -119,11 +120,6 @@ public class Status {
 }
 ```
 
-`StatusDefinition` is a static lookup giving each type its unchanging metadata — `Kind` for UI
-colouring and for future "remove all curses" effects, plus a display name. Static rather than a
-ScriptableObject: nothing about "Poison is a curse" varies per asset, and an SO per status is four
-files of ceremony for four constants.
-
 On `Character`, matching the existing `readonly` collection pattern:
 
 ```csharp
@@ -143,8 +139,8 @@ Enemies get statuses for free — both sides are `Character`.
 
 ### 2.1b What each type does, and where
 
-- **Strength** — `+stacks` in `PreviewOutgoingDamage`. Indefinite.
-- **DoubleNextAttack** — `×2`, spent in `ConsumeOutgoingDamage`. Charge-based, no duration.
+- **Strength** — `+stacks` in `ComputeOutgoingDamage`. Indefinite.
+- **DoubleNextAttack** — `×2`, spent in `ComputeOutgoingDamage(shouldConsume: true)`. Charge-based, no duration.
 - **Poison** — `TickStatuses` deals `stacks` damage at `TurnStart`, **bypassing armor** (it's not an
   attack). Then the duration decrements.
 - **Frozen** — `Character.CanAct` returns false while any stack remains. For enemies, the brain is
@@ -168,7 +164,7 @@ and have no business knowing attacker stats. Compute in `DamageAction`, where `c
 public override IEnumerator Execute(ActionContext ctx) {
     // ONCE per play, before the loop. An AoE must not consume the buff per tile,
     // nor double each tile independently.
-    int amount = ctx.source != null ? ctx.source.ConsumeOutgoingDamage(damageAmount) : damageAmount;
+    int amount = ctx.source != null ? ctx.source.ComputeOutgoingDamage(damageAmount, shouldConsume: true) : damageAmount;
     foreach (GridTile target in ctx.targets) { target.DealDamage(amount); }
     yield return new WaitForSeconds(ResolveDelay);
 }
@@ -177,28 +173,27 @@ public override IEnumerator Execute(ActionContext ctx) {
 Zero signature changes elsewhere, and "cards target tiles" stays intact — the tile still just gets a
 number.
 
-**The consume/preview split.** `ConsumeOutgoingDamage` mutates: it spends the double. Anything calling
-it to *display* a number destroys the buff without an attack happening. Two halves:
+**One method, with a flag for the mutating half.** Applying Double Attack spends its charge, so the
+same sum has to be reachable without spending it — a tooltip, or an AI scoring a move it has not made
+yet, must not destroy the buff.
 
 ```csharp
-/// Pure. Safe for tooltips, damage previews, enemy AI scoring.
-public int PreviewOutgoingDamage(int amount) {
-    amount += StatusStacks(StatusType.Strength);
-    if (StatusStacks(StatusType.DoubleNextAttack) > 0) { amount *= 2; }
-    return amount;
-}
+/// shouldConsume: true from the one place actually swinging (DamageAction), false to look.
+public int ComputeOutgoingDamage(int amount, bool shouldConsume) {
+    bool doubled = shouldConsume
+        ? ConsumeStatus(StatusType.DoubleNextAttack)
+        : StatusStacks(StatusType.DoubleNextAttack) > 0;
 
-/// Mutating. Exactly one call site: DamageAction.Execute.
-public int ConsumeOutgoingDamage(int amount) {
-    amount += StatusStacks(StatusType.Strength);
-    if (ConsumeStatus(StatusType.DoubleNextAttack)) { amount *= 2; }
-    return amount;
+    if (doubled) { amount *= 2; }
+
+    return amount + StatusStacks(StatusType.Strength);
 }
 ```
 
-**Order: additive first, then multiplicative.** `(base + strength) × 2`. Quick Attack at 9 with +3
-Strength and a Buff deals `(9+3)×2 = 24`, not `(9×2)+3 = 21`. This makes Strengthen-then-Buff the
-correct sequencing, which is the more interesting decision.
+**Order: the card's own number doubles, then Strength is added.** Quick Attack at 9 with +3 Strength
+and a Buff deals `(9×2)+3 = 21`. Strength is a flat bonus on top rather than something the buff
+multiplies, which keeps Double Attack's value tied to the card it lands on instead of scaling with
+however much Strength has piled up.
 
 ### 2.3 Armor
 
@@ -557,7 +552,7 @@ also have a firing line, then tiles farthest from the nearest hero; hero in a st
 the *first* unit in that line; else move to the nearest reachable tile with a firing line; else Wait.
 No facing — it fires along any of the 4 cardinals.
 
-Brains score with `PreviewOutgoingDamage`, never `Consume` — a simulated attack must not spend a real
+Brains score with `shouldConsume: false` — a simulated attack must not spend a real
 buff.
 
 **Enemies need `actionPoints`.** Add `[SerializeField] private int actionPoints = 2;` to `Character`
@@ -616,7 +611,7 @@ rather than ported to it later.
 
 **Cards:**
 6. `StatusType` + `statuses` dictionary + `AddStatus`/`StatusStacks`/`ConsumeStatus`.
-7. `Preview`/`ConsumeOutgoingDamage`; wire Consume into `DamageAction` above the target loop.
+7. `ComputeOutgoingDamage`; wire it into `DamageAction` above the target loop.
 8. `RefuseByOccupant` on `CardEffect`; refactor `DamageEffect` onto it.
 9. `StatusAction` + `StatusEffect` + `GridTile.ApplyStatus`.
 10. `CharacterClass` enum, `CardData`/`Character` fields, `BuildDeck` validation, `CanBeUsedBy`.

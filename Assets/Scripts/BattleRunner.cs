@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum BattlePhase
 {
@@ -50,8 +51,23 @@ public class BattleRunner : MonoBehaviour
         StartCoroutine(RunBattle());
     }
 
+    private void Update()
+    {
+        // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
+        // Space is already taken by GameManager's debug draw.
+        if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+        {
+            RequestEndTurn();
+        }
+    }
+
     private IEnumerator RunBattle()
     {
+        // One frame before anything happens. Unity gives no ordering between one Start and another,
+        // and GameManager.Start is what subscribes to CardDrawn - draw a card before that and it
+        // lands in a hand with no viewer built for it.
+        yield return null;
+
         TurnsRemaining = turnsToSurvive;
 
         while (true)
@@ -137,13 +153,25 @@ public class BattleRunner : MonoBehaviour
         foreach (Character enemy in LivingEnemies())
         {
             // Frozen burns the whole turn, not one action - there is no partial thaw.
-            if (!enemy.CanAct) { continue; }
+            if (!enemy.CanAct)
+            {
+                Debug.Log($"{enemy.name} is frozen and loses its turn");
+                continue;
+            }
 
-            //TODO: the AP loop goes here, and is the whole of the enemy turn. Step 0 executes the
-            //intent committed at TurnStart, right or wrong - a blocked move advances as far as it
-            //can, an attack on an empty tile visibly misses. Every later step is decided fresh
-            //against the live board, so it can never be stale. Waiting on EnemyBrain; until then
-            //enemies stand there and the turn is player-only.
+            //TODO: the AP loop goes here and is the whole of the enemy turn:
+            //
+            //  for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++) {
+            //      Intent step = ap == 0 ? enemy.CommittedIntent : enemy.Brain.Decide(enemy, board);
+            //      if (step.type == ActionType.Wait) { break; }
+            //      yield return Execute(enemy, step);
+            //      yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+            //  }
+            //
+            //Step 0 executes the intent committed at TurnStart, right or wrong - a blocked move
+            //advances as far as it can, an attack on an empty tile visibly misses. Every later step
+            //is decided against the live board, so it can never be stale. Waiting on EnemyBrain.
+            Debug.Log($"{enemy.name} has {enemy.ActionPoints} AP and no brain to spend them");
         }
 
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so

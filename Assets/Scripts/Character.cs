@@ -230,32 +230,25 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// What this character's attack would hit for, without changing anything. Safe for tooltips,
-    /// damage previews and enemy AI scoring.
+    /// What this character's attack lands for, once Strength and Double Attack are applied.
     ///
-    /// Additive before multiplicative, so Quick Attack at 9 with +3 Strength and a Double Attack
-    /// lands (9 + 3) x 2 = 24, not (9 x 2) + 3 = 21. That makes Strengthen-then-Buff the correct
-    /// order to play them in, which is the more interesting decision.
+    /// shouldConsume is the whole difference between swinging and looking. True spends the Double
+    /// Attack charge and belongs to the one place actually attacking - DamageAction. False leaves it
+    /// untouched, for tooltips, damage previews and enemy AI scoring a move it has not made yet.
+    /// Passing true to display a number would destroy the buff without an attack ever happening.
+    ///
+    /// Double Attack multiplies the card's own number and Strength is added after, so Quick Attack
+    /// at 9 with +3 Strength and a Double Attack lands (9 x 2) + 3 = 21.
     /// </summary>
-    public int PreviewOutgoingDamage(int amount)
+    public int ComputeOutgoingDamage(int amount, bool shouldConsume)
     {
-        amount += StatusStacks(StatusType.Strength);
+        bool doubled = shouldConsume
+            ? ConsumeStatus(StatusType.DoubleNextAttack)
+            : StatusStacks(StatusType.DoubleNextAttack) > 0;
 
-        if (StatusStacks(StatusType.DoubleNextAttack) > 0) { amount *= 2; }
+        if (doubled) { amount *= 2; }
 
-        return amount;
-    }
-
-    /// <summary>
-    /// The same sum, but it spends the Double Attack charge. Exactly one call site - DamageAction -
-    /// and it must stay that way: anything calling this to *display* a number would destroy the buff
-    /// without an attack ever happening. Use PreviewOutgoingDamage to look.
-    /// </summary>
-    public int ConsumeOutgoingDamage(int amount)
-    {
-        if (ConsumeStatus(StatusType.DoubleNextAttack)) { amount *= 2; }
-        amount += StatusStacks(StatusType.Strength);
-        return amount;
+        return amount + StatusStacks(StatusType.Strength);
     }
 
     public void MoveTo(GridTile moveTo)

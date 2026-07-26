@@ -14,7 +14,8 @@ public class GameManager : Singleton<GameManager>
              + "opening hands.")]
     [SerializeField] private List<Character> characters = new();
 
-    [SerializeField] private int openingHandSize = 5;
+    // Hand size belongs to BattleRunner, which tops every hand back up at the start of each turn -
+    // including the first. Dealing here as well meant two numbers that had to agree.
 
     /// Whose hand is on screen. Cards are played by this character and spend its energy.
     public Character ActiveCharacter { get; private set; }
@@ -25,15 +26,14 @@ public class GameManager : Singleton<GameManager>
 
     private void Start()
     {
-        // Characters build their decks in Awake, so every draw pile is ready by now. Nothing is on
-        // screen yet either - ActiveCharacter is still null, so these opening draws build no viewers
-        // and SetActiveCharacter lays out the whole hand in one go below.
+        // Subscribe before anybody draws. BattleRunner waits a frame before its first TurnStart for
+        // exactly this reason - a card drawn ahead of this loop would land in a hand with no viewer
+        // built for it.
         foreach (Character character in characters)
         {
             if (character == null) { continue; }
 
             character.CardDrawn += OnCardDrawn;
-            character.DrawCards(openingHandSize);
         }
 
         SetActiveCharacter(FirstPlayableCharacter());
@@ -118,15 +118,5 @@ public class GameManager : Singleton<GameManager>
         }
 
         return null;
-    }
-
-    private void Update()
-    {
-        if (Keyboard.current == null || ActiveCharacter == null) { return; }
-
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
-        {
-            ActiveCharacter.DrawCard();
-        }
     }
 }

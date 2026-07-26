@@ -1,0 +1,62 @@
+Azure Will-o’-Wisp.png
+size:1925,1658
+filter:Linear,Linear
+pma:true
+Layer 458
+bounds:2,17,315,315
+Layer 460
+bounds:1265,5,107,204
+Layer 460b
+bounds:1374,5,107,204
+Layer 461
+bounds:1483,12,92,197
+Layer 462
+bounds:928,364,62,136
+rotate:90
+Layer 462b
+bounds:1066,364,62,136
+rotate:90
+Layer 463
+bounds:1204,373,53,110
+rotate:90
+Layer 463b
+bounds:1251,1546,50,110
+Layer 46b1
+bounds:1577,13,92,196
+offsets:0,1,92,197
+flame_0000_2
+bounds:1331,211,479,566
+offsets:20,1,506,670
+rotate:90
+flame_0001_1
+bounds:831,1028,418,628
+offsets:36,1,506,670
+flame_0002_3
+bounds:1331,692,481,569
+offsets:0,3,506,670
+rotate:90
+flame_0003_4
+bounds:1331,1175,481,592
+offsets:18,2,506,670
+rotate:90
+flame_0004_5
+bounds:2,334,494,651
+offsets:12,0,506,670
+flame_0005_6
+bounds:498,355,428,648
+offsets:54,5,506,670
+flame_0006_7
+bounds:412,1005,417,651
+offsets:74,7,506,670
+flame_0007_8
+bounds:2,987,408,669
+offsets:65,1,506,670
+flame_0008_9
+bounds:928,428,401,598
+offsets:83,4,506,670
+flame_0009_10
+bounds:636,2,351,627
+offsets:85,0,506,670
+rotate:90
+headD
+bounds:319,17,315,315

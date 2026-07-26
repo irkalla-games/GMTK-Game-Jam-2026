@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
-  m_Name: Fireball
+  m_Name: Shield
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: Fireball
+  <cardName>k__BackingField: Block
   <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 1
-    minDistance: 1
-    maxDistance: 5
+    shape: 3
+    minDistance: 0
+    maxDistance: 0
   <requiredClass>k__BackingField: 0
-  <description>k__BackingField: Deal 5 damage to an enemy within 5 tiles.
+  <description>k__BackingField: Blocks 8 damage.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
-  - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
+  - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}

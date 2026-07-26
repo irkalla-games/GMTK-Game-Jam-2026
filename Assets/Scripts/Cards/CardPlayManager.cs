@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DG.Tweening;
+using System;
 
 /// Click a card to select it, then click a tile to play it there.
 public class CardPlayManager : Singleton<CardPlayManager>
@@ -93,6 +94,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         StartCoroutine(Discard(cardViewer, actor));
     }
+
 
     private static string Name(CardViewer cardViewer) =>
         cardViewer != null && cardViewer.card != null ? cardViewer.card.cardName : "null";

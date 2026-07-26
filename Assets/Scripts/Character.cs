@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,8 @@ using UnityEngine;
 public class Character : MonoBehaviour
 {
     [SerializeField] private int maxHealth = 10;
+
+    [SerializeField] private TextMeshProUGUI healthBar;
 
     [SerializeField] private int maxEnergy = 3;
 
@@ -123,6 +126,7 @@ public class Character : MonoBehaviour
     public void ResetArmor()
     {
         Armor = 0;
+        healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Armor.ToString() + ")";
     }
 
     public void TakeDamage(int amount)
@@ -132,7 +136,7 @@ public class Character : MonoBehaviour
         int absorbed = Mathf.Min(Armor, amount);
         Armor -= absorbed;
         Health = Mathf.Max(0, Health - (amount - absorbed));
-
+        healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Armor.ToString() + ")";
         CheckDeath();
     }
 
@@ -162,9 +166,9 @@ public class Character : MonoBehaviour
         Died?.Invoke(this);
     }
 
-    public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); }
+    public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Armor.ToString() + ")"; }
 
-    public void AddShield(int amount) { Armor += Mathf.Max(0, amount); }
+    public void AddShield(int amount) { Armor += Mathf.Max(0, amount); healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Armor.ToString() + ")"; }
 
     //TODO: block is per-instance damage reduction, unlike armor which is a pool. Not needed by any
     //card in either kit yet - if it stays unwanted, delete BlockAction rather than leave a second

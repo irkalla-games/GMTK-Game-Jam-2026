@@ -162,7 +162,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     {
         if (cardsInHand.Count == 0) { yield break; }
 
-        float cardSpacing = 1f / 10f;
+        float cardSpacing = 1.5f / 10f;
         float firstPosition = 0.5f - (cardsInHand.Count - 1) * cardSpacing / 2;
         Spline spline = splineContainer.Spline;
         for (int i = 0; i < cardsInHand.Count; i++)

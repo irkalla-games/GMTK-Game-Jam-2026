@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public enum BattlePhase
 {
@@ -440,6 +441,7 @@ public class BattleManager : Singleton<BattleManager>
     {
         Phase = BattlePhase.Finished;
         Debug.Log($"battle over: {outcome} ({TurnsRemaining} turns left)");
+        SceneManager.LoadScene("MainMenu");
     }
 
     internal void ChangeActiveMana(int energy)

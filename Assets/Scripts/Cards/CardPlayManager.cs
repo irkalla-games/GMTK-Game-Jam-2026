@@ -6,9 +6,9 @@ using DG.Tweening;
 /// Click a card to select it, then click a tile to play it there.
 public class CardPlayManager : Singleton<CardPlayManager>
 {
-    // HandViewer, ActionManager and GameManager are all singletons - serializing references to them
-    // here only created a second way to reach the same object. What stays serialized is what a
-    // designer actually authors: a world position, and a duration to tune by feel.
+    // ActiveHandViewer, ActionManager and BattleManager are all singletons - serializing references
+    // to them here only created a second way to reach the same object. What stays serialized is what
+    // a designer actually authors: a world position, and a duration to tune by feel.
     [SerializeField] private Transform discardAnchor;
 
     [SerializeField] private float discardDuration = 0.15f;
@@ -19,8 +19,8 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     public void OnCardClicked(CardViewer cardViewer)
     {
-        // CardHoverManager's preview card is also a CardViewer with a collider, so it fires this too.
-        if (cardViewer == null || !HandViewer.Instance.Contains(cardViewer))
+        // The hover preview is also a CardViewer with a collider, so it fires this too.
+        if (cardViewer == null || !ActiveHandViewer.Instance.Contains(cardViewer))
         {
             Debug.Log($"card clicked: {Name(cardViewer)} - ignored, not in hand (hover preview?)");
             return;
@@ -37,7 +37,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
         Select(cardViewer);
     }
 
-    /// Plays the selected card onto this tile. GameManager routes tile clicks here once it knows a
+    /// Plays the selected card onto this tile. BattleManager routes tile clicks here once it knows a
     /// card is selected; with nothing selected a tile click means something else entirely.
     public void PlaySelectedOn(GridTile tile)
     {
@@ -48,7 +48,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         // Energy belongs to the character, and the card came out of that character's hand, so there is
         // nobody to pay the cost until one has been clicked.
-        Character actor = GameManager.Instance.ActiveCharacter;
+        Character actor = BattleManager.Instance.ActiveCharacter;
 
         if (actor == null)
         {
@@ -103,12 +103,12 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         selected = cardViewer;
         cardViewer.SetSelected(true);
-        CardHoverManager.Instance.HideLargeCard();
-        StartCoroutine(HandViewer.Instance.Relayout());
+        ActiveHandViewer.Instance.HideLargeCard();
+        StartCoroutine(ActiveHandViewer.Instance.Relayout());
 
         if (GridManager.Instance != null)
         {
-            GridManager.Instance.ShowPlayableTiles(cardViewer.card, GameManager.Instance.ActiveCharacter);
+            GridManager.Instance.ShowPlayableTiles(cardViewer.card, BattleManager.Instance.ActiveCharacter);
         }
     }
 
@@ -119,7 +119,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
         selected.SetSelected(false);
         selected = null;
         ClearHighlights();
-        StartCoroutine(HandViewer.Instance.Relayout());
+        StartCoroutine(ActiveHandViewer.Instance.Relayout());
     }
 
     private static void ClearHighlights()
@@ -138,7 +138,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
         // Into the actor's own discard pile - the card came out of that character's hand.
         actor.Discard(cardViewer.card);
 
-        yield return HandViewer.Instance.RemoveCard(cardViewer);
+        yield return ActiveHandViewer.Instance.RemoveCard(cardViewer);
         Destroy(cardViewer.gameObject);
     }
 

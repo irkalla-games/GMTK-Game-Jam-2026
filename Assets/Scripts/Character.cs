@@ -74,10 +74,10 @@ public class Character : MonoBehaviour
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
 
-    /// The cards currently held. GameManager builds the viewers for whichever character is active.
+    /// The cards currently held. ActiveHandViewer builds the viewers for whichever character is active.
     public IReadOnlyList<Card> Hand => hand;
 
-    /// Raised when a card lands in this hand. GameManager listens so the row on screen can follow the
+    /// Raised when a card lands in this hand. ActiveHandViewer listens so the row on screen follows the
     /// active character - drawing itself is none of its business.
     public event Action<Character, Card> CardDrawn;
 

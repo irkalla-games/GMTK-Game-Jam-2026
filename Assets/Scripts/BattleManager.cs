@@ -23,10 +23,14 @@ public enum BattlePhase
 ///   EnemyResolve   the committed intent executes right or wrong; everything after it is re-decided
 ///   -> TurnStart
 ///
-/// GameManager keeps its job - who is active, whose hand is on screen - and gains nothing from this.
+/// Also owns the roster, who is active, and what a tile click means - the coherent half of what used
+/// to be GameManager. The display half went to ActiveHandViewer.
 /// </summary>
-public class BattleRunner : MonoBehaviour
+public class BattleManager : Singleton<BattleManager>
 {
+    [Tooltip("Every character on the board, both sides.")]
+    [SerializeField] private List<Character> characters = new();
+
     [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
     [SerializeField] private int turnsToSurvive = 10;
 
@@ -38,6 +42,11 @@ public class BattleRunner : MonoBehaviour
 
     public BattlePhase Phase { get; private set; }
 
+    /// Whose hand is on screen. Cards are played by this character and spend its energy.
+    public Character ActiveCharacter { get; private set; }
+
+    public IReadOnlyList<Character> Characters => characters;
+
     private bool endTurnRequested;
 
     /// Hook this to the End Turn button. Ends the turn early, with energy still banked.
@@ -46,28 +55,94 @@ public class BattleRunner : MonoBehaviour
         if (Phase == BattlePhase.PlayerActing) { endTurnRequested = true; }
     }
 
+    /// <summary>
+    /// Every tile click lands here. With a card selected it is a play; with nothing selected it means
+    /// "play as whoever is standing here" - characters have no colliders of their own, so the tile
+    /// under one is what you click to pick it up.
+    ///
+    /// Here rather than on GridManager on purpose. Deciding what a click means depends on card
+    /// selection and on the phase, so putting it on the board would make GridManager depend on the
+    /// card UI and the turn system - the exact reverse of the direction it runs in now, where effects
+    /// ask GridManager.MoveRefusal and it asks nobody anything.
+    /// </summary>
+    public void OnTileClicked(GridTile tile)
+    {
+        if (tile == null) { return; }
+
+        if (Phase != BattlePhase.PlayerActing && Phase != BattlePhase.NotStarted)
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} - ignored, not the player's turn ({Phase})");
+            return;
+        }
+
+        CardPlayManager cardPlayManager = CardPlayManager.Instance;
+
+        if (cardPlayManager != null && cardPlayManager.HasSelection)
+        {
+            cardPlayManager.PlaySelectedOn(tile);
+            return;
+        }
+
+        Character occupant = tile.Occupant;
+
+        if (occupant == null || !occupant.IsPlayerControlled)
+        {
+            string who = occupant != null ? $"{occupant.name} is not player controlled" : "nobody here";
+            Debug.Log($"tile clicked: {tile.Coordinates} - no card selected, {who}");
+            return;
+        }
+
+        Debug.Log($"tile clicked: {tile.Coordinates} - activating {occupant.name}");
+        SetActiveCharacter(occupant);
+    }
+
+    /// Makes this character the one you are playing as and swaps the hand on screen over to its cards.
+    public void SetActiveCharacter(Character character)
+    {
+        if (character == null || character == ActiveCharacter) { return; }
+
+        ActiveCharacter = character;
+        Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
+
+        ActiveHandViewer.Instance.ShowHandFor(character);
+    }
+
     private void Start()
     {
+        // Before the loop, not after: TurnStart draws, and ActiveHandViewer only builds viewers for
+        // whoever is active. Ordering these by hand is why RunBattle no longer waits a frame - both
+        // halves live here now, so there is no cross-Start race left to dodge.
+        SetActiveCharacter(FirstPlayableCharacter());
+
         StartCoroutine(RunBattle());
     }
 
     private void Update()
     {
+        if (Keyboard.current == null) { return; }
+
         // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
-        // Space is already taken by GameManager's debug draw.
-        if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+        if (Keyboard.current.enterKey.wasPressedThisFrame) { RequestEndTurn(); }
+
+        // Debug: draw a card for whoever is active.
+        if (Keyboard.current.spaceKey.wasPressedThisFrame && ActiveCharacter != null)
         {
-            RequestEndTurn();
+            ActiveCharacter.DrawCard();
         }
+    }
+
+    private Character FirstPlayableCharacter()
+    {
+        foreach (Character character in characters)
+        {
+            if (character != null && character.IsPlayerControlled && !character.IsDead) { return character; }
+        }
+
+        return null;
     }
 
     private IEnumerator RunBattle()
     {
-        // One frame before anything happens. Unity gives no ordering between one Start and another,
-        // and GameManager.Start is what subscribes to CardDrawn - draw a card before that and it
-        // lands in a hand with no viewer built for it.
-        yield return null;
-
         TurnsRemaining = turnsToSurvive;
 
         while (true)
@@ -101,7 +176,7 @@ public class BattleRunner : MonoBehaviour
     {
         Phase = BattlePhase.TurnStart;
 
-        foreach (Character character in GameManager.Instance.Characters)
+        foreach (Character character in characters)
         {
             if (character == null || character.IsDead) { continue; }
 
@@ -133,7 +208,7 @@ public class BattleRunner : MonoBehaviour
     /// </summary>
     private bool CanAnyoneAct()
     {
-        foreach (Character character in GameManager.Instance.Characters)
+        foreach (Character character in characters)
         {
             if (character == null || !character.IsPlayerControlled || !character.CanAct) { continue; }
 
@@ -181,7 +256,7 @@ public class BattleRunner : MonoBehaviour
 
     private IEnumerable<Character> LivingEnemies()
     {
-        foreach (Character character in GameManager.Instance.Characters)
+        foreach (Character character in characters)
         {
             if (character != null && !character.IsPlayerControlled && !character.IsDead)
             {
@@ -192,7 +267,7 @@ public class BattleRunner : MonoBehaviour
 
     private bool AllHeroesDead()
     {
-        foreach (Character character in GameManager.Instance.Characters)
+        foreach (Character character in characters)
         {
             if (character != null && character.IsPlayerControlled && !character.IsDead) { return false; }
         }

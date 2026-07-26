@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -28,6 +30,9 @@ public enum BattlePhase
 /// </summary>
 public class BattleManager : Singleton<BattleManager>
 {
+    [SerializeField] private TextMeshProUGUI turnCounter;
+    [SerializeField] private TextMeshProUGUI manaCounter;
+
     [Tooltip("Every character on the board, both sides.")]
     [SerializeField] private List<Character> characters = new();
 
@@ -113,10 +118,10 @@ public class BattleManager : Singleton<BattleManager>
     public void SetActiveCharacter(Character character)
     {
         if (character == null || character == ActiveCharacter) { return; }
-
+        
         ActiveCharacter = character;
         Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
-
+        ChangeActiveMana(ActiveCharacter.Energy);
         ActiveCharacterChanged?.Invoke(character);
     }
 
@@ -133,9 +138,6 @@ public class BattleManager : Singleton<BattleManager>
     private void Update()
     {
         if (Keyboard.current == null) { return; }
-
-        // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
-        if (Keyboard.current.enterKey.wasPressedThisFrame) { RequestEndTurn(); }
 
         // Debug: draw a card for whoever is active.
         if (Keyboard.current.spaceKey.wasPressedThisFrame && ActiveCharacter != null)
@@ -157,6 +159,7 @@ public class BattleManager : Singleton<BattleManager>
     private IEnumerator RunBattle()
     {
         TurnsRemaining = turnsToSurvive;
+        turnCounter.text = turnsToSurvive.ToString();
 
         while (true)
         {
@@ -169,7 +172,7 @@ public class BattleManager : Singleton<BattleManager>
 
             yield return StartCoroutine(EnemyResolve());
 
-            TurnsRemaining--;
+            ReduceTurns();
 
             if (AllHeroesDead())
             {
@@ -183,6 +186,12 @@ public class BattleManager : Singleton<BattleManager>
                 yield break;
             }
         }
+    }
+
+    private void ReduceTurns()
+    {
+        TurnsRemaining--;
+        turnCounter.text = TurnsRemaining.ToString();
     }
 
     private IEnumerator TurnStart()
@@ -292,5 +301,10 @@ public class BattleManager : Singleton<BattleManager>
     {
         Phase = BattlePhase.Finished;
         Debug.Log($"battle over: {outcome} ({TurnsRemaining} turns left)");
+    }
+
+    internal void ChangeActiveMana(int energy)
+    {
+        manaCounter.text = energy.ToString();
     }
 }

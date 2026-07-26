@@ -37,6 +37,9 @@ public class BattleManager : Singleton<BattleManager>
     [Tooltip("Hand is topped back up to this at the start of each turn - unplayed cards carry over.")]
     [SerializeField] private int handSize = 5;
 
+    [Tooltip("Pause between an enemy's individual movement steps, so a walk reads as a walk.")]
+    [SerializeField] private float stepDuration = 0.16f;
+
     [field: SerializeField, ReadOnlyField]
     public int TurnsRemaining { get; private set; }
 
@@ -207,8 +210,22 @@ public class BattleManager : Singleton<BattleManager>
             }
         }
 
-        //TODO: enemies commit an intent here and telegraph it. Until brains exist there is nothing to
-        //commit, so EnemyResolve has nothing to execute and the turn is player-only.
+        // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
+        // whole design: they announce one action, you spend the turn making it wrong, and it fires
+        // anyway. Deciding at execution time instead would quietly undo every block you set up.
+        Board board = GridManager.Instance.Read();
+
+        foreach (Character enemy in LivingEnemies())
+        {
+            enemy.CommittedIntent = Decide(enemy, board);
+
+            //TODO: telegraph CommittedIntent on the board. Until then the console is the only tell,
+            //which makes disruption invisible - this is the next thing worth building.
+            if (enemy.CommittedIntent.type != ActionType.Wait)
+            {
+                Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
+            }
+        }
 
         yield return null;
     }
@@ -247,24 +264,99 @@ public class BattleManager : Singleton<BattleManager>
                 continue;
             }
 
-            //TODO: the AP loop goes here and is the whole of the enemy turn:
-            //
-            //  for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++) {
-            //      Intent step = ap == 0 ? enemy.CommittedIntent : enemy.Brain.Decide(enemy, board);
-            //      if (step.type == ActionType.Wait) { break; }
-            //      yield return Execute(enemy, step);
-            //      yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
-            //  }
-            //
-            //Step 0 executes the intent committed at TurnStart, right or wrong - a blocked move
-            //advances as far as it can, an attack on an empty tile visibly misses. Every later step
-            //is decided against the live board, so it can never be stale. Waiting on EnemyBrain.
-            Debug.Log($"{enemy.name} has {enemy.ActionPoints} AP and no brain to spend them");
+            for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++)
+            {
+                // Step 0 is the promise made at TurnStart and is executed as committed, right or
+                // wrong. Every step after it is decided against the board as it stands, so it cannot
+                // be stale - which is why only the first one can ever fizzle.
+                Intent step = ap == 0
+                    ? enemy.CommittedIntent
+                    : Decide(enemy, GridManager.Instance.Read());
+
+                if (step.type == ActionType.Wait) { break; }
+
+                yield return StartCoroutine(Execute(enemy, step));
+
+                // AddAction resolves the first action synchronously, so "queued" is not "finished".
+                yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+            }
+
+            enemy.CommittedIntent = Intent.Wait();
         }
 
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so
         // "queued" is not "finished". Without this the turn would roll over mid-animation.
         yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+    }
+
+    /// Asks this character's brain for one action. Wait if it has no brain, which is every player.
+    private static Intent Decide(Character character, Board board)
+    {
+        EnemyBrain brain = EnemyBrain.For(character.Brain);
+
+        if (brain == null || character.Tile == null) { return Intent.Wait(); }
+
+        return brain.Decide(character.Tile.Coordinates, character.IsPlayerControlled,
+                            character.MoveRange, board);
+    }
+
+    /// <summary>
+    /// Carries out one intent. Both branches can come up empty, and that is the point - a committed
+    /// intent is a promise made a whole turn ago against a board the player has been rearranging.
+    /// </summary>
+    private IEnumerator Execute(Character enemy, Intent step)
+    {
+        if (step.type == ActionType.Move)
+        {
+            yield return StartCoroutine(Advance(enemy, step));
+            yield break;
+        }
+
+        GridTile tile = GridManager.Instance.GetTile(step.target);
+        Character victim = tile != null ? tile.Occupant : null;
+
+        // The miss. Whoever was standing here moved or died during your turn, and the swing still
+        // costs the action point. This is what body-blocking and killing early actually buys.
+        if (victim == null || victim.IsPlayerControlled == enemy.IsPlayerControlled)
+        {
+            //TODO: a whiff animation. A swing at nothing currently only reads in the console, and a
+            //silent no-op looks like a bug rather than like your dodge working.
+            Debug.Log($"{enemy.name} attacks {step.target} and hits nothing");
+            yield break;
+        }
+
+        // Through the action queue with a null card, so enemy attacks pick up Strength, Double Attack
+        // and the target's armor by the same path a played card would. Nothing about the damage
+        // pipeline needed to know enemies exist.
+        ActionManager.Instance.AddAction(new DamageAction(enemy.AttackDamage),
+                                         new ActionContext(null, enemy, tile));
+    }
+
+    /// <summary>
+    /// Walks the committed path one tile at a time, stopping at the first tile somebody is standing
+    /// on rather than cancelling outright. A goblin shouldering up against the Knight reads far
+    /// better than one that decided not to bother.
+    ///
+    /// MoveCharacter already refuses occupied tiles via MoveRefusal, so the block check is just its
+    /// return value - checked per step rather than once, which is the whole difference between
+    /// "destination taken" and "somebody is standing halfway along the route".
+    /// </summary>
+    private IEnumerator Advance(Character enemy, Intent step)
+    {
+        if (step.path == null) { yield break; }
+
+        foreach (Vector2Int cell in step.path)
+        {
+            GridTile tile = GridManager.Instance.GetTile(cell);
+
+            if (tile == null || !GridManager.Instance.MoveCharacter(enemy, tile))
+            {
+                Debug.Log($"{enemy.name} is blocked at {cell} and stops short");
+                yield break;
+            }
+
+            yield return new WaitForSeconds(stepDuration);
+        }
     }
 
     private IEnumerable<Character> LivingEnemies()

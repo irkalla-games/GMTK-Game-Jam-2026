@@ -25,6 +25,16 @@ public class Character : MonoBehaviour
     [Tooltip("Actions this character takes per turn. Enemies only - players spend energy instead.")]
     [SerializeField] private int actionPoints = 2;
 
+    [Tooltip("Which rule list this enemy runs. None means it stands there - correct for players.")]
+    [SerializeField] private BrainType brain;
+
+    [Tooltip("Damage one enemy attack deals. Tuned against 60 HP heroes and ~10 armor a turn, so "
+             + "5-7 is the band where armor matters but cannot outpace the whole board.")]
+    [SerializeField] private int attackDamage = 6;
+
+    [Tooltip("Tiles this enemy can cross in a single action.")]
+    [SerializeField] private int moveRange = 3;
+
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
@@ -62,6 +72,21 @@ public class Character : MonoBehaviour
     public CharacterClass Class => characterClass;
 
     public int ActionPoints => actionPoints;
+
+    public BrainType Brain => brain;
+
+    public int AttackDamage => attackDamage;
+
+    public int MoveRange => moveRange;
+
+    /// <summary>
+    /// What this enemy told the player it was going to do, decided at the start of the turn.
+    ///
+    /// Held rather than recomputed because the whole point is that it can go stale: the player spends
+    /// the turn making it wrong, and it executes anyway. Recomputing at execution time would quietly
+    /// undo every block and every kill the player set up.
+    /// </summary>
+    public Intent CommittedIntent { get; set; }
 
     public bool IsDead => Health <= 0;
 

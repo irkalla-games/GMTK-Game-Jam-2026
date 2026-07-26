@@ -162,6 +162,36 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// <summary>
+    /// A coordinates-only snapshot of the board for the enemy brains.
+    ///
+    /// Built fresh each time it is asked for rather than cached: an enemy decides against the board
+    /// as it stands the moment it acts, and a snapshot held across a turn is exactly the staleness
+    /// the design is trying to make visible rather than accidental.
+    ///
+    /// This is the seam that keeps brains testable - past this method there is no MonoBehaviour, no
+    /// GridTile, and nothing that needs a scene to exist.
+    /// </summary>
+    public Board Read()
+    {
+        Board board = new();
+
+        foreach (KeyValuePair<Vector2Int, GridTile> entry in tiles)
+        {
+            board.AddCell(entry.Key);
+
+            Character occupant = entry.Value.Occupant;
+
+            if (occupant != null && !occupant.IsDead)
+            {
+                board.SetOccupant(entry.Key, occupant.IsPlayerControlled);
+            }
+        }
+
+        return board;
+    }
+
+
     /// Every tile a card with this range, cast from `start`, could be aimed at. The metric itself
     /// lives in TargetRange, so this and the play-time gate can never drift apart.
     public List<GridTile> GetTilesInRange(GridTile start, TargetRange range)

@@ -87,11 +87,11 @@ public class GridTile : MonoBehaviour
 
     private void OnMouseDown()
     {
-        // GameManager decides what the click means - playing the selected card, or switching to the
+        // BattleManager decides what the click means - playing the selected card, or switching to the
         // character standing here.
-        if (GameManager.Instance != null)
+        if (BattleManager.Instance != null)
         {
-            GameManager.Instance.OnTileClicked(this);
+            BattleManager.Instance.OnTileClicked(this);
         }
     }
 }

@@ -1109,9 +1109,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 134fbc109abbf564ebd52efca74915db, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HandViewer
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveHandViewer
   splineContainer: {fileID: 282495236}
   selectRaise: 0.75
+  cardPrefab: {fileID: 3611263573412640328, guid: 8efb7966aa5635842a42db70cec0d72c, type: 3}
+  largeCardViewer: {fileID: 7023741983317184902}
+  layoutDuration: 0.15
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -1170,7 +1173,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 890863169}
-  - component: {fileID: 890863170}
   - component: {fileID: 1700000400}
   - component: {fileID: 1700000401}
   m_Layer: 0
@@ -1195,19 +1197,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1385815084}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &890863170
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 890863168}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8ae8871008879e488ce613eb6b9ab62, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CreateCardViewer
-  cardPrefab: {fileID: 3611263573412640328, guid: 8efb7966aa5635842a42db70cec0d72c, type: 3}
 --- !u!1 &911318693
 GameObject:
   m_ObjectHideFlags: 0
@@ -1249,7 +1238,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1046323549}
-  - component: {fileID: 1046323550}
+  - component: {fileID: 1046323551}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1272,7 +1261,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1385815084}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1046323550
+--- !u!114 &1046323551
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1281,13 +1270,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 1046323548}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef55c846337371c4d96bae064ab3de37, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  m_Script: {fileID: 11500000, guid: cdf93e0a7fe76314f909cd8e1f0743fd, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BattleManager
   characters:
   - {fileID: 526219092}
   - {fileID: 111405815}
   - {fileID: 488905599}
+  turnsToSurvive: 10
+  handSize: 5
+  <TurnsRemaining>k__BackingField: 0
 --- !u!1 &1092857104
 GameObject:
   m_ObjectHideFlags: 0
@@ -1297,7 +1289,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1092857105}
-  - component: {fileID: 1092857106}
   m_Layer: 0
   m_Name: HoverManager
   m_TagString: Untagged
@@ -1320,19 +1311,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1385815084}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1092857106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1092857104}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 404303014a01e8b4385d1470a6b9e5bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CardHoverManager
-  largeCardViewer: {fileID: 7023741983317184902}
 --- !u!1 &1097450660
 GameObject:
   m_ObjectHideFlags: 0

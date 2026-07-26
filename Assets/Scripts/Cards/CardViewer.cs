@@ -51,13 +51,13 @@ public class CardViewer : MonoBehaviour
         if (HoverSuppressed) { return; }
         wrapper.SetActive(false);
         Vector3 pos = new Vector3(transform.position.x, 3, 0);
-        CardHoverManager.Instance.ShowLargeCard(card, pos);
+        ActiveHandViewer.Instance.ShowLargeCard(card, pos);
     }
 
     public void OnMouseExit()
     {
         if (isPlaying) { return; }
-        CardHoverManager.Instance.HideLargeCard();
+        ActiveHandViewer.Instance.HideLargeCard();
         wrapper.SetActive(true);
     }
 

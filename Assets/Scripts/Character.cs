@@ -89,6 +89,7 @@ public class Character : MonoBehaviour
     public void SpendEnergy(int cost)
     {
         Energy = Mathf.Max(0, Energy - cost);
+        BattleManager.Instance.ChangeActiveMana(this.Energy);
     }
 
     public void ResetEnergy()

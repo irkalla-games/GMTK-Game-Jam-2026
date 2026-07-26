@@ -5,7 +5,7 @@ using UnityEngine;
 ///
 /// PlayedTile = 0 so every effect asset authored before this field existed keeps aiming where it
 /// always did.
-/// </summary>
+/// </summary> 
 public enum EffectTarget
 {
     /// The tile the card was played on.

@@ -234,16 +234,16 @@ public class BattleManager : Singleton<BattleManager>
         // anyway. Deciding at execution time instead would quietly undo every block you set up.
         Board board = GridManager.Instance.Read();
 
+        GridManager.Instance.ClearIntents();
+
         foreach (Character enemy in LivingEnemies())
         {
             enemy.CommittedIntent = Decide(enemy, board);
 
-            //TODO: telegraph CommittedIntent on the board. Until then the console is the only tell,
-            //which makes disruption invisible - this is the next thing worth building.
-            if (enemy.CommittedIntent.type != ActionType.Wait)
-            {
-                Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
-            }
+            if (enemy.CommittedIntent.type == ActionType.Wait) { continue; }
+
+            Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
+            GridManager.Instance.ShowIntent(enemy, enemy.CommittedIntent);
         }
 
         yield return null;
@@ -273,6 +273,10 @@ public class BattleManager : Singleton<BattleManager>
     private IEnumerator EnemyResolve()
     {
         Phase = BattlePhase.EnemyResolve;
+
+        // The promises have been kept or broken by now - leaving them drawn over the actual movement
+        // would be worse than not drawing them at all.
+        GridManager.Instance.ClearIntents();
 
         foreach (Character enemy in LivingEnemies())
         {
@@ -316,7 +320,7 @@ public class BattleManager : Singleton<BattleManager>
         if (brain == null || character.Tile == null) { return Intent.Wait(); }
 
         return brain.Decide(character.Tile.Coordinates, character.IsPlayerControlled,
-                            character.MoveRange, board);
+                            character.MoveRange, character.AttackRange, board);
     }
 
     /// <summary>

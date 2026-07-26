@@ -15,6 +15,9 @@ public class GridManager : Singleton<GridManager>
 
     private Dictionary<Vector2Int, GridTile> tiles = new();
 
+    /// Live telegraph lines, torn down and rebuilt each turn.
+    private readonly List<LineRenderer> telegraphs = new();
+
 
     protected override void Awake()
     {
@@ -159,6 +162,94 @@ public class GridManager : Singleton<GridManager>
     public void ClearPlayableTiles()
     {
         foreach (GridTile tile in tiles.Values) { tile.SetInRange(false); }
+    }
+
+
+    /// <summary>
+    /// Draws what an enemy has committed to doing: a line along the route for a move, a line to the
+    /// victim for an attack.
+    ///
+    /// Here rather than in a TelegraphViewer of its own - that would be two public methods, which is
+    /// a function looking for a file rather than a concept. GridManager is already what draws on the
+    /// board, and this is the same job as ShowPlayableTiles with a different reason.
+    ///
+    /// Deliberately a *separate* channel from the tile highlight: telegraphs have to survive the
+    /// player selecting and deselecting a card, and ClearPlayableTiles resets every tile.
+    /// </summary>
+    public void ShowIntent(Character enemy, Intent intent)
+    {
+        if (enemy == null || enemy.Tile == null || intent.type == ActionType.Wait) { return; }
+
+        List<Vector3> points = new() { enemy.Tile.transform.position };
+
+        if (intent.type == ActionType.Move)
+        {
+            if (intent.path == null) { return; }
+
+            foreach (Vector2Int cell in intent.path)
+            {
+                GridTile tile = GetTile(cell);
+                if (tile != null) { points.Add(tile.transform.position); }
+            }
+        }
+        else
+        {
+            GridTile tile = GetTile(intent.target);
+            if (tile == null) { return; }
+
+            points.Add(tile.transform.position);
+        }
+
+        if (points.Count < 2) { return; }
+
+        telegraphs.Add(DrawTelegraph(points, intent.type == ActionType.Attack));
+    }
+
+
+    public void ClearIntents()
+    {
+        foreach (LineRenderer line in telegraphs)
+        {
+            if (line != null) { Destroy(line.gameObject); }
+        }
+
+        telegraphs.Clear();
+    }
+
+
+    /// <summary>
+    /// One telegraph line. Built in code rather than from a prefab so there is nothing to wire in the
+    /// Inspector and nothing to lose to a scene reload - the whole thing is created and destroyed
+    /// inside a turn.
+    ///
+    /// Sprites/Default is the one shader guaranteed present in a 2D project that respects vertex
+    /// colour, so the line does not come out magenta without a material authored for it.
+    /// </summary>
+    private LineRenderer DrawTelegraph(List<Vector3> points, bool isAttack)
+    {
+        GameObject go = new("Telegraph");
+        go.transform.SetParent(transform);
+
+        LineRenderer line = go.AddComponent<LineRenderer>();
+        line.material = new Material(Shader.Find("Sprites/Default"));
+        line.widthMultiplier = isAttack ? 0.16f : 0.1f;
+        line.numCapVertices = 4;
+        line.useWorldSpace = true;
+        line.sortingOrder = 100;
+
+        Color colour = isAttack ? new Color(1f, 0.25f, 0.2f, 0.9f) : new Color(1f, 0.85f, 0.3f, 0.75f);
+        line.startColor = colour;
+        line.endColor = new Color(colour.r, colour.g, colour.b, colour.a * 0.35f);
+
+        line.positionCount = points.Count;
+
+        // Nudged toward the camera so the line sits over the tiles rather than z-fighting them.
+        for (int i = 0; i < points.Count; i++)
+        {
+            line.SetPosition(i, points[i] + Vector3.back * 0.5f);
+        }
+
+        return line;
     }
 
 

@@ -139,13 +139,13 @@ public class Board
     /// shooting. Shots stop at the first body, friend or foe - which is what makes body-blocking an
     /// archer work.
     /// </summary>
-    public bool TryLineTarget(Vector2Int from, bool isPlayerControlled, out Vector2Int hit)
+    public bool TryLineTarget(Vector2Int from, bool isPlayerControlled, int range, out Vector2Int hit)
     {
         foreach (Vector2Int direction in Cardinals)
         {
             Vector2Int cell = from + direction;
 
-            while (Exists(cell))
+            for (int step = 1; step <= range && Exists(cell); step++)
             {
                 if (IsOccupied(cell))
                 {

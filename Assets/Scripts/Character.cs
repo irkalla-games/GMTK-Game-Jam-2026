@@ -35,6 +35,10 @@ public class Character : MonoBehaviour
     [Tooltip("Tiles this enemy can cross in a single action.")]
     [SerializeField] private int moveRange = 3;
 
+    [Tooltip("How far this enemy can strike. 1 is melee - the warrior. Anything more is a shooter, "
+             + "and only counts down the four straight lines.")]
+    [SerializeField] private int attackRange = 1;
+
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
@@ -78,6 +82,8 @@ public class Character : MonoBehaviour
     public int AttackDamage => attackDamage;
 
     public int MoveRange => moveRange;
+
+    public int AttackRange => attackRange;
 
     /// <summary>
     /// What this enemy told the player it was going to do, decided at the start of the turn.

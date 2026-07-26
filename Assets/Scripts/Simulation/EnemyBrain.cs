@@ -35,16 +35,24 @@ public abstract class EnemyBrain
     /// <param name="self">Where this enemy is standing.</param>
     /// <param name="isPlayerControlled">Which side it is on - so brains work for either.</param>
     /// <param name="moveRange">How many steps it may take in one action.</param>
-    public abstract Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange, Board board);
+    /// <param name="attackRange">How far it can strike. 1 is melee.</param>
+    public abstract Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
+                                  int attackRange, Board board);
 }
 
-/// Walks at the nearest hero and swings when it gets there.
+/// <summary>
+/// Closes to melee and swings. Everything it wants is at range 1, so its whole job is to be adjacent
+/// to somebody - which makes body-blocking the counter, since a warrior with no reachable target
+/// simply walks and never gets to spend the swing.
+/// </summary>
 public class WarriorBrain : EnemyBrain
 {
-    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange, Board board)
+    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
+                                  int attackRange, Board board)
     {
-        // 1. Adjacent to somebody? Hit them. Cheapest check first, and the one that matters most.
-        foreach (Vector2Int cell in Adjacent(self))
+        // 1. Already in reach? Hit them. Cheapest check, and the one that matters most.
+        //    Chebyshev, so the diagonals count - the same metric the Move card uses.
+        foreach (Vector2Int cell in InReach(self, attackRange))
         {
             if (board.IsEnemyOf(cell, isPlayerControlled)) { return Intent.AttackAt(cell); }
         }
@@ -72,11 +80,11 @@ public class WarriorBrain : EnemyBrain
         return best == self ? Intent.Wait() : Intent.MoveAlong(board.PathTo(distance, self, best));
     }
 
-    private static IEnumerable<Vector2Int> Adjacent(Vector2Int cell)
+    private static IEnumerable<Vector2Int> InReach(Vector2Int cell, int range)
     {
-        for (int dx = -1; dx <= 1; dx++)
+        for (int dx = -range; dx <= range; dx++)
         {
-            for (int dy = -1; dy <= 1; dy++)
+            for (int dy = -range; dy <= range; dy++)
             {
                 if (dx != 0 || dy != 0) { yield return cell + new Vector2Int(dx, dy); }
             }
@@ -90,27 +98,35 @@ public class WarriorBrain : EnemyBrain
 /// </summary>
 public class ArcherBrain : EnemyBrain
 {
-    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange, Board board)
+    public override Intent Decide(Vector2Int self, bool isPlayerControlled, int moveRange,
+                                  int attackRange, Board board)
     {
         Dictionary<Vector2Int, int> distance = board.Flood(self, moveRange);
 
-        // 1. Somebody is in melee. Get out first - a cornered archer that keeps shooting just dies.
+        // 1. Somebody is in melee. Get out first - a cornered archer that keeps shooting just dies,
+        //    and this is the rule that makes it read as an archer rather than a warrior with reach.
         if (board.HasAdjacentEnemy(self, isPlayerControlled))
         {
-            Vector2Int retreat = BestCell(board, distance, isPlayerControlled, self, preferSafety: true);
+            Vector2Int retreat = BestCell(board, distance, isPlayerControlled, self, attackRange,
+                                          preferSafety: true);
 
             if (retreat != self) { return Intent.MoveAlong(board.PathTo(distance, self, retreat)); }
 
             // Nowhere to run. Shoot whatever is in front of you rather than doing nothing.
         }
 
-        // 2. A clear line right now? Take the shot.
-        if (board.TryLineTarget(self, isPlayerControlled, out Vector2Int hit)) { return Intent.AttackAt(hit); }
+        // 2. A clear line right now? Take the shot. Straight lines only, and it stops at the first
+        //    body - so standing an ally in the way genuinely blocks it.
+        if (board.TryLineTarget(self, isPlayerControlled, attackRange, out Vector2Int hit))
+        {
+            return Intent.AttackAt(hit);
+        }
 
         // 3. Otherwise walk to somewhere that *would* have a line. This is the step that produces
         //    move-then-shoot across two action points without any code saying so: the move happens,
         //    and next time round the line check above is simply true.
-        Vector2Int firing = BestCell(board, distance, isPlayerControlled, self, preferSafety: false);
+        Vector2Int firing = BestCell(board, distance, isPlayerControlled, self, attackRange,
+                                     preferSafety: false);
 
         return firing == self ? Intent.Wait() : Intent.MoveAlong(board.PathTo(distance, self, firing));
     }
@@ -120,16 +136,17 @@ public class ArcherBrain : EnemyBrain
     /// above "can shoot"; otherwise a firing line wins.
     /// </summary>
     private static Vector2Int BestCell(Board board, Dictionary<Vector2Int, int> distance,
-                                       bool isPlayerControlled, Vector2Int self, bool preferSafety)
+                                       bool isPlayerControlled, Vector2Int self, int attackRange,
+                                       bool preferSafety)
     {
         Vector2Int best = self;
-        int bestScore = Score(board, self, isPlayerControlled, preferSafety);
+        int bestScore = Score(board, self, isPlayerControlled, attackRange, preferSafety);
 
         foreach (KeyValuePair<Vector2Int, int> reachable in distance)
         {
             if (reachable.Key == self) { continue; }
 
-            int score = Score(board, reachable.Key, isPlayerControlled, preferSafety);
+            int score = Score(board, reachable.Key, isPlayerControlled, attackRange, preferSafety);
 
             if (score > bestScore)
             {
@@ -141,10 +158,11 @@ public class ArcherBrain : EnemyBrain
         return best;
     }
 
-    private static int Score(Board board, Vector2Int cell, bool isPlayerControlled, bool preferSafety)
+    private static int Score(Board board, Vector2Int cell, bool isPlayerControlled, int attackRange,
+                             bool preferSafety)
     {
         bool safe = !board.HasAdjacentEnemy(cell, isPlayerControlled);
-        bool canShoot = board.TryLineTarget(cell, isPlayerControlled, out _);
+        bool canShoot = board.TryLineTarget(cell, isPlayerControlled, attackRange, out _);
 
         int safety = safe ? 1 : 0;
         int firing = canShoot ? 1 : 0;

@@ -32,11 +32,20 @@ public class CardData : ScriptableObject
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }
 
+    /// <summary>
     /// Also the hook a post-combat reward or draft screen filters on - which is the actual reason
     /// class restriction exists in a deckbuilder.
+    ///
+    /// Any means "no restriction" on both sides. A card marked Any goes in anybody's deck, and a
+    /// character marked Any may hold anything - which is what unclassed things like goblins are.
+    /// Reading it as a restriction in only one direction quietly emptied every enemy deck of every
+    /// card that happened to be authored for a class.
+    /// </summary>
     public bool CanBeUsedBy(Character character) =>
         requiredClass == CharacterClass.Any
-        || (character != null && character.Class == requiredClass);
+        || character == null
+        || character.Class == CharacterClass.Any
+        || character.Class == requiredClass;
 
     //public string CardName => cardName;
     //public int Cost => cost;

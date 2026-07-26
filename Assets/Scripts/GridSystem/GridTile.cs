@@ -1,29 +1,41 @@
-using System;
 using UnityEngine;
-using UnityEngine.UIElements;
 
+/// <summary>
+/// One board tile. Cards target tiles; a tile forwards what happens to it onto its Occupant.
+///
+/// This is a component that lives on an instantiated tile GameObject - never `new`'d. GridManager
+/// instantiates the prefab and calls Init() to give the tile its grid coordinates.
+/// </summary>
 public class GridTile : MonoBehaviour
 {
     private Vector2Int coordinates;
-    private Vector3 worldCoordinates;
-    private GameObject tilePrefab;
-    private Vector2Int position;
 
-    public GridTile(GameObject tilePrefab, Vector2Int position, Vector3 worldCoordinates)
-    {
-        this.tilePrefab = tilePrefab;
-        this.position = position;
-        this.worldCoordinates = worldCoordinates;
-        GameObject tile = Instantiate(tilePrefab, worldCoordinates, Quaternion.identity);
-    }
+    private TileSelector selector;
 
     public Vector2Int Coordinates => coordinates;
 
     public Character Occupant { get; private set; }
 
+    private void Awake()
+    {
+        selector = GetComponent<TileSelector>();
+    }
+
+    public void Init(Vector2Int coordinates)
+    {
+        this.coordinates = coordinates;
+    }
+
     public void SetOccupant(Character character)
     {
         Occupant = character;
+    }
+
+    /// Lights this tile up as a legal target for the selected card. The colour itself belongs to
+    /// TileSelector, which owns the SpriteRenderer.
+    public void SetInRange(bool value)
+    {
+        if (selector != null) { selector.SetInRange(value); }
     }
 
     public void DealDamage(int amount)
@@ -51,9 +63,16 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.GainParry(reflectTotal, count); }
     }
 
+    /// <summary>
+    /// Routed through GridManager, not straight to Occupant.MoveTo. MoveTo only swaps occupancy
+    /// references - it does not move the transform and does not consult MoveRefusal - so calling it
+    /// directly leaves the sprite standing on one tile while the board thinks it is on another.
+    /// </summary>
     public void MoveCharacter(GridTile moveTo)
     {
-        if (Occupant != null) { Occupant.MoveTo(moveTo); }
+        if (Occupant == null || GridManager.Instance == null) { return; }
+
+        GridManager.Instance.MoveCharacter(Occupant, moveTo);
     }
 
     public void DrawCards(int drawAmount)
@@ -61,13 +80,18 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.DrawCards(drawAmount); }
     }
 
-    private void OnMouseDown()
+    public void ApplyStatus(StatusType status, int stacks, int turnsRemaining)
     {
-        if (CardPlayManager.Instance != null)
-        {
-            CardPlayManager.Instance.OnTileClicked(this);
-        }
+        if (Occupant != null) { Occupant.AddStatus(status, stacks, turnsRemaining); }
     }
 
-
+    private void OnMouseDown()
+    {
+        // BattleManager decides what the click means - playing the selected card, or switching to the
+        // character standing here.
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.OnTileClicked(this);
+        }
+    }
 }

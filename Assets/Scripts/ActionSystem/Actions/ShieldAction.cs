@@ -17,6 +17,6 @@ public class ShieldAction : GameAction
         {
             target.GainShield(shieldAmount);
         }
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(ResolveDelay);
     }
 }

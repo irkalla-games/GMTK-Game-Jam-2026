@@ -1,5 +1,3 @@
-using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,9 +19,24 @@ public class CardData : ScriptableObject
 
     [field: SerializeField] public string cardName { get; private set; }
     [field: SerializeField] public int cost { get; private set; }
+
+    [field: Tooltip("Which tiles this card may be aimed at, measured from the acting character's tile. "
+                    + "Left at Anywhere, any tile on the board is legal.")]
+    [field: SerializeField] public TargetRange range { get; private set; }
+
+    [field: Tooltip("Which character may hold this card. Any means everyone. Enforced when a deck is "
+                    + "built, not when the card is played.")]
+    [field: SerializeField] public CharacterClass requiredClass { get; private set; }
+
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }
+
+    /// Also the hook a post-combat reward or draft screen filters on - which is the actual reason
+    /// class restriction exists in a deckbuilder.
+    public bool CanBeUsedBy(Character character) =>
+        requiredClass == CharacterClass.Any
+        || (character != null && character.Class == requiredClass);
 
     //public string CardName => cardName;
     //public int Cost => cost;

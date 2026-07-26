@@ -1,16 +1,17 @@
 using UnityEngine;
 
-public class ShieldEffect : MonoBehaviour
+[CreateAssetMenu(menuName = "Card Effects/Gain Armor")]
+public class ShieldEffect : CardEffect
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private int shieldAmount;
+
+    public override void Resolve(ActionContext ctx)
     {
-        
+        ActionManager.Instance.AddAction(new ShieldAction(shieldAmount), ctx);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    /// Armor needs somebody to land on, and it is always meant for your own side. Usually authored
+    /// with AimsAt = Source, in which case Card.Refusal skips this entirely.
+    public override string Refusal(Character source, GridTile target) =>
+        RefuseByOccupant(source, target, wantAlly: true);
 }

@@ -28,8 +28,9 @@ CardViewer                    the visual; hover, selection, click
 CardPlayManager               select a card → click a tile → play
 ActionManager                 queue of (action, context), resolved one at a time
 Tiles                         the only targetable thing; forwards effects to its Occupant
-Character                     health, its own energy pool, turn allegiance
-GameManager                   the game loop: turn order, energy refresh, draw/discard piles
+TileSelector                  owns a tile's colour: idle / in-range highlight / hover
+Character                     health, its own energy pool, its own deck/hand/piles
+GameManager                   who is active, and whose hand is on screen
 ```
 
 ### Conventions we settled on
@@ -46,17 +47,56 @@ state in coroutine locals — those are already per-invocation. Never write to a
 **`ActionContext` is per action, not per card.** That is what lets one card aim its actions at
 different things: Bash damages the tile you picked but draws for whoever played it.
 
+**One click, one answer: `Card.Refusal(source, target)`.** It returns null if the card may be played
+there, otherwise the reason. `CardPlayManager.PlaySelectedOn` asks it *above* the commit point, so a
+refused play costs no energy and the card stays in hand. `GridManager.ShowPlayableTiles` builds the
+tile highlight from the very same call, which is what stops the highlight from ever promising a tile
+that a click would then refuse. Anything that can refuse a play belongs in there, not downstream.
+
+**Range is the card's rule; everything else is the effect's.** `TargetRange` on `CardData` says which
+tiles may be clicked, measured from the acting character's tile — one rule per card, because one click
+has to produce one yes/no. Per-effect rules (Move cannot land on an occupied tile, damage needs an
+enemy) go in `CardEffect.Refusal`, which defaults to "no objection". Do not put range on an effect:
+effect assets are shared between cards.
+
+**`RangeShape.Anywhere` is 0 on purpose.** A `.asset` authored before a serialized field exists
+deserializes to all-zero, so that default has to be the old behaviour. Same reason `TargetRange` is a
+struct and `DamageEffect.canHitAllies` is off-by-default. The enum's int values are written into
+assets — append new shapes, never reorder.
+
 **Cards target tiles, never characters directly.** `Tiles.DealDamage` etc. forward onto `Occupant`.
 This lets an action say "damage this tile" without knowing whether anything is standing there.
 
 **Energy belongs to `Character`, not `GameManager`.** Multiple characters each have their own pool;
 playing a card charges `GameManager.ActiveCharacter`.
 
-**Card objects persist for the whole battle.** `GameManager.BuildDrawPile()` constructs them once from
-the authored `List<CardData> deck`; they then move drawPile → hand → discardPile. Do not rebuild a
-`Card` on draw — that would silently discard its per-copy state.
+**There is no turn order.** Clicking a character makes it active. Characters have no colliders of
+their own, so the tile under them is what you click.
+
+**`GameManager.OnTileClicked` is the one door for tile clicks.** `GridTile.OnMouseDown` forwards
+there, and it decides what the click meant: with a card selected it hands off to
+`CardPlayManager.PlaySelectedOn`, otherwise it activates the tile's occupant. `CardPlayManager` only
+knows how to play cards — it does not decide who is active.
+
+**Every `Character` owns its deck, hand, and piles.** `Character.BuildDeck()` runs in `Awake`;
+`GameManager` only deals the opening hands and rebuilds the on-screen row when the active character
+changes. The hand you see always belongs to `GameManager.ActiveCharacter`.
+
+**Card objects persist for the whole battle.** `Character.BuildDeck()` constructs them once from that
+character's authored `List<CardData> deck`; they then move drawPile → hand → discardPile. Do not
+rebuild a `Card` on draw — that would silently discard its per-copy state.
+
+**Drawing is the character's business; displaying is `GameManager`'s.** `Character.DrawCard()` moves a
+card from its own draw pile to its own hand and raises `CardDrawn` — it knows nothing about viewers.
+`GameManager` subscribes to every character and builds a `CardViewer` only when the drawer is the
+active one. Never call back into `GameManager` from `Character` to update the view.
 
 ## Gotchas
+
+**`GameAction` is a plain class; `CardEffect` is the `ScriptableObject`.** Actions are never assets —
+they are `new`'d on every play and most take constructor arguments. Deriving `GameAction` from
+`ScriptableObject` compiles fine and then throws at runtime the first time a card is played: *"must be
+instantiated using the ScriptableObject.CreateInstance method instead of new"*.
 
 **Never mutate a `ScriptableObject` at runtime.** In the Editor those writes persist into the `.asset`
 file on disk after you exit Play Mode — unlike scene changes, they are not reverted. You will
@@ -88,9 +128,7 @@ recreate via **Assets → Create → Card Data → Bash**.
 ## Not implemented yet
 
 Marked with TODOs in the code: block/shield/parry mitigation (damage currently goes straight to
-health), AI turns (non-player characters pass immediately), win/loss conditions, and per-character
-decks (there is one shared deck and hand).
+health), enemy behaviour (non-player characters just stand there), and win/loss conditions.
 
-Scene wiring is also incomplete — `CardPlayManager` needs its serialized references filled, tiles need
-`Tiles` components with colliders, and `GameManager.turnOrder` needs a player `Character`. Until a
-player character exists, cards cannot be played: there is nobody to pay the energy cost.
+Energy has no refresh point now that turns are gone — `ResetEnergy()` exists but nothing calls it, so
+each character gets `maxEnergy` for the whole session.

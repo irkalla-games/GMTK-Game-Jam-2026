@@ -33,8 +33,34 @@ public class BattleManager : Singleton<BattleManager>
     [SerializeField] private TextMeshProUGUI turnCounter;
     [SerializeField] private TextMeshProUGUI manaCounter;
 
-    [Tooltip("Every character on the board, both sides.")]
+    /// <summary>
+    /// One enemy to place when the battle starts.
+    ///
+    /// Stats and deck live on the prefab's own Character rather than being repeated here - there is
+    /// one obvious place to tune a goblin, and it is the goblin. The deck override exists only so the
+    /// same prefab can turn up twice with different cards without needing a second prefab.
+    /// </summary>
+    [System.Serializable]
+    public struct EnemyPlacement
+    {
+        [Tooltip("Prefab with a Character on it. Health, brain, damage and reach all come from there.")]
+        public Character prefab;
+
+        [Tooltip("Grid cell it starts on.")]
+        public Vector2Int cell;
+
+        [Tooltip("Leave empty to use the prefab's own deck.")]
+        public List<CardData> deckOverride;
+    }
+
+    [Tooltip("Characters already placed in the scene - the party.")]
     [SerializeField] private List<Character> characters = new();
+
+    [Tooltip("Enemies spawned when the battle starts, and added to the roster above.")]
+    [SerializeField] private List<EnemyPlacement> enemies = new();
+
+    [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
+    [SerializeField] private Transform enemyParent;
 
     [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
     [SerializeField] private int turnsToSurvive = 10;
@@ -130,12 +156,46 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Start()
     {
+        // Enemies first: they join the roster, and everything below walks it.
+        SpawnEnemies();
+
         // Before the loop, not after: TurnStart draws, and the hand viewer only builds viewers for
         // whoever is active. Order is safe either way now - ActiveHandViewer reads ActiveCharacter in
         // its own Start if it happened to subscribe after this fired.
         SetActiveCharacter(FirstPlayableCharacter());
 
         StartCoroutine(RunBattle());
+    }
+
+    /// <summary>
+    /// Instantiates the authored enemies and adds them to the roster.
+    ///
+    /// Here rather than in a spawner of its own because ordering is the whole difficulty: the roster
+    /// has to be complete before anything walks it, and two components' Awakes have no guaranteed
+    /// order between them. BattleManager already owns the roster, so it does the spawning.
+    ///
+    /// Each one is placed explicitly rather than left to its own Start - a character instantiated
+    /// during this Start would not run its Start until the end of the frame, and the first TurnStart
+    /// happens before that. It would be asked for an intent with no tile, and answer Wait.
+    /// </summary>
+    private void SpawnEnemies()
+    {
+        foreach (EnemyPlacement placement in enemies)
+        {
+            if (placement.prefab == null) { continue; }
+
+            Character enemy = Instantiate(placement.prefab, enemyParent);
+            enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
+
+            if (placement.deckOverride != null && placement.deckOverride.Count > 0)
+            {
+                enemy.SetDeck(placement.deckOverride);
+            }
+
+            enemy.PlaceOnGrid(placement.cell);
+
+            characters.Add(enemy);
+        }
     }
 
     private void Update()

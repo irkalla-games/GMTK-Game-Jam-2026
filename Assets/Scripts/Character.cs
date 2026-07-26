@@ -333,6 +333,22 @@ public class Character : MonoBehaviour
         discardPile.Add(card);
     }
 
+    /// <summary>
+    /// Replaces the authored deck and rebuilds the piles from it.
+    ///
+    /// For spawned enemies: BuildDeck has already run in Awake by the time anything can reach a
+    /// freshly instantiated character, so handing it a new list means building the piles again
+    /// rather than editing the field and hoping.
+    /// </summary>
+    public void SetDeck(IEnumerable<CardData> cards)
+    {
+        deck.Clear();
+
+        if (cards != null) { deck.AddRange(cards); }
+
+        BuildDeck();
+    }
+
     private void BuildDeck()
     {
         drawPile.Clear();
@@ -384,7 +400,26 @@ public class Character : MonoBehaviour
     private void Start()
     {
         // GridManager builds the grid in Awake, which always runs before any Start, so tiles exist here.
+        PlaceOnStartTile();
+    }
+
+    /// <summary>
+    /// Drops this character onto a cell immediately, rather than waiting for its own Start.
+    ///
+    /// Spawned enemies need this: an enemy instantiated during the battle's own Start would not run
+    /// its Start until the end of the frame, so its Tile would still be null when the first turn
+    /// asked it what it intended to do - and a character with no tile can only Wait.
+    /// </summary>
+    public void PlaceOnGrid(Vector2Int cell)
+    {
+        startCoordinates = cell;
+        PlaceOnStartTile();
+    }
+
+    private void PlaceOnStartTile()
+    {
         GridTile tile = GridManager.Instance != null ? GridManager.Instance.GetTile(startCoordinates) : null;
+
         if (tile != null)
         {
             MoveTo(tile);

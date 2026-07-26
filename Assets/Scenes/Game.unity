@@ -1479,7 +1479,7 @@ GameObject:
   - component: {fileID: 786158007}
   - component: {fileID: 786158006}
   m_Layer: 0
-  m_Name: Enemy1
+  m_Name: Goblin Warrior
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1512,19 +1512,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b8079a4f0e74a04ea4655e0c6a74515, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
-  maxHealth: 10
+  maxHealth: 34
   maxEnergy: 3
   isPlayerControlled: 0
   characterClass: 0
   actionPoints: 2
+  brain: 1
+  attackDamage: 6
+  moveRange: 3
+  attackRange: 1
   startCoordinates: {x: 3, y: 5}
-  deck:
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  <Health>k__BackingField: 10
+  deck: []
+  <Health>k__BackingField: 34
   <Armor>k__BackingField: 0
 --- !u!212 &786158007
 SpriteRenderer:
@@ -1883,6 +1882,7 @@ MonoBehaviour:
   - {fileID: 526219092}
   - {fileID: 111405815}
   - {fileID: 488905599}
+  - {fileID: 786158006}
   turnsToSurvive: 10
   handSize: 5
   <TurnsRemaining>k__BackingField: 0

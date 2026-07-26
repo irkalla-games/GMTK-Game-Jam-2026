@@ -278,10 +278,9 @@ public class BattleManager : Singleton<BattleManager>
 
             if (character.IsDead) { continue; }
 
-            if (character.IsPlayerControlled)
-            {
-                character.DrawCards(handSize - character.Hand.Count);
-            }
+            // Everyone draws, enemies included. Their cards are how they act at all now, so a goblin
+            // with an empty hand has nothing to choose between and can only Wait.
+            character.DrawCards(handSize - character.Hand.Count);
         }
 
         // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing

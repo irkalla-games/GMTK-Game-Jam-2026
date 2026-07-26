@@ -40,6 +40,29 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     public bool Contains(CardViewer cardViewer) => cardsInHand.Contains(cardViewer);
 
     /// <summary>
+    /// Follows the battle rather than being told what to draw. Subscribing *and* reading the current
+    /// active character covers both Start orderings: subscribe first and the event arrives, or
+    /// subscribe late and ActiveCharacter is already set.
+    /// </summary>
+    private void Start()
+    {
+        if (cardPrefab == null) { Debug.LogError($"{name}: cardPrefab is not set - no card can be built"); }
+        if (splineContainer == null) { Debug.LogError($"{name}: splineContainer is not set - cards cannot be laid out"); }
+
+        BattleManager battle = BattleManager.Instance;
+
+        if (battle == null)
+        {
+            Debug.LogError($"{name}: no BattleManager in the scene - the hand cannot follow anybody");
+            return;
+        }
+
+        battle.ActiveCharacterChanged += ShowHandFor;
+
+        if (battle.ActiveCharacter != null) { ShowHandFor(battle.ActiveCharacter); }
+    }
+
+    /// <summary>
     /// Swaps the row over to this character's cards. Safe to call with the same character twice - it
     /// rebuilds from their hand either way, which is also how a hand that changed off-screen catches
     /// up when you switch back to it.
@@ -106,6 +129,11 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         base.OnDestroy();
 
         if (shown != null) { shown.CardDrawn -= OnCardDrawn; }
+
+        if (BattleManager.Instance != null)
+        {
+            BattleManager.Instance.ActiveCharacterChanged -= ShowHandFor;
+        }
     }
 
     /// Only ever fires for `shown` - ShowHandFor moves the subscription rather than filtering here.
@@ -116,6 +144,12 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
     private void AddToHand(Card card)
     {
+        // Bail rather than throw. This runs off Character.CardDrawn, which is raised from inside
+        // DrawCard - so an exception here does not just skip one card, it unwinds through DrawCards
+        // and TurnStart and kills the whole battle coroutine. A missing prefab should cost you the
+        // card art, not the game. Start has already logged what is missing.
+        if (cardPrefab == null) { return; }
+
         CardViewer cardViewer = Instantiate(cardPrefab, transform.position, Quaternion.identity);
         cardViewer.Setup(card);
         cardViewer.transform.localScale = Vector3.zero;

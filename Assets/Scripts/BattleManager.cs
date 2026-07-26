@@ -96,7 +96,20 @@ public class BattleManager : Singleton<BattleManager>
         SetActiveCharacter(occupant);
     }
 
-    /// Makes this character the one you are playing as and swaps the hand on screen over to its cards.
+    /// <summary>
+    /// Raised when the character you are playing as changes. ActiveHandViewer listens so the row on
+    /// screen follows it.
+    ///
+    /// An event rather than calling the viewer directly, and that is load-bearing rather than taste.
+    /// Reaching for ActiveHandViewer.Instance here put a view object on the battle's critical path:
+    /// if it were ever null for one frame, the exception would abort Start *after* ActiveCharacter
+    /// had been assigned but *before* StartCoroutine(RunBattle) - so clicking a character still
+    /// appeared to work while nothing ever drew a card. The view depends on the battle; the battle
+    /// must not depend on the view.
+    /// </summary>
+    public event System.Action<Character> ActiveCharacterChanged;
+
+    /// Makes this character the one you are playing as. Whoever is drawing the hand follows along.
     public void SetActiveCharacter(Character character)
     {
         if (character == null || character == ActiveCharacter) { return; }
@@ -104,14 +117,14 @@ public class BattleManager : Singleton<BattleManager>
         ActiveCharacter = character;
         Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
 
-        ActiveHandViewer.Instance.ShowHandFor(character);
+        ActiveCharacterChanged?.Invoke(character);
     }
 
     private void Start()
     {
-        // Before the loop, not after: TurnStart draws, and ActiveHandViewer only builds viewers for
-        // whoever is active. Ordering these by hand is why RunBattle no longer waits a frame - both
-        // halves live here now, so there is no cross-Start race left to dodge.
+        // Before the loop, not after: TurnStart draws, and the hand viewer only builds viewers for
+        // whoever is active. Order is safe either way now - ActiveHandViewer reads ActiveCharacter in
+        // its own Start if it happened to subscribe after this fired.
         SetActiveCharacter(FirstPlayableCharacter());
 
         StartCoroutine(RunBattle());

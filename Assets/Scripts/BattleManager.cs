@@ -33,14 +33,43 @@ public class BattleManager : Singleton<BattleManager>
     [SerializeField] private TextMeshProUGUI turnCounter;
     [SerializeField] private TextMeshProUGUI manaCounter;
 
-    [Tooltip("Every character on the board, both sides.")]
+    /// <summary>
+    /// One enemy to place when the battle starts.
+    ///
+    /// Stats and deck live on the prefab's own Character rather than being repeated here - there is
+    /// one obvious place to tune a goblin, and it is the goblin. The deck override exists only so the
+    /// same prefab can turn up twice with different cards without needing a second prefab.
+    /// </summary>
+    [System.Serializable]
+    public struct EnemyPlacement
+    {
+        [Tooltip("Prefab with a Character on it. Health, brain, damage and reach all come from there.")]
+        public Character prefab;
+
+        [Tooltip("Grid cell it starts on.")]
+        public Vector2Int cell;
+
+        [Tooltip("Leave empty to use the prefab's own deck.")]
+        public List<CardData> deckOverride;
+    }
+
+    [Tooltip("Characters already placed in the scene - the party.")]
     [SerializeField] private List<Character> characters = new();
+
+    [Tooltip("Enemies spawned when the battle starts, and added to the roster above.")]
+    [SerializeField] private List<EnemyPlacement> enemies = new();
+
+    [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
+    [SerializeField] private Transform enemyParent;
 
     [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
     [SerializeField] private int turnsToSurvive = 10;
 
     [Tooltip("Hand is topped back up to this at the start of each turn - unplayed cards carry over.")]
     [SerializeField] private int handSize = 5;
+
+    [Tooltip("Pause between an enemy's individual movement steps, so a walk reads as a walk.")]
+    [SerializeField] private float stepDuration = 0.16f;
 
     [field: SerializeField, ReadOnlyField]
     public int TurnsRemaining { get; private set; }
@@ -127,6 +156,9 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Start()
     {
+        // Enemies first: they join the roster, and everything below walks it.
+        SpawnEnemies();
+
         // Before the loop, not after: TurnStart draws, and the hand viewer only builds viewers for
         // whoever is active. Order is safe either way now - ActiveHandViewer reads ActiveCharacter in
         // its own Start if it happened to subscribe after this fired.
@@ -135,9 +167,45 @@ public class BattleManager : Singleton<BattleManager>
         StartCoroutine(RunBattle());
     }
 
+    /// <summary>
+    /// Instantiates the authored enemies and adds them to the roster.
+    ///
+    /// Here rather than in a spawner of its own because ordering is the whole difficulty: the roster
+    /// has to be complete before anything walks it, and two components' Awakes have no guaranteed
+    /// order between them. BattleManager already owns the roster, so it does the spawning.
+    ///
+    /// Each one is placed explicitly rather than left to its own Start - a character instantiated
+    /// during this Start would not run its Start until the end of the frame, and the first TurnStart
+    /// happens before that. It would be asked for an intent with no tile, and answer Wait.
+    /// </summary>
+    private void SpawnEnemies()
+    {
+        foreach (EnemyPlacement placement in enemies)
+        {
+            if (placement.prefab == null) { continue; }
+
+            Character enemy = Instantiate(placement.prefab, enemyParent);
+            enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
+
+            if (placement.deckOverride != null && placement.deckOverride.Count > 0)
+            {
+                enemy.SetDeck(placement.deckOverride);
+            }
+
+            enemy.PlaceOnGrid(placement.cell);
+
+            characters.Add(enemy);
+        }
+    }
+
     private void Update()
     {
         if (Keyboard.current == null) { return; }
+
+        // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
+        // Without it RequestEndTurn has no caller at all, and a turn can only end by running the
+        // whole party out of playable cards.
+        if (Keyboard.current.enterKey.wasPressedThisFrame) { RequestEndTurn(); }
 
         // Debug: draw a card for whoever is active.
         if (Keyboard.current.spaceKey.wasPressedThisFrame && ActiveCharacter != null)
@@ -216,8 +284,27 @@ public class BattleManager : Singleton<BattleManager>
             }
         }
 
-        //TODO: enemies commit an intent here and telegraph it. Until brains exist there is nothing to
-        //commit, so EnemyResolve has nothing to execute and the turn is player-only.
+        // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing
+        // last turn's spent value until the next card is played. Refreshed here rather than from
+        // inside ResetEnergy so Character stays unaware of any UI.
+        if (ActiveCharacter != null) { ChangeActiveMana(ActiveCharacter.Energy); }
+
+        // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
+        // whole design: they announce one action, you spend the turn making it wrong, and it fires
+        // anyway. Deciding at execution time instead would quietly undo every block you set up.
+        Board board = GridManager.Instance.Read();
+
+        GridManager.Instance.ClearIntents();
+
+        foreach (Character enemy in LivingEnemies())
+        {
+            enemy.CommittedIntent = Decide(enemy, board);
+
+            if (enemy.CommittedIntent.IsWait) { continue; }
+
+            Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
+            GridManager.Instance.ShowIntent(enemy, enemy.CommittedIntent);
+        }
 
         yield return null;
     }
@@ -247,6 +334,10 @@ public class BattleManager : Singleton<BattleManager>
     {
         Phase = BattlePhase.EnemyResolve;
 
+        // The promises have been kept or broken by now - leaving them drawn over the actual movement
+        // would be worse than not drawing them at all.
+        GridManager.Instance.ClearIntents();
+
         foreach (Character enemy in LivingEnemies())
         {
             // Frozen burns the whole turn, not one action - there is no partial thaw.
@@ -256,24 +347,73 @@ public class BattleManager : Singleton<BattleManager>
                 continue;
             }
 
-            //TODO: the AP loop goes here and is the whole of the enemy turn:
-            //
-            //  for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++) {
-            //      Intent step = ap == 0 ? enemy.CommittedIntent : enemy.Brain.Decide(enemy, board);
-            //      if (step.type == ActionType.Wait) { break; }
-            //      yield return Execute(enemy, step);
-            //      yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
-            //  }
-            //
-            //Step 0 executes the intent committed at TurnStart, right or wrong - a blocked move
-            //advances as far as it can, an attack on an empty tile visibly misses. Every later step
-            //is decided against the live board, so it can never be stale. Waiting on EnemyBrain.
-            Debug.Log($"{enemy.name} has {enemy.ActionPoints} AP and no brain to spend them");
+            for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++)
+            {
+                // Step 0 is the promise made at TurnStart and is executed as committed, right or
+                // wrong. Every step after it is decided against the board as it stands, so it cannot
+                // be stale - which is why only the first one can ever fizzle.
+                Intent step = ap == 0
+                    ? enemy.CommittedIntent
+                    : Decide(enemy, GridManager.Instance.Read());
+
+                if (step.IsWait) { break; }
+
+                yield return StartCoroutine(Execute(enemy, step));
+
+                // AddAction resolves the first action synchronously, so "queued" is not "finished".
+                yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+            }
+
+            enemy.CommittedIntent = Intent.Wait();
         }
 
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so
         // "queued" is not "finished". Without this the turn would roll over mid-animation.
         yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+    }
+
+    /// Asks this character's brain for one action. Wait if it has no brain, which is every player.
+    private static Intent Decide(Character character, Board board)
+    {
+        EnemyBrain brain = EnemyBrain.For(character.Brain);
+
+        if (brain == null || character.Tile == null) { return Intent.Wait(); }
+
+        return brain.Decide(character, board);
+    }
+
+    /// <summary>
+    /// Plays the committed card, if it is still legal.
+    ///
+    /// The fizzle is Card.Refusal saying no - the same call the player's click is gated on. An intent
+    /// is a promise made a whole turn ago against a board you have spent the turn rearranging, so a
+    /// goblin that meant to walk somewhere you are now standing, or swing at somebody who has moved
+    /// or died, simply finds its card illegal and burns the action point.
+    ///
+    /// Resolution goes through ResolveEffects exactly as a played card does, so enemy attacks pick up
+    /// Strength, Double Attack and the target's armor for free. Nothing in the card pipeline needed
+    /// to learn that enemies exist.
+    /// </summary>
+    private IEnumerator Execute(Character enemy, Intent step)
+    {
+        GridTile tile = GridManager.Instance.GetTile(step.target);
+
+        string refusal = tile == null ? "that tile is gone" : step.card.Refusal(enemy, tile);
+
+        if (refusal != null)
+        {
+            //TODO: a visible fizzle. This currently only reads in the console, so a plan you broke
+            //looks like an enemy that did nothing rather than like your block working.
+            Debug.Log($"{enemy.name} tries {step.card.cardName} at {step.target} - {refusal}");
+            yield break;
+        }
+
+        Debug.Log($"{enemy.name} plays {step.card.cardName} at {step.target}");
+
+        enemy.Discard(step.card);
+        step.card.ResolveEffects(enemy, tile);
+
+        yield return new WaitForSeconds(stepDuration);
     }
 
     private IEnumerable<Character> LivingEnemies()

@@ -15,6 +15,9 @@ public class GridManager : Singleton<GridManager>
 
     private Dictionary<Vector2Int, GridTile> tiles = new();
 
+    /// Live telegraph lines, torn down and rebuilt each turn.
+    private readonly List<LineRenderer> telegraphs = new();
+
 
     protected override void Awake()
     {
@@ -159,6 +162,112 @@ public class GridManager : Singleton<GridManager>
     public void ClearPlayableTiles()
     {
         foreach (GridTile tile in tiles.Values) { tile.SetInRange(false); }
+    }
+
+
+    /// <summary>
+    /// Draws what an enemy has committed to doing: a line from it to the tile its card is aimed at.
+    ///
+    /// Red when the tile has somebody on it, amber when it does not - which distinguishes a swing
+    /// from a walk without needing to know anything about the card. That is the same trick the brains
+    /// use to tell attacks from moves: what a card does is settled by where it is legal, not by a
+    /// label on it.
+    ///
+    /// Here rather than in a TelegraphViewer of its own - that would be two public methods, which is
+    /// a function looking for a file rather than a concept. GridManager is already what draws on the
+    /// board, and this is the same job as ShowPlayableTiles with a different reason.
+    ///
+    /// Deliberately a *separate* channel from the tile highlight: telegraphs have to survive the
+    /// player selecting and deselecting a card, and ClearPlayableTiles resets every tile.
+    /// </summary>
+    public void ShowIntent(Character enemy, Intent intent)
+    {
+        if (enemy == null || enemy.Tile == null || intent.IsWait) { return; }
+
+        GridTile tile = GetTile(intent.target);
+
+        if (tile == null) { return; }
+
+        List<Vector3> points = new() { enemy.Tile.transform.position, tile.transform.position };
+
+        telegraphs.Add(DrawTelegraph(points, tile.Occupant != null));
+    }
+
+
+    public void ClearIntents()
+    {
+        foreach (LineRenderer line in telegraphs)
+        {
+            if (line != null) { Destroy(line.gameObject); }
+        }
+
+        telegraphs.Clear();
+    }
+
+
+    /// <summary>
+    /// One telegraph line. Built in code rather than from a prefab so there is nothing to wire in the
+    /// Inspector and nothing to lose to a scene reload - the whole thing is created and destroyed
+    /// inside a turn.
+    ///
+    /// Sprites/Default is the one shader guaranteed present in a 2D project that respects vertex
+    /// colour, so the line does not come out magenta without a material authored for it.
+    /// </summary>
+    private LineRenderer DrawTelegraph(List<Vector3> points, bool isAttack)
+    {
+        GameObject go = new("Telegraph");
+        go.transform.SetParent(transform);
+
+        LineRenderer line = go.AddComponent<LineRenderer>();
+        line.material = new Material(Shader.Find("Sprites/Default"));
+        line.widthMultiplier = isAttack ? 0.16f : 0.1f;
+        line.numCapVertices = 4;
+        line.useWorldSpace = true;
+        line.sortingOrder = 100;
+
+        Color colour = isAttack ? new Color(1f, 0.25f, 0.2f, 0.9f) : new Color(1f, 0.85f, 0.3f, 0.75f);
+        line.startColor = colour;
+        line.endColor = new Color(colour.r, colour.g, colour.b, colour.a * 0.35f);
+
+        line.positionCount = points.Count;
+
+        // Nudged toward the camera so the line sits over the tiles rather than z-fighting them.
+        for (int i = 0; i < points.Count; i++)
+        {
+            line.SetPosition(i, points[i] + Vector3.back * 0.5f);
+        }
+
+        return line;
+    }
+
+
+    /// <summary>
+    /// A coordinates-only snapshot of the board for the enemy brains.
+    ///
+    /// Built fresh each time it is asked for rather than cached: an enemy decides against the board
+    /// as it stands the moment it acts, and a snapshot held across a turn is exactly the staleness
+    /// the design is trying to make visible rather than accidental.
+    ///
+    /// This is the seam that keeps brains testable - past this method there is no MonoBehaviour, no
+    /// GridTile, and nothing that needs a scene to exist.
+    /// </summary>
+    public Board Read()
+    {
+        Board board = new();
+
+        foreach (KeyValuePair<Vector2Int, GridTile> entry in tiles)
+        {
+            board.AddCell(entry.Key);
+
+            Character occupant = entry.Value.Occupant;
+
+            if (occupant != null && !occupant.IsDead)
+            {
+                board.SetOccupant(entry.Key, occupant.IsPlayerControlled);
+            }
+        }
+
+        return board;
     }
 
 

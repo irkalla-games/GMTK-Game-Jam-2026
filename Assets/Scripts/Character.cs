@@ -25,6 +25,14 @@ public class Character : MonoBehaviour
     [Tooltip("Actions this character takes per turn. Enemies only - players spend energy instead.")]
     [SerializeField] private int actionPoints = 2;
 
+    [Tooltip("Which rule list this enemy runs. None means it stands there - correct for players.")]
+    [SerializeField] private BrainType brain;
+
+    // No attack damage, reach or move speed here. Those are properties of the cards a character
+    // holds - a goblin hits for 6 because it is holding a card that deals 6, and reaches two tiles
+    // because that card's TargetRange says two. Duplicating them onto the character would be a
+    // second answer to a question the card already answers, and the two would drift.
+
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
@@ -62,6 +70,18 @@ public class Character : MonoBehaviour
     public CharacterClass Class => characterClass;
 
     public int ActionPoints => actionPoints;
+
+    public BrainType Brain => brain;
+
+
+    /// <summary>
+    /// What this enemy told the player it was going to do, decided at the start of the turn.
+    ///
+    /// Held rather than recomputed because the whole point is that it can go stale: the player spends
+    /// the turn making it wrong, and it executes anyway. Recomputing at execution time would quietly
+    /// undo every block and every kill the player set up.
+    /// </summary>
+    public Intent CommittedIntent { get; set; }
 
     public bool IsDead => Health <= 0;
 
@@ -302,6 +322,22 @@ public class Character : MonoBehaviour
         discardPile.Add(card);
     }
 
+    /// <summary>
+    /// Replaces the authored deck and rebuilds the piles from it.
+    ///
+    /// For spawned enemies: BuildDeck has already run in Awake by the time anything can reach a
+    /// freshly instantiated character, so handing it a new list means building the piles again
+    /// rather than editing the field and hoping.
+    /// </summary>
+    public void SetDeck(IEnumerable<CardData> cards)
+    {
+        deck.Clear();
+
+        if (cards != null) { deck.AddRange(cards); }
+
+        BuildDeck();
+    }
+
     private void BuildDeck()
     {
         drawPile.Clear();
@@ -353,7 +389,26 @@ public class Character : MonoBehaviour
     private void Start()
     {
         // GridManager builds the grid in Awake, which always runs before any Start, so tiles exist here.
+        PlaceOnStartTile();
+    }
+
+    /// <summary>
+    /// Drops this character onto a cell immediately, rather than waiting for its own Start.
+    ///
+    /// Spawned enemies need this: an enemy instantiated during the battle's own Start would not run
+    /// its Start until the end of the frame, so its Tile would still be null when the first turn
+    /// asked it what it intended to do - and a character with no tile can only Wait.
+    /// </summary>
+    public void PlaceOnGrid(Vector2Int cell)
+    {
+        startCoordinates = cell;
+        PlaceOnStartTile();
+    }
+
+    private void PlaceOnStartTile()
+    {
         GridTile tile = GridManager.Instance != null ? GridManager.Instance.GetTile(startCoordinates) : null;
+
         if (tile != null)
         {
             MoveTo(tile);

@@ -142,6 +142,11 @@ public class BattleManager : Singleton<BattleManager>
     {
         if (Keyboard.current == null) { return; }
 
+        // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
+        // Without it RequestEndTurn has no caller at all, and a turn can only end by running the
+        // whole party out of playable cards.
+        if (Keyboard.current.enterKey.wasPressedThisFrame) { RequestEndTurn(); }
+
         // Debug: draw a card for whoever is active.
         if (Keyboard.current.spaceKey.wasPressedThisFrame && ActiveCharacter != null)
         {
@@ -218,6 +223,11 @@ public class BattleManager : Singleton<BattleManager>
                 character.DrawCards(handSize - character.Hand.Count);
             }
         }
+
+        // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing
+        // last turn's spent value until the next card is played. Refreshed here rather than from
+        // inside ResetEnergy so Character stays unaware of any UI.
+        if (ActiveCharacter != null) { ChangeActiveMana(ActiveCharacter.Energy); }
 
         // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
         // whole design: they announce one action, you spend the turn making it wrong, and it fires

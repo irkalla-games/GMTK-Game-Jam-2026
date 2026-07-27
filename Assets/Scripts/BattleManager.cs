@@ -164,6 +164,10 @@ public class BattleManager : Singleton<BattleManager>
         // whoever is active. Order is safe either way now - ActiveHandViewer reads ActiveCharacter in
         // its own Start if it happened to subscribe after this fired.
         SetActiveCharacter(FirstPlayableCharacter());
+        NotificationManager.Instance.Show("How to Play",
+            "You are a group of adventures waitng for your friend to open the Door. Survive as long until the turn counter reaches 0 to make it out alive! Select the Knight or Mage using the Left Mouse Button and then select cards to play. Each Character has their own deck and amount of energy each turn. Good Luck!");
+
+
 
         StartCoroutine(RunBattle());
     }
@@ -245,12 +249,16 @@ public class BattleManager : Singleton<BattleManager>
 
             if (AllHeroesDead())
             {
+                NotificationManager.Instance.Show("Defeat", "All Heroes were Slain.");
+                yield return new WaitForSeconds(.15f);
                 Finish("defeat - every hero is down");
                 yield break;
             }
 
             if (TurnsRemaining <= 0)
             {
+                NotificationManager.Instance.Show("Victory", "The party made it out!");
+                yield return new WaitForSeconds(.15f);
                 Finish("victory - survived to the end of the clock");
                 yield break;
             }

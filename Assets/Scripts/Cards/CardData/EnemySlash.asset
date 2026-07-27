@@ -15,11 +15,11 @@ MonoBehaviour:
   <cardName>k__BackingField: 
   <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 2
+    shape: 1
     minDistance: 1
     maxDistance: 1
   <requiredClass>k__BackingField: 0
   <description>k__BackingField: Deal 5 damage.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
-  - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
+  - {fileID: 11400000, guid: 2b3919664f29705438c0b427d91e208c, type: 2}

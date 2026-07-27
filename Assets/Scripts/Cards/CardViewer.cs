@@ -11,7 +11,15 @@ public class CardViewer : MonoBehaviour
 
     [SerializeField] private SpriteRenderer image;
 
+    [SerializeField] private SpriteRenderer rangeIndicator;
+
     [SerializeField] private GameObject wrapper;
+
+    [SerializeField] private Sprite bowIcon;
+
+    [SerializeField] private Sprite swordIcon;
+
+
 
     public Card card { get; private set; }
 
@@ -27,6 +35,15 @@ public class CardViewer : MonoBehaviour
         description.text = card.description;
         cost.text = card.cost.ToString();
         image.sprite = card.image;
+        if (card.range.MaxDistance > 1)
+        {
+            rangeIndicator.sprite = bowIcon;
+        } else if (card.range.MaxDistance == 1){
+            rangeIndicator.sprite = swordIcon;
+        } else
+        {
+            rangeIndicator.sprite = null;
+        }
     }
 
     public void SetSelected(bool value)

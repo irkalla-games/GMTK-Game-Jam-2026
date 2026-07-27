@@ -292,8 +292,8 @@ public class GridManager : Singleton<GridManager>
         float tileHeight = 1.5f;
 
         return new Vector3(
-            ((x - y) * tileWidth / 2) + 3,
-            ((x + y) * tileHeight / 2) + 2.5f,
+            ((x - y) * tileWidth / 2) + 2.1f,
+            ((x + y) * tileHeight / 2) + 1.7f,
             0);
     }
     

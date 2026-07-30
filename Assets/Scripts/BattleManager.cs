@@ -279,6 +279,8 @@ public class BattleManager : Singleton<BattleManager>
         {
             if (character == null || character.IsDead) { continue; }
 
+            character.DiscardHand();
+            character.DrawCards(handSize - character.Hand.Count);
             character.ResetEnergy();
             character.ResetArmor();
 
@@ -289,7 +291,6 @@ public class BattleManager : Singleton<BattleManager>
 
             // Everyone draws, enemies included. Their cards are how they act at all now, so a goblin
             // with an empty hand has nothing to choose between and can only Wait.
-            character.DrawCards(handSize - character.Hand.Count);
         }
 
         // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing

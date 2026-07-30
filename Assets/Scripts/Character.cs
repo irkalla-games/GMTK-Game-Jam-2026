@@ -13,6 +13,8 @@ using UnityEngine;
 /// </summary>
 public class Character : MonoBehaviour
 {
+    [SerializeField] public int handSize = 5;
+
     [SerializeField] private int maxHealth = 10;
 
     [SerializeField] private TextMeshProUGUI healthBar;
@@ -417,6 +419,15 @@ public class Character : MonoBehaviour
         {
             MoveTo(tile);
             transform.position = tile.transform.position;
+        }
+    }
+
+    public void DiscardHand()
+    {
+        while(hand.Count > 0)
+        {
+            Debug.Log(hand.Count);
+            Discard(hand[0]);
         }
     }
 }

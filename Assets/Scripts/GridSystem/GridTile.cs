@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -92,6 +93,14 @@ public class GridTile : MonoBehaviour
         if (BattleManager.Instance != null)
         {
             BattleManager.Instance.OnTileClicked(this);
+        }
+    }
+
+    public void SummonObject(GameObject summonObject)
+    {
+        if(Occupant == null)
+        {
+            GameObject go = Instantiate(summonObject, GridManager.Instance.IsoToWorld(this.coordinates.x, this.coordinates.y), Quaternion.identity);
         }
     }
 }

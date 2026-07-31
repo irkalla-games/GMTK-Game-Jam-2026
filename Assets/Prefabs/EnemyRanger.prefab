@@ -114,14 +114,14 @@ MonoBehaviour:
   playableCharacter: 0
   characterClass: 0
   actionPoints: 1
-  brain: 1
+  brain: 2
   startCoordinates: {x: 2, y: 5}
   deck:
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
+  - {fileID: 11400000, guid: e0f2734ed1017c7419f5d21d3fb737f4, type: 2}
+  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
   <Health>k__BackingField: 34
   <Shield>k__BackingField: 0
 --- !u!95 &4795317427983224773

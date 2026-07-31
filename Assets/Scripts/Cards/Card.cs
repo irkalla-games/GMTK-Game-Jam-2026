@@ -25,6 +25,9 @@ public class Card
 
     private List<CardEffect> effects;
 
+    /// Per-copy runtime instances built from data.keywords - see CardKeyword.
+    private readonly List<CardKeyword> keywords = new();
+
     public Card(CardData newData)
     {
         this.data = newData;
@@ -32,6 +35,36 @@ public class Card
         this.range = newData.range;
         // Effects are shared, stateless ScriptableObject resolvers, so aliasing the asset's list is safe.
         this.effects = newData.effects;
+
+        // remaining starts equal to magnitude so a fresh Cooldown card is locked for its own warmup
+        // before its first play, exactly as it is again after every later play.
+        foreach (CardKeywordEntry entry in newData.keywords)
+        {
+            keywords.Add(new CardKeyword(entry.type, entry.magnitude, entry.magnitude));
+        }
+    }
+
+    public bool HasKeyword(CardKeywordType type) => keywords.Exists(k => k.type == type);
+
+    private CardKeyword Keyword(CardKeywordType type) => keywords.Find(k => k.type == type);
+
+    /// Turns left before Cooldown allows this card to be played again, or 0 if it has no Cooldown
+    /// keyword at all. Also what a tooltip should show - it is already the exact number to display.
+    public int CooldownRemaining => Keyword(CardKeywordType.Cooldown)?.remaining ?? 0;
+
+    /// True if this card's effects include one of this type - how the enemy brain tells a Summon card
+    /// apart from a Move card, since both are only legal on an empty tile.
+    public bool HasEffect<TEffect>() where TEffect : CardEffect => effects.Exists(e => e is TEffect);
+
+    /// <summary>
+    /// Ticks Cooldown down by one round. Called once per round for every card a character owns,
+    /// regardless of which pile it is sitting in - a card recharges whether or not it is in hand.
+    /// </summary>
+    public void TickCooldown()
+    {
+        CardKeyword cooldown = Keyword(CardKeywordType.Cooldown);
+
+        if (cooldown != null && cooldown.remaining > 0) { cooldown.remaining--; }
     }
 
     /// <summary>
@@ -49,6 +82,8 @@ public class Card
             string where = target != null ? target.Coordinates.ToString() : "nowhere";
             return $"{where} is out of range ({range})";
         }
+
+        if (CooldownRemaining > 0) { return $"needs {CooldownRemaining} more turn(s) to recharge"; }
 
         foreach (var effect in effects)
         {
@@ -75,6 +110,11 @@ public class Card
     /// </summary>
     public void ResolveEffects(Character source, GridTile target)
     {
+        // Resets right when the card is actually played, not when it is merely legal - a Cooldown
+        // card that never gets played (e.g. discarded unused at TurnStart) must not re-lock itself.
+        CardKeyword cooldown = Keyword(CardKeywordType.Cooldown);
+        if (cooldown != null) { cooldown.remaining = cooldown.magnitude; }
+
         foreach (var effect in effects)
         {
             if (effect == null) { continue; }

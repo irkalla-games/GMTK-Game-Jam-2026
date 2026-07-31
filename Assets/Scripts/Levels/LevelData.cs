@@ -22,6 +22,20 @@ public struct EnemyPlacement
 }
 
 /// <summary>
+/// One reinforcement wave: a second batch of EnemyPlacements that joins the battle mid-fight instead of
+/// at the start. Reuses EnemyPlacement rather than inventing a parallel shape - a wave enemy is placed
+/// exactly the same way SpawnEnemies places the opening roster, just later.
+/// </summary>
+[System.Serializable]
+public struct EnemyWave
+{
+    [Tooltip("Which round this wave spawns on - the same count BattleManager.TurnsElapsed reaches.")]
+    public int turn;
+
+    public List<EnemyPlacement> enemies;
+}
+
+/// <summary>
 /// One level's worth of board setup: which enemies stand where, and where the party is placed.
 ///
 /// Deliberately does not say *who* is in the party - RunState owns the roster because it is chosen
@@ -36,6 +50,9 @@ public class LevelData : ScriptableObject
     [Tooltip("Enemies spawned when the battle starts.")]
     [SerializeField] private List<EnemyPlacement> enemies = new();
 
+    [Tooltip("Reinforcements spawned partway through the battle, keyed by round.")]
+    [SerializeField] private List<EnemyWave> waves = new();
+
     [Tooltip("Where the run's party is placed, index for index against RunState's roster. A party "
              + "with more members than this list has spawn cells for is short the extras - they are "
              + "logged and left unplaced rather than guessed at.")]
@@ -48,6 +65,8 @@ public class LevelData : ScriptableObject
     [SerializeField] private int handSize = 5;
 
     public IReadOnlyList<EnemyPlacement> Enemies => enemies;
+
+    public IReadOnlyList<EnemyWave> Waves => waves;
 
     public IReadOnlyList<Vector2Int> PartySpawnCells => partySpawnCells;
 

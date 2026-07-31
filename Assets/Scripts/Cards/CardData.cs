@@ -2,6 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// One keyword this card is authored with, and its magnitude. Meaning depends on type - Cooldown reads
+/// magnitude as its length in turns, Innate ignores it. Lives here rather than as a fixed set of bool
+/// fields so a future keyword only needs a new CardKeywordType, not a new field on every card.
+/// </summary>
+[System.Serializable]
+public struct CardKeywordEntry
+{
+    public CardKeywordType type;
+
+    [Tooltip("Meaning depends on type. Cooldown: turns before it may be played, and again after each "
+             + "use. Innate: unused.")]
+    public int magnitude;
+}
+
+/// <summary>
 /// Base for every card asset. This is the card *type* - it is shared by every copy in a deck, so
 /// nothing here may be written to at runtime (in the Editor those writes persist into the .asset
 /// file). Per-copy and per-run state belongs on Card.
@@ -31,6 +46,9 @@ public class CardData : ScriptableObject
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }
+
+    [field: Tooltip("Reusable tags this card carries - Innate, Cooldown, and whatever gets added later.")]
+    [field: SerializeField] public List<CardKeywordEntry> keywords { get; private set; } = new();
 
     /// <summary>
     /// Also the hook a post-combat reward or draft screen filters on - which is the actual reason

@@ -7,7 +7,7 @@ public enum BrainType
 {
     None = 0,
     Warrior = 1,
-    Archer = 2,
+    Ranger = 2,
 }
 
 /// <summary>
@@ -26,12 +26,12 @@ public enum BrainType
 public abstract class EnemyBrain
 {
     private static readonly WarriorBrain warrior = new();
-    private static readonly ArcherBrain archer = new();
+    private static readonly RangerBrain ranger = new();
 
     public static EnemyBrain For(BrainType type) => type switch
     {
         BrainType.Warrior => warrior,
-        BrainType.Archer => archer,
+        BrainType.Ranger => ranger,
         _ => null,
     };
 
@@ -109,6 +109,44 @@ public abstract class EnemyBrain
         return !intent.IsWait;
     }
 
+    /// <summary>
+    /// The best legal Summon this character could play, or none. Move and Summon are both only legal
+    /// on an empty tile, so occupancy alone can't tell them apart the way it tells attacks from moves -
+    /// this checks the card's effects directly instead. Picks the closest legal empty tile to itself.
+    ///
+    /// Cooldown needs no special handling here: an on-cooldown Summon card simply fails card.Refusal
+    /// like anything else out of range or otherwise illegal, so this just returns false on its own
+    /// during the cooldown window.
+    /// </summary>
+    protected static bool TryFindSummon(Character self, out Intent intent)
+    {
+        intent = Intent.Wait();
+
+        if (self.Tile == null || GridManager.Instance == null) { return false; }
+
+        int best = int.MaxValue;
+        Vector2Int here = self.Tile.Coordinates;
+
+        foreach (Card card in self.Hand)
+        {
+            if (!card.HasEffect<SummonEffect>()) { continue; }
+
+            foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
+            {
+                if (tile.Occupant != null || card.Refusal(self, tile) != null) { continue; }
+
+                int distance = Board.ChebyshevDistance(tile.Coordinates, here);
+
+                if (distance >= best) { continue; }
+
+                best = distance;
+                intent = Intent.Play(card, tile.Coordinates);
+            }
+        }
+
+        return !intent.IsWait;
+    }
+
     /// The longest reach among this character's cards. An enemy's "range" is whatever it is holding.
     protected static int LongestReach(Character self)
     {
@@ -135,6 +173,10 @@ public class WarriorBrain : EnemyBrain
         // Attack first. Cheapest to check and always better than repositioning.
         if (TryFindAttack(self, out Intent attack)) { return attack; }
 
+        // Opportunistic: reinforce only when there is nothing to swing at. No Warrior deck holds a
+        // Summon card yet, so this is inert today, not dead code for a kit that will exist later.
+        if (TryFindSummon(self, out Intent summon)) { return summon; }
+
         // Otherwise get closer to whoever is nearest.
         if (!board.TryNearestEnemy(self.Tile.Coordinates, self.Affiliation, out Vector2Int quarry))
         {
@@ -150,13 +192,17 @@ public class WarriorBrain : EnemyBrain
 /// <summary>
 /// Wants to be exactly as far away as its longest card reaches, and never adjacent.
 ///
-/// Retreating before shooting is what makes it read as an archer rather than a warrior with reach -
-/// an archer that stands and trades in melee is just a bad warrior.
+/// Retreating before shooting is what makes it read as a ranger rather than a warrior with reach - one
+/// that stands and trades in melee is just a bad warrior.
 /// </summary>
-public class ArcherBrain : EnemyBrain
+public class RangerBrain : EnemyBrain
 {
     public override Intent Decide(Character self, Board board)
     {
+        // Reinforcing comes first, ahead of even shooting - a ranger that can call in backup does it
+        // on cooldown, not only when it has nothing better to do.
+        if (TryFindSummon(self, out Intent summon)) { return summon; }
+
         Vector2Int here = self.Tile.Coordinates;
         bool threatened = board.HasAdjacentEnemy(here, self.Affiliation);
 

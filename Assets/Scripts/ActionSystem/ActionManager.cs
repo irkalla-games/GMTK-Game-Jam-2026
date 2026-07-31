@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Collections;
@@ -29,6 +30,17 @@ public class ActionManager : Singleton<ActionManager>
     /// </summary>
     public bool IsIdle => !isRunning && actions.Count == 0;
 
+    /// <summary>
+    /// Raised after each action finishes resolving, action and context both included so a listener
+    /// can filter by what happened (a DamageAction landing) and who it happened to (ctx.source).
+    ///
+    /// This is the one hook anything reactive - an aura, a future "on hit" trinket - observes the
+    /// action pipeline through, rather than each such feature reaching into individual GameAction
+    /// subclasses. Fires once per action, not once per card: a card that queues several actions raises
+    /// this once for each of them, in resolution order.
+    /// </summary>
+    public event Action<GameAction, ActionContext> ActionResolved;
+
     public void AddAction(GameAction action, ActionContext ctx)
     {
         actions.Enqueue((action, ctx));
@@ -45,6 +57,7 @@ public class ActionManager : Singleton<ActionManager>
         {
             var (action, ctx) = actions.Dequeue();
             yield return action.Execute(ctx);
+            ActionResolved?.Invoke(action, ctx);
         }
 
         isRunning = false;

@@ -41,6 +41,10 @@ public class Character : MonoBehaviour
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
     [SerializeField] private Vector2Int startCoordinates;
 
+    [Tooltip("Spawned on this character's tile when it dies. Leave empty for characters that drop "
+             + "nothing - party members typically do.")]
+    [SerializeField] private GameObject itemDropPrefab;
+
     [Tooltip("This character's deck as authored. Card objects are built from it once, in Awake.")]
     [SerializeField] private List<CardData> deck = new();
 
@@ -53,8 +57,16 @@ public class Character : MonoBehaviour
 
     private readonly List<Card> discardPile = new();
 
+    /// Cards with the Innate keyword - always in hand, tracked separately so a played or discarded one
+    /// can find its way back. Subset of the Card objects built from `deck`, not a second deck.
+    private readonly List<Card> innateCards = new();
+
     /// Buffs and curses alike. One list, because they are the same machinery - see StatusType.
     private readonly List<Status> statuses = new();
+
+    /// Buffs currently maintained by an AuraSource this character is standing near. Separate from
+    /// statuses so leaving range can withdraw exactly what one aura granted - see AppliedAura.
+    private readonly List<AppliedAura> auraEffects = new();
 
     /// Current health. Serialized only so the live value is watchable in the Inspector during Play
     /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
@@ -96,6 +108,8 @@ public class Character : MonoBehaviour
     public int ActionPoints => actionPoints;
 
     public BrainType Brain => brain;
+
+    public GameObject ItemDropPrefab => itemDropPrefab;
 
 
     /// <summary>
@@ -233,6 +247,9 @@ public class Character : MonoBehaviour
     /// Leaves the board on death. MoveTo(null) is the only path that clears GridTile.Occupant, so
     /// without this a corpse holds its tile for the rest of the battle - blocking movement, refusing
     /// Move cards aimed at it, and soaking attacks that should have hit somebody alive.
+    ///
+    /// Died fires before MoveTo(null) on purpose: BattleManager drops loot on this character's Tile
+    /// when it reacts to Died, and that tile reads null the instant MoveTo runs.
     /// </summary>
     private void CheckDeath()
     {
@@ -240,8 +257,8 @@ public class Character : MonoBehaviour
 
         Debug.Log($"{name} is down");
 
-        MoveTo(null);
         Died?.Invoke(this);
+        MoveTo(null);
     }
 
     public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); UpdateHealthBar(); }
@@ -275,14 +292,42 @@ public class Character : MonoBehaviour
         healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Shield.ToString() + ")";
     }
 
+    /// How much of `type` this character currently has, from statuses and any aura buffs combined -
+    /// callers like ComputeOutgoingDamage should not have to care which source it came from.
     public int StatusStacks(StatusType type)
     {
+        int total = 0;
+
         foreach (Status status in statuses)
         {
-            if (status.type == type) { return status.stacks; }
+            if (status.type == type) { total += status.stacks; }
         }
 
-        return 0;
+        foreach (AppliedAura aura in auraEffects)
+        {
+            if (aura.type == type) { total += aura.stacks; }
+        }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Grants a passive buff on behalf of an AuraSource, for as long as this character stands in its
+    /// range. Tracked apart from AddStatus/statuses precisely so RemoveAura can later take back exactly
+    /// this grant - see AppliedAura.
+    /// </summary>
+    public void ApplyAura(AuraSource source, StatusType type, int stacks)
+    {
+        if (type == StatusType.None || stacks <= 0) { return; }
+
+        auraEffects.Add(new AppliedAura(source, type, stacks));
+    }
+
+    /// Withdraws every buff the given aura granted - called once a character leaves its range, or the
+    /// aura's own source dies.
+    public void RemoveAura(AuraSource source)
+    {
+        auraEffects.RemoveAll(a => a.source == source);
     }
 
     /// <summary>
@@ -331,9 +376,13 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// One turn passing: curses that deal damage do it, then every timed status ages by one and the
-    /// expired ones drop. Statuses with no duration (Strength, and charge-spent ones like
-    /// DoubleNextAttack) are untouched.
+    /// One of this character's own turns passing: curses that deal damage do it, then every timed
+    /// status ages by one and the expired ones drop. Statuses with no duration (Strength, and
+    /// charge-spent ones like DoubleNextAttack) are untouched.
+    ///
+    /// Called by BattleManager at the end of this character's own phase - PlayerActing for
+    /// player-controlled characters, EnemyResolve for enemies - never at the shared TurnStart. See
+    /// BattleManager.TickStatuses(bool) for why the timing matters.
     ///
     /// Iterated backwards because expiring a status removes it mid-loop.
     /// </summary>
@@ -421,8 +470,39 @@ public class Character : MonoBehaviour
     {
         if (!hand.Remove(card)) { return; }
 
-        discardPile.Add(card);
+        // Innate cards never enter the discard pile - RestoreInnateCards puts them straight back into
+        // hand next turn instead of them needing to be reshuffled back in.
+        if (!card.HasKeyword(CardKeywordType.Innate)) { discardPile.Add(card); }
+
         CardDiscarded?.Invoke(this, card);
+    }
+
+    /// <summary>
+    /// Puts back any innate card that DiscardHand or a play removed from hand. Called before the
+    /// normal top-up draw each turn so innate cards occupy real hand slots rather than inflating hand
+    /// size past HandSize.
+    /// </summary>
+    public void RestoreInnateCards()
+    {
+        foreach (Card card in innateCards)
+        {
+            if (hand.Contains(card)) { continue; }
+
+            hand.Add(card);
+            CardDrawn?.Invoke(this, card);
+        }
+    }
+
+    /// <summary>
+    /// Ticks every card's Cooldown down by one round. Safe to only walk these three piles rather than
+    /// innateCards too, as long as this runs after RestoreInnateCards each turn - by then every innate
+    /// card is already back in hand.
+    /// </summary>
+    public void TickCardCooldowns()
+    {
+        foreach (Card card in drawPile) { card.TickCooldown(); }
+        foreach (Card card in hand) { card.TickCooldown(); }
+        foreach (Card card in discardPile) { card.TickCooldown(); }
     }
 
     /// <summary>
@@ -446,10 +526,25 @@ public class Character : MonoBehaviour
         drawPile.Clear();
         hand.Clear();
         discardPile.Clear();
+        innateCards.Clear();
 
         foreach (CardData data in deck)
         {
-            if (data != null) { drawPile.Add(new Card(data)); }
+            if (data == null) { continue; }
+
+            Card card = new Card(data);
+
+            // Innate cards skip the draw pile entirely - they start in hand and RestoreInnateCards
+            // keeps them there for the rest of the battle.
+            if (card.HasKeyword(CardKeywordType.Innate))
+            {
+                innateCards.Add(card);
+                hand.Add(card);
+            }
+            else
+            {
+                drawPile.Add(card);
+            }
         }
 
         Shuffle(drawPile);

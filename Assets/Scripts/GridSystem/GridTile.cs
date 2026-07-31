@@ -17,6 +17,10 @@ public class GridTile : MonoBehaviour
 
     public Character Occupant { get; private set; }
 
+    /// A dropped item sitting on this tile, separate from Occupant - a character stands on the same
+    /// tile as an item rather than being blocked by it. Null when nothing is here.
+    public ItemPickup Item { get; private set; }
+
     private void Awake()
     {
         selector = GetComponent<TileSelector>();
@@ -113,5 +117,29 @@ public class GridTile : MonoBehaviour
         character.PlaceOnGrid(coordinates);
 
         if (BattleManager.Instance != null) { BattleManager.Instance.AddCharacter(character); }
+    }
+
+    /// Spawns an item on this tile, e.g. loot from a character that just died here. Overwrites
+    /// whatever was here before rather than stacking - two drops landing on the same tile is not a
+    /// case worth designing for yet.
+    public void DropItem(GameObject itemPrefab)
+    {
+        if (itemPrefab == null) { return; }
+
+        GameObject go = Instantiate(itemPrefab, GridManager.Instance.IsoToWorld(coordinates.x, coordinates.y), Quaternion.identity);
+        Item = go.GetComponent<ItemPickup>();
+    }
+
+    /// Called after a character finishes moving onto this tile. Only a player-controlled character
+    /// picks anything up - enemies are meant to be able to step over loot without triggering it.
+    public void TryPickUpItem(Character character)
+    {
+        if (Item == null || character == null || !character.IsPlayerControlled) { return; }
+
+        // TODO: offer the player a choice of card/item reward instead of an automatic pickup.
+        Debug.Log($"{character.name} picked up {Item.ItemName}");
+
+        Destroy(Item.gameObject);
+        Item = null;
     }
 }

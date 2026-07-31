@@ -6,7 +6,8 @@
 ///
 /// Two independent ways to expire, and a status may use either, both, or neither:
 ///
-///   duration  turnsRemaining ticks down at TurnStart and the status drops at 0.  Poison, Frozen.
+///   duration  turnsRemaining ticks down at the end of the carrier's own turn, and the status drops
+///             at 0.                                                              Poison, Frozen.
 ///   charge    an event spends a stack.                                           DoubleNextAttack.
 ///   neither   Indefinite, lasts the whole combat.                                Strength.
 ///

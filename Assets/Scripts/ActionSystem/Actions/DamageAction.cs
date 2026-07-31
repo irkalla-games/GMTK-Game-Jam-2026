@@ -25,7 +25,7 @@ public class DamageAction : GameAction
 
         foreach (GridTile target in ctx.targets)
         {
-            target.DealDamage(amount);
+            target.DealDamage(amount, ctx.source);
         }
 
         yield return new WaitForSeconds(ResolveDelay);

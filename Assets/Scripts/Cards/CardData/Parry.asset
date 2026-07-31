@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
-  m_Name: SummonGoblinWarrior
+  m_Name: Parry
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: Summon Goblin Warrior
-  <cost>k__BackingField: 0
+  <cardName>k__BackingField: Parry
+  <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 1
-    minDistance: 1
-    maxDistance: 5
+    shape: 3
+    minDistance: 0
+    maxDistance: 0
   <requiredClass>k__BackingField: 0
-  <description>k__BackingField: Summons
+  <description>k__BackingField: Gain Parry 2. Negates and reflects the next 2 hits.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
-  - {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}
+  - {fileID: 11400000, guid: 8dec97316b8344c796239e2f86af1374, type: 2}

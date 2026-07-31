@@ -1,19 +1,10 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DG.Tweening;
-using System;
 
 /// Click a card to select it, then click a tile to play it there.
 public class CardPlayManager : Singleton<CardPlayManager>
 {
-    // ActiveHandViewer, ActionManager and BattleManager are all singletons - serializing references
-    // to them here only created a second way to reach the same object. What stays serialized is what
-    // a designer actually authors: a world position, and a duration to tune by feel.
-    [SerializeField] private Transform discardAnchor;
-
-    [SerializeField] private float discardDuration = 0.15f;
-
     private CardViewer selected;
 
     public bool HasSelection => selected != null;
@@ -92,7 +83,9 @@ public class CardPlayManager : Singleton<CardPlayManager>
         actor.SpendEnergy(card.cost);
         card.ResolveEffects(actor, tile);
 
-        StartCoroutine(Discard(cardViewer, actor));
+        // Into the actor's own discard pile - the card came out of that character's hand.
+        // ActiveHandViewer is listening for Character.CardDiscarded and removes the viewer itself.
+        actor.Discard(card);
     }
 
 
@@ -127,21 +120,6 @@ public class CardPlayManager : Singleton<CardPlayManager>
     private static void ClearHighlights()
     {
         if (GridManager.Instance != null) { GridManager.Instance.ClearPlayableTiles(); }
-    }
-
-    private IEnumerator Discard(CardViewer cardViewer, Character actor)
-    {
-        cardViewer.BeginPlay();
-
-        Vector3 target = discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
-        cardViewer.transform.DOMove(target, discardDuration);
-        cardViewer.transform.DOScale(Vector3.zero, discardDuration);
-
-        // Into the actor's own discard pile - the card came out of that character's hand.
-        actor.Discard(cardViewer.card);
-
-        yield return ActiveHandViewer.Instance.RemoveCard(cardViewer);
-        Destroy(cardViewer.gameObject);
     }
 
     private void Update()

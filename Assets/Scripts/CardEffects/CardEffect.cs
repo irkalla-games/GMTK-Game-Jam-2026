@@ -56,7 +56,7 @@ public abstract class CardEffect : ScriptableObject
 
         if (source == null) { return null; }
 
-        bool ally = occupant.IsPlayerControlled == source.IsPlayerControlled;
+        bool ally = Character.AreAllies(occupant.Affiliation, source.Affiliation);
 
         if (wantAlly && !ally) { return $"{occupant.name} is not on your side"; }
 

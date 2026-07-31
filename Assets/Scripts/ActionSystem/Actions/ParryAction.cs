@@ -4,21 +4,20 @@ using UnityEngine;
 
 public class ParryAction : GameAction
 {
-    private readonly int reflectTotal;
     private readonly int parryCount;
 
-    public ParryAction(int reflectTotal, int parryCount)
+    public ParryAction(int parryCount)
     {
-        this.reflectTotal = reflectTotal;
         this.parryCount = parryCount;
     }
 
-    //Parry negates damage and reflects some amount of it back.
+    // Parry negates a hit outright and reflects the amount it would have dealt back at the attacker -
+    // see Character.TakeDamage.
     public override IEnumerator Execute(ActionContext ctx)
     {
         foreach (GridTile target in ctx.targets)
         {
-            target.GainParry(reflectTotal, parryCount);
+            target.GainParry(parryCount);
         }
         yield return new WaitForSeconds(ResolveDelay);
     }

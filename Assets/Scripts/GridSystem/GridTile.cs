@@ -39,9 +39,9 @@ public class GridTile : MonoBehaviour
         if (selector != null) { selector.SetInRange(value); }
     }
 
-    public void DealDamage(int amount)
+    public void DealDamage(int amount, Character attacker = null)
     {
-        if (Occupant != null) { Occupant.TakeDamage(amount); }
+        if (Occupant != null) { Occupant.TakeDamage(amount, attacker); }
     }
 
     public void Heal(int amount)
@@ -59,9 +59,9 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.GainBlock(amount, count); }
     }
 
-    public void GainParry(int reflectTotal, int count)
+    public void GainParry(int count)
     {
-        if (Occupant != null) { Occupant.GainParry(reflectTotal, count); }
+        if (Occupant != null) { Occupant.GainParry(count); }
     }
 
     /// <summary>
@@ -98,9 +98,20 @@ public class GridTile : MonoBehaviour
 
     public void SummonObject(GameObject summonObject)
     {
-        if(Occupant == null)
-        {
-            GameObject go = Instantiate(summonObject, GridManager.Instance.IsoToWorld(this.coordinates.x, this.coordinates.y), Quaternion.identity);
-        }
+        if (Occupant != null) { return; }
+
+        GameObject go = Instantiate(summonObject, GridManager.Instance.IsoToWorld(coordinates.x, coordinates.y), Quaternion.identity);
+
+        Character character = go.GetComponent<Character>();
+
+        if (character == null) { return; }
+
+        // Instantiate's position argument only sets the transform - Character.Start() runs at end of
+        // frame and re-places itself onto whatever startCoordinates it was authored with, which would
+        // otherwise silently drag a fresh summon back to (0, 0). PlaceOnGrid writes startCoordinates
+        // first, same trick BattleManager.SpawnEnemies already relies on.
+        character.PlaceOnGrid(coordinates);
+
+        if (BattleManager.Instance != null) { BattleManager.Instance.AddCharacter(character); }
     }
 }

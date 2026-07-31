@@ -19,7 +19,7 @@ MonoBehaviour:
     minDistance: 1
     maxDistance: 1
   <requiredClass>k__BackingField: 1
-  <description>k__BackingField: Gain 5 armor. Deal 5 damage to an adjacent enemy.
+  <description>k__BackingField: Gain 5 Shield. Deal 5 damage to an adjacent enemy.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}

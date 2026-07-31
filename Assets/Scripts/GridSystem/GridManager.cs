@@ -263,7 +263,7 @@ public class GridManager : Singleton<GridManager>
 
             if (occupant != null && !occupant.IsDead)
             {
-                board.SetOccupant(entry.Key, occupant.IsPlayerControlled);
+                board.SetOccupant(entry.Key, occupant.Affiliation);
             }
         }
 

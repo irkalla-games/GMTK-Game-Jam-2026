@@ -32,12 +32,12 @@ public class Board
 
     private readonly HashSet<Vector2Int> cells = new();
 
-    /// Coordinate -> is that occupant player-controlled. Absent means the tile is empty.
-    private readonly Dictionary<Vector2Int, bool> occupants = new();
+    /// Coordinate -> that occupant's affiliation. Absent means the tile is empty.
+    private readonly Dictionary<Vector2Int, PlayableCharacter> occupants = new();
 
     public void AddCell(Vector2Int cell) => cells.Add(cell);
 
-    public void SetOccupant(Vector2Int cell, bool isPlayerControlled) => occupants[cell] = isPlayerControlled;
+    public void SetOccupant(Vector2Int cell, PlayableCharacter affiliation) => occupants[cell] = affiliation;
 
     public bool Exists(Vector2Int cell) => cells.Contains(cell);
 
@@ -46,14 +46,14 @@ public class Board
     /// A tile you could stand on: on the board and nobody there.
     public bool IsWalkable(Vector2Int cell) => cells.Contains(cell) && !occupants.ContainsKey(cell);
 
-    public bool IsEnemyOf(Vector2Int cell, bool isPlayerControlled) =>
-        occupants.TryGetValue(cell, out bool occupantIsPlayer) && occupantIsPlayer != isPlayerControlled;
+    public bool IsEnemyOf(Vector2Int cell, PlayableCharacter affiliation) =>
+        occupants.TryGetValue(cell, out PlayableCharacter occupant) && Character.AreEnemies(occupant, affiliation);
 
-    public bool HasAdjacentEnemy(Vector2Int from, bool isPlayerControlled)
+    public bool HasAdjacentEnemy(Vector2Int from, PlayableCharacter affiliation)
     {
         foreach (Vector2Int step in Steps)
         {
-            if (IsEnemyOf(from + step, isPlayerControlled)) { return true; }
+            if (IsEnemyOf(from + step, affiliation)) { return true; }
         }
 
         return false;
@@ -139,7 +139,7 @@ public class Board
     /// shooting. Shots stop at the first body, friend or foe - which is what makes body-blocking an
     /// archer work.
     /// </summary>
-    public bool TryLineTarget(Vector2Int from, bool isPlayerControlled, int range, out Vector2Int hit)
+    public bool TryLineTarget(Vector2Int from, PlayableCharacter affiliation, int range, out Vector2Int hit)
     {
         foreach (Vector2Int direction in Cardinals)
         {
@@ -149,7 +149,7 @@ public class Board
             {
                 if (IsOccupied(cell))
                 {
-                    if (IsEnemyOf(cell, isPlayerControlled))
+                    if (IsEnemyOf(cell, affiliation))
                     {
                         hit = cell;
                         return true;
@@ -167,14 +167,14 @@ public class Board
     }
 
     /// Nearest enemy by Chebyshev distance, ignoring walls. Used to pick who to walk toward.
-    public bool TryNearestEnemy(Vector2Int from, bool isPlayerControlled, out Vector2Int nearest)
+    public bool TryNearestEnemy(Vector2Int from, PlayableCharacter affiliation, out Vector2Int nearest)
     {
         nearest = default;
         int best = int.MaxValue;
 
-        foreach (KeyValuePair<Vector2Int, bool> occupant in occupants)
+        foreach (KeyValuePair<Vector2Int, PlayableCharacter> occupant in occupants)
         {
-            if (occupant.Value == isPlayerControlled) { continue; }
+            if (!Character.AreEnemies(occupant.Value, affiliation)) { continue; }
 
             Vector2Int delta = occupant.Key - from;
             int distance = Mathf.Max(Mathf.Abs(delta.x), Mathf.Abs(delta.y));

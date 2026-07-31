@@ -19,7 +19,7 @@ MonoBehaviour:
     minDistance: 0
     maxDistance: 0
   <requiredClass>k__BackingField: 1
-  <description>k__BackingField: Gain 8 armor. Draw 1 card.
+  <description>k__BackingField: Gain 8 Shield. Draw 1 card.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}

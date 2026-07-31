@@ -32,6 +32,11 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
     [SerializeField] private float layoutDuration = 0.15f;
 
+    [Tooltip("Where a discarded card's viewer flies to before it is destroyed.")]
+    [SerializeField] private Transform discardAnchor;
+
+    [SerializeField] private float discardDuration = 0.15f;
+
     private readonly List<CardViewer> cardsInHand = new();
 
     /// Whose hand is on screen. Held so the CardDrawn subscription can be moved off it on a switch.
@@ -69,11 +74,19 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     /// </summary>
     public void ShowHandFor(Character character)
     {
-        if (shown != null) { shown.CardDrawn -= OnCardDrawn; }
+        if (shown != null)
+        {
+            shown.CardDrawn -= OnCardDrawn;
+            shown.CardDiscarded -= OnCardDiscarded;
+        }
 
         shown = character;
 
-        if (shown != null) { shown.CardDrawn += OnCardDrawn; }
+        if (shown != null)
+        {
+            shown.CardDrawn += OnCardDrawn;
+            shown.CardDiscarded += OnCardDiscarded;
+        }
 
         ClearHand();
 
@@ -128,7 +141,11 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     {
         base.OnDestroy();
 
-        if (shown != null) { shown.CardDrawn -= OnCardDrawn; }
+        if (shown != null)
+        {
+            shown.CardDrawn -= OnCardDrawn;
+            shown.CardDiscarded -= OnCardDiscarded;
+        }
 
         if (BattleManager.Instance != null)
         {
@@ -140,6 +157,29 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     private void OnCardDrawn(Character character, Card card)
     {
         AddToHand(card);
+    }
+
+    /// Only ever fires for `shown`, same as OnCardDrawn. Covers both a played card and a whole hand
+    /// discarded at turn start - Character raises the same event either way, so there is only one
+    /// place that removes a viewer.
+    private void OnCardDiscarded(Character character, Card card)
+    {
+        CardViewer cardViewer = cardsInHand.Find(cv => cv.card == card);
+        if (cardViewer == null) { return; }
+
+        StartCoroutine(DiscardCardViewer(cardViewer));
+    }
+
+    private IEnumerator DiscardCardViewer(CardViewer cardViewer)
+    {
+        cardViewer.BeginPlay();
+
+        Vector3 target = discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
+        cardViewer.transform.DOMove(target, discardDuration);
+        cardViewer.transform.DOScale(Vector3.zero, discardDuration);
+
+        yield return RemoveCard(cardViewer);
+        Destroy(cardViewer.gameObject);
     }
 
     private void AddToHand(Card card)

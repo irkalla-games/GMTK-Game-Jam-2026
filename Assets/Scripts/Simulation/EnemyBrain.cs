@@ -62,7 +62,7 @@ public abstract class EnemyBrain
             {
                 Character occupant = tile.Occupant;
 
-                if (occupant == null || occupant.IsPlayerControlled == self.IsPlayerControlled) { continue; }
+                if (occupant == null || !self.IsEnemyOf(occupant)) { continue; }
 
                 if (card.Refusal(self, tile) != null) { continue; }
 
@@ -136,7 +136,7 @@ public class WarriorBrain : EnemyBrain
         if (TryFindAttack(self, out Intent attack)) { return attack; }
 
         // Otherwise get closer to whoever is nearest.
-        if (!board.TryNearestEnemy(self.Tile.Coordinates, self.IsPlayerControlled, out Vector2Int quarry))
+        if (!board.TryNearestEnemy(self.Tile.Coordinates, self.Affiliation, out Vector2Int quarry))
         {
             return Intent.Wait();
         }
@@ -158,7 +158,7 @@ public class ArcherBrain : EnemyBrain
     public override Intent Decide(Character self, Board board)
     {
         Vector2Int here = self.Tile.Coordinates;
-        bool threatened = board.HasAdjacentEnemy(here, self.IsPlayerControlled);
+        bool threatened = board.HasAdjacentEnemy(here, self.Affiliation);
 
         // Cornered comes first: back off before taking a shot, unless there is nowhere to back off to.
         if (threatened && TryFindMove(self, Standoff(self, board), out Intent retreat)) { return retreat; }
@@ -179,7 +179,7 @@ public class ArcherBrain : EnemyBrain
 
         return cell =>
         {
-            if (!board.TryNearestEnemy(cell, self.IsPlayerControlled, out Vector2Int quarry))
+            if (!board.TryNearestEnemy(cell, self.Affiliation, out Vector2Int quarry))
             {
                 return 0;
             }

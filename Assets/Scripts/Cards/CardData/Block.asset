@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: Block
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Block
+  <cost>k__BackingField: 1
+  <range>k__BackingField:
+    shape: 3
+    minDistance: 0
+    maxDistance: 0
+  <requiredClass>k__BackingField: 0
+  <description>k__BackingField: Gain Block 5. Reduces each of the next 3 hits by 5.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField:
+  - {fileID: 11400000, guid: 0127534bcea64814bb034e9a43239154, type: 2}

@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
   m_Name: Shield
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: Block
+  <cardName>k__BackingField: Shield
   <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 3
     minDistance: 0
     maxDistance: 0
   <requiredClass>k__BackingField: 0
-  <description>k__BackingField: Blocks 8 damage.
+  <description>k__BackingField: Gain 8 Shield.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}

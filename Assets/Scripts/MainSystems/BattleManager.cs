@@ -34,40 +34,30 @@ public class BattleManager : Singleton<BattleManager>
     [SerializeField] private TextMeshProUGUI turnCounter;
     [SerializeField] private TextMeshProUGUI manaCounter;
 
-    /// <summary>
-    /// One enemy to place when the battle starts.
-    ///
-    /// Stats and deck live on the prefab's own Character rather than being repeated here - there is
-    /// one obvious place to tune a goblin, and it is the goblin. The deck override exists only so the
-    /// same prefab can turn up twice with different cards without needing a second prefab.
-    /// </summary>
-    [System.Serializable]
-    public struct EnemyPlacement
-    {
-        [Tooltip("Prefab with a Character on it. Health, brain, damage and reach all come from there.")]
-        public Character prefab;
-
-        [Tooltip("Grid cell it starts on.")]
-        public Vector2Int cell;
-
-        [Tooltip("Leave empty to use the prefab's own deck.")]
-        public List<CardData> deckOverride;
-    }
-
-    [Tooltip("Characters already placed in the scene - the party.")]
+    [Tooltip("Characters already placed in the scene. When LevelData/RunState are both wired up this "
+             + "is normally empty - SpawnParty and SpawnEnemies populate `characters` instead - but "
+             + "anything placed here rides along too, which is what keeps a scene runnable stand-alone.")]
     [SerializeField] private List<Character> characters = new();
 
-    [Tooltip("Enemies spawned when the battle starts, and added to the roster above.")]
-    [SerializeField] private List<EnemyPlacement> enemies = new();
+    [Tooltip("Enemy placements and the party's spawn cells for this battle. Leave unassigned to skip "
+             + "spawning entirely and rely only on the characters already placed above.")]
+    [SerializeField] private LevelData levelData;
 
     [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
     [SerializeField] private Transform enemyParent;
 
-    [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
+    [Tooltip("Turn limit used when no Level Data is assigned.")]
     [SerializeField] private int turnsToSurvive = 10;
 
-    [Tooltip("Hand is topped back up to this at the start of each turn - unplayed cards carry over.")]
+    [Tooltip("Hand size used when no Level Data is assigned.")]
     [SerializeField] private int handSize = 5;
+
+    /// Reaching 0 is the win. LevelData's value wins once one is assigned; the field above is only
+    /// the fallback that keeps a Level-Data-less scene playable.
+    private int TurnsToSurvive => levelData != null ? levelData.TurnsToSurvive : turnsToSurvive;
+
+    /// Same fallback story as TurnsToSurvive.
+    private int HandSize => levelData != null ? levelData.HandSize : handSize;
 
     [Tooltip("Pause between an enemy's individual movement steps, so a walk reads as a walk.")]
     [SerializeField] private float stepDuration = 0.16f;
@@ -157,7 +147,8 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Start()
     {
-        // Enemies first: they join the roster, and everything below walks it.
+        // Party and enemies both join the roster before anything below walks it.
+        SpawnParty();
         SpawnEnemies();
 
         // Before the loop, not after: TurnStart draws, and the hand viewer only builds viewers for
@@ -173,7 +164,43 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Instantiates the authored enemies and adds them to the roster.
+    /// Instantiates the run's party from RunState and places it at LevelData's spawn cells, index for
+    /// index. Skipped when either is missing - no RunState means this scene was opened stand-alone
+    /// rather than through a run, and no LevelData means there is nowhere authored to put anyone - in
+    /// both cases whatever is already sitting in `characters` from the scene is the whole party,
+    /// exactly as it was before either of these existed.
+    ///
+    /// Explicit per-member placement for the same reason SpawnEnemies uses PlaceOnGrid rather than
+    /// each character's own Start: a character instantiated during this Start would not run its own
+    /// Start until the end of the frame, and the first TurnStart happens before that.
+    /// </summary>
+    private void SpawnParty()
+    {
+        if (RunState.Instance == null || levelData == null) { return; }
+
+        IReadOnlyList<Character> roster = RunState.Instance.Party;
+        IReadOnlyList<Vector2Int> spawnCells = levelData.PartySpawnCells;
+
+        for (int i = 0; i < roster.Count; i++)
+        {
+            if (roster[i] == null) { continue; }
+
+            if (i >= spawnCells.Count)
+            {
+                Debug.LogWarning($"{roster[i].name} has no spawn cell in {levelData.name} - not placed");
+                continue;
+            }
+
+            Character member = Instantiate(roster[i]);
+            member.name = roster[i].name;
+            member.PlaceOnGrid(spawnCells[i]);
+
+            characters.Add(member);
+        }
+    }
+
+    /// <summary>
+    /// Instantiates this level's authored enemies and adds them to the roster.
     ///
     /// Here rather than in a spawner of its own because ordering is the whole difficulty: the roster
     /// has to be complete before anything walks it, and two components' Awakes have no guaranteed
@@ -185,7 +212,9 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private void SpawnEnemies()
     {
-        foreach (EnemyPlacement placement in enemies)
+        if (levelData == null) { return; }
+
+        foreach (EnemyPlacement placement in levelData.Enemies)
         {
             if (placement.prefab == null) { continue; }
 
@@ -219,6 +248,19 @@ public class BattleManager : Singleton<BattleManager>
         }
     }
 
+    /// <summary>
+    /// Registers a character that joins the battle after Start - a summon, not one of the characters
+    /// placed in the scene or spawned from EnemyPlacement. TurnStart, EnemyResolve and the win/loss
+    /// checks all walk `characters`, so anything summoned without going through here just stands there
+    /// and never gets a turn.
+    /// </summary>
+    public void AddCharacter(Character character)
+    {
+        if (character == null || characters.Contains(character)) { return; }
+
+        characters.Add(character);
+    }
+
     private Character FirstPlayableCharacter()
     {
         foreach (Character character in characters)
@@ -231,8 +273,8 @@ public class BattleManager : Singleton<BattleManager>
 
     private IEnumerator RunBattle()
     {
-        TurnsRemaining = turnsToSurvive;
-        turnCounter.text = turnsToSurvive.ToString();
+        TurnsRemaining = TurnsToSurvive;
+        turnCounter.text = TurnsRemaining.ToString();
 
         while (true)
         {
@@ -279,8 +321,10 @@ public class BattleManager : Singleton<BattleManager>
         {
             if (character == null || character.IsDead) { continue; }
 
+            character.DiscardHand();
+            character.DrawCards(HandSize - character.Hand.Count);
             character.ResetEnergy();
-            character.ResetArmor();
+            character.ResetShield();
 
             // Poison lands here, so it can kill - hence the IsDead check before drawing.
             character.TickStatuses();
@@ -289,7 +333,6 @@ public class BattleManager : Singleton<BattleManager>
 
             // Everyone draws, enemies included. Their cards are how they act at all now, so a goblin
             // with an empty hand has nothing to choose between and can only Wait.
-            character.DrawCards(handSize - character.Hand.Count);
         }
 
         // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing

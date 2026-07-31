@@ -127,8 +127,12 @@ recreate via **Assets → Create → Card Data → Bash**.
 
 ## Not implemented yet
 
-Marked with TODOs in the code: block/shield/parry mitigation (damage currently goes straight to
-health), enemy behaviour (non-player characters just stand there), and win/loss conditions.
+Marked with TODOs in the code: enemy behaviour (non-player characters just stand there), and win/loss
+conditions.
+
+Shield (a barrier of extra health), Block (a flat per-hit reduction with a limited number of charges)
+and Parry (negates a hit and reflects it at the attacker) are implemented in `Character.TakeDamage`,
+applied in that priority order: Parry, then Block, then Shield.
 
 Energy has no refresh point now that turns are gone — `ResetEnergy()` exists but nothing calls it, so
 each character gets `maxEnergy` for the whole session.

@@ -21,10 +21,15 @@ public enum BattlePhase
 /// a refresh point, and enemies need a moment to act on intents the player has spent the turn
 /// disrupting.
 ///
-///   TurnStart      refresh energy + armor, tick statuses, draw back up, enemies commit an intent
-///   PlayerActing   free-form, immediate resolution. Ends on End Turn or when nobody can act.
-///   EnemyResolve   the committed intent executes right or wrong; everything after it is re-decided
+///   TurnStart      refresh energy + armor, draw back up, enemies commit an intent
+///   PlayerActing   free-form, immediate resolution. Ends on End Turn or when nobody can act, then
+///                  player-controlled statuses tick.
+///   EnemyResolve   the committed intent executes right or wrong; everything after it is re-decided.
+///                  Enemy statuses tick once every enemy has acted.
 ///   -> TurnStart
+///
+/// Statuses deliberately tick at the end of the phase they gate rather than at the shared TurnStart -
+/// see TickStatuses(bool) below.
 ///
 /// Also owns the roster, who is active, and what a tile click means - the coherent half of what used
 /// to be GameManager. The display half went to ActiveHandViewer.
@@ -64,6 +69,11 @@ public class BattleManager : Singleton<BattleManager>
 
     [field: SerializeField, ReadOnlyField]
     public int TurnsRemaining { get; private set; }
+
+    /// Rounds since the battle started, counting up. TurnsRemaining only counts down, and deriving
+    /// "elapsed" from TurnsToSurvive - TurnsRemaining would break the moment anything grants extra
+    /// turns - so this is tracked independently. Drives wave spawning.
+    public int TurnsElapsed { get; private set; }
 
     public BattlePhase Phase { get; private set; }
 
@@ -147,6 +157,14 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Start()
     {
+        // Characters placed directly in the scene (see the tooltip on `characters`) never pass through
+        // AddCharacter, so they are wired up here instead. SpawnParty/SpawnEnemies route through
+        // AddCharacter and subscribe themselves - looping over `characters` after them would double up.
+        foreach (Character character in characters)
+        {
+            if (character != null) { character.Died += HandleCharacterDied; }
+        }
+
         // Party and enemies both join the roster before anything below walks it.
         SpawnParty();
         SpawnEnemies();
@@ -195,7 +213,7 @@ public class BattleManager : Singleton<BattleManager>
             member.name = roster[i].name;
             member.PlaceOnGrid(spawnCells[i]);
 
-            characters.Add(member);
+            AddCharacter(member);
         }
     }
 
@@ -228,7 +246,39 @@ public class BattleManager : Singleton<BattleManager>
 
             enemy.PlaceOnGrid(placement.cell);
 
-            characters.Add(enemy);
+            AddCharacter(enemy);
+        }
+    }
+
+    /// <summary>
+    /// Spawns every LevelData wave keyed to the round TurnsElapsed just reached. Called from TurnStart
+    /// before the per-character loop, so a wave enemy draws a hand and commits an intent the same round
+    /// it lands - the same reasoning SpawnEnemies uses for the opening roster.
+    /// </summary>
+    private void SpawnDueWaves()
+    {
+        if (levelData == null) { return; }
+
+        foreach (EnemyWave wave in levelData.Waves)
+        {
+            if (wave.turn != TurnsElapsed || wave.enemies == null) { continue; }
+
+            foreach (EnemyPlacement placement in wave.enemies)
+            {
+                if (placement.prefab == null) { continue; }
+
+                Character enemy = Instantiate(placement.prefab, enemyParent);
+                enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
+
+                if (placement.deckOverride != null && placement.deckOverride.Count > 0)
+                {
+                    enemy.SetDeck(placement.deckOverride);
+                }
+
+                enemy.PlaceOnGrid(placement.cell);
+
+                AddCharacter(enemy);
+            }
         }
     }
 
@@ -259,6 +309,27 @@ public class BattleManager : Singleton<BattleManager>
         if (character == null || characters.Contains(character)) { return; }
 
         characters.Add(character);
+        character.Died += HandleCharacterDied;
+    }
+
+    /// <summary>
+    /// Reacts to a character leaving the board. Character.CheckDeath only clears its own board state
+    /// (Tile/Occupant) - this is the "something else" that reacts to Died and owns everything that
+    /// follows from it, the same split as CardDrawn/ActiveHandViewer.
+    ///
+    /// Runs while `character.Tile` is still the tile it died on - see the comment on CheckDeath - so
+    /// loot lands where the character actually fell, not nowhere.
+    /// </summary>
+    private void HandleCharacterDied(Character character)
+    {
+        if (character.ItemDropPrefab != null && character.Tile != null)
+        {
+            character.Tile.DropItem(character.ItemDropPrefab);
+        }
+
+        if (character == ActiveCharacter) { SetActiveCharacter(FirstPlayableCharacter()); }
+
+        Destroy(character.gameObject);
     }
 
     private Character FirstPlayableCharacter()
@@ -274,6 +345,7 @@ public class BattleManager : Singleton<BattleManager>
     private IEnumerator RunBattle()
     {
         TurnsRemaining = TurnsToSurvive;
+        TurnsElapsed = 0;
         turnCounter.text = TurnsRemaining.ToString();
 
         while (true)
@@ -284,6 +356,8 @@ public class BattleManager : Singleton<BattleManager>
             endTurnRequested = false;
 
             while (!endTurnRequested && CanAnyoneAct()) { yield return null; }
+
+            TickStatuses(playerControlled: true);
 
             yield return StartCoroutine(EnemyResolve());
 
@@ -316,23 +390,28 @@ public class BattleManager : Singleton<BattleManager>
     private IEnumerator TurnStart()
     {
         Phase = BattlePhase.TurnStart;
+        TurnsElapsed++;
+
+        SpawnDueWaves();
 
         foreach (Character character in characters)
         {
             if (character == null || character.IsDead) { continue; }
 
             character.DiscardHand();
-            character.DrawCards(HandSize - character.Hand.Count);
-            character.ResetEnergy();
-            character.ResetShield();
 
-            // Poison lands here, so it can kill - hence the IsDead check before drawing.
-            character.TickStatuses();
-
-            if (character.IsDead) { continue; }
+            // Innate cards go back into hand before the top-up draw, so they occupy a real hand slot
+            // rather than inflating hand size past HandSize.
+            character.RestoreInnateCards();
 
             // Everyone draws, enemies included. Their cards are how they act at all now, so a goblin
             // with an empty hand has nothing to choose between and can only Wait.
+            character.DrawCards(HandSize - character.Hand.Count);
+
+            character.TickCardCooldowns();
+
+            character.ResetEnergy();
+            character.ResetShield();
         }
 
         // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing
@@ -421,6 +500,8 @@ public class BattleManager : Singleton<BattleManager>
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so
         // "queued" is not "finished". Without this the turn would roll over mid-animation.
         yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+
+        TickStatuses(playerControlled: false);
     }
 
     /// Asks this character's brain for one action. Wait if it has no brain, which is every player.
@@ -467,9 +548,39 @@ public class BattleManager : Singleton<BattleManager>
         yield return new WaitForSeconds(stepDuration);
     }
 
-    private IEnumerable<Character> LivingEnemies()
+    /// <summary>
+    /// Ticks one side's statuses by one - player-controlled characters at the end of PlayerActing,
+    /// enemies at the end of EnemyResolve. Each side ticks at the end of its *own* phase rather than
+    /// both together at the shared TurnStart, so turnsRemaining always means "survives this many of my
+    /// own turns" no matter which side applied the status. Ticking everyone at TurnStart instead would
+    /// make that number direction-dependent: a status put on an enemy mid-PlayerActing would coast
+    /// through that same cycle's EnemyResolve untouched, while one put on a player during EnemyResolve
+    /// would get ticked down at the very next TurnStart before that player ever got to act on it -
+    /// the same turnsRemaining would then mean two different things depending on who cast it.
+    /// </summary>
+    private void TickStatuses(bool playerControlled)
     {
         foreach (Character character in characters)
+        {
+            if (character == null || character.IsDead || character.IsPlayerControlled != playerControlled)
+            {
+                continue;
+            }
+
+            character.TickStatuses();
+        }
+    }
+
+    /// <summary>
+    /// A snapshot, not a live view over `characters`. EnemyResolve holds this enumerator open across
+    /// yields while an enemy's actions resolve, and a Summon card resolving mid-loop appends to
+    /// `characters` via AddCharacter - enumerating the live list would then throw "collection was
+    /// modified" the next time this generator resumes. A character that joins mid-resolve simply
+    /// doesn't get a turn until the next TurnStart, same as one spawned via SpawnEnemies.
+    /// </summary>
+    private IEnumerable<Character> LivingEnemies()
+    {
+        foreach (Character character in characters.ToArray())
         {
             if (character != null && !character.IsPlayerControlled && !character.IsDead)
             {

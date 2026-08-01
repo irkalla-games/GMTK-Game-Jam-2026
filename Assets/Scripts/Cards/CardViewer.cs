@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using DG.Tweening;
 
 public class CardViewer : MonoBehaviour
 {
@@ -13,11 +14,13 @@ public class CardViewer : MonoBehaviour
 
     [SerializeField] private SpriteRenderer rangeIndicator;
 
-    [SerializeField] private GameObject wrapper;
-
     [SerializeField] private Sprite bowIcon;
 
     [SerializeField] private Sprite swordIcon;
+
+    [SerializeField] private float hoverScale = 1.5f;
+
+    [SerializeField] private float hoverDuration = 0.1f;
 
 
 
@@ -25,8 +28,17 @@ public class CardViewer : MonoBehaviour
 
     public bool isSelected { get; private set; }
 
+    public bool isHovered { get; private set; }
+
     /// True once the card has been played and is tweening away - hover must stop touching it.
     private bool isPlaying;
+
+    // Each ever holds at most one live tween, killed by direct reference (never DOTween's id/target
+    // search) before being replaced - so hover, selection, layout, spawn and discard can never stack
+    // competing tweens on the same transform.
+    private Tweener scaleTween;
+    private Tweener positionTween;
+    private Tweener rotationTween;
 
     public void Setup(Card newCard)
     {
@@ -46,18 +58,55 @@ public class CardViewer : MonoBehaviour
         }
     }
 
+    /// Grows the card from nothing - called once, when it is first dealt into a hand.
+    public void PlaySpawnIn(float duration)
+    {
+        transform.localScale = Vector3.zero;
+        scaleTween = transform.DOScale(1f, duration);
+    }
+
+    /// Where the hand layout wants this card right now. Called on every relayout, whether or not this
+    /// particular card's target actually changed.
+    public void SetLayoutTarget(Vector3 position, Quaternion rotation, float duration)
+    {
+        positionTween?.Kill();
+        rotationTween?.Kill();
+        positionTween = transform.DOMove(position, duration);
+        rotationTween = transform.DORotate(rotation.eulerAngles, duration);
+    }
+
+    /// Flies the card to the discard anchor and shrinks it away.
+    public void PlayDiscard(Vector3 target, float duration)
+    {
+        scaleTween?.Kill();
+        positionTween?.Kill();
+        rotationTween?.Kill();
+        scaleTween = transform.DOScale(Vector3.zero, duration);
+        positionTween = transform.DOMove(target, duration);
+    }
+
     public void SetSelected(bool value)
     {
         isSelected = value;
-        // The hover preview swaps this off; restore it here so a card can't get stuck invisible when
-        // selection suppresses the OnMouseExit that would normally put it back.
-        wrapper.SetActive(true);
+
+        if (value)
+        {
+            // A card can be clicked without the mouse ever leaving it, which would never fire
+            // OnMouseExit - so selection has to clear the hover pop itself.
+            isHovered = false;
+            scaleTween?.Kill();
+            scaleTween = transform.DOScale(1f, hoverDuration);
+        }
     }
 
     public void BeginPlay()
     {
         isPlaying = true;
         isSelected = false;
+        isHovered = false;
+        scaleTween?.Kill();
+        positionTween?.Kill();
+        rotationTween?.Kill();
     }
 
     private bool HoverSuppressed =>
@@ -66,16 +115,19 @@ public class CardViewer : MonoBehaviour
     public void OnMouseEnter()
     {
         if (HoverSuppressed) { return; }
-        wrapper.SetActive(false);
-        Vector3 pos = new Vector3(transform.position.x, 3, 0);
-        ActiveHandViewer.Instance.ShowLargeCard(card, pos);
+        isHovered = true;
+        scaleTween?.Kill();
+        scaleTween = transform.DOScale(hoverScale, hoverDuration);
+        StartCoroutine(ActiveHandViewer.Instance.Relayout());
     }
 
     public void OnMouseExit()
     {
         if (isPlaying) { return; }
-        ActiveHandViewer.Instance.HideLargeCard();
-        wrapper.SetActive(true);
+        isHovered = false;
+        scaleTween?.Kill();
+        scaleTween = transform.DOScale(1f, hoverDuration);
+        StartCoroutine(ActiveHandViewer.Instance.Relayout());
     }
 
     public void OnMouseDown()

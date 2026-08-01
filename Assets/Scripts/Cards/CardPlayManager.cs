@@ -11,10 +11,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     public void OnCardClicked(CardViewer cardViewer)
     {
-        // The hover preview is also a CardViewer with a collider, so it fires this too.
+        // A card mid-discard keeps its collider live until its fly-away tween finishes and destroys it.
         if (cardViewer == null || !ActiveHandViewer.Instance.Contains(cardViewer))
         {
-            Debug.Log($"card clicked: {Name(cardViewer)} - ignored, not in hand (hover preview?)");
+            Debug.Log($"card clicked: {Name(cardViewer)} - ignored, not in hand (already discarded?)");
             return;
         }
 
@@ -98,7 +98,6 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         selected = cardViewer;
         cardViewer.SetSelected(true);
-        ActiveHandViewer.Instance.HideLargeCard();
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
 
         if (GridManager.Instance != null)

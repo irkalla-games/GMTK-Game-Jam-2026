@@ -94,6 +94,8 @@ public class GridManager : Singleton<GridManager>
         character.MoveTo(destination);
         character.transform.DOMove(destination.transform.position, .15f);
 
+        destination.TryPickUpItem(character);
+
         return true;
     }
 

@@ -2,11 +2,10 @@ using UnityEngine;
 using UnityEngine.Splines;
 using System.Collections.Generic;
 using System.Collections;
-using DG.Tweening;
 
 /// <summary>
 /// Everything about cards on screen: which hand is shown, the viewers for it, where they sit along
-/// the spline, and the enlarged preview on hover.
+/// the spline, and how a hovered card raises and enlarges itself.
 ///
 /// This was four classes - HandViewer, GameManager's display half, CreateCardViewer and
 /// CardHoverManager. The last two had one and two public methods; a manager that small is not a
@@ -24,11 +23,21 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
     [SerializeField] private float selectRaise = 0.75f;
 
+    [SerializeField] private float hoverRaise = 0.6f;
+
+    [Tooltip("How far a hovered card is pushed toward the camera - must clear every other hand " +
+        "card's resting depth (see the per-index nudge below) so it always wins render order and clicks, " +
+        "but stay well inside the camera's near clip plane (0.3 in this scene, sitting ~0.7 in front of " +
+        "the hand at Z 0) or the card is pushed out of view and stops registering the mouse at all. " +
+        "Clamped in code below - a mistyped Inspector value here once cost a lot of debugging.")]
+    [SerializeField] private float hoverPush = 0.2f;
+
+    [Tooltip("Hard ceiling on hoverPush regardless of what's set above - keeps a mistyped Inspector " +
+        "value from ever pushing a card past the camera's near clip plane again.")]
+    [SerializeField] private float maxHoverPush = 0.5f;
+
     [Tooltip("Prefab every card in hand is built from.")]
     [SerializeField] private CardViewer cardPrefab;
-
-    [Tooltip("The enlarged copy shown while hovering a card. Always in the scene, just hidden.")]
-    [SerializeField] private CardViewer largeCardViewer;
 
     [SerializeField] private float layoutDuration = 0.15f;
 
@@ -119,22 +128,11 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         yield return UpdateCardPosition(layoutDuration);
     }
 
-    /// Re-runs the layout without changing the hand - used when a card's selected state changes.
+    /// Re-runs the layout without changing the hand - used whenever a card's selected or hovered
+    /// state changes.
     public IEnumerator Relayout()
     {
         yield return UpdateCardPosition(layoutDuration);
-    }
-
-    public void ShowLargeCard(Card card, Vector3 position)
-    {
-        largeCardViewer.gameObject.SetActive(true);
-        largeCardViewer.Setup(card);
-        largeCardViewer.transform.position = position;
-    }
-
-    public void HideLargeCard()
-    {
-        largeCardViewer.gameObject.SetActive(false);
     }
 
     protected override void OnDestroy()
@@ -175,8 +173,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         cardViewer.BeginPlay();
 
         Vector3 target = discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
-        cardViewer.transform.DOMove(target, discardDuration);
-        cardViewer.transform.DOScale(Vector3.zero, discardDuration);
+        cardViewer.PlayDiscard(target, discardDuration);
 
         yield return RemoveCard(cardViewer);
         Destroy(cardViewer.gameObject);
@@ -192,8 +189,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
         CardViewer cardViewer = Instantiate(cardPrefab, transform.position, Quaternion.identity);
         cardViewer.Setup(card);
-        cardViewer.transform.localScale = Vector3.zero;
-        cardViewer.transform.DOScale(Vector3.one, layoutDuration);
+        cardViewer.PlaySpawnIn(layoutDuration);
 
         StartCoroutine(AddCard(cardViewer));
     }
@@ -213,10 +209,13 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
             Vector3 up = spline.EvaluateUpVector(p);
             Quaternion rotation = Quaternion.LookRotation(Vector3.Cross(forward, up).normalized, up);
             // The raise has to be applied here rather than tweened separately, or any AddCard/RemoveCard
-            // during a selection would pull the selected card back down.
+            // during a selection would pull the selected card back down. Same reasoning covers hover -
+            // and the two offsets never both apply, since SetSelected clears isHovered.
             Vector3 selectOffset = cardsInHand[i].isSelected ? Vector3.up * selectRaise : Vector3.zero;
-            cardsInHand[i].transform.DOMove(splinePosition + transform.position + .01f * i * Vector3.back + selectOffset, duration);
-            cardsInHand[i].transform.DORotate(rotation.eulerAngles, duration);
+            float clampedHoverPush = Mathf.Min(hoverPush, maxHoverPush);
+            Vector3 hoverOffset = cardsInHand[i].isHovered ? Vector3.up * hoverRaise + Vector3.back * clampedHoverPush : Vector3.zero;
+            Vector3 targetPosition = splinePosition + transform.position + .01f * i * Vector3.back + selectOffset + hoverOffset;
+            cardsInHand[i].SetLayoutTarget(targetPosition, rotation, duration);
         }
         yield return new WaitForSeconds(duration);
     }

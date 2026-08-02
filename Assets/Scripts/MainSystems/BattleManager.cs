@@ -80,6 +80,11 @@ public class BattleManager : Singleton<BattleManager>
     /// Whose hand is on screen. Cards are played by this character and spend its energy.
     public Character ActiveCharacter { get; private set; }
 
+    /// Whoever was last clicked, ally or enemy - what an info panel should be showing right now.
+    /// Broader than ActiveCharacter on purpose: every occupant is selectable, but only a
+    /// player-controlled one ever becomes active. See SetSelectedCharacter.
+    public Character SelectedCharacter { get; private set; }
+
     public IReadOnlyList<Character> Characters => characters;
 
     private bool endTurnRequested;
@@ -122,12 +127,15 @@ public class BattleManager : Singleton<BattleManager>
 
         if (occupant == null || !occupant.IsPlayerControlled)
         {
+            if (occupant != null) { SetSelectedCharacter(occupant); }
+
             string who = occupant != null ? $"{occupant.name} is not player controlled" : "nobody here";
             Debug.Log($"tile clicked: {tile.Coordinates} - no card selected, {who}");
             return;
         }
 
         Debug.Log($"tile clicked: {tile.Coordinates} - activating {occupant.name}");
+        SetSelectedCharacter(occupant);
         SetActiveCharacter(occupant);
     }
 
@@ -153,6 +161,23 @@ public class BattleManager : Singleton<BattleManager>
         Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
         ChangeActiveMana(ActiveCharacter.Energy);
         ActiveCharacterChanged?.Invoke(character);
+    }
+
+    /// Raised when the selected character changes, for anything showing per-character info (health,
+    /// statuses, block/parry) rather than a hand - unlike ActiveCharacterChanged this fires for enemies
+    /// too, and can go to null when the selected character dies. Same reasoning as
+    /// ActiveCharacterChanged for being an event rather than a direct call: the battle must not depend
+    /// on the view.
+    public event System.Action<Character> SelectedCharacterChanged;
+
+    /// Marks this character as the one an info panel should describe. Unlike SetActiveCharacter this
+    /// accepts null, so a selection can be cleared when its character leaves the board.
+    public void SetSelectedCharacter(Character character)
+    {
+        if (character == SelectedCharacter) { return; }
+
+        SelectedCharacter = character;
+        SelectedCharacterChanged?.Invoke(character);
     }
 
     private void Start()
@@ -328,6 +353,7 @@ public class BattleManager : Singleton<BattleManager>
         }
 
         if (character == ActiveCharacter) { SetActiveCharacter(FirstPlayableCharacter()); }
+        if (character == SelectedCharacter) { SetSelectedCharacter(null); }
 
         Destroy(character.gameObject);
     }

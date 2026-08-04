@@ -437,7 +437,10 @@ public class BattleManager : Singleton<BattleManager>
             character.TickCardCooldowns();
 
             character.ResetEnergy();
-            character.ResetShield();
+
+            // Shield wipes itself in here. BattleManager does not know that - it just says the turn
+            // started and lets each status decide what that means. See Character.OnTurnStart.
+            character.OnTurnStart();
         }
 
         // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing
@@ -593,7 +596,7 @@ public class BattleManager : Singleton<BattleManager>
                 continue;
             }
 
-            character.TickStatuses();
+            character.OnTurnEnd();
         }
     }
 

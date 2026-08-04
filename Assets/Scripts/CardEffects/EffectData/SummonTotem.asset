@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1fe512b5b7621294bbd48b603c3fe4c6, type: 3}
-  m_Name: SummonCleric
+  m_Name: SummonTotem
   m_EditorClassIdentifier: Assembly-CSharp::SummonEffect
   aimsAt: 0
   summonedObject: {fileID: 6338188868612233919, guid: aaaa1116bbbb2227cccc3338dddd4449, type: 3}

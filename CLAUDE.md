@@ -31,6 +31,10 @@ Tiles                         the only targetable thing; forwards effects to its
 TileSelector                  owns a tile's colour: idle / in-range highlight / hover
 Character                     health, its own energy pool, its own deck/hand/piles
 GameManager                   who is active, and whose hand is on screen
+Status                        base: one modifier and the rule it carries
+  ├─ StatusEffect             the character carries it; ages, merges, spends real charges
+  └─ Aura                     a Totem projects it while you stand in range; applies first
+Totem                         projects auras onto whoever stands in its range
 ```
 
 ### Conventions we settled on
@@ -66,6 +70,45 @@ assets — append new shapes, never reorder.
 
 **Cards target tiles, never characters directly.** `Tiles.DealDamage` etc. forward onto `Occupant`.
 This lets an action say "damage this tile" without knowing whether anything is standing there.
+
+**A `Status` is a behaviour, not a record — and `Character` resolves no combat rules.** Shield, Block,
+Parry, Strength, Double Attack, Poison, Frozen and Rooted are all `Status` subclasses carrying their
+own rule. `Character.TakeDamage` runs the `OnTakeDamage` hooks and subtracts what survives; it does not
+know those types exist, and a new mitigation type needs no change there. There is deliberately no
+`Shield`/`BlockCharges`/`ParryCharges` on `Character` — it has a status list that may contain one, and
+callers ask `StatusStacks(type)` or `FindStatus(type)`.
+
+**Hooks are notifications; refusals are gates.** `OnDealDamage`/`OnTakeDamage`/`OnTurnStart`/
+`OnTurnEnd` fire after something happens. `ActRefusal` (Frozen) and `MoveRefusal` (Rooted) are asked
+*before*, repeatedly, and return null-or-reason like every other `Refusal` in the codebase. Frozen
+cannot be an `OnTurnStart` hook: freezing an enemy mid-`PlayerActing` has to deny the action it takes
+in `EnemyResolve` that same round, and a turn-start hook has already run by then.
+
+**`DamageInfo` is immutable and passed through.** Each status returns the next one —
+`info = status.OnTakeDamage(info)` — so nothing half-writes a shared object. A `readonly struct`, so
+the one-per-status-per-hit churn allocates nothing.
+
+**`StatusEffect` and `Aura` are the two halves of `Status`, with identical capabilities.** Every hook
+is available to either — a totem's curse cloud can poison you exactly like a poison dart. They differ
+only in ownership and lifetime: a `StatusEffect` sits in `Character.ownStatusEffects`, ages, merges
+when re-applied and spends real charges; an `Aura` is owned by a `Totem`, has no duration, is never
+merged, and is rebuilt fresh per query so its charges never really deplete. `Aura` *wraps* a
+`StatusEffect` and forwards every hook rather than reimplementing the rule — a `StrengthAura`
+duplicating `StrengthStatus`'s arithmetic is the second-answer-to-one-question this design deletes.
+
+**Auras are pulled, not pushed.** A `Totem` holds no membership list and never writes to a character;
+`Character.ActiveStatuses()` walks the totems and asks what each projects onto its tile right now,
+then appends the character's own. Auras come first in that list, and there is no sort — hooks run
+FIFO, so mitigation order and the outgoing damage total both depend on which status landed first.
+
+**Name the half, not the concept.** `ownStatusEffects` vs auras, `AuraData` (authoring) vs `Aura`
+(runtime, the `CardData`/`Card` split again), `ApplyStatusEffect` for the *card effect* that grants
+one. A bare "status" in a variable name is ambiguous now that both halves exist.
+
+**Where a tile sits in world space is `GridManager`'s business.** It owns both `MoveCharacter` (tween,
+move rules, pickup) and `PlaceCharacter` (snap, no rules — arriving on the board). `Character.MoveTo`
+only swaps occupancy references, so anything writing `transform.position = tile.transform.position`
+outside `GridManager` is a character that knows how the grid is laid out.
 
 **Energy belongs to `Character`, not `GameManager`.** Multiple characters each have their own pool;
 playing a card charges `GameManager.ActiveCharacter`.
@@ -130,9 +173,14 @@ recreate via **Assets → Create → Card Data → Bash**.
 Marked with TODOs in the code: enemy behaviour (non-player characters just stand there), and win/loss
 conditions.
 
-Shield (a barrier of extra health), Block (a flat per-hit reduction with a limited number of charges)
-and Parry (negates a hit and reflects it at the attacker) are implemented in `Character.TakeDamage`,
-applied in that priority order: Parry, then Block, then Shield.
+Shield (a pool of extra health, wiped each turn), Block (a flat per-hit reduction with a limited
+number of charges) and Parry (negates a hit and reflects it back) are `Status` subclasses like
+everything else — `ShieldStatus`, `BlockStatus`, `ParryStatus`. They apply in whatever order they were
+gained, not a fixed priority: hooks run FIFO. A reflected parry goes back through `TakeDamage`, so the
+attacker's own statuses answer it and a parry can itself be parried; `Character.MaxParryBounces` caps
+the resulting bounce war, which only fails to terminate on its own if an aura is granting Parry.
 
-Energy has no refresh point now that turns are gone — `ResetEnergy()` exists but nothing calls it, so
-each character gets `maxEnergy` for the whole session.
+Balance notes, all consequences of the numbers as authored rather than bugs: Block and Parry charges
+survive `TurnStart` while Shield does not, and against the current 3–5 enemy damage band per-hit
+mitigation beats the pooled kind — Block 5 x3 prevents up to 15 for the same energy that buys 8
+Shield.

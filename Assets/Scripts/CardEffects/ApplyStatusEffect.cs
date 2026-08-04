@@ -2,11 +2,15 @@ using UnityEngine;
 
 /// <summary>
 /// Applies a status. One asset type covers every buff and curse in the game - Strengthen is
-/// (Strength, 3, Indefinite), Buff is (DoubleNextAttack, 1, Indefinite), and a poison dart would be
-/// (Poison, 3, 2 turns) with alliesOnly off. No bespoke code for any of them.
+/// (Strength, 3, Indefinite), Buff is (DoubleNextAttack, 1, Indefinite), and Poison Dart is
+/// (Poison, 3, 3 turns) with alliesOnly off. No bespoke code for any of them.
+///
+/// Named for what it does rather than what it grants, because `StatusEffect` now means something
+/// else: the half of the Status hierarchy a character carries, opposite Aura. This is a CardEffect -
+/// the authoring asset that queues the action that applies one.
 /// </summary>
 [CreateAssetMenu(menuName = "Card Effects/Apply Status")]
-public class StatusEffect : CardEffect
+public class ApplyStatusEffect : CardEffect
 {
     [SerializeField] private StatusType status;
 

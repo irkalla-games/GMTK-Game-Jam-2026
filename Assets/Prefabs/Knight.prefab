@@ -890,8 +890,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
+  - {fileID: 11400000, guid: db83bbf36eb240f79a3c309c29ac4ea2, type: 2}
+  - {fileID: 11400000, guid: db83bbf36eb240f79a3c309c29ac4ea2, type: 2}
+  - {fileID: 11400000, guid: e5962a056448478d8cb8225f4e84306d, type: 2}
+  - {fileID: 11400000, guid: e5962a056448478d8cb8225f4e84306d, type: 2}
   <Health>k__BackingField: 30
-  <Shield>k__BackingField: 0
 --- !u!1 &9045579061863739227
 GameObject:
   m_ObjectHideFlags: 0

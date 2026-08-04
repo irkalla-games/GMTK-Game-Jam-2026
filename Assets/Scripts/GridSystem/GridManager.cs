@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 using DG.Tweening;
 
 public class GridManager : Singleton<GridManager>
@@ -13,7 +12,7 @@ public class GridManager : Singleton<GridManager>
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Transform tileParent;
 
-    private Dictionary<Vector2Int, GridTile> tiles = new();
+    private readonly Dictionary<Vector2Int, GridTile> tiles = new();
 
     /// Live telegraph lines, torn down and rebuilt each turn.
     private readonly List<LineRenderer> telegraphs = new();
@@ -57,12 +56,7 @@ public class GridManager : Singleton<GridManager>
 
     public GridTile GetTile(Vector2Int position)
     {
-        if (tiles.TryGetValue(position, out GridTile tile))
-        {
-            return tile;
-        }
-
-        return null;
+        return tiles.GetValueOrDefault(position);
     }
 
 
@@ -101,6 +95,30 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
+    /// Drops a character onto a cell outright: no tween, no move rules, no pickup. Placement, not
+    /// movement - it is how a character arrives on the board in the first place, whether at battle
+    /// start or freshly summoned mid-turn.
+    ///
+    /// Here rather than on Character for the same reason MoveCharacter is: where a tile *is* in world
+    /// space is the board's business. Character.MoveTo only swaps occupancy references, so a caller
+    /// that wants a body to actually appear somewhere would otherwise have to reach for
+    /// `transform.position = tile.transform.position` itself - which is a character knowing how the
+    /// grid is laid out.
+    /// </summary>
+    public bool PlaceCharacter(Character character, Vector2Int cell)
+    {
+        GridTile tile = GetTile(cell);
+
+        if (character == null || tile == null) { return false; }
+
+        character.MoveTo(tile);
+        character.transform.position = tile.transform.position;
+
+        return true;
+    }
+
+
+    /// <summary>
     /// Every rule about where a character may move lives here. Null means the move is legal, anything
     /// else is the reason it was refused, for the caller to log.
     ///
@@ -118,6 +136,17 @@ public class GridManager : Singleton<GridManager>
         if (destination.Occupant == character) { return "it is already standing there"; }
 
         if (destination.Occupant != null) { return $"{destination.Occupant.name} is standing there"; }
+
+        // A status may object to the mover rather than to the tile - Rooted refuses every destination.
+        // Asked here rather than anywhere else precisely because this method is the single answer both
+        // the pre-flight check and the move itself consult, so a rooted character's Move card lights
+        // no tiles and its click costs no energy.
+        foreach (Status status in character.ActiveStatuses())
+        {
+            string refusal = status.MoveRefusal(character, destination);
+
+            if (refusal != null) { return refusal; }
+        }
 
         return null;
     }
@@ -213,7 +242,7 @@ public class GridManager : Singleton<GridManager>
     /// inside a turn.
     ///
     /// Sprites/Default is the one shader guaranteed present in a 2D project that respects vertex
-    /// colour, so the line does not come out magenta without a material authored for it.
+    /// color, so the line does not come out magenta without a material authored for it.
     /// </summary>
     private LineRenderer DrawTelegraph(List<Vector3> points, bool isAttack)
     {

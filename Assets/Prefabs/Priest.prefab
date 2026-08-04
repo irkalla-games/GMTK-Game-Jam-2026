@@ -756,8 +756,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e0f2734ed1017c7419f5d21d3fb737f4, type: 2}
   - {fileID: 11400000, guid: e0f2734ed1017c7419f5d21d3fb737f4, type: 2}
   - {fileID: 11400000, guid: e0f2734ed1017c7419f5d21d3fb737f4, type: 2}
+  - {fileID: 11400000, guid: b660e3293e8b4225afcfe9a9a4be0f05, type: 2}
+  - {fileID: 11400000, guid: b660e3293e8b4225afcfe9a9a4be0f05, type: 2}
+  - {fileID: 11400000, guid: 0e3798dd733944d180801d6f2263b739, type: 2}
+  - {fileID: 11400000, guid: 0e3798dd733944d180801d6f2263b739, type: 2}
+  - {fileID: 11400000, guid: d628843c186f4896abd388b0e0fb081d, type: 2}
+  - {fileID: 11400000, guid: d628843c186f4896abd388b0e0fb081d, type: 2}
+  - {fileID: 11400000, guid: aaaa1118bbbb2229cccc333adddd444b, type: 2}
+  - {fileID: 11400000, guid: aaaa1118bbbb2229cccc333adddd444b, type: 2}
   <Health>k__BackingField: 10
-  <Shield>k__BackingField: 0
 --- !u!1 &8270029524982578955
 GameObject:
   m_ObjectHideFlags: 0

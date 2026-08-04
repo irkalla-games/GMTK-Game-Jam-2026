@@ -742,10 +742,6 @@ MonoBehaviour:
   startCoordinates: {x: 0, y: 0}
   deck: []
   <Health>k__BackingField: 10
-  <Shield>k__BackingField: 0
-  <BlockAmount>k__BackingField: 0
-  <BlockCharges>k__BackingField: 0
-  <ParryCharges>k__BackingField: 0
 --- !u!114 &4242424242424242
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -757,12 +753,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9a37933c48214d343b8ebefaa1dd1204, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AuraSource
+  m_EditorClassIdentifier: Assembly-CSharp::Totem
   range:
     shape: 1
     minDistance: 0
     maxDistance: 2
-  passiveBuffs:
+  affects: 0
+  auras:
   - type: 1
     stacks: 1
   reactions:

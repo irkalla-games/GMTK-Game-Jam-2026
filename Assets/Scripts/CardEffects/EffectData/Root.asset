@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b038c3d54fa6e1b458a5586895a2e465, type: 3}
-  m_Name: Strength 3
+  m_Name: Root
   m_EditorClassIdentifier: Assembly-CSharp::ApplyStatusEffect
   aimsAt: 0
-  status: 1
-  stacks: 3
-  turnsRemaining: -1
-  alliesOnly: 1
+  status: 8
+  stacks: 1
+  turnsRemaining: 1
+  alliesOnly: 0

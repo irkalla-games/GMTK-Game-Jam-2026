@@ -74,6 +74,8 @@ public class Character : MonoBehaviour
     [field: SerializeField, ReadOnlyField]
     public int Health { get; private set; }
 
+    public int MaxHealth => maxHealth;
+
     /// Each character has their own pool; playing a card spends the acting character's energy.
     public int Energy { get; private set; }
 

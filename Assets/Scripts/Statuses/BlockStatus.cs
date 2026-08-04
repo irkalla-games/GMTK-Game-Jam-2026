@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// A flat reduction taken off each of the next few hits. `stacks` is how many hits it still applies
@@ -8,11 +8,11 @@ using UnityEngine;
 /// leaves three hits of 3, where 5 Shield would have absorbed 5 once. Against small frequent hits it
 /// is worth far more than the same number of Shield, and it gets better the more enemies there are.
 ///
-/// The only status with two numbers, which is why it cannot be authored through the generic
-/// StatusEffect asset - BlockEffect has both fields. Status.Create still handles the type, reading its
+/// The only status with two numbers, which is why it cannot be authored through the generic Apply
+/// Status asset - BlockEffect has both fields. StatusEffect.Create still handles the type, reading its
 /// one number as "reduce the next hit by this much".
 /// </summary>
-public class BlockStatus : Status
+public class BlockStatus : StatusEffect
 {
     /// How much comes off each hit. Not `stacks`, which is the charge count.
     public int amountPerHit;
@@ -39,7 +39,7 @@ public class BlockStatus : Status
     /// The amount is settled *before* base.Merge runs, because base.Merge is what changes `stacks` and
     /// the "is there any block left" test has to see the old value.
     /// </summary>
-    public override void Merge(Status incoming)
+    public override void Merge(StatusEffect incoming)
     {
         if (incoming is BlockStatus block)
         {

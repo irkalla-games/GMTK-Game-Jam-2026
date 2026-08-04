@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// Doubles one attack, then spends a charge. No duration - it waits for the swing.
 ///
 /// Only doubles the card's own number; Strength is added on top by StrengthStatus. That ordering is
@@ -10,7 +10,7 @@
 /// and if they play Quick Attack (3) before Slash (9) the doubling burns for +3. That is real
 /// sequencing skill, but it needs a visible icon or the first accidental waste reads as a bug.
 /// </summary>
-public class DoubleNextAttackStatus : Status
+public class DoubleNextAttackStatus : StatusEffect
 {
     public DoubleNextAttackStatus(int stacks, int turnsRemaining)
         : base(StatusType.DoubleNextAttack, stacks, turnsRemaining) { }

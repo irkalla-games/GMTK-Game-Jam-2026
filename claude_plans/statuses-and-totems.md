@@ -7,6 +7,12 @@
 >   other `Refusal` in the codebase.
 > - A reflected parry goes back through `TakeDamage`, not `TakeUnblockableDamage` — so parries can be
 >   parried, bounded by `Character.MaxParryBounces`.
+> - `Status` became an abstract base with two halves: `StatusEffect` (carried by a character) and
+>   `Aura` (projected by a totem, applies first). Same capabilities — `Aura` wraps a `StatusEffect` and
+>   forwards every hook. This forced the old `StatusEffect : CardEffect` ScriptableObject to be renamed
+>   `ApplyStatusEffect`, and `AuraPassiveBuff` to `AuraData`.
+> - `Character.PlaceOnStartTile` no longer writes `transform.position`; `GridManager.PlaceCharacter`
+>   owns it, alongside `MoveCharacter`.
 
 ## Context
 

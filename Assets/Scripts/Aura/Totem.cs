@@ -38,9 +38,9 @@ public class Totem : MonoBehaviour
              + "field existed.")]
     [SerializeField] private AuraAudience affects;
 
-    [Tooltip("Statuses held by everyone currently standing in range. Applied and withdrawn purely by "
-             + "where they stand - nothing is written onto the character.")]
-    [SerializeField] private List<AuraPassiveBuff> passiveBuffs = new();
+    [Tooltip("Auras projected onto everyone currently standing in range. Applied and withdrawn purely "
+             + "by where they stand - nothing is written onto the character.")]
+    [SerializeField] private List<AuraData> auras = new();
 
     [Tooltip("One-shot effects fired at whichever character triggers them, the moment a matching "
              + "action resolves while they stand in range.")]
@@ -126,17 +126,22 @@ public class Totem : MonoBehaviour
         };
     }
 
-    /// Builds this totem's buffs as fresh Status objects for one character. Fresh every time - see the
-    /// class comment for why that matters.
+    /// <summary>
+    /// Builds this totem's auras for one character and appends them.
+    ///
+    /// Each is a fresh Aura wrapping a fresh StatusEffect - the effect carries the rule (Strength's
+    /// arithmetic, Poison's tick), the Aura marks it as projected rather than carried and points back
+    /// here. Fresh every time; see the class comment for why that matters.
+    /// </summary>
     private void Project(Character character, List<Status> into)
     {
-        if (passiveBuffs.Count == 0 || !Covers(character)) { return; }
+        if (auras.Count == 0 || !Covers(character)) { return; }
 
-        foreach (AuraPassiveBuff buff in passiveBuffs)
+        foreach (AuraData aura in auras)
         {
-            Status status = Status.Create(buff.Type, buff.Stacks, Status.Indefinite);
+            StatusEffect projectedEffect = StatusEffect.Create(aura.Type, aura.Stacks, Status.Indefinite);
 
-            if (status != null) { into.Add(status); }
+            if (projectedEffect != null) { into.Add(new Aura(this, projectedEffect)); }
         }
     }
 

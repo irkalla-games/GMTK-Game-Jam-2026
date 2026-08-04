@@ -759,7 +759,7 @@ MonoBehaviour:
     minDistance: 0
     maxDistance: 2
   affects: 0
-  passiveBuffs:
+  auras:
   - type: 1
     stacks: 1
   reactions:

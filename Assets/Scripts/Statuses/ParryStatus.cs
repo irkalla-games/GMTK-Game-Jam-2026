@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// Negates each of the next few hits outright and reflects them back at whoever swung. `stacks` is the
 /// charge count.
 ///
@@ -12,7 +12,7 @@
 /// one hit between them until somebody runs out of charges, which is exactly as funny as it sounds and
 /// is bounded by Character.MaxParryBounces.
 /// </summary>
-public class ParryStatus : Status
+public class ParryStatus : StatusEffect
 {
     public ParryStatus(int stacks, int turnsRemaining)
         : base(StatusType.Parry, stacks, turnsRemaining) { }

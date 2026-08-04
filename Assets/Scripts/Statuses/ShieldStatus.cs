@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// A pool of extra health sitting on top of Health. Absorbs damage ahead of it and is wiped at the
@@ -12,7 +12,7 @@ using UnityEngine;
 /// a turn and stop being killable. Decaying is what makes "armor up or push damage?" a real question
 /// every turn rather than a pile you accumulate.
 /// </summary>
-public class ShieldStatus : Status
+public class ShieldStatus : StatusEffect
 {
     public ShieldStatus(int stacks, int turnsRemaining)
         : base(StatusType.Shield, stacks, turnsRemaining) { }

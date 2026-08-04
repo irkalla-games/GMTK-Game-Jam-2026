@@ -95,6 +95,30 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
+    /// Drops a character onto a cell outright: no tween, no move rules, no pickup. Placement, not
+    /// movement - it is how a character arrives on the board in the first place, whether at battle
+    /// start or freshly summoned mid-turn.
+    ///
+    /// Here rather than on Character for the same reason MoveCharacter is: where a tile *is* in world
+    /// space is the board's business. Character.MoveTo only swaps occupancy references, so a caller
+    /// that wants a body to actually appear somewhere would otherwise have to reach for
+    /// `transform.position = tile.transform.position` itself - which is a character knowing how the
+    /// grid is laid out.
+    /// </summary>
+    public bool PlaceCharacter(Character character, Vector2Int cell)
+    {
+        GridTile tile = GetTile(cell);
+
+        if (character == null || tile == null) { return false; }
+
+        character.MoveTo(tile);
+        character.transform.position = tile.transform.position;
+
+        return true;
+    }
+
+
+    /// <summary>
     /// Every rule about where a character may move lives here. Null means the move is legal, anything
     /// else is the reason it was refused, for the caller to log.
     ///

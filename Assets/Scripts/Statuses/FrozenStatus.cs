@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// The carrier loses its whole turn: no cards, no attack, no movement.
 ///
 /// Enforced through Character.CanAct, which asks every status for an ActRefusal. It is a fact about
@@ -17,7 +17,7 @@
 /// freezing one denies a single 3-5 damage swing, while freezing a player denies roughly three cards.
 /// The lever for making it stronger is duration, not stacks: the effect is binary.
 /// </summary>
-public class FrozenStatus : Status
+public class FrozenStatus : StatusEffect
 {
     public FrozenStatus(int stacks, int turnsRemaining)
         : base(StatusType.Frozen, stacks, turnsRemaining) { }

@@ -31,7 +31,9 @@ Tiles                         the only targetable thing; forwards effects to its
 TileSelector                  owns a tile's colour: idle / in-range highlight / hover
 Character                     health, its own energy pool, its own deck/hand/piles
 GameManager                   who is active, and whose hand is on screen
-Status                        one modifier and the rule it carries; hooks the damage/turn pipeline
+Status                        base: one modifier and the rule it carries
+  ├─ StatusEffect             the character carries it; ages, merges, spends real charges
+  └─ Aura                     a Totem projects it while you stand in range; applies first
 Totem                         projects auras onto whoever stands in its range
 ```
 
@@ -86,11 +88,27 @@ in `EnemyResolve` that same round, and a turn-start hook has already run by then
 `info = status.OnTakeDamage(info)` — so nothing half-writes a shared object. A `readonly struct`, so
 the one-per-status-per-hit churn allocates nothing.
 
+**`StatusEffect` and `Aura` are the two halves of `Status`, with identical capabilities.** Every hook
+is available to either — a totem's curse cloud can poison you exactly like a poison dart. They differ
+only in ownership and lifetime: a `StatusEffect` sits in `Character.ownStatusEffects`, ages, merges
+when re-applied and spends real charges; an `Aura` is owned by a `Totem`, has no duration, is never
+merged, and is rebuilt fresh per query so its charges never really deplete. `Aura` *wraps* a
+`StatusEffect` and forwards every hook rather than reimplementing the rule — a `StrengthAura`
+duplicating `StrengthStatus`'s arithmetic is the second-answer-to-one-question this design deletes.
+
 **Auras are pulled, not pushed.** A `Totem` holds no membership list and never writes to a character;
-`Character.ActiveStatuses()` walks the totems and asks what each projects onto its tile right now.
-Auras come first in that list, and there is no sort — hooks run FIFO, so mitigation order and the
-outgoing damage total both depend on which status landed first. Aura statuses are rebuilt fresh every
-query, so a charge-spending one (Block, Parry, Double Attack) never depletes while you stand in range.
+`Character.ActiveStatuses()` walks the totems and asks what each projects onto its tile right now,
+then appends the character's own. Auras come first in that list, and there is no sort — hooks run
+FIFO, so mitigation order and the outgoing damage total both depend on which status landed first.
+
+**Name the half, not the concept.** `ownStatusEffects` vs auras, `AuraData` (authoring) vs `Aura`
+(runtime, the `CardData`/`Card` split again), `ApplyStatusEffect` for the *card effect* that grants
+one. A bare "status" in a variable name is ambiguous now that both halves exist.
+
+**Where a tile sits in world space is `GridManager`'s business.** It owns both `MoveCharacter` (tween,
+move rules, pickup) and `PlaceCharacter` (snap, no rules — arriving on the board). `Character.MoveTo`
+only swaps occupancy references, so anything writing `transform.position = tile.transform.position`
+outside `GridManager` is a character that knows how the grid is laid out.
 
 **Energy belongs to `Character`, not `GameManager`.** Multiple characters each have their own pool;
 playing a card charges `GameManager.ActiveCharacter`.

@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// The carrier cannot move. Everything else - attacking, playing cards - still works.
 ///
 /// Frozen's other half, split out rather than folded in, because the two are different cards: Frozen
@@ -9,7 +9,7 @@
 /// The refusal goes through GridManager.MoveRefusal, so the Move card's highlight goes dark for a
 /// rooted character and an enemy brain stops proposing walks - see Status.MoveRefusal.
 /// </summary>
-public class RootedStatus : Status
+public class RootedStatus : StatusEffect
 {
     public RootedStatus(int stacks, int turnsRemaining)
         : base(StatusType.Rooted, stacks, turnsRemaining) { }

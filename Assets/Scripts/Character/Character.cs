@@ -65,9 +65,11 @@ public class Character : MonoBehaviour
     /// can find its way back. Subset of the Card objects built from `deck`, not a second deck.
     private readonly List<Card> innateCards = new();
 
-    /// Buffs and curses alike. One list, because they are the same machinery - see StatusType. Auras
-    /// are *not* in here; they belong to the totems projecting them - see ActiveStatuses.
-    private readonly List<Status> statuses = new();
+    /// The statuses this character carries *itself* - the ones cards applied, that age with its own
+    /// turns and merge when re-applied. Buffs and curses alike, one list, because they are the same
+    /// machinery. Named for the distinction that matters: auras are never in here, they belong to the
+    /// totems projecting them and only join the picture in ActiveStatuses.
+    private readonly List<StatusEffect> ownStatusEffects = new();
 
     /// Current health. Serialized only so the live value is watchable in the Inspector during Play
     /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
@@ -317,12 +319,16 @@ public class Character : MonoBehaviour
     /// </summary>
     public List<Status> ActiveStatuses()
     {
-        List<Status> active = new();
+        List<Status> aurasThenOwn = new();
 
-        Totem.CollectAuras(this, active);
-        active.AddRange(statuses);
+        // Auras first - projected by whichever totems reach this character's tile right now, and
+        // resolved ahead of anything it carries itself.
+        Totem.CollectAuras(this, aurasThenOwn);
 
-        return active;
+        // Then the character's own, in the order they were applied.
+        aurasThenOwn.AddRange(ownStatusEffects);
+
+        return aurasThenOwn;
     }
 
     /// How much of `type` this character currently has, auras and own statuses combined - callers
@@ -355,30 +361,33 @@ public class Character : MonoBehaviour
     /// statuses whose whole state is one number - GridTile.ApplyStatus and friends.
     public void AddStatus(StatusType type, int stacks, int turnsRemaining)
     {
-        AddStatus(Status.Create(type, stacks, turnsRemaining));
+        AddStatus(StatusEffect.Create(type, stacks, turnsRemaining));
     }
 
     /// <summary>
     /// Applies an already-built status, merging into one of the same type if it is already there.
     ///
     /// The object form exists for Block, whose two numbers do not fit the type/stacks/turns signature.
-    /// How a top-up combines is the status's own business - see Status.Merge.
+    /// How a top-up combines is the status's own business - see StatusEffect.Merge.
+    ///
+    /// Takes a StatusEffect, not a Status: an Aura is owned by its totem and rebuilt on every query,
+    /// so there is nothing here for one to be added to. The type signature is what says so.
     /// </summary>
-    public void AddStatus(Status status)
+    public void AddStatus(StatusEffect incoming)
     {
-        if (status == null || status.type == StatusType.None || status.stacks <= 0) { return; }
+        if (incoming == null || incoming.type == StatusType.None || incoming.stacks <= 0) { return; }
 
-        foreach (Status existing in statuses)
+        foreach (StatusEffect existing in ownStatusEffects)
         {
-            if (existing.type != status.type) { continue; }
+            if (existing.type != incoming.type) { continue; }
 
-            existing.Merge(status);
+            existing.Merge(incoming);
             UpdateHealthBar();
 
             return;
         }
 
-        statuses.Add(status);
+        ownStatusEffects.Add(incoming);
         UpdateHealthBar();
     }
 
@@ -415,21 +424,23 @@ public class Character : MonoBehaviour
     {
         foreach (Status status in ActiveStatuses()) { status.OnTurnEnd(this); }
 
-        for (int i = statuses.Count - 1; i >= 0; i--)
+        // Only the carried ones age. An aura has no duration of its own - Aura.turnsRemaining is
+        // permanently Indefinite - so it would be nothing but a no-op here anyway.
+        for (int i = ownStatusEffects.Count - 1; i >= 0; i--)
         {
-            if (statuses[i].turnsRemaining > 0) { statuses[i].turnsRemaining--; }
+            if (ownStatusEffects[i].turnsRemaining > 0) { ownStatusEffects[i].turnsRemaining--; }
 
-            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
+            if (ownStatusEffects[i].IsExpired) { ownStatusEffects.RemoveAt(i); }
         }
     }
 
-    /// Drops statuses whose hooks just spent their last charge. Only walks this character's own list -
-    /// the aura entries in ActiveStatuses are throwaways owned by a totem.
+    /// Drops carried statuses whose hooks just spent their last charge. Only walks this character's own
+    /// list - the aura entries in ActiveStatuses are throwaways owned by a totem.
     private void PruneExpired()
     {
-        for (int i = statuses.Count - 1; i >= 0; i--)
+        for (int i = ownStatusEffects.Count - 1; i >= 0; i--)
         {
-            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
+            if (ownStatusEffects[i].IsExpired) { ownStatusEffects.RemoveAt(i); }
         }
     }
 
@@ -634,15 +645,11 @@ public class Character : MonoBehaviour
         PlaceOnStartTile();
     }
 
+    /// Hands the whole job to GridManager: claiming the tile and standing the body on it are one
+    /// operation, and where a cell sits in world space is the board's business, not a character's.
     private void PlaceOnStartTile()
     {
-        GridTile tile = GridManager.Instance != null ? GridManager.Instance.GetTile(startCoordinates) : null;
-
-        if (tile != null)
-        {
-            MoveTo(tile);
-            transform.position = tile.transform.position;
-        }
+        if (GridManager.Instance != null) { GridManager.Instance.PlaceCharacter(this, startCoordinates); }
     }
 
     public void DiscardHand()

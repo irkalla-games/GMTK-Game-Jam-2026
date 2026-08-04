@@ -2,8 +2,8 @@
 /// Every temporary modifier a character can carry. Buffs and curses are the same machinery - they
 /// differ only in their numbers and in which side wants them.
 ///
-/// These values are written into .asset files by StatusEffect, so they are load-bearing: append new
-/// statuses at the end, never reorder. None = 0 so an effect asset whose dropdown was never set does
+/// These values are written into .asset files by ApplyStatusEffect, so they are load-bearing: append
+/// new statuses at the end, never reorder. None = 0 so an effect asset whose dropdown was never set does
 /// nothing loudly rather than silently granting whatever happened to be listed first. (That is the
 /// opposite choice to RangeShape.Anywhere = 0, which had to keep pre-existing assets working - there
 /// are no status assets yet, so 0 is free to mean "unset".)
@@ -33,7 +33,7 @@ public enum StatusType
 
     /// A flat reduction applied to each of the next few hits. stacks is the charge count; the
     /// per-hit amount lives on BlockStatus, which is why this one cannot be authored through the
-    /// generic StatusEffect asset - see BlockEffect.
+    /// generic Apply Status asset - see BlockEffect.
     Block = 6,
 
     /// Negates each of the next few hits outright and reflects them at the attacker. stacks is the

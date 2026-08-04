@@ -209,6 +209,10 @@ public class Character : MonoBehaviour
     {
         if (amount <= 0) { return; }
 
+        // `info` is the accumulator, not a per-status value: each hook takes the hit as the previous
+        // one left it and returns the next, so mitigations compose. A hit of 10 against Block 3 then
+        // Shield 4 goes 10 -> 7 -> 3. Rebuilding it inside the loop would hand every status the
+        // original 10 and only the last one's result would survive.
         DamageInfo info = new(attacker, this, amount);
 
         foreach (Status status in ActiveStatuses())
@@ -439,6 +443,7 @@ public class Character : MonoBehaviour
     /// </summary>
     public int ComputeOutgoingDamage(int amount, bool shouldConsume)
     {
+        // Same accumulator shape as TakeDamage - each hook takes the total as the last one left it.
         DamageInfo info = new(this, null, amount, consumeCharges: shouldConsume);
 
         foreach (Status status in ActiveStatuses()) { info = status.OnDealDamage(info); }

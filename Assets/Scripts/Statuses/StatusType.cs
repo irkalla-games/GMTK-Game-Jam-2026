@@ -7,6 +7,8 @@
 /// nothing loudly rather than silently granting whatever happened to be listed first. (That is the
 /// opposite choice to RangeShape.Anywhere = 0, which had to keep pre-existing assets working - there
 /// are no status assets yet, so 0 is free to mean "unset".)
+///
+/// The rule each one carries lives in its Status subclass, not in a switch somewhere - see Status.
 /// </summary>
 public enum StatusType
 {
@@ -18,9 +20,27 @@ public enum StatusType
     /// Buff. Doubles outgoing damage, then spends a charge. No duration - it waits.
     DoubleNextAttack = 2,
 
-    /// Curse. Deals its stack count in damage at the start of each turn, bypassing armor.
+    /// Curse. Deals its stack count in damage at the end of the carrier's own phase, bypassing every
+    /// defense - see Character.TakeUnblockableDamage.
     Poison = 3,
 
-    /// Curse. The character cannot act at all while any stack remains.
+    /// Curse. The carrier loses its whole turn - no cards, no attack, no movement.
     Frozen = 4,
+
+    /// A pool of extra health that absorbs damage ahead of Health, wiped at the start of every turn.
+    /// stacks is the pool.
+    Shield = 5,
+
+    /// A flat reduction applied to each of the next few hits. stacks is the charge count; the
+    /// per-hit amount lives on BlockStatus, which is why this one cannot be authored through the
+    /// generic StatusEffect asset - see BlockEffect.
+    Block = 6,
+
+    /// Negates each of the next few hits outright and reflects them at the attacker. stacks is the
+    /// charge count.
+    Parry = 7,
+
+    /// Curse. The carrier cannot move. Everything else - attacking, playing cards - still works.
+    /// Frozen's smaller sibling; the two are separate so they compose.
+    Rooted = 8,
 }

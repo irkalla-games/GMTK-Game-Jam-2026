@@ -51,9 +51,11 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         // An actor-state rule, not a targeting one - the answer does not depend on the tile, so it
         // does not belong in Card.Refusal. Above the commit point, so a frozen click costs nothing.
-        if (!actor.CanAct)
+        string actRefusal = actor.ActRefusal();
+
+        if (actRefusal != null)
         {
-            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {actor.name} cannot act");
+            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {actRefusal}");
             cardViewer.transform.DOShakePosition(0.25f, 0.15f);
             return;
         }

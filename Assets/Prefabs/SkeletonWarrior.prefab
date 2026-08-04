@@ -363,7 +363,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   <Health>k__BackingField: 34
-  <Shield>k__BackingField: 0
 --- !u!95 &7130099151914716108
 Animator:
   serializedVersion: 7

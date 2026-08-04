@@ -2,12 +2,15 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// One buff an AuraSource keeps on every character currently standing in its range - Strength while
-/// near the Cleric, for example. Granted through Character.ApplyAura the instant a character enters
-/// range and withdrawn through RemoveAura the instant they leave, so this only suits statuses with no
-/// notion of "already partly spent" - Shield/Block/Parry are charge-consumed by combat and have no
-/// clean answer to "how much of this is still the aura's to take back", so a buff meant to grant those
-/// belongs on an AuraReaction (a one-shot grant) instead of here.
+/// One status a Totem projects onto every character currently standing in its range - Strength while
+/// near the Cleric, for example.
+///
+/// Nothing is granted or withdrawn: Character.ActiveStatuses asks the totems what they are projecting
+/// each time it is called, and builds a fresh Status from this every time. So the entry describes a
+/// *maintained* effect, which suits magnitude statuses cleanly and charge-spending ones oddly -
+/// Block, Parry and Double Attack mutate a throwaway here, so they never deplete while you stand in
+/// range. If you want a charge that actually gets spent, put it on an AuraReaction, which is a
+/// one-shot grant onto the character's own list.
 /// </summary>
 [Serializable]
 public class AuraPassiveBuff

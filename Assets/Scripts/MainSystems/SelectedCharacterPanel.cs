@@ -64,15 +64,27 @@ public class SelectedCharacterPanel : MonoBehaviour
 
         panelRoot.SetActive(true);
         nameText.text = shown.name;
-        healthText.text = $"{shown.Health}/{shown.MaxHealth}  Shield {shown.Shield}";
-        blockText.text = shown.BlockCharges > 0 ? $"Block {shown.BlockAmount} x{shown.BlockCharges}" : "";
-        parryText.text = shown.ParryCharges > 0 ? $"Parry x{shown.ParryCharges}" : "";
 
+        // Shield, Block and Parry are statuses like any other now, so they are asked for by type
+        // rather than read off the character. Which of them earns a line of its own is this panel's
+        // decision to make - the character has no opinion about it.
+        healthText.text = $"{shown.Health}/{shown.MaxHealth}  Shield {shown.StatusStacks(StatusType.Shield)}";
+
+        Status block = shown.FindStatus(StatusType.Block);
+        blockText.text = block != null ? block.Describe() : "";
+
+        Status parry = shown.FindStatus(StatusType.Parry);
+        parryText.text = parry != null ? parry.Describe() : "";
+
+        // Everything else, totem auras included - ActiveStatuses is what the combat rules see, so it
+        // is what the player should see too.
         statusesText.text = "";
-        foreach (Status status in shown.Statuses)
+        foreach (Status status in shown.ActiveStatuses())
         {
+            if (status.type is StatusType.Shield or StatusType.Block or StatusType.Parry) { continue; }
+
             string duration = status.turnsRemaining == Status.Indefinite ? "" : $" ({status.turnsRemaining})";
-            statusesText.text += $"{status.type} x{status.stacks}{duration}\n";
+            statusesText.text += $"{status.Describe()}{duration}\n";
         }
     }
 

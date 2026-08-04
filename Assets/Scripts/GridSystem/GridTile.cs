@@ -53,19 +53,26 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.Heal(amount); }
     }
 
+    // Shield, Block and Parry are statuses like anything else - these are the same forwarders they
+    // always were, they just hand the occupant a status instead of calling a bespoke method per stat.
+
     public void GainShield(int amount)
     {
-        if (Occupant != null) { Occupant.AddShield(amount); }
+        if (Occupant != null) { Occupant.AddStatus(StatusType.Shield, amount, Status.Indefinite); }
     }
 
+    /// Block is the one that cannot go through the type/stacks form: `amount` comes off each hit and
+    /// `count` is how many hits it applies to, which is two numbers - see BlockStatus.
     public void GainBlock(int amount, int count)
     {
-        if (Occupant != null) { Occupant.GainBlock(amount, count); }
+        if (Occupant == null || amount <= 0 || count <= 0) { return; }
+
+        Occupant.AddStatus(new BlockStatus(amount, count, Status.Indefinite));
     }
 
     public void GainParry(int count)
     {
-        if (Occupant != null) { Occupant.GainParry(count); }
+        if (Occupant != null) { Occupant.AddStatus(StatusType.Parry, count, Status.Indefinite); }
     }
 
     /// <summary>

@@ -5,8 +5,12 @@ using UnityEngine;
 
 /// <summary>
 /// A unit on the board. Everything a card can do to a character arrives through the tile it's standing
-/// on, so these are the entry points GridTile forwards to. Incoming damage is mitigated by Parry, then
-/// Block, then Shield, in that order - see TakeDamage.
+/// on, so these are the entry points GridTile forwards to.
+///
+/// **This class resolves no combat rules.** Mitigation, damage bonuses, poison, freezing and rooting
+/// all live in Status subclasses; what remains here is running the hooks and subtracting whatever
+/// survives them - see TakeDamage. There is deliberately no Shield/Block/Parry on a Character: it has
+/// a status list that may contain one, and anything wanting a number asks the list for it by type.
 ///
 /// Each character owns its own deck and piles. Clicking a character makes it the active one, and its
 /// hand is what you see; there is no turn order.
@@ -61,12 +65,9 @@ public class Character : MonoBehaviour
     /// can find its way back. Subset of the Card objects built from `deck`, not a second deck.
     private readonly List<Card> innateCards = new();
 
-    /// Buffs and curses alike. One list, because they are the same machinery - see StatusType.
+    /// Buffs and curses alike. One list, because they are the same machinery - see StatusType. Auras
+    /// are *not* in here; they belong to the totems projecting them - see ActiveStatuses.
     private readonly List<Status> statuses = new();
-
-    /// Buffs currently maintained by an AuraSource this character is standing near. Separate from
-    /// statuses so leaving range can withdraw exactly what one aura granted - see AppliedAura.
-    private readonly List<AppliedAura> auraEffects = new();
 
     /// Current health. Serialized only so the live value is watchable in the Inspector during Play
     /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
@@ -78,26 +79,6 @@ public class Character : MonoBehaviour
 
     /// Each character has their own pool; playing a card spends the acting character's energy.
     public int Energy { get; private set; }
-
-    /// A barrier of extra health sitting on top of Health. Absorbs damage ahead of it and is wiped at
-    /// the start of every turn. Serialized purely as an Inspector readout, same as Health.
-    [field: SerializeField, ReadOnlyField]
-    public int Shield { get; private set; }
-
-    /// A flat reduction applied to each hit while charges remain, unlike Shield which is a pool of
-    /// extra health - Block 5 against three hits of 8 leaves three hits of 3, not one hit absorbed.
-    /// BlockCharges is how many more hits it still applies to; BlockAmount is the reduction each of
-    /// those hits gets.
-    [field: SerializeField, ReadOnlyField]
-    public int BlockAmount { get; private set; }
-
-    [field: SerializeField, ReadOnlyField]
-    public int BlockCharges { get; private set; }
-
-    /// While charges remain, each hit is fully negated and dealt back to whoever threw it instead of
-    /// landing here at all.
-    [field: SerializeField, ReadOnlyField]
-    public int ParryCharges { get; private set; }
 
     public PlayableCharacter Affiliation => playableCharacter;
 
@@ -125,11 +106,32 @@ public class Character : MonoBehaviour
 
     public bool IsDead => Health <= 0;
 
-    /// Frozen stops a character dead. Checked before a card is paid for, and by the turn loop when it
-    /// asks whether anybody can still act - a fully frozen party would otherwise stall the turn.
-    public bool CanAct => !IsDead && StatusStacks(StatusType.Frozen) <= 0;
+    /// <summary>
+    /// Whether this character can do anything at all this turn. Frozen is what says no - checked
+    /// before a card is paid for, and by the turn loop when it asks whether anybody can still act,
+    /// since a fully frozen party would otherwise stall the turn forever.
+    ///
+    /// Deliberately not a targeting rule: it does not depend on the tile clicked, so it does not
+    /// belong in Card.Refusal. Rooted is the one that objects per-destination, and it does that
+    /// through GridManager.MoveRefusal instead.
+    /// </summary>
+    public bool CanAct => ActRefusal() == null;
 
-    public IReadOnlyList<Status> Statuses => statuses;
+    /// Why this character cannot act at all right now, or null if it can. The reason rather than a
+    /// bare bool so a refused click can say what stopped it - see CardPlayManager.
+    public string ActRefusal()
+    {
+        if (IsDead) { return $"{name} is down"; }
+
+        foreach (Status status in ActiveStatuses())
+        {
+            string refusal = status.ActRefusal(this);
+
+            if (refusal != null) { return refusal; }
+        }
+
+        return null;
+    }
 
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
@@ -191,50 +193,76 @@ public class Character : MonoBehaviour
         Energy = maxEnergy;
     }
 
-    /// Shield is spent before health and does not carry between turns. Persistent shield would not
-    /// survive this card set - Steely Attack grants 5 for 1 energy while also dealing damage, so at
-    /// three plays a turn the Knight would bank 15 a turn and stop being killable.
-    public void ResetShield()
-    {
-        Shield = 0;
-        UpdateHealthBar();
-    }
-
     /// <summary>
     /// The single choke point all ordinary damage passes through - GridTile.DealDamage forwards here.
-    /// Mitigation applies in order: Parry negates the hit outright and reflects it at attacker, Block
-    /// takes a flat amount off, then whatever remains is absorbed by Shield before it reaches Health.
     ///
-    /// attacker is who to reflect a parried hit back at - null (from Poison-style sources with no
-    /// attacker) just means a parried hit vanishes instead of reflecting.
+    /// Every defense is a status, so this runs the OnTakeDamage hooks and subtracts whatever survives
+    /// them. It does not know that Parry, Block or Shield exist, and adding a fourth mitigation type
+    /// needs no change here at all.
+    ///
+    /// attacker is who to reflect a parried hit back at - null (from sources with no attacker) just
+    /// means a parried hit vanishes instead of reflecting.
+    ///
+    /// `bounces` is only ever non-zero on a reflected hit. See MaxParryBounces.
     /// </summary>
-    public void TakeDamage(int amount, Character attacker = null)
+    public void TakeDamage(int amount, Character attacker = null, int bounces = 0)
     {
         if (amount <= 0) { return; }
 
-        if (ParryCharges > 0)
+        DamageInfo info = new(attacker, this, amount);
+
+        foreach (Status status in ActiveStatuses())
         {
-            ParryCharges--;
-            if (attacker != null) { attacker.TakeUnblockableDamage(amount); }
-            return;
+            info = status.OnTakeDamage(info);
+
+            // Parry cancelled the hit outright - there is nothing left for anything else to reduce.
+            if (info.negated) { break; }
         }
 
-        if (BlockCharges > 0)
-        {
-            amount = Mathf.Max(0, amount - BlockAmount);
-            BlockCharges--;
-        }
+        PruneExpired();
 
-        int absorbed = Mathf.Min(Shield, amount);
-        Shield -= absorbed;
-        Health = Mathf.Max(0, Health - (amount - absorbed));
+        Reflect(info, attacker, bounces);
+
+        Health = Mathf.Max(0, Health - info.amount);
         UpdateHealthBar();
         CheckDeath();
     }
 
-    /// Damage that ignores Shield, Block and Parry. Poison is not an attack - those are defenses held
-    /// up against something being thrown at you, and they do nothing about something already in your
-    /// blood. Also what a parried hit reflects with, so a parry can never itself be parried.
+    /// <summary>
+    /// How many times one hit may bounce between two characters who are both parrying before it is
+    /// dropped on the floor.
+    ///
+    /// Ordinarily a bounce war ends on its own, because every parry spends a charge and charges are
+    /// finite. An aura is the exception: Totem hands out a fresh Status object on every query, so an
+    /// aura-granted Parry never depletes and two characters standing in one would bounce a single hit
+    /// forever. This is the backstop for that.
+    /// </summary>
+    private const int MaxParryBounces = 8;
+
+    /// <summary>
+    /// Sends a parried hit back at whoever threw it - through the ordinary front door, not around it.
+    ///
+    /// That is the whole point: the attacker's own statuses all get their say, so their Shield absorbs
+    /// it, their Block reduces it, and their Parry sends it straight back here again.
+    /// </summary>
+    private void Reflect(DamageInfo info, Character attacker, int bounces)
+    {
+        if (info.reflected <= 0 || attacker == null) { return; }
+
+        if (bounces >= MaxParryBounces)
+        {
+            Debug.LogWarning($"{name}: parry bounce limit reached, dropping {info.reflected} reflected "
+                             + "damage - is an aura granting Parry to both sides?");
+            return;
+        }
+
+        attacker.TakeDamage(info.reflected, this, bounces + 1);
+    }
+
+    /// Damage that runs no OnTakeDamage hooks at all, so nothing can mitigate it. Poison is not an
+    /// attack - defenses are things held up against something being thrown at you, and they do nothing
+    /// about something already in your blood. Note a reflected parry does *not* come through here: it
+    /// goes back through TakeDamage so it can be parried in turn.
     public void TakeUnblockableDamage(int amount)
     {
         if (amount <= 0) { return; }
@@ -265,163 +293,159 @@ public class Character : MonoBehaviour
 
     public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); UpdateHealthBar(); }
 
-    public void AddShield(int amount) { Shield += Mathf.Max(0, amount); UpdateHealthBar(); }
-
-    /// <summary>
-    /// Grants Block: the next `count` hits are each reduced by `amount`. Re-applying while charges
-    /// remain keeps the higher of the two amounts and adds to the charge count, so a top-up can never
-    /// downgrade what is already there.
-    /// </summary>
-    public void GainBlock(int amount, int count)
-    {
-        if (amount <= 0 || count <= 0) { return; }
-
-        BlockAmount = BlockCharges > 0 ? Mathf.Max(BlockAmount, amount) : amount;
-        BlockCharges += count;
-    }
-
-    /// Grants Parry: the next `count` hits are each negated and reflected back at the attacker instead
-    /// of landing here. See TakeDamage.
-    public void GainParry(int count)
-    {
-        if (count <= 0) { return; }
-
-        ParryCharges += count;
-    }
-
     private void UpdateHealthBar()
     {
-        healthBar.text = Health.ToString() + "/" + maxHealth.ToString() + " (" + Shield.ToString() + ")";
+        // Shield is not a field on this class - it is whatever a ShieldStatus in the list says it is.
+        healthBar.text = $"{Health}/{maxHealth} ({StatusStacks(StatusType.Shield)})";
     }
 
-    /// How much of `type` this character currently has, from statuses and any aura buffs combined -
-    /// callers like ComputeOutgoingDamage should not have to care which source it came from.
+    /// <summary>
+    /// Every status affecting this character right now: the auras totems are projecting onto its tile
+    /// first, then its own, each in the order it was gained.
+    ///
+    /// Auras come first so they always resolve ahead of anything the character is carrying itself, and
+    /// building the list in that order is the whole enforcement - there is no sort. That also means
+    /// hooks run FIFO, so mitigation order and the outgoing damage total both depend on which status
+    /// landed first. See Status.
+    ///
+    /// A fresh list every call rather than a reused buffer: a Poison tick can kill the carrier, and a
+    /// Died handler running mid-iteration could otherwise clobber the buffer being walked.
+    /// </summary>
+    public List<Status> ActiveStatuses()
+    {
+        List<Status> active = new();
+
+        Totem.CollectAuras(this, active);
+        active.AddRange(statuses);
+
+        return active;
+    }
+
+    /// How much of `type` this character currently has, auras and own statuses combined - callers
+    /// should not have to care which it came from.
     public int StatusStacks(StatusType type)
     {
         int total = 0;
 
-        foreach (Status status in statuses)
+        foreach (Status status in ActiveStatuses())
         {
             if (status.type == type) { total += status.stacks; }
-        }
-
-        foreach (AppliedAura aura in auraEffects)
-        {
-            if (aura.type == type) { total += aura.stacks; }
         }
 
         return total;
     }
 
-    /// <summary>
-    /// Grants a passive buff on behalf of an AuraSource, for as long as this character stands in its
-    /// range. Tracked apart from AddStatus/statuses precisely so RemoveAura can later take back exactly
-    /// this grant - see AppliedAura.
-    /// </summary>
-    public void ApplyAura(AuraSource source, StatusType type, int stacks)
+    /// The status object of this type, or null. For anything that needs more than a stack count - a UI
+    /// asking Block for both of its numbers, say.
+    public Status FindStatus(StatusType type)
     {
-        if (type == StatusType.None || stacks <= 0) { return; }
+        foreach (Status status in ActiveStatuses())
+        {
+            if (status.type == type) { return status; }
+        }
 
-        auraEffects.Add(new AppliedAura(source, type, stacks));
+        return null;
     }
 
-    /// Withdraws every buff the given aura granted - called once a character leaves its range, or the
-    /// aura's own source dies.
-    public void RemoveAura(AuraSource source)
-    {
-        auraEffects.RemoveAll(a => a.source == source);
-    }
-
-    /// <summary>
-    /// Applies a status, stacking onto one already present. Re-applying takes the *longer* of the two
-    /// durations so a top-up can never shorten what is already there - and Indefinite, being -1, has
-    /// to be special-cased or Mathf.Max would treat it as the shortest.
-    /// </summary>
+    /// Applies a status by type, stacking onto one already present. The convenience form for the
+    /// statuses whose whole state is one number - GridTile.ApplyStatus and friends.
     public void AddStatus(StatusType type, int stacks, int turnsRemaining)
     {
-        if (type == StatusType.None || stacks <= 0) { return; }
+        AddStatus(Status.Create(type, stacks, turnsRemaining));
+    }
+
+    /// <summary>
+    /// Applies an already-built status, merging into one of the same type if it is already there.
+    ///
+    /// The object form exists for Block, whose two numbers do not fit the type/stacks/turns signature.
+    /// How a top-up combines is the status's own business - see Status.Merge.
+    /// </summary>
+    public void AddStatus(Status status)
+    {
+        if (status == null || status.type == StatusType.None || status.stacks <= 0) { return; }
 
         foreach (Status existing in statuses)
         {
-            if (existing.type != type) { continue; }
+            if (existing.type != status.type) { continue; }
 
-            existing.stacks += stacks;
-
-            if (existing.turnsRemaining != Status.Indefinite)
-            {
-                existing.turnsRemaining = turnsRemaining == Status.Indefinite
-                    ? Status.Indefinite
-                    : Mathf.Max(existing.turnsRemaining, turnsRemaining);
-            }
+            existing.Merge(status);
+            UpdateHealthBar();
 
             return;
         }
 
-        statuses.Add(new Status(type, stacks, turnsRemaining));
-    }
-
-    /// Spends one charge of a status, for the ones an event uses up rather than time. True if there
-    /// was one to spend.
-    public bool ConsumeStatus(StatusType type)
-    {
-        for (int i = 0; i < statuses.Count; i++)
-        {
-            if (statuses[i].type != type || statuses[i].stacks <= 0) { continue; }
-
-            statuses[i].stacks--;
-            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
-
-            return true;
-        }
-
-        return false;
+        statuses.Add(status);
+        UpdateHealthBar();
     }
 
     /// <summary>
-    /// One of this character's own turns passing: curses that deal damage do it, then every timed
-    /// status ages by one and the expired ones drop. Statuses with no duration (Strength, and
-    /// charge-spent ones like DoubleNextAttack) are untouched.
+    /// The top of a round, before anybody acts. Shield wipes itself here; everything else ignores it.
+    ///
+    /// Replaces the old ResetShield, and is why this class no longer knows that shield decays: that is
+    /// a fact about Shield, held in ShieldStatus.
+    /// </summary>
+    public void OnTurnStart()
+    {
+        foreach (Status status in ActiveStatuses()) { status.OnTurnStart(this); }
+
+        PruneExpired();
+        UpdateHealthBar();
+    }
+
+    /// <summary>
+    /// The end of this character's own phase: statuses that do something on a passing turn do it, then
+    /// every timed status ages by one and the expired ones drop. Statuses with no duration (Strength,
+    /// and charge-spent ones like Double Attack) are untouched.
     ///
     /// Called by BattleManager at the end of this character's own phase - PlayerActing for
     /// player-controlled characters, EnemyResolve for enemies - never at the shared TurnStart. See
     /// BattleManager.TickStatuses(bool) for why the timing matters.
     ///
+    /// Hooks run before durations age, so a status with one turn left still gets its last tick. Only
+    /// this character's own statuses age: an aura has no duration of its own, it lasts exactly as long
+    /// as you stand in it.
+    ///
     /// Iterated backwards because expiring a status removes it mid-loop.
     /// </summary>
-    public void TickStatuses()
+    public void OnTurnEnd()
+    {
+        foreach (Status status in ActiveStatuses()) { status.OnTurnEnd(this); }
+
+        for (int i = statuses.Count - 1; i >= 0; i--)
+        {
+            if (statuses[i].turnsRemaining > 0) { statuses[i].turnsRemaining--; }
+
+            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
+        }
+    }
+
+    /// Drops statuses whose hooks just spent their last charge. Only walks this character's own list -
+    /// the aura entries in ActiveStatuses are throwaways owned by a totem.
+    private void PruneExpired()
     {
         for (int i = statuses.Count - 1; i >= 0; i--)
         {
-            Status status = statuses[i];
-
-            if (status.type == StatusType.Poison) { TakeUnblockableDamage(status.stacks); }
-
-            if (status.turnsRemaining > 0) { status.turnsRemaining--; }
-
-            if (status.IsExpired) { statuses.RemoveAt(i); }
+            if (statuses[i].IsExpired) { statuses.RemoveAt(i); }
         }
     }
 
     /// <summary>
-    /// What this character's attack lands for, once Strength and Double Attack are applied.
+    /// What this character's attack lands for, once every OnDealDamage hook has had a turn.
     ///
-    /// shouldConsume is the whole difference between swinging and looking. True spends the Double
-    /// Attack charge and belongs to the one place actually attacking - DamageAction. False leaves it
-    /// untouched, for tooltips, damage previews and enemy AI scoring a move it has not made yet.
-    /// Passing true to display a number would destroy the buff without an attack ever happening.
-    ///
-    /// Double Attack multiplies the card's own number and Strength is added after, so Quick Attack
-    /// at 9 with +3 Strength and a Double Attack lands (9 x 2) + 3 = 21.
+    /// shouldConsume is the whole difference between swinging and looking. True spends charges and
+    /// belongs to the one place actually attacking - DamageAction. False leaves them untouched, for
+    /// tooltips, damage previews and enemy AI scoring a move it has not made yet. Passing true to
+    /// display a number would destroy the buff without an attack ever happening.
     /// </summary>
     public int ComputeOutgoingDamage(int amount, bool shouldConsume)
     {
-        bool doubled = shouldConsume
-            ? ConsumeStatus(StatusType.DoubleNextAttack)
-            : StatusStacks(StatusType.DoubleNextAttack) > 0;
+        DamageInfo info = new(this, null, amount, consumeCharges: shouldConsume);
 
-        if (doubled) { amount *= 2; }
+        foreach (Status status in ActiveStatuses()) { info = status.OnDealDamage(info); }
 
-        return amount + StatusStacks(StatusType.Strength);
+        if (shouldConsume) { PruneExpired(); }
+
+        return info.amount;
     }
 
     public void MoveTo(GridTile moveTo)

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 using DG.Tweening;
 
 public class GridManager : Singleton<GridManager>
@@ -13,7 +12,7 @@ public class GridManager : Singleton<GridManager>
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Transform tileParent;
 
-    private Dictionary<Vector2Int, GridTile> tiles = new();
+    private readonly Dictionary<Vector2Int, GridTile> tiles = new();
 
     /// Live telegraph lines, torn down and rebuilt each turn.
     private readonly List<LineRenderer> telegraphs = new();
@@ -57,12 +56,7 @@ public class GridManager : Singleton<GridManager>
 
     public GridTile GetTile(Vector2Int position)
     {
-        if (tiles.TryGetValue(position, out GridTile tile))
-        {
-            return tile;
-        }
-
-        return null;
+        return tiles.GetValueOrDefault(position);
     }
 
 
@@ -118,6 +112,17 @@ public class GridManager : Singleton<GridManager>
         if (destination.Occupant == character) { return "it is already standing there"; }
 
         if (destination.Occupant != null) { return $"{destination.Occupant.name} is standing there"; }
+
+        // A status may object to the mover rather than to the tile - Rooted refuses every destination.
+        // Asked here rather than anywhere else precisely because this method is the single answer both
+        // the pre-flight check and the move itself consult, so a rooted character's Move card lights
+        // no tiles and its click costs no energy.
+        foreach (Status status in character.ActiveStatuses())
+        {
+            string refusal = status.MoveRefusal(character, destination);
+
+            if (refusal != null) { return refusal; }
+        }
 
         return null;
     }
@@ -213,7 +218,7 @@ public class GridManager : Singleton<GridManager>
     /// inside a turn.
     ///
     /// Sprites/Default is the one shader guaranteed present in a 2D project that respects vertex
-    /// colour, so the line does not come out magenta without a material authored for it.
+    /// color, so the line does not come out magenta without a material authored for it.
     /// </summary>
     private LineRenderer DrawTelegraph(List<Vector3> points, bool isAttack)
     {

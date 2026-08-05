@@ -180,6 +180,22 @@ public class BattleManager : Singleton<BattleManager>
         SelectedCharacterChanged?.Invoke(character);
     }
 
+    /// <summary>
+    /// Raised when the turn machinery has finished mutating characters, for anything displaying their
+    /// stats.
+    ///
+    /// This exists because ActionManager.ActionResolved is *not* enough, though it was long assumed to
+    /// be. Poison bites in OnTurnEnd and Shield wipes itself in OnTurnStart, and both are called
+    /// straight from this coroutine without ever going through an action - so a panel refreshing only
+    /// on resolved actions showed a poisoned enemy at stale health until something else happened to
+    /// touch it.
+    ///
+    /// Deliberately parameterless and coarse. The alternative - Character raising an event per stat -
+    /// puts the burden on every future mutation to remember to announce itself, where this only has to
+    /// be raised where the battle already knows it has just run a batch of hooks.
+    /// </summary>
+    public event System.Action TurnAdvanced;
+
     private void Start()
     {
         // Characters placed directly in the scene (see the tooltip on `characters`) never pass through
@@ -448,6 +464,10 @@ public class BattleManager : Singleton<BattleManager>
         // inside ResetEnergy so Character stays unaware of any UI.
         if (ActiveCharacter != null) { ChangeActiveMana(ActiveCharacter.Energy); }
 
+        // Every OnTurnStart hook has run by here - Shield has wiped itself, and none of it went
+        // through an action. Anything showing a character's stats needs telling.
+        TurnAdvanced?.Invoke();
+
         // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
         // whole design: they announce one action, you spend the turn making it wrong, and it fires
         // anyway. Deciding at execution time instead would quietly undo every block you set up.
@@ -598,6 +618,9 @@ public class BattleManager : Singleton<BattleManager>
 
             character.OnTurnEnd();
         }
+
+        // Poison has just bitten, and like the turn-start hooks it bypassed ActionManager entirely.
+        TurnAdvanced?.Invoke();
     }
 
     /// <summary>

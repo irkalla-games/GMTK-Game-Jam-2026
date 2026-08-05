@@ -254,6 +254,10 @@ public class GridManager : Singleton<GridManager>
         line.widthMultiplier = isAttack ? 0.16f : 0.1f;
         line.numCapVertices = 4;
         line.useWorldSpace = true;
+
+        // Above the characters it is drawn between, but still under the hand - a telegraph is board
+        // information, and a card you are reading should never be cut in half by one.
+        line.sortingLayerName = SortingLayers.Characters;
         line.sortingOrder = 100;
 
         Color colour = isAttack ? new Color(1f, 0.25f, 0.2f, 0.9f) : new Color(1f, 0.85f, 0.3f, 0.75f);

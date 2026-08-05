@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags: []
   layers:
   - Default
@@ -41,6 +41,27 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 2580275127
+    locked: 0
+  - name: Grid
+    uniqueID: 2810923993
+    locked: 0
+  - name: Characters
+    uniqueID: 2541310605
+    locked: 0
+  - name: Cards
+    uniqueID: 1847409439
+    locked: 0
+  - name: UI
+    uniqueID: 304581101
+    locked: 0
+  - name: CardHover
+    uniqueID: 756052493
+    locked: 0
+  - name: Overlay
+    uniqueID: 2829176395
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1
@@ -50,27 +71,4 @@ TagManager:
   - Light Layer 5
   - Light Layer 6
   - Light Layer 7
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  m_MigratedRenderPipelines: []

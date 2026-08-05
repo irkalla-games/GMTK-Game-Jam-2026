@@ -216,6 +216,11 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
             Vector3 hoverOffset = cardsInHand[i].isHovered ? Vector3.up * hoverRaise + Vector3.back * clampedHoverPush : Vector3.zero;
             Vector3 targetPosition = splinePosition + transform.position + .01f * i * Vector3.back + selectOffset + hoverOffset;
             cardsInHand[i].SetLayoutTarget(targetPosition, rotation, duration);
+
+            // Paired with the z nudge above rather than replacing it. Sorting decides what you see;
+            // z still decides what a click hits, because OnMouseDown picks the nearest collider. Both
+            // rise with i so the card that draws on top is the one that takes the click.
+            cardsInHand[i].SetHandOrder(i);
         }
         yield return new WaitForSeconds(duration);
     }

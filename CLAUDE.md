@@ -110,6 +110,21 @@ move rules, pickup) and `PlaceCharacter` (snap, no rules — arriving on the boa
 only swaps occupancy references, so anything writing `transform.position = tile.transform.position`
 outside `GridManager` is a character that knows how the grid is laid out.
 
+**Depth is a layer name, not a number — and a multi-renderer prefab gets a `SortingGroup`.** The stack
+is `Background → Grid → Characters → Cards → UI → CardHover → Overlay`, spelled once in
+`SortingLayers`. `orderInLayer` is then a small number meaning "in front of the thing before it *in
+this layer*", never a global position. The `SortingGroup` on a card's and a character's root is what
+makes it sort atomically: without one, a card's name and description are separate renderers that
+happily draw over the card next to them, which is exactly the bug the -98..0 scheme had. Anything with
+more than one renderer that should move as a unit needs the group — renumbering alone cannot fix it.
+
+**Sorting layers are written into assets by id, so append and never reorder.** Same hazard as
+`RangeShape`'s enum values. Adding a layer is safe; deleting one silently drops every prefab
+referencing it back to `Default`, and reordering the list rearranges the whole game's rendering in one
+move. `Camera.orthographicSize` is the matching rule on the other axis: `CameraFrame` keeps a fixed
+19.2 × 10.8 world frame visible, and the screen-space canvases have to stay on Scale With Screen Size /
+1920×1080 / **Expand** to scale by the identical factor.
+
 **Energy belongs to `Character`, not `GameManager`.** Multiple characters each have their own pool;
 playing a card charges `GameManager.ActiveCharacter`.
 

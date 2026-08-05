@@ -1,9 +1,15 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using DG.Tweening;
 
 public class CardViewer : MonoBehaviour
 {
+    [Tooltip("On the card's root. Makes every renderer under it sort as one unit, so two cards can " +
+        "never interleave - without it the name and description (which are separate renderers) draw " +
+        "over whatever card happens to be next to this one.")]
+    [SerializeField] private SortingGroup sortingGroup;
+
     [SerializeField] private TMP_Text cardName;
 
     [SerializeField] private TMP_Text description;
@@ -32,6 +38,10 @@ public class CardViewer : MonoBehaviour
 
     /// True once the card has been played and is tweening away - hover must stop touching it.
     private bool isPlaying;
+
+    /// This card's place in the hand, kept so hover can lift it into CardHover and put it back
+    /// afterwards without having to ask the hand where it was.
+    private int handOrder;
 
     // Each ever holds at most one live tween, killed by direct reference (never DOTween's id/target
     // search) before being replaced - so hover, selection, layout, spawn and discard can never stack
@@ -75,6 +85,24 @@ public class CardViewer : MonoBehaviour
         rotationTween = transform.DORotate(rotation.eulerAngles, duration);
     }
 
+    /// <summary>
+    /// Where this card sits among the others in hand. Called by ActiveHandViewer on every relayout,
+    /// right next to SetLayoutTarget, because the two have to agree: the sorting order decides what
+    /// you see, and the per-index z nudge in the layout decides what a click actually hits. A card
+    /// that drew on top but picked up clicks from the one behind it is the bug that pairing prevents.
+    /// </summary>
+    public void SetHandOrder(int index)
+    {
+        handOrder = index;
+
+        // Deliberately not while hovered. A relayout fires whenever any card is drawn, discarded or
+        // hovered, so without this a card drawn elsewhere would drop the hovered one back out of
+        // CardHover mid-hover. OnMouseExit is the only thing that puts it back.
+        if (isHovered) { return; }
+
+        ApplySorting(SortingLayers.Cards);
+    }
+
     /// Flies the card to the discard anchor and shrinks it away.
     public void PlayDiscard(Vector3 target, float duration)
     {
@@ -92,8 +120,11 @@ public class CardViewer : MonoBehaviour
         if (value)
         {
             // A card can be clicked without the mouse ever leaving it, which would never fire
-            // OnMouseExit - so selection has to clear the hover pop itself.
+            // OnMouseExit - so selection has to clear the hover pop itself. Same reasoning for the
+            // sorting layer: without this the selected card stays stuck in CardHover, drawing over
+            // the HUD for as long as it is held.
             isHovered = false;
+            ApplySorting(SortingLayers.Cards);
             scaleTween?.Kill();
             scaleTween = transform.DOScale(1f, hoverDuration);
         }
@@ -107,6 +138,20 @@ public class CardViewer : MonoBehaviour
         scaleTween?.Kill();
         positionTween?.Kill();
         rotationTween?.Kill();
+
+        // Clears isHovered above, so a card played straight out of a hover does not fly to the
+        // discard pile still sitting in the CardHover layer, on top of the HUD.
+        ApplySorting(SortingLayers.Cards);
+    }
+
+    /// The one place the sorting group is written. Null-guarded because a prefab that has not had the
+    /// group wired yet should cost you the layering, not throw on every hover.
+    private void ApplySorting(string layer)
+    {
+        if (sortingGroup == null) { return; }
+
+        sortingGroup.sortingLayerName = layer;
+        sortingGroup.sortingOrder = handOrder;
     }
 
     private bool HoverSuppressed =>
@@ -116,6 +161,7 @@ public class CardViewer : MonoBehaviour
     {
         if (HoverSuppressed) { return; }
         isHovered = true;
+        ApplySorting(SortingLayers.CardHover);
         scaleTween?.Kill();
         scaleTween = transform.DOScale(hoverScale, hoverDuration);
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
@@ -125,6 +171,7 @@ public class CardViewer : MonoBehaviour
     {
         if (isPlaying) { return; }
         isHovered = false;
+        ApplySorting(SortingLayers.Cards);
         scaleTween?.Kill();
         scaleTween = transform.DOScale(1f, hoverDuration);
         StartCoroutine(ActiveHandViewer.Instance.Relayout());

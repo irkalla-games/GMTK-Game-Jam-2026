@@ -50,4 +50,11 @@ public class BlockStatus : StatusEffect
     }
 
     public override string Describe() => $"Block {amountPerHit} x{stacks}";
+
+    /// The only status that contributes a second number, which is what makes Describe(string) a virtual
+    /// on Status instead of a string.Format at the call site.
+    public override string Describe(string template)
+    {
+        return base.Describe(template)?.Replace(Glossary.AmountToken, amountPerHit.ToString());
+    }
 }

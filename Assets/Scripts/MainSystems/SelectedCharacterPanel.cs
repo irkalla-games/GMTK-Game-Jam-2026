@@ -40,6 +40,10 @@ public class SelectedCharacterPanel : MonoBehaviour
     [Tooltip("StatusType -> sprite. A type missing from it still gets a chip, just without art.")]
     [SerializeField] private StatusIcons icons;
 
+    [Tooltip("StatusType -> the sentence a chip's tooltip shows. A type missing from it still gets a " +
+        "chip, just without an explanation.")]
+    [SerializeField] private Glossary glossary;
+
     [SerializeField] private StatusChip chipPrefab;
 
     [Tooltip("Chips are positioned inside this. Its height is driven from the number of rows.")]
@@ -74,11 +78,18 @@ public class SelectedCharacterPanel : MonoBehaviour
     /// </summary>
     private static readonly StatusType[] AllTypes = (StatusType[])Enum.GetValues(typeof(StatusType));
 
+    /// The canvas the panel lives on, needed to project panelRect into screen space for the tooltip.
+    /// Found rather than serialized - the panel is already a child of it, so a second reference in the
+    /// Inspector would only be a way to get it wrong.
+    private Canvas canvas;
+
     /// How many chips fit before wrapping. At least one, however narrow the row is set.
     private int PerRow => Mathf.Max(1, Mathf.FloorToInt((rowWidth + chipSpacing) / (chipSize + chipSpacing)));
 
     private void Start()
     {
+        canvas = GetComponentInParent<Canvas>();
+
         BattleManager battle = BattleManager.Instance;
 
         if (battle == null)
@@ -185,6 +196,7 @@ public class SelectedCharacterPanel : MonoBehaviour
 
             StatusChip chip = ChipAt(visible);
             chip.Show(icons != null ? icons.For(type) : null, stacks);
+            chip.Bind(TooltipFor(character, type, stacks), TooltipAnchor.Of(panelRect, canvas));
             Place(chip, visible);
 
             visible++;
@@ -205,6 +217,23 @@ public class SelectedCharacterPanel : MonoBehaviour
         float contentBottom = -chipParent.anchoredPosition.y + rowsHeight;
 
         panelRect.sizeDelta = new Vector2(panelRect.sizeDelta.x, contentBottom + panelBottomPadding);
+    }
+
+    /// <summary>
+    /// What a chip says when hovered.
+    ///
+    /// `stacks` is passed in rather than read off the status because the chip shows a *sum* - a carried
+    /// Strength and a totem projecting one are one chip - and the sentence has to quote the same number
+    /// the badge does. FindStatus supplies the rest: Block's per-hit amount has no other source.
+    ///
+    /// The anchor is panelRect, not the chip, so the box sits above the whole panel and stays put as
+    /// the cursor slides along the row.
+    /// </summary>
+    private TooltipContent TooltipFor(Character character, StatusType type, int stacks)
+    {
+        if (glossary == null) { return null; }
+
+        return glossary.StatusContent(type, stacks, character.FindStatus(type));
     }
 
     /// The pool. Grows to whatever the busiest character needs and never shrinks.

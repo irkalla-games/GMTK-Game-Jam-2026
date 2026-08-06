@@ -64,4 +64,8 @@ public class Aura : Status
     public override void OnTurnEnd(Character carrier) => projectedEffect.OnTurnEnd(carrier);
 
     public override string Describe() => projectedEffect.Describe();
+
+    /// Forwarded like every other hook, so a totem's projected Block fills a tooltip's {amount} with
+    /// the same arithmetic a carried one does rather than a second copy of it.
+    public override string Describe(string template) => projectedEffect.Describe(template);
 }

@@ -28,6 +28,19 @@ public class CardViewer : MonoBehaviour
 
     [SerializeField] private float hoverDuration = 0.1f;
 
+    [Header("Tooltips")]
+    [Tooltip("Explains this card's keywords on hover, and marks up the status names in its description " +
+        "so they can be hovered individually. Optional - without it the card just has no tooltips.")]
+    [SerializeField] private Glossary glossary;
+
+    [Tooltip("On the description text. Watches for the cursor crossing one of the terms Glossary.Tag " +
+        "marked up.")]
+    [SerializeField] private TooltipLinkText descriptionLinks;
+
+    [Tooltip("What the tooltip is positioned against. The root collider, so the box lines up with the " +
+        "part of the card you can actually hit.")]
+    [SerializeField] private Collider2D hitbox;
+
 
 
     public Card card { get; private set; }
@@ -50,11 +63,24 @@ public class CardViewer : MonoBehaviour
     private Tweener positionTween;
     private Tweener rotationTween;
 
+    private void Awake()
+    {
+        // The root collider is the thing OnMouseEnter already fires from, so an unassigned field means
+        // the obvious answer rather than no tooltip at all.
+        if (hitbox == null) { hitbox = GetComponent<Collider2D>(); }
+    }
+
     public void Setup(Card newCard)
     {
         this.card = newCard;
         cardName.text = card.cardName;
-        description.text = card.description;
+
+        // Tagged, not printed raw. The card asset holds plain prose - "Apply Block 5 to yourself" - and
+        // the glossary is what turns the words it recognises into hoverable, tinted links. Doing it here
+        // rather than in the asset means a new glossary term lights up on every card that already
+        // mentions it, and no asset can link to a term that does not exist.
+        description.text = glossary != null ? glossary.Tag(card.description) : card.description;
+
         cost.text = card.cost.ToString();
         image.sprite = card.image;
         if (card.range.MaxDistance > 1)
@@ -124,6 +150,7 @@ public class CardViewer : MonoBehaviour
             // sorting layer: without this the selected card stays stuck in CardHover, drawing over
             // the HUD for as long as it is held.
             isHovered = false;
+            HideTooltips();
             ApplySorting(SortingLayers.Cards);
             scaleTween?.Kill();
             scaleTween = transform.DOScale(1f, hoverDuration);
@@ -135,6 +162,7 @@ public class CardViewer : MonoBehaviour
         isPlaying = true;
         isSelected = false;
         isHovered = false;
+        HideTooltips();
         scaleTween?.Kill();
         positionTween?.Kill();
         rotationTween?.Kill();
@@ -161,6 +189,7 @@ public class CardViewer : MonoBehaviour
     {
         if (HoverSuppressed) { return; }
         isHovered = true;
+        ShowTooltips();
         ApplySorting(SortingLayers.CardHover);
         scaleTween?.Kill();
         scaleTween = transform.DOScale(hoverScale, hoverDuration);
@@ -171,10 +200,61 @@ public class CardViewer : MonoBehaviour
     {
         if (isPlaying) { return; }
         isHovered = false;
+        HideTooltips();
         ApplySorting(SortingLayers.Cards);
         scaleTween?.Kill();
         scaleTween = transform.DOScale(1f, hoverDuration);
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
+    }
+
+    /// <summary>
+    /// The card's own keyword box, plus the watch for the cursor crossing a term in its description.
+    ///
+    /// Both at once, and they do not conflict: the keyword box is a TooltipPriority.Hovered request and
+    /// a term inside the description is a Nested one, so hovering "Block" replaces the box while the
+    /// keyword request quietly stays live underneath and reappears the moment the cursor moves off the
+    /// word. See TooltipManager.
+    /// </summary>
+    private void ShowTooltips()
+    {
+        if (glossary == null || card == null) { return; }
+
+        TooltipAnchor anchor = TooltipAnchor.Of(hitbox, TooltipSide.Right);
+
+        if (TooltipManager.Instance != null)
+        {
+            TooltipManager.Instance.Show(this, KeywordTooltip(), anchor, TooltipPriority.Hovered);
+        }
+
+        if (descriptionLinks != null) { descriptionLinks.BeginPolling(glossary, anchor); }
+    }
+
+    /// <summary>
+    /// Called from every way a hover can end, not just OnMouseExit.
+    ///
+    /// A card can be clicked or played without the cursor ever leaving it, which never fires
+    /// OnMouseExit - the same reason SetSelected and BeginPlay already have to clear isHovered and put
+    /// the sorting layer back by hand.
+    /// </summary>
+    private void HideTooltips()
+    {
+        if (TooltipManager.Instance != null) { TooltipManager.Instance.Hide(this); }
+
+        if (descriptionLinks != null) { descriptionLinks.EndPolling(); }
+    }
+
+    /// What this card's keywords mean. Empty for a card with none, which the manager reads as "nothing
+    /// to show" - so an ordinary card gets no box rather than an empty one.
+    private TooltipContent KeywordTooltip()
+    {
+        TooltipContent content = new();
+
+        foreach (CardKeyword keyword in card.Keywords)
+        {
+            glossary.KeywordContent(keyword.type, keyword.magnitude, content);
+        }
+
+        return content;
     }
 
     public void OnMouseDown()

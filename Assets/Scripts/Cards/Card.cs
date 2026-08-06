@@ -44,6 +44,10 @@ public class Card
         }
     }
 
+    /// Read-only so a caller can list them - the hover tooltip explaining what Innate and Cooldown mean
+    /// - without being able to add one a CardData never authored.
+    public IReadOnlyList<CardKeyword> Keywords => keywords;
+
     public bool HasKeyword(CardKeywordType type) => keywords.Exists(k => k.type == type);
 
     private CardKeyword Keyword(CardKeywordType type) => keywords.Find(k => k.type == type);

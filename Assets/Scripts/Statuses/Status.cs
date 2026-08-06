@@ -86,4 +86,21 @@ public abstract class Status
     /// status like Frozen has none worth showing.
     /// </summary>
     public virtual string Describe() => $"{type} x{stacks}";
+
+    /// <summary>
+    /// The same job as Describe(), but filling numbers into a sentence somebody else authored - the
+    /// tooltip's "Negates the damage for {stacks} hits and reflects it back".
+    ///
+    /// Virtual for the same reason Describe() is, and it is the whole reason the caller does not just
+    /// run string.Format itself: only BlockStatus knows it has a second number, and only it should have
+    /// to. A status with nothing extra to say fills {stacks} and hands the rest back untouched.
+    ///
+    /// Tokens it does not recognise are left in place on purpose - Glossary fills whatever survives
+    /// from the authored defaults, so a card describing a status the character does not carry still
+    /// reads as a sentence.
+    /// </summary>
+    public virtual string Describe(string template)
+    {
+        return template == null ? null : template.Replace(Glossary.StacksToken, stacks.ToString());
+    }
 }

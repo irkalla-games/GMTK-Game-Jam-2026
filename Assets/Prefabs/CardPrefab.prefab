@@ -601,6 +601,7 @@ GameObject:
   - component: {fileID: 4814910735504585702}
   - component: {fileID: 7217904294721355125}
   - component: {fileID: 631451295743223654}
+  - component: {fileID: 8600000000000000011}
   m_Layer: 5
   m_Name: Description
   m_TagString: Untagged
@@ -1193,6 +1194,21 @@ MonoBehaviour:
   swordIcon: {fileID: 21300000, guid: 3913229a660ff0f4e842bbb278a76672, type: 3}
   hoverScale: 1.7
   hoverDuration: 0.1
+  glossary: {fileID: 11400000, guid: 4b5e639685c4418e830fb528098a0982, type: 2}
+  descriptionLinks: {fileID: 8600000000000000011}
+  hitbox: {fileID: 710285721629243662}
+--- !u!114 &8600000000000000011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4106804691530295081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53c05ae839664efeb56f60a7712d8fa6, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::TooltipLinkText
 --- !u!61 &710285721629243662
 BoxCollider2D:
   m_ObjectHideFlags: 0

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -21,8 +20,6 @@ public class Character : MonoBehaviour
 
     [SerializeField] private int maxHealth = 10;
 
-    [SerializeField] private TextMeshProUGUI healthBar;
-
     [SerializeField] private int maxEnergy = 3;
 
     [SerializeField] private PlayableCharacter playableCharacter = PlayableCharacter.Enemy;
@@ -36,6 +33,10 @@ public class Character : MonoBehaviour
 
     [Tooltip("Which rule list this enemy runs. None means it stands there - correct for players.")]
     [SerializeField] private BrainType brain;
+
+    [Tooltip("The order this enemy picks its attack targets in. Leave empty for the old behaviour - "
+             + "always the most hurt legal target.")]
+    [SerializeField] private TargetingPattern targetingPattern;
 
     // No attack damage, reach or move speed here. Those are properties of the cards a character
     // holds - a goblin hits for 6 because it is holding a card that deals 6, and reaches two tiles
@@ -97,6 +98,23 @@ public class Character : MonoBehaviour
 
     public GameObject ItemDropPrefab => itemDropPrefab;
 
+    /// How far through targetingPattern this *copy* is. Per-copy runtime state, exactly like
+    /// Card.cost against CardData.cost - the asset is shared by every skeleton on the board and
+    /// writing a cursor into it would persist into the .asset on disk when Play Mode exits.
+    private int targetingCursor;
+
+    /// Who this character is going after right now. Named by the pattern; the whole point is that it
+    /// names the attack's victim *and* the direction a move heads in, so a Move in the sequence walks
+    /// toward whoever the next attack means to hit. See TargetSelector.
+    public TargetPriority CurrentPriority =>
+        targetingPattern != null ? targetingPattern.At(targetingCursor) : TargetPriority.Weakest;
+
+    /// Spent by attacks only, and only once one has actually resolved - see BattleManager.Execute. A
+    /// refused or fizzled swing leaves the sequence exactly where it was, so an owed "Attack: Closest"
+    /// stays owed.
+    public void AdvanceTargetingCursor() => targetingCursor++;
+
+    private Intent committedIntent;
 
     /// <summary>
     /// What this enemy told the player it was going to do, decided at the start of the turn.
@@ -104,8 +122,15 @@ public class Character : MonoBehaviour
     /// Held rather than recomputed because the whole point is that it can go stale: the player spends
     /// the turn making it wrong, and it executes anyway. Recomputing at execution time would quietly
     /// undo every block and every kill the player set up.
+    ///
+    /// What is actually held is the *kind* alone - the concrete card and tile are re-derived inside
+    /// that kind when the enemy acts. See EnemyBrain.Resolve.
     /// </summary>
-    public Intent CommittedIntent { get; set; }
+    public Intent CommittedIntent
+    {
+        get => committedIntent;
+        set { committedIntent = value; IntentChanged?.Invoke(this); }
+    }
 
     public bool IsDead => Health <= 0;
 
@@ -153,6 +178,23 @@ public class Character : MonoBehaviour
 
     /// Raised once, when this character drops to 0 and leaves the board.
     public event Action<Character> Died;
+
+    /// <summary>
+    /// Raised whenever this character's health, shield or status list changed. Character knows
+    /// nothing about who is listening - exactly the CardDrawn contract, and the reason
+    /// CharacterOverheadViewer exists at all rather than this class writing straight at a Text field.
+    ///
+    /// Carries only the subject, no numbers. A listener re-reads Health, MaxHealth and
+    /// StatusStacks(Shield) itself, so a future fourth number on the bar needs no new event - the
+    /// same reasoning as BattleManager.TurnAdvanced being parameterless.
+    /// </summary>
+    public event Action<Character> StatsChanged;
+
+    private void RaiseStatsChanged() => StatsChanged?.Invoke(this);
+
+    /// Raised when this character commits or clears an intent. Same contract as StatsChanged: an
+    /// enemy announcing what it means to do is not the same thing as drawing an icon over its head.
+    public event Action<Character> IntentChanged;
 
     /// True if these two affiliations are on opposing sides. Neutral is on nobody's side, so it is
     /// never an enemy - a card that wants an enemy target simply refuses it.
@@ -231,7 +273,7 @@ public class Character : MonoBehaviour
         Reflect(info, attacker, bounces);
 
         Health = Mathf.Max(0, Health - info.amount);
-        UpdateHealthBar();
+        RaiseStatsChanged();
         CheckDeath();
     }
 
@@ -275,7 +317,7 @@ public class Character : MonoBehaviour
         if (amount <= 0) { return; }
 
         Health = Mathf.Max(0, Health - amount);
-        UpdateHealthBar();
+        RaiseStatsChanged();
 
         CheckDeath();
     }
@@ -298,7 +340,7 @@ public class Character : MonoBehaviour
         MoveTo(null);
     }
 
-    public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); UpdateHealthBar(); }
+    public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); RaiseStatsChanged(); }
 
     /// <summary>
     /// Sets health outright, for a character arriving from somewhere that already knows how hurt it
@@ -312,13 +354,7 @@ public class Character : MonoBehaviour
     public void SetHealth(int value)
     {
         Health = Mathf.Clamp(value, 1, maxHealth);
-        UpdateHealthBar();
-    }
-
-    private void UpdateHealthBar()
-    {
-        // Shield is not a field on this class - it is whatever a ShieldStatus in the list says it is.
-        healthBar.text = $"{Health}/{maxHealth} ({StatusStacks(StatusType.Shield)})";
+        RaiseStatsChanged();
     }
 
     /// <summary>
@@ -398,13 +434,13 @@ public class Character : MonoBehaviour
             if (existing.type != incoming.type) { continue; }
 
             existing.Merge(incoming);
-            UpdateHealthBar();
+            RaiseStatsChanged();
 
             return;
         }
 
         ownStatusEffects.Add(incoming);
-        UpdateHealthBar();
+        RaiseStatsChanged();
     }
 
     /// <summary>
@@ -418,7 +454,7 @@ public class Character : MonoBehaviour
         foreach (Status status in ActiveStatuses()) { status.OnTurnStart(this); }
 
         PruneExpired();
-        UpdateHealthBar();
+        RaiseStatsChanged();
     }
 
     /// <summary>

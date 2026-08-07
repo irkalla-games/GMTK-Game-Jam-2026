@@ -51,6 +51,11 @@ public class Character : MonoBehaviour
              + "nothing - party members typically do.")]
     [SerializeField] private GameObject itemDropPrefab;
 
+    [Tooltip("Odds and bias for this character's own drop. Leave empty to use the level's default "
+             + "LootTable - only set this for an enemy whose loot should differ from the rest, e.g. a "
+             + "poison-themed enemy favouring poison cards.")]
+    [SerializeField] private LootTable lootTable;
+
     [Tooltip("This character's deck as authored. Card objects are built from it once, in Awake.")]
     [SerializeField] private List<CardData> deck = new();
 
@@ -97,6 +102,23 @@ public class Character : MonoBehaviour
     public BrainType Brain => brain;
 
     public GameObject ItemDropPrefab => itemDropPrefab;
+
+    /// This character's own loot table, or null to fall back to the level's - see
+    /// BattleManager.HandleCharacterDied, which is the only reader.
+    public LootTable LootTable => lootTable;
+
+    /// <summary>
+    /// Loot this character has stolen by walking over it without picking it up (see
+    /// GridTile.TryPickUpItem - only a player-controlled character actually claims an item). Rarity
+    /// paired with the table it came from, so a poison skeleton's stolen loot still favours poison
+    /// cards if it is recovered from whoever carried it off. The ItemPickup GameObject itself is
+    /// destroyed on theft; this only remembers what to respawn on death.
+    /// </summary>
+    private readonly List<(Rarity rarity, LootTable table)> carriedLoot = new();
+
+    public IReadOnlyList<(Rarity rarity, LootTable table)> CarriedLoot => carriedLoot;
+
+    public void CarryLoot(Rarity rarity, LootTable table) => carriedLoot.Add((rarity, table));
 
     /// How far through targetingPattern this *copy* is. Per-copy runtime state, exactly like
     /// Card.cost against CardData.cost - the asset is shared by every skeleton on the board and
@@ -624,6 +646,21 @@ public class Character : MonoBehaviour
         BuildDeck();
     }
 
+    /// <summary>
+    /// Adds one card straight into the draw pile mid-battle - a reward chosen from LootManager's panel.
+    /// Not routed through `deck`: `deck` is the authored starting list BuildDeck rebuilds piles from
+    /// wholesale, and rebuilding here would discard whatever this character already drew, played or
+    /// discarded this battle. The run-persistence half of a reward is separate - see
+    /// BattleManager.RecordRunCard, which writes into the PartyMember record instead of here.
+    /// </summary>
+    public void AddCard(CardData data)
+    {
+        if (data == null) { return; }
+
+        drawPile.Add(new Card(data));
+        Shuffle(drawPile);
+    }
+
     private void BuildDeck()
     {
         drawPile.Clear();
@@ -634,6 +671,13 @@ public class Character : MonoBehaviour
         foreach (CardData data in deck)
         {
             if (data == null) { continue; }
+
+            if (!data.CanBeUsedBy(this))
+            {
+                Debug.LogWarning($"{name}: {data.cardName} needs {data.requiredClass} but this "
+                                 + $"character is {characterClass} - skipped");
+                continue;
+            }
 
             Card card = new Card(data);
 

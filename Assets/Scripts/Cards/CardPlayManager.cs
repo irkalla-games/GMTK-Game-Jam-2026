@@ -11,6 +11,15 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     public void OnCardClicked(CardViewer cardViewer)
     {
+        // A reward card routes its own click straight to RewardPanel (see CardViewer.clickOverride)
+        // rather than through here, but a hand card is still clickable underneath the panel unless
+        // this checks too - InputLocked is the same gate BattleManager.OnTileClicked uses.
+        if (BattleManager.Instance != null && BattleManager.Instance.InputLocked)
+        {
+            Debug.Log($"card clicked: {Name(cardViewer)} - ignored, a reward panel is up");
+            return;
+        }
+
         // A card mid-discard keeps its collider live until its fly-away tween finishes and destroys it.
         if (cardViewer == null || !ActiveHandViewer.Instance.Contains(cardViewer))
         {

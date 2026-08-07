@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
-  m_Name: SummonCleric
+  m_Name: SummonTotem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Summon Totem
   <cost>k__BackingField: 2
@@ -18,7 +18,9 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 3
-  <requiredClass>k__BackingField: 0
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 0
+  <tags>k__BackingField: 
   <description>k__BackingField: Summons totem that emits a Shield and Strengthen
     Aura.
   <image>k__BackingField: {fileID: 0}

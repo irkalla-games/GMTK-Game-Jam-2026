@@ -18,8 +18,11 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 5
-  <requiredClass>k__BackingField: 0
-  <description>k__BackingField: Freeze an enemy within 5 tiles. It loses its entire next turn.
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 0
+  <tags>k__BackingField: 
+  <description>k__BackingField: Freeze an enemy within 5 tiles. It loses its entire
+    next turn.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 3580edba556b41dfacf7b14e5dc9d88d, type: 2}

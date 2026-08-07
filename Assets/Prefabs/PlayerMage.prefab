@@ -736,7 +736,7 @@ MonoBehaviour:
   maxHealth: 10
   maxEnergy: 3
   playableCharacter: 2
-  characterClass: 0
+  characterClass: 2
   actionPoints: 2
   brain: 0
   targetingPattern: {fileID: 0}

@@ -18,7 +18,9 @@ MonoBehaviour:
     shape: 0
     minDistance: 0
     maxDistance: 0
-  <requiredClass>k__BackingField: 0
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 0
+  <tags>k__BackingField: 
   <description>k__BackingField: Move to any tile on the board.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:

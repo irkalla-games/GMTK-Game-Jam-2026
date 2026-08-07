@@ -117,7 +117,7 @@ MonoBehaviour:
   brain: 2
   targetingPattern: {fileID: 11400000, guid: f0097c4f7eebdac43a48d56cfd3f39cb, type: 2}
   startCoordinates: {x: 2, y: 5}
-  itemDropPrefab: {fileID: 0}
+  itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   deck:
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}

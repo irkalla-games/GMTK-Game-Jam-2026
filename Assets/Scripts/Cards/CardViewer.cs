@@ -43,6 +43,13 @@ public class CardViewer : MonoBehaviour
 
 
 
+    /// <summary>
+    /// Set by RewardPanel on a card it built for the choice screen. When set, a click goes here instead
+    /// of CardPlayManager - a reward card is by definition not in ActiveHandViewer's hand, and
+    /// CardPlayManager.OnCardClicked rejects any viewer that fails ActiveHandViewer.Contains.
+    /// </summary>
+    public System.Action<CardViewer> clickOverride;
+
     public Card card { get; private set; }
 
     public bool isSelected { get; private set; }
@@ -55,6 +62,22 @@ public class CardViewer : MonoBehaviour
     /// This card's place in the hand, kept so hover can lift it into CardHover and put it back
     /// afterwards without having to ask the hand where it was.
     private int handOrder;
+
+    // Where this card returns to when it is not hovered. A card in hand rests at scale 1 on the Cards
+    // layer; a reward card rests larger, on Overlay, and stays there. Hover and hover-exit used to
+    // hardcode the hand's answers to both, which is why a card presented anywhere but a hand snapped
+    // back to hand size *and* off its own sorting layer the first time the cursor left it.
+    private float restScale = 1f;
+
+    private string restLayer = SortingLayers.Cards;
+
+    private string hoverLayer = SortingLayers.CardHover;
+
+    private int hoverOrder;
+
+    /// Whether this card belongs to the on-screen hand. False for a reward card, which has no hand to
+    /// ask for a re-space and must not poke one - see PresentAt.
+    private bool inHand = true;
 
     // Each ever holds at most one live tween, killed by direct reference (never DOTween's id/target
     // search) before being replaced - so hover, selection, layout, spawn and discard can never stack
@@ -98,8 +121,35 @@ public class CardViewer : MonoBehaviour
     public void PlaySpawnIn(float duration)
     {
         transform.localScale = Vector3.zero;
-        scaleTween = transform.DOScale(1f, duration);
+        scaleTween = transform.DOScale(restScale, duration);
     }
+
+    /// <summary>
+    /// Presents this card outside any hand - RewardPanel's choice screen is the only caller. Fixes
+    /// where it rests (layer, order, scale) and how far hover lifts it, so the hover and hover-exit
+    /// paths stop falling back to the hand's answers.
+    ///
+    /// hoverLayer is the rest layer rather than CardHover: a reward card already sits on Overlay, the
+    /// top of the stack, and "lifting" it to CardHover would push it *behind* the reward cards next to
+    /// it. The order bump is what lifts it instead.
+    /// </summary>
+    public void PresentAt(string layer, int order, float rest, float hover)
+    {
+        inHand = false;
+        restLayer = layer;
+        hoverLayer = layer;
+        handOrder = order;
+        hoverOrder = order + HoverOrderLift;
+        restScale = rest;
+        hoverScale = hover;
+
+        transform.localScale = Vector3.one * rest;
+        ApplySorting(restLayer, handOrder);
+    }
+
+    /// Clears a hovered card of its neighbours within its own layer. Larger than any plausible number
+    /// of cards offered at once, so the hovered one always wins.
+    private const int HoverOrderLift = 100;
 
     /// Where the hand layout wants this card right now. Called on every relayout, whether or not this
     /// particular card's target actually changed.
@@ -119,14 +169,17 @@ public class CardViewer : MonoBehaviour
     /// </summary>
     public void SetHandOrder(int index)
     {
+        // A hand card needs no order lift: CardHover holds one card at a time, so there is nothing
+        // beside it there to out-sort.
         handOrder = index;
+        hoverOrder = index;
 
         // Deliberately not while hovered. A relayout fires whenever any card is drawn, discarded or
         // hovered, so without this a card drawn elsewhere would drop the hovered one back out of
         // CardHover mid-hover. OnMouseExit is the only thing that puts it back.
         if (isHovered) { return; }
 
-        ApplySorting(SortingLayers.Cards);
+        ApplySorting(restLayer, handOrder);
     }
 
     /// Flies the card to the discard anchor and shrinks it away.
@@ -151,9 +204,9 @@ public class CardViewer : MonoBehaviour
             // the HUD for as long as it is held.
             isHovered = false;
             HideTooltips();
-            ApplySorting(SortingLayers.Cards);
+            ApplySorting(restLayer, handOrder);
             scaleTween?.Kill();
-            scaleTween = transform.DOScale(1f, hoverDuration);
+            scaleTween = transform.DOScale(restScale, hoverDuration);
         }
     }
 
@@ -169,31 +222,50 @@ public class CardViewer : MonoBehaviour
 
         // Clears isHovered above, so a card played straight out of a hover does not fly to the
         // discard pile still sitting in the CardHover layer, on top of the HUD.
-        ApplySorting(SortingLayers.Cards);
+        ApplySorting(restLayer, handOrder);
     }
 
     /// The one place the sorting group is written. Null-guarded because a prefab that has not had the
     /// group wired yet should cost you the layering, not throw on every hover.
-    private void ApplySorting(string layer)
+    private void ApplySorting(string layer, int order)
     {
         if (sortingGroup == null) { return; }
 
         sortingGroup.sortingLayerName = layer;
-        sortingGroup.sortingOrder = handOrder;
+        sortingGroup.sortingOrder = order;
     }
 
-    private bool HoverSuppressed =>
-        isPlaying || isSelected || (CardPlayManager.Instance != null && CardPlayManager.Instance.HasSelection);
+    /// <summary>
+    /// Whether this card ignores the cursor right now.
+    ///
+    /// The last two clauses are hand-only, and deliberately so: both describe conditions that are true
+    /// *because* a reward panel is up, and the offered cards on that panel are the one thing that still
+    /// has to respond to hover. A hand card, meanwhile, must not enlarge under a modal it cannot be
+    /// played through - BattleManager.InputLocked is the same gate OnTileClicked and OnCardClicked use.
+    /// </summary>
+    private bool HoverSuppressed
+    {
+        get
+        {
+            if (isPlaying || isSelected) { return true; }
+
+            if (!inHand) { return false; }
+
+            if (CardPlayManager.Instance != null && CardPlayManager.Instance.HasSelection) { return true; }
+
+            return BattleManager.Instance != null && BattleManager.Instance.InputLocked;
+        }
+    }
 
     public void OnMouseEnter()
     {
         if (HoverSuppressed) { return; }
         isHovered = true;
         ShowTooltips();
-        ApplySorting(SortingLayers.CardHover);
+        ApplySorting(hoverLayer, hoverOrder);
         scaleTween?.Kill();
-        scaleTween = transform.DOScale(hoverScale, hoverDuration);
-        StartCoroutine(ActiveHandViewer.Instance.Relayout());
+        scaleTween = transform.DOScale(restScale * hoverScale, hoverDuration);
+        RelayoutHand();
     }
 
     public void OnMouseExit()
@@ -201,9 +273,19 @@ public class CardViewer : MonoBehaviour
         if (isPlaying) { return; }
         isHovered = false;
         HideTooltips();
-        ApplySorting(SortingLayers.Cards);
+        ApplySorting(restLayer, handOrder);
         scaleTween?.Kill();
-        scaleTween = transform.DOScale(1f, hoverDuration);
+        scaleTween = transform.DOScale(restScale, hoverDuration);
+        RelayoutHand();
+    }
+
+    /// Hovering a card in hand changes its footprint, so the hand re-spaces around it. A reward card
+    /// has no hand to re-space and must not reach for one - ActiveHandViewer may not even exist in a
+    /// scene that only shows a reward.
+    private void RelayoutHand()
+    {
+        if (!inHand || ActiveHandViewer.Instance == null) { return; }
+
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
     }
 
@@ -259,9 +341,16 @@ public class CardViewer : MonoBehaviour
 
     public void OnMouseDown()
     {
+        if (clickOverride != null)
+        {
+            clickOverride(this);
+            return;
+        }
+
         if (CardPlayManager.Instance != null)
         {
             CardPlayManager.Instance.OnCardClicked(this);
         }
     }
+
 }

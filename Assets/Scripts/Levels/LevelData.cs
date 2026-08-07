@@ -68,6 +68,10 @@ public class LevelData : ScriptableObject
     [Tooltip("Hand is topped back up to this at the start of each turn - unplayed cards carry over.")]
     [SerializeField] private int handSize = 5;
 
+    [Tooltip("Default odds and choice count for a reward dropped on this level. A Character with its "
+             + "own LootTable overrides this for its own drop - see Character.LootTable.")]
+    [SerializeField] private LootTable lootTable;
+
     public IReadOnlyList<EnemyPlacement> Enemies => enemies;
 
     public IReadOnlyList<EnemyWave> Waves => waves;
@@ -84,4 +88,6 @@ public class LevelData : ScriptableObject
     public int TurnsToSurvive => turnsToSurvive;
 
     public int HandSize => handSize;
+
+    public LootTable LootTable => lootTable;
 }

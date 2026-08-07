@@ -18,8 +18,11 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 1
-  <requiredClass>k__BackingField: 0
+  <requiredClass>k__BackingField: 1
+  <rarity>k__BackingField: 0
+  <tags>k__BackingField: 
   <description>k__BackingField: Deals 9 damanage to an adjacent square.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5002, type: 2}
+  <keywords>k__BackingField: []

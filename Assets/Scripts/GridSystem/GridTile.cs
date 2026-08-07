@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -17,9 +18,13 @@ public class GridTile : MonoBehaviour
 
     public Character Occupant { get; private set; }
 
-    /// A dropped item sitting on this tile, separate from Occupant - a character stands on the same
-    /// tile as an item rather than being blocked by it. Null when nothing is here.
-    public ItemPickup Item { get; private set; }
+    /// Dropped items sitting on this tile, separate from Occupant - a character stands on the same
+    /// tile as an item rather than being blocked by it. A list, not a single slot: an enemy carrying
+    /// stolen loot drops both its own table's roll and whatever it was carrying when it dies on the
+    /// same tile as its own drop.
+    private readonly List<ItemPickup> items = new();
+
+    public IReadOnlyList<ItemPickup> Items => items;
 
     private void Awake()
     {
@@ -126,27 +131,60 @@ public class GridTile : MonoBehaviour
         if (BattleManager.Instance != null) { BattleManager.Instance.AddCharacter(character); }
     }
 
-    /// Spawns an item on this tile, e.g. loot from a character that just died here. Overwrites
-    /// whatever was here before rather than stacking - two drops landing on the same tile is not a
-    /// case worth designing for yet.
-    public void DropItem(GameObject itemPrefab)
+    /// Spawns an item on this tile, e.g. loot from a character that just died here or loot it was
+    /// carrying. Appends rather than overwriting - a character killed while holding stolen loot drops
+    /// that alongside its own roll, and both sit here until someone walks onto the tile.
+    public void DropItem(GameObject itemPrefab, Rarity rarity, LootTable table)
     {
         if (itemPrefab == null) { return; }
 
         GameObject go = Instantiate(itemPrefab, GridManager.Instance.IsoToWorld(coordinates.x, coordinates.y), Quaternion.identity);
-        Item = go.GetComponent<ItemPickup>();
+        ItemPickup pickup = go.GetComponent<ItemPickup>();
+
+        if (pickup == null)
+        {
+            Debug.LogWarning($"{itemPrefab.name} has no ItemPickup component - dropped nothing usable "
+                             + $"on {coordinates}");
+            Destroy(go);
+            return;
+        }
+
+        pickup.Configure(rarity, table);
+        items.Add(pickup);
     }
 
-    /// Called after a character finishes moving onto this tile. Only a player-controlled character
-    /// picks anything up - enemies are meant to be able to step over loot without triggering it.
+    /// <summary>
+    /// Called after a character finishes moving onto this tile. A player-controlled character queues a
+    /// reward choice per item with LootManager - resolved later, once the whole card has finished, not
+    /// inline here. Anybody else just steals it: enemies are meant to be able to walk loot off the
+    /// board without ever seeing a choice screen.
+    /// </summary>
     public void TryPickUpItem(Character character)
     {
-        if (Item == null || character == null || !character.IsPlayerControlled) { return; }
+        if (items.Count == 0 || character == null) { return; }
 
-        // TODO: offer the player a choice of card/item reward instead of an automatic pickup.
-        Debug.Log($"{character.name} picked up {Item.ItemName}");
+        foreach (ItemPickup pickup in items)
+        {
+            if (character.IsPlayerControlled)
+            {
+                if (LootManager.Instance != null)
+                {
+                    LootManager.Instance.QueuePickup(character, pickup.Rarity, pickup.Table);
+                }
+                else
+                {
+                    Debug.LogWarning($"{character.name} stepped on {pickup.ItemName} but no LootManager "
+                                     + "is in the scene - the reward is lost with no choice shown.");
+                }
+            }
+            else
+            {
+                character.CarryLoot(pickup.Rarity, pickup.Table);
+            }
 
-        Destroy(Item.gameObject);
-        Item = null;
+            if (pickup != null) { Destroy(pickup.gameObject); }
+        }
+
+        items.Clear();
     }
 }

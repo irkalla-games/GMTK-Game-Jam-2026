@@ -535,16 +535,16 @@ public class BattleManager : Singleton<BattleManager>
         // anyway. Deciding at execution time instead would quietly undo every block you set up.
         Board board = GridManager.Instance.Read();
 
-        GridManager.Instance.ClearIntents();
-
         foreach (Character enemy in LivingEnemies())
         {
+            // The setter raises IntentChanged, which is what puts the icon up - see
+            // CharacterOverheadViewer.
             enemy.CommittedIntent = Decide(enemy, board);
 
-            if (enemy.CommittedIntent.IsWait) { continue; }
-
-            Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
-            GridManager.Instance.ShowIntent(enemy, enemy.CommittedIntent);
+            if (!enemy.CommittedIntent.IsWait)
+            {
+                Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
+            }
         }
 
         yield return null;
@@ -575,26 +575,25 @@ public class BattleManager : Singleton<BattleManager>
     {
         Phase = BattlePhase.EnemyResolve;
 
-        // The promises have been kept or broken by now - leaving them drawn over the actual movement
-        // would be worse than not drawing them at all.
-        GridManager.Instance.ClearIntents();
-
         foreach (Character enemy in LivingEnemies())
         {
-            // Frozen burns the whole turn, not one action - there is no partial thaw.
+            // Frozen burns the whole turn, not one action - there is no partial thaw. Clear the
+            // intent too, or a frozen enemy would wear a ghost icon into the next turn.
             if (!enemy.CanAct)
             {
                 Debug.Log($"{enemy.name} is frozen and loses its turn");
+                enemy.CommittedIntent = Intent.Wait();
                 continue;
             }
 
             for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++)
             {
-                // Step 0 is the promise made at TurnStart and is executed as committed, right or
-                // wrong. Every step after it is decided against the board as it stands, so it cannot
-                // be stale - which is why only the first one can ever fizzle.
+                // Step 0 keeps the *category* promised at TurnStart and re-picks a card and a tile
+                // inside it against the live board - see EnemyBrain.Resolve. What was ever stale was
+                // the card and the tile, not the threat. Every step after it is decided outright,
+                // category included.
                 Intent step = ap == 0
-                    ? enemy.CommittedIntent
+                    ? Resolve(enemy, GridManager.Instance.Read(), enemy.CommittedIntent.kind)
                     : Decide(enemy, GridManager.Instance.Read());
 
                 if (step.IsWait) { break; }
@@ -605,6 +604,8 @@ public class BattleManager : Singleton<BattleManager>
                 yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
             }
 
+            // Clears this enemy's icon the moment it is done, rather than every icon vanishing at
+            // once when EnemyResolve began - so mid-resolve you can see who is still owed an action.
             enemy.CommittedIntent = Intent.Wait();
         }
 
@@ -623,6 +624,17 @@ public class BattleManager : Singleton<BattleManager>
         if (brain == null || character.Tile == null) { return Intent.Wait(); }
 
         return brain.Decide(character, board);
+    }
+
+    /// Asks this character's brain for one action inside the category it already committed to. Wait
+    /// if it has no brain, exactly like Decide.
+    private static Intent Resolve(Character character, Board board, IntentKind committed)
+    {
+        EnemyBrain brain = EnemyBrain.For(character.Brain);
+
+        if (brain == null || character.Tile == null) { return Intent.Wait(); }
+
+        return brain.Resolve(character, board, committed);
     }
 
     /// <summary>
@@ -655,6 +667,11 @@ public class BattleManager : Singleton<BattleManager>
 
         enemy.Discard(step.card);
         step.card.ResolveEffects(enemy, tile);
+
+        // The one place the pattern is spent. Only attacks, and only ones that really went off - the
+        // early `yield break` above on a refusal leaves an owed "Attack: Closest" still owed. A Move
+        // or a blocked Summon that upgraded into an Attack does consume it, because by now it is one.
+        if (step.kind == IntentKind.Attack) { enemy.AdvanceTargetingCursor(); }
 
         yield return new WaitForSeconds(stepDuration);
     }

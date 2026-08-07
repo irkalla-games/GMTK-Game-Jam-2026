@@ -35,7 +35,57 @@ public abstract class EnemyBrain
         _ => null,
     };
 
+    /// The category to announce at TurnStart. See Resolve for what actually plays.
     public abstract Intent Decide(Character self, Board board);
+
+    /// <summary>
+    /// A concrete card and tile inside a category this enemy already announced, against the board as
+    /// it stands now. This is the whole promise: what was committed at TurnStart is the *kind*, never
+    /// the card and never the tile - so an archer that showed a sword hits you wherever you moved to,
+    /// as long as some legal shot exists.
+    ///
+    /// Summon is honoured first and is never preempted by an available shot - a ranger that can call
+    /// in backup does it on cooldown, which is the same sentence RangerBrain.Decide already says.
+    /// Only a Summon that has become *illegal* - every tile in range filled up - gives way, and it
+    /// gives way to an attack rather than to nothing.
+    ///
+    /// Every remaining kind then tries to attack: Attack because that is what it promised, Move
+    /// because a committed Move upgrades into an Attack the moment one becomes legal, and a blocked
+    /// Summon because falling back to a swing beats standing still. A Boot turning into a hit only
+    /// ever surprises the player upward.
+    ///
+    /// Neither a committed Attack nor a blocked Summon falls back to walking. This is the inverse of
+    /// the usual and it is the point - burning the action point is what a block is bought to produce.
+    ///
+    /// Non-virtual: the flow is the same for every brain, and the one part that differs - where this
+    /// kind of enemy wants to stand - is MoveScore.
+    /// </summary>
+    public Intent Resolve(Character self, Board board, IntentKind committed)
+    {
+        if (self.Tile == null || committed == IntentKind.Wait) { return Intent.Wait(); }
+
+        TargetPriority priority = self.CurrentPriority;
+
+        if (committed == IntentKind.Summon && TryFindSummon(self, out Intent summon)) { return summon; }
+
+        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
+
+        if (committed != IntentKind.Move) { return Intent.Wait(); }
+
+        System.Func<Vector2Int, int> score = MoveScore(self, priority);
+
+        return score != null && TryFindMove(self, score, out Intent move) ? move : Intent.Wait();
+    }
+
+    /// Where this kind of enemy wants to stand, given who the current TargetPriority points at. Null
+    /// when there is nobody left to point at, which is a Wait rather than a scoreless wander.
+    protected abstract System.Func<Vector2Int, int> MoveScore(Character self, TargetPriority priority);
+
+    /// The character the current priority names, out of everyone alive on the other side. The move's
+    /// destination and the attack's victim are the same question - see TargetSelector.
+    protected static bool TryQuarry(Character self, TargetPriority priority, out Character quarry) =>
+        TargetSelector.TryPick(
+            priority, self.Tile.Coordinates, TargetSelector.LivingEnemiesOf(self), out quarry);
 
     /// <summary>
     /// The best card this character could play at something on the other side, or none.
@@ -45,16 +95,18 @@ public abstract class EnemyBrain
     /// occupied tiles so it never does. No card needs to be labelled; the refusal rules already
     /// separate them.
     ///
-    /// Ties break toward the most hurt target, which is what makes a pack finish somebody off rather
-    /// than spreading damage evenly across the party.
+    /// The victim is chosen among *legal* targets by the current TargetPriority - a Furthest archer
+    /// that cannot reach the furthest hero still shoots the furthest one it can reach. Weakest is the
+    /// old hardcoded tie-break, preserved as TargetSelector's fallback.
     /// </summary>
-    protected static bool TryFindAttack(Character self, out Intent intent)
+    protected static bool TryFindAttack(Character self, TargetPriority priority, out Intent intent)
     {
         intent = Intent.Wait();
 
         if (self.Tile == null || GridManager.Instance == null) { return false; }
 
-        int weakest = int.MaxValue;
+        List<(Card card, GridTile tile, Character victim)> options = new();
+        List<Character> victims = new();
 
         foreach (Card card in self.Hand)
         {
@@ -66,14 +118,26 @@ public abstract class EnemyBrain
 
                 if (card.Refusal(self, tile) != null) { continue; }
 
-                if (occupant.Health >= weakest) { continue; }
+                options.Add((card, tile, occupant));
 
-                weakest = occupant.Health;
-                intent = Intent.Play(card, tile.Coordinates);
+                if (!victims.Contains(occupant)) { victims.Add(occupant); }
             }
         }
 
-        return !intent.IsWait;
+        if (!TargetSelector.TryPick(priority, self.Tile.Coordinates, victims, out Character chosen))
+        {
+            return false;
+        }
+
+        foreach ((Card card, GridTile tile, Character victim) option in options)
+        {
+            if (option.victim != chosen) { continue; }
+
+            intent = Intent.Play(IntentKind.Attack, option.card, option.tile.Coordinates);
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -102,7 +166,7 @@ public abstract class EnemyBrain
                 if (value >= best) { continue; }
 
                 best = value;
-                intent = Intent.Play(card, tile.Coordinates);
+                intent = Intent.Play(IntentKind.Move, card, tile.Coordinates);
             }
         }
 
@@ -140,7 +204,7 @@ public abstract class EnemyBrain
                 if (distance >= best) { continue; }
 
                 best = distance;
-                intent = Intent.Play(card, tile.Coordinates);
+                intent = Intent.Play(IntentKind.Summon, card, tile.Coordinates);
             }
         }
 
@@ -170,22 +234,28 @@ public class WarriorBrain : EnemyBrain
 {
     public override Intent Decide(Character self, Board board)
     {
+        TargetPriority priority = self.CurrentPriority;
+
         // Attack first. Cheapest to check and always better than repositioning.
-        if (TryFindAttack(self, out Intent attack)) { return attack; }
+        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
 
         // Opportunistic: reinforce only when there is nothing to swing at. No Warrior deck holds a
         // Summon card yet, so this is inert today, not dead code for a kit that will exist later.
         if (TryFindSummon(self, out Intent summon)) { return summon; }
 
-        // Otherwise get closer to whoever is nearest.
-        if (!board.TryNearestEnemy(self.Tile.Coordinates, self.Affiliation, out Vector2Int quarry))
-        {
-            return Intent.Wait();
-        }
+        // Otherwise get closer to whoever the current priority names.
+        System.Func<Vector2Int, int> score = MoveScore(self, priority);
 
-        return TryFindMove(self, cell => Board.ChebyshevDistance(cell, quarry), out Intent move)
-            ? move
-            : Intent.Wait();
+        return score != null && TryFindMove(self, score, out Intent move) ? move : Intent.Wait();
+    }
+
+    protected override System.Func<Vector2Int, int> MoveScore(Character self, TargetPriority priority)
+    {
+        if (!TryQuarry(self, priority, out Character quarry)) { return null; }
+
+        Vector2Int mark = quarry.Tile.Coordinates;
+
+        return cell => Board.ChebyshevDistance(cell, mark);
     }
 }
 
@@ -199,38 +269,41 @@ public class RangerBrain : EnemyBrain
 {
     public override Intent Decide(Character self, Board board)
     {
+        TargetPriority priority = self.CurrentPriority;
+
         // Reinforcing comes first, ahead of even shooting - a ranger that can call in backup does it
         // on cooldown, not only when it has nothing better to do.
         if (TryFindSummon(self, out Intent summon)) { return summon; }
 
-        Vector2Int here = self.Tile.Coordinates;
-        bool threatened = board.HasAdjacentEnemy(here, self.Affiliation);
+        System.Func<Vector2Int, int> score = MoveScore(self, priority);
+        bool threatened = board.HasAdjacentEnemy(self.Tile.Coordinates, self.Affiliation);
 
         // Cornered comes first: back off before taking a shot, unless there is nowhere to back off to.
-        if (threatened && TryFindMove(self, Standoff(self, board), out Intent retreat)) { return retreat; }
+        if (threatened && score != null && TryFindMove(self, score, out Intent retreat)) { return retreat; }
 
-        if (TryFindAttack(self, out Intent shot)) { return shot; }
+        if (TryFindAttack(self, priority, out Intent shot)) { return shot; }
 
-        return TryFindMove(self, Standoff(self, board), out Intent reposition) ? reposition : Intent.Wait();
+        return score != null && TryFindMove(self, score, out Intent reposition) ? reposition : Intent.Wait();
     }
 
     /// <summary>
-    /// Scores a tile by how far it is from the ideal firing position: at the edge of its own reach,
-    /// and never in melee. Being too close is punished hard, which is what produces the backing-away
-    /// behaviour without a separate retreat rule.
+    /// Scores a tile by how far it is from the ideal firing position on the quarry the current
+    /// priority names: at the edge of its own reach, and never in melee. Being too close is punished
+    /// hard, which is what produces the backing-away behaviour without a separate retreat rule.
+    ///
+    /// The quarry is fixed once per decision rather than re-picked per candidate tile, so every cell
+    /// is measured against the same person the enemy is actually aiming at.
     /// </summary>
-    private static System.Func<Vector2Int, int> Standoff(Character self, Board board)
+    protected override System.Func<Vector2Int, int> MoveScore(Character self, TargetPriority priority)
     {
+        if (!TryQuarry(self, priority, out Character quarry)) { return null; }
+
         int reach = LongestReach(self);
+        Vector2Int mark = quarry.Tile.Coordinates;
 
         return cell =>
         {
-            if (!board.TryNearestEnemy(cell, self.Affiliation, out Vector2Int quarry))
-            {
-                return 0;
-            }
-
-            int gap = Board.ChebyshevDistance(cell, quarry);
+            int gap = Board.ChebyshevDistance(cell, mark);
             int penalty = Mathf.Abs(gap - reach);
 
             // Adjacent is far worse than merely badly spaced, so it will give up a shot to step away.

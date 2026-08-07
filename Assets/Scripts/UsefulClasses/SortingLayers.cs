@@ -9,7 +9,7 @@
 ///
 ///     Background   the flat backdrop at order 0, the tilemap the board sits on at order 10
 ///     Grid         the board's tiles and their highlights
-///     Characters   character sprites, their health canvases, enemy intent lines
+///     Characters   character sprites, their overhead canvases
 ///     Cards        cards resting in hand, ordered by their index in the hand
 ///     UI           the HUD - turn counter, mana counter, End Turn
 ///     CardHover    the one card being hovered, lifted above everything but a modal

@@ -16,9 +16,6 @@ public class GridManager : Singleton<GridManager>
 
     private readonly Dictionary<Vector2Int, GridTile> tiles = new();
 
-    /// Live telegraph lines, torn down and rebuilt each turn.
-    private readonly List<LineRenderer> telegraphs = new();
-
 
     // No Awake override. The grid used to be built here, which needed a `if (Instance != this) return;`
     // guard so a duplicate GridManager did not build a second board on its way to being destroyed.
@@ -46,7 +43,7 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
-    /// Tears the board down: telegraph lines, tile objects, and the lookup that pointed at them.
+    /// Tears the board down: tile objects and the lookup that pointed at them.
     ///
     /// Destroys by walking `tiles` rather than tileParent's children, so anything else parented there
     /// is left alone and a null tileParent is not a crash. Occupants are not touched - characters are
@@ -55,8 +52,6 @@ public class GridManager : Singleton<GridManager>
     /// </summary>
     private void ClearGrid()
     {
-        ClearIntents();
-
         foreach (GridTile tile in tiles.Values)
         {
             if (tile != null) { Destroy(tile.gameObject); }
@@ -228,86 +223,6 @@ public class GridManager : Singleton<GridManager>
     public void ClearPlayableTiles()
     {
         foreach (GridTile tile in tiles.Values) { tile.SetInRange(false); }
-    }
-
-
-    /// <summary>
-    /// Draws what an enemy has committed to doing: a line from it to the tile its card is aimed at.
-    ///
-    /// Red when the tile has somebody on it, amber when it does not - which distinguishes a swing
-    /// from a walk without needing to know anything about the card. That is the same trick the brains
-    /// use to tell attacks from moves: what a card does is settled by where it is legal, not by a
-    /// label on it.
-    ///
-    /// Here rather than in a TelegraphViewer of its own - that would be two public methods, which is
-    /// a function looking for a file rather than a concept. GridManager is already what draws on the
-    /// board, and this is the same job as ShowPlayableTiles with a different reason.
-    ///
-    /// Deliberately a *separate* channel from the tile highlight: telegraphs have to survive the
-    /// player selecting and deselecting a card, and ClearPlayableTiles resets every tile.
-    /// </summary>
-    public void ShowIntent(Character enemy, Intent intent)
-    {
-        if (enemy == null || enemy.Tile == null || intent.IsWait) { return; }
-
-        GridTile tile = GetTile(intent.target);
-
-        if (tile == null) { return; }
-
-        List<Vector3> points = new() { enemy.Tile.transform.position, tile.transform.position };
-
-        telegraphs.Add(DrawTelegraph(points, tile.Occupant != null));
-    }
-
-
-    public void ClearIntents()
-    {
-        foreach (LineRenderer line in telegraphs)
-        {
-            if (line != null) { Destroy(line.gameObject); }
-        }
-
-        telegraphs.Clear();
-    }
-
-
-    /// <summary>
-    /// One telegraph line. Built in code rather than from a prefab so there is nothing to wire in the
-    /// Inspector and nothing to lose to a scene reload - the whole thing is created and destroyed
-    /// inside a turn.
-    ///
-    /// Sprites/Default is the one shader guaranteed present in a 2D project that respects vertex
-    /// color, so the line does not come out magenta without a material authored for it.
-    /// </summary>
-    private LineRenderer DrawTelegraph(List<Vector3> points, bool isAttack)
-    {
-        GameObject go = new("Telegraph");
-        go.transform.SetParent(transform);
-
-        LineRenderer line = go.AddComponent<LineRenderer>();
-        line.material = new Material(Shader.Find("Sprites/Default"));
-        line.widthMultiplier = isAttack ? 0.16f : 0.1f;
-        line.numCapVertices = 4;
-        line.useWorldSpace = true;
-
-        // Above the characters it is drawn between, but still under the hand - a telegraph is board
-        // information, and a card you are reading should never be cut in half by one.
-        line.sortingLayerName = SortingLayers.Characters;
-        line.sortingOrder = 100;
-
-        Color colour = isAttack ? new Color(1f, 0.25f, 0.2f, 0.9f) : new Color(1f, 0.85f, 0.3f, 0.75f);
-        line.startColor = colour;
-        line.endColor = new Color(colour.r, colour.g, colour.b, colour.a * 0.35f);
-
-        line.positionCount = points.Count;
-
-        // Nudged toward the camera so the line sits over the tiles rather than z-fighting them.
-        for (int i = 0; i < points.Count; i++)
-        {
-            line.SetPosition(i, points[i] + Vector3.back * 0.5f);
-        }
-
-        return line;
     }
 
 

@@ -19,6 +19,7 @@ MonoBehaviour:
     minDistance: 1
     maxDistance: 1
   <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 4
   <description>k__BackingField: Deal 5 damage.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:

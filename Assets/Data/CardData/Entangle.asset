@@ -18,9 +18,11 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 5
-  <requiredClass>k__BackingField: 0
-  <description>k__BackingField: Root an enemy within 5 tiles. It cannot move on its next turn, but it
-    can still attack.
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 0
+  <tags>k__BackingField: 
+  <description>k__BackingField: Root an enemy within 5 tiles. It cannot move on its
+    next turn, but it can still attack.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a4d4e3e61e8148469881f4b9e148b125, type: 2}

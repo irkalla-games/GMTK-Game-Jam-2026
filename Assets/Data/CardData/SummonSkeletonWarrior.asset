@@ -19,6 +19,7 @@ MonoBehaviour:
     minDistance: 1
     maxDistance: 5
   <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 4
   <description>k__BackingField: Summons
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:

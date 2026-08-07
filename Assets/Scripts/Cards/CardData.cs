@@ -43,6 +43,14 @@ public class CardData : ScriptableObject
                     + "built, not when the card is played.")]
     [field: SerializeField] public CharacterClass requiredClass { get; private set; }
 
+    [field: Tooltip("How good this card is as a reward. NotOffered keeps it out of every LootTable and "
+                    + "reward panel - for enemy-only cards and cards that would be a trap as a reward.")]
+    [field: SerializeField] public Rarity rarity { get; private set; }
+
+    [field: Tooltip("Themes this card carries, for LootTable.tagWeights to bias on - a poison skeleton "
+                    + "favours cards tagged Poison. A card can carry more than one, or none.")]
+    [field: SerializeField] public List<CardTag> tags { get; private set; } = new();
+
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }

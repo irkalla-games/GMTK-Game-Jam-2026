@@ -49,6 +49,13 @@ public class TileSelector : MonoBehaviour
 
     private void OnMouseEnter()
     {
+        // Nothing on the board lights up while a modal owns the screen - a tile glowing under a reward
+        // panel reads as a tile you could click, and BattleManager.OnTileClicked would refuse it.
+        //
+        // Only the enter is gated. OnMouseExit stays live on purpose, so a tile already lit when the
+        // panel opened still clears itself when the cursor leaves rather than staying stuck on.
+        if (BattleManager.Instance != null && BattleManager.Instance.InputLocked) { return; }
+
         isHovered = true;
         ApplyColor();
     }

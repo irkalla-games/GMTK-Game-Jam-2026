@@ -18,6 +18,7 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 1
+  <rarity>k__BackingField: 4
   <description>k__BackingField: Move one tile in any direction, diagonals included.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:

@@ -109,10 +109,20 @@ public class BattleManager : Singleton<BattleManager>
     /// outlives the battle.
     private readonly Dictionary<Character, PartyMember> partyRecords = new();
 
+    /// <summary>
+    /// True while a reward panel is up. Not Time.timeScale - that would stall the WaitForSeconds inside
+    /// EnemyResolve (an enemy shoving a hero onto loot takes that exact path) and would not actually
+    /// block a click, since OnMouseDown is a physics raycast no uGUI panel intercepts. This is the
+    /// real gate; OnTileClicked and CardPlayManager.OnCardClicked both check it.
+    /// </summary>
+    public bool InputLocked { get; private set; }
+
+    public void SetInputLocked(bool value) => InputLocked = value;
+
     /// Hook this to the End Turn button. Ends the turn early, with energy still banked.
     public void RequestEndTurn()
     {
-        if (Phase == BattlePhase.PlayerActing) { endTurnRequested = true; }
+        if (Phase == BattlePhase.PlayerActing && !InputLocked) { endTurnRequested = true; }
     }
 
     /// <summary>
@@ -128,6 +138,12 @@ public class BattleManager : Singleton<BattleManager>
     public void OnTileClicked(GridTile tile)
     {
         if (tile == null) { return; }
+
+        if (InputLocked)
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} - ignored, a reward panel is up");
+            return;
+        }
 
         if (Phase != BattlePhase.PlayerActing && Phase != BattlePhase.NotStarted)
         {
@@ -417,7 +433,23 @@ public class BattleManager : Singleton<BattleManager>
     {
         if (character.ItemDropPrefab != null && character.Tile != null)
         {
-            character.Tile.DropItem(character.ItemDropPrefab);
+            // Not `CurrentLevel?.LootTable` - null-conditional on a UnityEngine.Object skips its
+            // overloaded == and so misses the fake-null case, same reasoning as Singleton.OnDestroy.
+            LevelData level = CurrentLevel;
+            LootTable table = character.LootTable != null ? character.LootTable
+                : level != null ? level.LootTable : null;
+
+            if (table != null)
+            {
+                character.Tile.DropItem(character.ItemDropPrefab, table.Roll(), table);
+            }
+
+            // Loot this character stole by walking over it (see GridTile.TryPickUpItem) falls with it -
+            // an enemy carrying a hero's near-miss reward does not get to leave the board with it.
+            foreach ((Rarity rarity, LootTable carriedTable) in character.CarriedLoot)
+            {
+                character.Tile.DropItem(character.ItemDropPrefab, rarity, carriedTable);
+            }
         }
 
         // A hero who falls is out of the run for good - not revived next level, and not holding a spawn
@@ -434,6 +466,22 @@ public class BattleManager : Singleton<BattleManager>
         if (character == SelectedCharacter) { SetSelectedCharacter(null); }
 
         Destroy(character.gameObject);
+    }
+
+    /// <summary>
+    /// Writes a chosen reward into the run so it survives to the next level. Goes through the
+    /// PartyMember record rather than Character.AuthoredDeck - AuthoredDeck is read-only for exactly
+    /// this reason, see RunManager's PartyMember doc comment: handing a reward straight to the prefab's
+    /// own list would persist it into the .asset file on disk once Play Mode exits.
+    ///
+    /// A no-op for an enemy or any character with no run record - loot rolled on a summon, say, is
+    /// good for this battle only.
+    /// </summary>
+    public void RecordRunCard(Character character, CardData card)
+    {
+        if (character == null || card == null) { return; }
+
+        if (partyRecords.TryGetValue(character, out PartyMember record)) { record.deck.Add(card); }
     }
 
     private Character FirstPlayableCharacter()
@@ -460,6 +508,10 @@ public class BattleManager : Singleton<BattleManager>
             endTurnRequested = false;
 
             while (!endTurnRequested && CanAnyoneAct()) { yield return null; }
+
+            // A pickup queued on the very last action of the turn must resolve before the round rolls
+            // over - otherwise EnemyResolve starts underneath a reward panel that is still up.
+            yield return new WaitUntil(LootIdle);
 
             TickStatuses(playerControlled: true);
 
@@ -601,7 +653,9 @@ public class BattleManager : Singleton<BattleManager>
                 yield return StartCoroutine(Execute(enemy, step));
 
                 // AddAction resolves the first action synchronously, so "queued" is not "finished".
-                yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+                // Also waits on LootManager: an enemy can shove a hero onto a loot tile, and the reward
+                // panel that opens for it must resolve before the next action point spends.
+                yield return new WaitUntil(() => ActionManager.Instance.IsIdle && LootIdle());
             }
 
             // Clears this enemy's icon the moment it is done, rather than every icon vanishing at
@@ -611,10 +665,14 @@ public class BattleManager : Singleton<BattleManager>
 
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so
         // "queued" is not "finished". Without this the turn would roll over mid-animation.
-        yield return new WaitUntil(() => ActionManager.Instance.IsIdle);
+        yield return new WaitUntil(() => ActionManager.Instance.IsIdle && LootIdle());
 
         TickStatuses(playerControlled: false);
     }
+
+    /// True when no reward panel is up or queued. A LootManager-less scene (a test harness, or one
+    /// that simply has no loot yet) must not block the turn loop forever, hence the null check.
+    private static bool LootIdle() => LootManager.Instance == null || LootManager.Instance.IsIdle;
 
     /// Asks this character's brain for one action. Wait if it has no brain, which is every player.
     private static Intent Decide(Character character, Board board)

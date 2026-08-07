@@ -71,3 +71,4 @@ MonoBehaviour:
   boardSize: {x: 5, y: 6}
   turnsToSurvive: 10
   handSize: 5
+  lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}

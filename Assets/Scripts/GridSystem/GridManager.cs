@@ -5,6 +5,8 @@ using DG.Tweening;
 public class GridManager : Singleton<GridManager>
 {
     [Header("Grid Settings")]
+    [Tooltip("Board size used when the level does not specify one. LevelData.BoardSize wins wherever "
+             + "it is authored.")]
     [SerializeField] private int width = 5;
     [SerializeField] private int height = 6;
 
@@ -18,24 +20,57 @@ public class GridManager : Singleton<GridManager>
     private readonly List<LineRenderer> telegraphs = new();
 
 
-    protected override void Awake()
+    // No Awake override. The grid used to be built here, which needed a `if (Instance != this) return;`
+    // guard so a duplicate GridManager did not build a second board on its way to being destroyed.
+    // BuildGrid is called explicitly now, by whoever knows the size, so there is nothing left to guard
+    // and Singleton.Awake is enough on its own.
+
+
+    /// <summary>
+    /// Builds the board at the size this level asked for, replacing whatever was there.
+    ///
+    /// Called by BattleManager.Start rather than from Awake here, because the size comes from the
+    /// level and the level comes from the run - neither of which is resolved until BattleManager has
+    /// had a chance to bootstrap one. Nothing may touch a tile before that call: it is the first thing
+    /// BattleManager does, ahead of SpawnParty and SpawnEnemies, which both need tiles to exist.
+    ///
+    /// A size of zero or less on either axis falls back to the serialized width/height, which keeps a
+    /// LevelData authored before boardSize existed - Level1 is one - building the board it always did.
+    /// </summary>
+    public void BuildGrid(Vector2Int size)
     {
-        base.Awake();
+        ClearGrid();
 
-        // base.Awake() destroys a duplicate and returns, but returning from it does not return from
-        // here - without this guard a second GridManager would build a whole second grid on its way
-        // out. Any Singleton subclass that overrides Awake needs the same check.
-        if (Instance != this) { return; }
-
-        CreateGrid();
+        CreateGrid(size.x > 0 ? size.x : width, size.y > 0 ? size.y : height);
     }
 
 
-    private void CreateGrid()
+    /// <summary>
+    /// Tears the board down: telegraph lines, tile objects, and the lookup that pointed at them.
+    ///
+    /// Destroys by walking `tiles` rather than tileParent's children, so anything else parented there
+    /// is left alone and a null tileParent is not a crash. Occupants are not touched - characters are
+    /// destroyed with the scene, and a board rebuild that also killed the party would be a very
+    /// surprising thing for a method called ClearGrid to do.
+    /// </summary>
+    private void ClearGrid()
     {
-        for (int x = 0; x < width; x++)
+        ClearIntents();
+
+        foreach (GridTile tile in tiles.Values)
         {
-            for (int y = 0; y < height; y++)
+            if (tile != null) { Destroy(tile.gameObject); }
+        }
+
+        tiles.Clear();
+    }
+
+
+    private void CreateGrid(int columns, int rows)
+    {
+        for (int x = 0; x < columns; x++)
+        {
+            for (int y = 0; y < rows; y++)
             {
                 Vector2Int position = new Vector2Int(x, y);
 

@@ -12,10 +12,10 @@ using UnityEngine;
 public struct EnemyPlacement
 {
     [Tooltip("Prefab with a Character on it. Health, brain, damage and reach all come from there.")]
-    public Character prefab;
+    public GameObject prefab;
 
     [Tooltip("Grid cell it starts on.")]
-    public Vector2Int cell;
+    [OneBasedCell] public Vector2Int cell;
 
     [Tooltip("Leave empty to use the prefab's own deck.")]
     public List<CardData> deckOverride;
@@ -56,7 +56,11 @@ public class LevelData : ScriptableObject
     [Tooltip("Where the run's party is placed, index for index against RunState's roster. A party "
              + "with more members than this list has spawn cells for is short the extras - they are "
              + "logged and left unplaced rather than guessed at.")]
+    [OneBasedCell]
     [SerializeField] private List<Vector2Int> partySpawnCells = new();
+
+    [Tooltip("Board size for this level. Leave at 0,0 to use GridManager's own width and height.")]
+    [SerializeField] private Vector2Int boardSize;
 
     [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
     [SerializeField] private int turnsToSurvive = 10;
@@ -69,6 +73,13 @@ public class LevelData : ScriptableObject
     public IReadOnlyList<EnemyWave> Waves => waves;
 
     public IReadOnlyList<Vector2Int> PartySpawnCells => partySpawnCells;
+
+    /// <summary>
+    /// Zero means "use GridManager's serialized default", not "no board". It has to: a LevelData
+    /// authored before this field existed deserializes it to (0,0), and Level1 is exactly that asset.
+    /// Same hazard as RangeShape.Anywhere being 0.
+    /// </summary>
+    public Vector2Int BoardSize => boardSize;
 
     public int TurnsToSurvive => turnsToSurvive;
 

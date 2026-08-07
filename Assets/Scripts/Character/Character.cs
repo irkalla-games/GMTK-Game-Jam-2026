@@ -43,6 +43,7 @@ public class Character : MonoBehaviour
     // second answer to a question the card already answers, and the two would drift.
 
     [Tooltip("Grid cell this character starts on. Placed onto that tile at battle start.")]
+    [OneBasedCell]
     [SerializeField] private Vector2Int startCoordinates;
 
     [Tooltip("Spawned on this character's tile when it dies. Leave empty for characters that drop "
@@ -299,6 +300,21 @@ public class Character : MonoBehaviour
 
     public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); UpdateHealthBar(); }
 
+    /// <summary>
+    /// Sets health outright, for a character arriving from somewhere that already knows how hurt it
+    /// is - a party member carrying damage in from the previous level. Not Heal: that clamps upward
+    /// only and so can never bring a character in at less than full.
+    ///
+    /// Floored at 1 rather than 0. A member who reached 0 is removed from the run entirely, so a
+    /// record asking for a dead character to be spawned is a bug somewhere else, and spawning one
+    /// that immediately dies would hide it.
+    /// </summary>
+    public void SetHealth(int value)
+    {
+        Health = Mathf.Clamp(value, 1, maxHealth);
+        UpdateHealthBar();
+    }
+
     private void UpdateHealthBar()
     {
         // Shield is not a field on this class - it is whatever a ShieldStatus in the list says it is.
@@ -548,6 +564,15 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
+    /// The deck as authored on this prefab, for anything seeding a mutable copy from it - a run's
+    /// starting deck for this hero, before rewards have touched it.
+    ///
+    /// Read-only on purpose. Handing out the list itself would let a caller add a card straight into
+    /// the prefab asset, which persists to disk after Play Mode exits.
+    /// </summary>
+    public IReadOnlyList<CardData> AuthoredDeck => deck;
+
+    /// <summary>
     /// Replaces the authored deck and rebuilds the piles from it.
     ///
     /// For spawned enemies: BuildDeck has already run in Awake by the time anything can reach a
@@ -645,9 +670,17 @@ public class Character : MonoBehaviour
         PlaceOnStartTile();
     }
 
+    /// <summary>
     /// Hands the whole job to GridManager: claiming the tile and standing the body on it are one
     /// operation, and where a cell sits in world space is the board's business, not a character's.
-    private void PlaceOnStartTile()
+    ///
+    /// Public because a character sitting in the scene runs this from its own Start, and nothing
+    /// orders that against BattleManager.Start, which is what builds the board. Whichever loses the
+    /// race finds no tile and silently does nothing, so BattleManager calls this again once the grid
+    /// exists. Safe to call twice: MoveTo onto the tile a character is already standing on clears and
+    /// re-sets the same occupant.
+    /// </summary>
+    public void PlaceOnStartTile()
     {
         if (GridManager.Instance != null) { GridManager.Instance.PlaceCharacter(this, startCoordinates); }
     }

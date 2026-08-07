@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83d7e18adc5a3fa439ffea01fd922acc, type: 3}
-  m_Name: 5 Shield
+  m_Name: Shield 7
   m_EditorClassIdentifier: Assembly-CSharp::ShieldEffect
   aimsAt: 1
-  shieldAmount: 5
+  shieldAmount: 7

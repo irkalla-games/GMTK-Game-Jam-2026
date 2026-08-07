@@ -9,11 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f15b94ca2c0cdba4cbe420952a01f397, type: 3}
-  m_Name: New Level Data
-  m_EditorClassIdentifier: Assembly-CSharp::LevelData
-  enemies: []
-  waves: []
-  partySpawnCells: []
-  turnsToSurvive: 10
-  handSize: 5
+  m_Script: {fileID: 11500000, guid: 582482f6a07a7f74786a364585138575, type: 3}
+  m_Name: Damage 3
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  damageAmount: 3

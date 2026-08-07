@@ -20,6 +20,14 @@ public class NotificationManager : MonoBehaviour
         continueButton.onClick.AddListener(Hide);
     }
 
+    /// <summary>
+    /// Whether a notification is up and waiting to be dismissed. Show zeroes Time.timeScale, so
+    /// anything wanting to wait for the player to acknowledge cannot use WaitForSeconds - that is
+    /// scaled time and would never elapse. Poll this from a WaitUntil instead: coroutines still run a
+    /// frame at a time at timeScale 0.
+    /// </summary>
+    public bool IsShowing => panel != null && panel.activeSelf;
+
     public void Show(string title, string message)
     {
         titleText.text = title;

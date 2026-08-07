@@ -44,9 +44,24 @@ public class BattleManager : Singleton<BattleManager>
              + "anything placed here rides along too, which is what keeps a scene runnable stand-alone.")]
     [SerializeField] private List<Character> characters = new();
 
-    [Tooltip("Enemy placements and the party's spawn cells for this battle. Leave unassigned to skip "
-             + "spawning entirely and rely only on the characters already placed above.")]
+    [Tooltip("Enemy placements and the party's spawn cells for this battle. Only used when there is no "
+             + "run under way - the run's current level wins wherever one exists.")]
     [SerializeField] private LevelData levelData;
+
+    [Tooltip("Campaign started automatically when this scene is opened on its own, so a level is "
+             + "playable in the Editor without going through the Main Menu. Ignored when the player "
+             + "arrived here through a real run.")]
+    [SerializeField] private RunData debugCampaign;
+
+    /// <summary>
+    /// The level being played. The run answers this wherever there is one; the serialized field is the
+    /// last-resort fallback that keeps a Game scene with no campaign assigned playable, the same
+    /// fallback story as turnsToSurvive and handSize below.
+    /// </summary>
+    private LevelData CurrentLevel =>
+        RunManager.Instance != null && RunManager.Instance.CurrentLevel != null
+            ? RunManager.Instance.CurrentLevel
+            : levelData;
 
     [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
     [SerializeField] private Transform enemyParent;
@@ -59,10 +74,10 @@ public class BattleManager : Singleton<BattleManager>
 
     /// Reaching 0 is the win. LevelData's value wins once one is assigned; the field above is only
     /// the fallback that keeps a Level-Data-less scene playable.
-    private int TurnsToSurvive => levelData != null ? levelData.TurnsToSurvive : turnsToSurvive;
+    private int TurnsToSurvive => CurrentLevel != null ? CurrentLevel.TurnsToSurvive : turnsToSurvive;
 
     /// Same fallback story as TurnsToSurvive.
-    private int HandSize => levelData != null ? levelData.HandSize : handSize;
+    private int HandSize => CurrentLevel != null ? CurrentLevel.HandSize : handSize;
 
     [Tooltip("Pause between an enemy's individual movement steps, so a walk reads as a walk.")]
     [SerializeField] private float stepDuration = 0.16f;
@@ -88,6 +103,11 @@ public class BattleManager : Singleton<BattleManager>
     public IReadOnlyList<Character> Characters => characters;
 
     private bool endTurnRequested;
+
+    /// Which run record each spawned party member came from, so the state it finishes the level with
+    /// can be written back to the run. Only party members are in here - an enemy has nothing that
+    /// outlives the battle.
+    private readonly Dictionary<Character, PartyMember> partyRecords = new();
 
     /// Hook this to the End Turn button. Ends the turn early, with energy still banked.
     public void RequestEndTurn()
@@ -198,12 +218,26 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Start()
     {
+        // Before anything reads CurrentLevel. Does nothing when the player came here from the Main
+        // Menu; starts a throwaway run when this scene was opened on its own.
+        RunManager.EnsureRun(debugCampaign);
+
+        // The board first: every placement below needs tiles to exist, and the size is this level's to
+        // decide, which is why GridManager no longer builds one in its own Awake.
+        GridManager.Instance.BuildGrid(CurrentLevel != null ? CurrentLevel.BoardSize : Vector2Int.zero);
+
         // Characters placed directly in the scene (see the tooltip on `characters`) never pass through
         // AddCharacter, so they are wired up here instead. SpawnParty/SpawnEnemies route through
         // AddCharacter and subscribe themselves - looping over `characters` after them would double up.
         foreach (Character character in characters)
         {
-            if (character != null) { character.Died += HandleCharacterDied; }
+            if (character == null) { continue; }
+
+            character.Died += HandleCharacterDied;
+
+            // Their own Start places them, but nothing orders that against this Start, and the board
+            // above may not have existed when it ran. Placing again here costs nothing when it did.
+            if (character.Tile == null) { character.PlaceOnStartTile(); }
         }
 
         // Party and enemies both join the roster before anything below walks it.
@@ -223,11 +257,15 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Instantiates the run's party from RunState and places it at LevelData's spawn cells, index for
-    /// index. Skipped when either is missing - no RunState means this scene was opened stand-alone
-    /// rather than through a run, and no LevelData means there is nowhere authored to put anyone - in
-    /// both cases whatever is already sitting in `characters` from the scene is the whole party,
-    /// exactly as it was before either of these existed.
+    /// Instantiates the run's party from RunManager and places it at this level's spawn cells, index
+    /// for index. Skipped when either is missing - no run means this scene was opened stand-alone with
+    /// no debug campaign to bootstrap from, and no level means there is nowhere authored to put
+    /// anyone - in both cases whatever is already sitting in `characters` from the scene is the whole
+    /// party, exactly as it was before either of these existed.
+    ///
+    /// Each member is rebuilt from its PartyMember record rather than left as the prefab authored it:
+    /// the deck it has accumulated over the run and the damage it is carrying both live there. The
+    /// record is also kept in `partyRecords`, because winning means writing that state back.
     ///
     /// Explicit per-member placement for the same reason SpawnEnemies uses PlaceOnGrid rather than
     /// each character's own Start: a character instantiated during this Start would not run its own
@@ -235,24 +273,36 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private void SpawnParty()
     {
-        if (RunState.Instance == null || levelData == null) { return; }
+        LevelData level = CurrentLevel;
 
-        IReadOnlyList<Character> roster = RunState.Instance.Party;
-        IReadOnlyList<Vector2Int> spawnCells = levelData.PartySpawnCells;
+        if (RunManager.Instance == null || level == null) { return; }
+
+        IReadOnlyList<PartyMember> roster = RunManager.Instance.Party;
+        IReadOnlyList<Vector2Int> spawnCells = level.PartySpawnCells;
 
         for (int i = 0; i < roster.Count; i++)
         {
-            if (roster[i] == null) { continue; }
+            PartyMember record = roster[i];
+
+            if (record == null || record.prefab == null) { continue; }
 
             if (i >= spawnCells.Count)
             {
-                Debug.LogWarning($"{roster[i].name} has no spawn cell in {levelData.name} - not placed");
+                Debug.LogWarning($"{record.prefab.name} has no spawn cell in {level.name} - not placed");
                 continue;
             }
 
-            Character member = Instantiate(roster[i]);
-            member.name = roster[i].name;
+            Character member = Instantiate(record.prefab);
+            member.name = record.prefab.name;
+
+            // Both after Instantiate, never before: Awake has already run BuildDeck and set Health to
+            // full by the time anything can reach a fresh instance.
+            member.SetDeck(record.deck);
+            member.SetHealth(record.currentHealth);
+
             member.PlaceOnGrid(spawnCells[i]);
+
+            partyRecords[member] = record;
 
             AddCharacter(member);
         }
@@ -271,13 +321,14 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private void SpawnEnemies()
     {
-        if (levelData == null) { return; }
+        if (CurrentLevel == null) { return; }
 
-        foreach (EnemyPlacement placement in levelData.Enemies)
+        foreach (EnemyPlacement placement in CurrentLevel.Enemies)
         {
             if (placement.prefab == null) { continue; }
 
-            Character enemy = Instantiate(placement.prefab, enemyParent);
+            GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
+            Character enemy = enemyObject.GetComponent<Character>();
             enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
 
             if (placement.deckOverride != null && placement.deckOverride.Count > 0)
@@ -298,9 +349,9 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private void SpawnDueWaves()
     {
-        if (levelData == null) { return; }
+        if (CurrentLevel == null) { return; }
 
-        foreach (EnemyWave wave in levelData.Waves)
+        foreach (EnemyWave wave in CurrentLevel.Waves)
         {
             if (wave.turn != TurnsElapsed || wave.enemies == null) { continue; }
 
@@ -308,7 +359,8 @@ public class BattleManager : Singleton<BattleManager>
             {
                 if (placement.prefab == null) { continue; }
 
-                Character enemy = Instantiate(placement.prefab, enemyParent);
+                GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
+                Character enemy = enemyObject.GetComponent<Character>();
                 enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
 
                 if (placement.deckOverride != null && placement.deckOverride.Count > 0)
@@ -368,6 +420,16 @@ public class BattleManager : Singleton<BattleManager>
             character.Tile.DropItem(character.ItemDropPrefab);
         }
 
+        // A hero who falls is out of the run for good - not revived next level, and not holding a spawn
+        // cell. Done here rather than in the victory write-back because the party can lose a member on
+        // a level it goes on to win, and by then the body is long destroyed.
+        if (partyRecords.TryGetValue(character, out PartyMember record))
+        {
+            partyRecords.Remove(character);
+
+            if (RunManager.Instance != null) { RunManager.Instance.RemoveMember(record); }
+        }
+
         if (character == ActiveCharacter) { SetActiveCharacter(FirstPlayableCharacter()); }
         if (character == SelectedCharacter) { SetSelectedCharacter(null); }
 
@@ -408,16 +470,16 @@ public class BattleManager : Singleton<BattleManager>
             if (AllHeroesDead())
             {
                 NotificationManager.Instance.Show("Defeat", "All Heroes were Slain.");
-                yield return new WaitForSeconds(.15f);
-                Finish("defeat - every hero is down");
+                yield return WaitForAcknowledgement();
+                Finish(victory: false);
                 yield break;
             }
 
             if (TurnsRemaining <= 0)
             {
                 NotificationManager.Instance.Show("Victory", "The party made it out!");
-                yield return new WaitForSeconds(.15f);
-                Finish("victory - survived to the end of the clock");
+                yield return WaitForAcknowledgement();
+                Finish(victory: true);
                 yield break;
             }
         }
@@ -651,10 +713,72 @@ public class BattleManager : Singleton<BattleManager>
         return true;
     }
 
-    private void Finish(string outcome)
+    /// <summary>
+    /// Blocks until the player dismisses the notification that is up.
+    ///
+    /// Not WaitForSeconds: NotificationManager.Show sets Time.timeScale to 0, and WaitForSeconds is
+    /// scaled, so a wait behind a notification never elapses at all. That the old fixed 0.15s wait
+    /// happened to do the right thing was an accident of exactly that bug - it resumed when Hide put
+    /// the timescale back. A WaitUntil is the same behaviour said out loud, and coroutines still get a
+    /// frame at timeScale 0 for it to poll in.
+    /// </summary>
+    private IEnumerator WaitForAcknowledgement()
+    {
+        NotificationManager notifications = NotificationManager.Instance;
+
+        if (notifications == null) { yield break; }
+
+        yield return new WaitUntil(() => notifications == null || !notifications.IsShowing);
+    }
+
+    /// <summary>
+    /// Ends the battle and hands back to the run.
+    ///
+    /// Victory carries the party forward: what everyone finished the level with is written back to
+    /// their run records before the level index moves, because the live characters are about to be
+    /// destroyed with the scene and the records are all that survive. Defeat ends the run outright -
+    /// there is no continue.
+    ///
+    /// The last level cleared lands in the same place as a defeat, the Main Menu, but by way of
+    /// EndRun rather than in spite of it. Skipping that would leave a finished run sitting in the
+    /// RunManager for the next Play button to resume.
+    /// </summary>
+    private void Finish(bool victory)
     {
         Phase = BattlePhase.Finished;
-        Debug.Log($"battle over: {outcome} ({TurnsRemaining} turns left)");
+
+        RunManager run = RunManager.Instance;
+
+        // Show zeroed it and nothing else puts it back before the next scene loads - a frozen Main
+        // Menu is a hard lockup with no way out.
+        Time.timeScale = 1f;
+
+        if (!victory)
+        {
+            Debug.Log($"battle over: defeat - every hero is down ({TurnsRemaining} turns left)");
+
+            if (run != null) { run.EndRun(); }
+
+            SceneManager.LoadScene("MainMenu");
+            return;
+        }
+
+        foreach (KeyValuePair<Character, PartyMember> entry in partyRecords)
+        {
+            if (entry.Key != null) { entry.Value.currentHealth = entry.Key.Health; }
+        }
+
+        if (run != null && run.AdvanceLevel())
+        {
+            Debug.Log($"battle over: victory - on to level {run.LevelNumber}");
+            SceneManager.LoadScene("Game");
+            return;
+        }
+
+        Debug.Log("battle over: victory - run complete");
+
+        if (run != null) { run.EndRun(); }
+
         SceneManager.LoadScene("MainMenu");
     }
 

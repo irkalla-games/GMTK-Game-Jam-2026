@@ -72,8 +72,31 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         }
 
         battle.ActiveCharacterChanged += ShowHandFor;
+        battle.PlayabilityChanged += RefreshPlayability;
 
         if (battle.ActiveCharacter != null) { ShowHandFor(battle.ActiveCharacter); }
+    }
+
+    /// <summary>
+    /// Re-colours the row: green frame on what can be played right now, greyed out on what cannot.
+    ///
+    /// Asks Card.PlayRefusal, the same call CardPlayManager.PlaySelectedOn gates the click on, so a
+    /// green card can never turn out to refuse - the same guarantee GridManager.ShowPlayableTiles gets
+    /// from sharing Card.Refusal with the click.
+    ///
+    /// Driven by BattleManager.PlayabilityChanged rather than by this class watching for energy: five
+    /// different things move the answer (energy, cooldown, Frozen, the hand, who is active) and the
+    /// battle already knows about all of them.
+    /// </summary>
+    private void RefreshPlayability()
+    {
+        foreach (CardViewer cardViewer in cardsInHand)
+        {
+            if (cardViewer == null || cardViewer.card == null) { continue; }
+
+            cardViewer.SetPlayable(cardViewer.card.PlayRefusal(shown) == null);
+            cardViewer.RefreshLockCounter();
+        }
     }
 
     /// <summary>
@@ -148,6 +171,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         if (BattleManager.Instance != null)
         {
             BattleManager.Instance.ActiveCharacterChanged -= ShowHandFor;
+            BattleManager.Instance.PlayabilityChanged -= RefreshPlayability;
         }
     }
 
@@ -189,6 +213,13 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
         CardViewer cardViewer = Instantiate(cardPrefab, transform.position, Quaternion.identity);
         cardViewer.Setup(card);
+
+        // Before it is ever drawn, not on the next PlayabilityChanged. A card dealt onto an empty
+        // energy pool would otherwise spend a frame or more looking playable while it grows in - and
+        // ShowHandFor rebuilds the whole row on a character switch, which raises nothing by itself.
+        cardViewer.SetPlayable(card.PlayRefusal(shown) == null);
+        cardViewer.RefreshLockCounter();
+
         cardViewer.PlaySpawnIn(layoutDuration);
 
         StartCoroutine(AddCard(cardViewer));

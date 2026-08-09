@@ -1,0 +1,125 @@
+using UnityEngine;
+
+/// <summary>
+/// Explains what a totem is doing while the cursor sits on it, in the same popup card keywords and
+/// status chips use.
+///
+/// Totems have no collider of their own - see BattleManager.OnTileClicked, which points out that no
+/// character does, and the tile underneath is what receives every mouse event instead. This adds a
+/// collider over the totem's art so its body is hoverable, which means it also has to hand back the
+/// two things that collider steals from the tile beneath it: the hover tint (SetHovered) and the
+/// click itself (forwarded straight to BattleManager.OnTileClicked, so selecting and targeting the
+/// totem still work exactly as if the tile itself had been clicked).
+/// </summary>
+[RequireComponent(typeof(Totem))]
+public class TotemTooltip : MonoBehaviour
+{
+    [SerializeField] private Glossary glossary;
+
+    [Tooltip("What the tooltip is positioned against for hover/click purposes. Falls back to the "
+             + "root collider, the same reasoning as CardViewer.hitbox.")]
+    [SerializeField] private Collider2D hitbox;
+
+    [Tooltip("Anchors the popup above the health bar - the Overhead child, not the collider, so the "
+             + "box sits by the bar regardless of how tall the art hitbox is.")]
+    [SerializeField] private RectTransform overheadRect;
+
+    [SerializeField] private Canvas overheadCanvas;
+
+    private Totem totem;
+
+    private Character owner;
+
+    private void Awake()
+    {
+        totem = GetComponent<Totem>();
+        owner = GetComponent<Character>();
+
+        if (hitbox == null) { hitbox = GetComponent<Collider2D>(); }
+
+        // The prefab's world-space Canvas is authored with no camera assigned. TooltipAnchor's rect
+        // path projects through canvas.worldCamera for anything but an Overlay canvas, and
+        // RectTransformUtility.WorldToScreenPoint(null, ...) on a World Space canvas answers world
+        // coordinates rather than screen ones - the tooltip would park in the corner of the screen.
+        if (overheadCanvas != null && overheadCanvas.worldCamera == null)
+        {
+            overheadCanvas.worldCamera = Camera.main;
+        }
+    }
+
+    private void OnMouseEnter()
+    {
+        // Same gate as TileSelector.OnMouseEnter: nothing on the board should light up or explain
+        // itself while a modal owns the screen. Only the enter is gated - OnMouseExit stays live so a
+        // totem already hovered when the panel opened still clears itself on the way out.
+        if (BattleManager.Instance != null && BattleManager.Instance.InputLocked) { return; }
+
+        if (TooltipManager.Instance != null)
+        {
+            TooltipAnchor anchor = TooltipAnchor.Of(overheadRect, overheadCanvas, TooltipSide.Above);
+            TooltipManager.Instance.Show(this, BuildContent(), anchor, TooltipPriority.Hovered);
+        }
+
+        if (owner != null && owner.Tile != null) { owner.Tile.SetHovered(true); }
+    }
+
+    private void OnMouseExit()
+    {
+        HideTooltip();
+    }
+
+    private void OnDisable()
+    {
+        // A totem can die - or the whole scene can tear down - while the cursor is still sitting on
+        // it, which never fires OnMouseExit. CardViewer.HideTooltips has the same call from BeginPlay
+        // for the same reason: every non-exit way a hover can end still has to clear it.
+        HideTooltip();
+    }
+
+    private void HideTooltip()
+    {
+        if (TooltipManager.Instance != null) { TooltipManager.Instance.Hide(this); }
+
+        if (owner != null && owner.Tile != null) { owner.Tile.SetHovered(false); }
+    }
+
+    private void OnMouseDown()
+    {
+        // The totem's own hitbox would otherwise swallow the click the tile beneath it is supposed to
+        // receive - forward it through the same door every other tile click uses.
+        if (BattleManager.Instance != null && owner != null && owner.Tile != null)
+        {
+            BattleManager.Instance.OnTileClicked(owner.Tile);
+        }
+    }
+
+    /// <summary>
+    /// Auras are titled by whichever status they are, generated the same way a StatusChip's tooltip
+    /// is - their numbers can never drift out of sync with what Glossary already knows. Reactions have
+    /// no status to title themselves with, so the first authored one carries the totem's own name and
+    /// the rest read as plain paragraphs underneath it.
+    /// </summary>
+    private TooltipContent BuildContent()
+    {
+        TooltipContent content = new();
+
+        if (glossary == null || totem == null) { return content; }
+
+        foreach (AuraData aura in totem.Auras)
+        {
+            glossary.StatusContent(aura.Type, aura.Stacks, null, content);
+        }
+
+        bool named = false;
+
+        foreach (AuraReaction reaction in totem.Reactions)
+        {
+            if (string.IsNullOrWhiteSpace(reaction.Description)) { continue; }
+
+            content.Add(named ? null : totem.DisplayName, glossary.Tag(reaction.Description));
+            named = true;
+        }
+
+        return content;
+    }
+}

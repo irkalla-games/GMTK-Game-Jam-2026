@@ -46,6 +46,16 @@ public class Totem : MonoBehaviour
              + "action resolves while they stand in range.")]
     [SerializeField] private List<AuraReaction> reactions = new();
 
+    [Tooltip("Colour of this totem's pulse on the board. Alpha is ignored - AuraPulse owns that.")]
+    [SerializeField] private Color auraColor = DefaultAuraColor;
+
+    [Tooltip("Shown as this totem's tooltip title. Falls back to \"Totem\" when blank, since "
+             + "gameObject.name is just \"Totem(Clone)\" at runtime.")]
+    [SerializeField] private string displayName;
+
+    /// The dark blue every totem pulses in until somebody authors otherwise.
+    private static readonly Color DefaultAuraColor = new(0.13f, 0.22f, 0.55f, 1f);
+
     private Character owner;
 
     /// <summary>
@@ -61,6 +71,10 @@ public class Totem : MonoBehaviour
     /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() => active.Clear();
+
+    /// Read-only so the registry stays OnEnable/OnDisable's to maintain. AuraPulse walks this to draw
+    /// every totem's footprint.
+    public static IReadOnlyList<Totem> Active => active;
 
     /// <summary>
     /// Appends every status the totems on the board are currently projecting onto this character.
@@ -87,6 +101,11 @@ public class Totem : MonoBehaviour
     private void OnEnable()
     {
         active.Add(this);
+
+        // The board visual has nothing to configure and nothing to place, so it self-creates on the
+        // first totem rather than waiting in the scene - same reasoning as `active` being a plain
+        // static list. A driver somebody forgot to drop in would be a bug with no cause to point at.
+        AuraPulse.Ensure();
     }
 
     private void OnDisable()
@@ -105,6 +124,41 @@ public class Totem : MonoBehaviour
     {
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += HandleActionResolved; }
     }
+
+    /// <summary>
+    /// The shape of this totem's reach, and the tile it is measured from. Together these are the
+    /// footprint AuraPulse draws - the same two values Covers feeds to range.Contains, so the pulse
+    /// can never light a tile the aura does not actually reach.
+    /// </summary>
+    public TargetRange Range => range;
+
+    public GridTile OriginTile => owner != null ? owner.Tile : null;
+
+    /// <summary>
+    /// This totem's colour on the board.
+    ///
+    /// Falls back rather than trusting the serialized value, on the same load-bearing-zero reasoning
+    /// as RangeShape.Anywhere: a Totem authored before this field existed - Totem.prefab was written
+    /// by hand - can deserialize it as all-zero, and transparent black is an aura you cannot see
+    /// rather than an aura that is obviously misconfigured.
+    /// </summary>
+    public Color AuraColor => auraColor.maxColorComponent <= 0f ? DefaultAuraColor : auraColor;
+
+    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? "Totem" : displayName;
+
+    /// Read-only views for TotemTooltip - Totem itself builds no TooltipContent, the same reason
+    /// Character never calls back into a viewer.
+    public IReadOnlyList<AuraData> Auras => auras;
+
+    public IReadOnlyList<AuraReaction> Reactions => reactions;
+
+    /// <summary>
+    /// Whether this totem has a zone worth drawing: alive, standing somewhere, and actually carrying
+    /// something to project. Deliberately says nothing about `affects` - who benefits is a question
+    /// about the character standing there, while the footprint is the totem's reach either way.
+    /// </summary>
+    public bool IsProjecting =>
+        owner != null && !owner.IsDead && owner.Tile != null && (auras.Count > 0 || reactions.Count > 0);
 
     /// <summary>
     /// Whether this totem's aura reaches that character right now. False for a dead or unplaced totem,

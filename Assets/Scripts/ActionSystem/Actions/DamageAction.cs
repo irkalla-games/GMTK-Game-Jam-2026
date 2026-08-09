@@ -11,8 +11,21 @@ public class DamageAction : GameAction
         this.damageAmount = damageAmount;
     }
 
+    /// Ranged past melee reach, same threshold CardViewer uses to pick the bow icon - so Fireball and
+    /// EnemyArrow get RangedAttack and Slash gets MeleeAttack, with no card having to say so itself.
+    /// A CardAnimation can still redirect either one; this only decides which default it redirects
+    /// *from*.
+    protected override AnimationCue Cue(ActionContext ctx) =>
+        ctx.card != null && ctx.card.range.IsRanged
+            ? AnimationCue.RangedAttack
+            : AnimationCue.MeleeAttack;
+
     public override IEnumerator Execute(ActionContext ctx)
     {
+        // Plays first and is waited on, so the impact VFX and the health-bar drop below land in the
+        // same coroutine and can never desync - the swing connects, then the damage happens.
+        yield return Perform(ctx);
+
         // Resolved once, before the loop. Strength and Double Attack belong to the attacker, not to
         // any one tile, and shouldConsume spends the Double Attack charge - so an AoE must not run
         // this per tile, or the buff would be spent several times and only the first tile doubled.

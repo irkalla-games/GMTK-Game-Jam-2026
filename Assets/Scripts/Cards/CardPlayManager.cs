@@ -58,20 +58,15 @@ public class CardPlayManager : Singleton<CardPlayManager>
             return;
         }
 
-        // An actor-state rule, not a targeting one - the answer does not depend on the tile, so it
-        // does not belong in Card.Refusal. Above the commit point, so a frozen click costs nothing.
-        string actRefusal = actor.ActRefusal();
+        // Actor-state rules, not targeting ones - Frozen, Cooldown and the cost. The answer does not
+        // depend on the tile, so none of it belongs in Card.Refusal. Above the commit point, so a
+        // frozen click costs nothing. This is the same call the card highlight is built from, which
+        // is what stops a card from ever looking playable and then refusing this click.
+        string playRefusal = card.PlayRefusal(actor);
 
-        if (actRefusal != null)
+        if (playRefusal != null)
         {
-            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {actRefusal}");
-            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
-            return;
-        }
-
-        if (!actor.CanAfford(card.cost))
-        {
-            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {actor.name} cannot afford {card.cost} (energy {actor.Energy})");
+            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {playRefusal}");
             cardViewer.transform.DOShakePosition(0.25f, 0.15f);
             return;
         }

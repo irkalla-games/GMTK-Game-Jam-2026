@@ -79,10 +79,15 @@ MonoBehaviour:
     defaultAmount: 1
     type: 1
   - title: COOLDOWN
-    body: Unusable for {magnitude} turns after it is played, and for {magnitude} turns
-      from the start of the battle.
+    body: Unusable for {magnitude} turns after it is played.
     terms: []
     defaultStacks: 2
     defaultAmount: 1
     type: 2
+  - title: DORMANT
+    body: Unusable for {magnitude} turns after you gain it.
+    terms: []
+    defaultStacks: 3
+    defaultAmount: 1
+    type: 3
   termColor: {r: 1, g: 0.83, b: 0.48, a: 1}

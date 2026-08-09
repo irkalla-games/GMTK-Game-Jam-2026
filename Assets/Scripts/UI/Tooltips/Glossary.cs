@@ -125,7 +125,7 @@ public class Glossary : ScriptableObject
         return content.Add(Title(entry, type.ToString()), FillDefaults(entry, body));
     }
 
-    /// What this keyword means. `magnitude` is Cooldown's length; Innate ignores it.
+    /// What this keyword means. `magnitude` is Cooldown's or Dormant's length; Innate ignores it.
     public TooltipContent KeywordContent(CardKeywordType type, int magnitude, TooltipContent into = null)
     {
         KeywordEntry entry = FindKeyword(type);

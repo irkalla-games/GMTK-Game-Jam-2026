@@ -43,4 +43,6 @@ public enum StatusType
     /// Curse. The carrier cannot move. Everything else - attacking, playing cards - still works.
     /// Frozen's smaller sibling; the two are separate so they compose.
     Rooted = 8,
+
+    DoubleShield = 9,
 }

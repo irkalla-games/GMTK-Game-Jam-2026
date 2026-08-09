@@ -48,6 +48,12 @@ public class GridTile : MonoBehaviour
         if (selector != null) { selector.SetInRange(value); }
     }
 
+    /// Lights this tile's hover tint on or off from the outside - see TileSelector.SetHovered.
+    public void SetHovered(bool value)
+    {
+        if (selector != null) { selector.SetHovered(value); }
+    }
+
     public void DealDamage(int amount, Character attacker = null)
     {
         if (Occupant != null) { Occupant.TakeDamage(amount, attacker); }
@@ -112,15 +118,19 @@ public class GridTile : MonoBehaviour
         }
     }
 
-    public void SummonObject(GameObject summonObject)
+    /// <summary>
+    /// Returns the summoned Character (or null on a bad prefab / an already-occupied tile), so a
+    /// caller can play a spawn-in animation on the exact body that just appeared - see SummonAction.
+    /// </summary>
+    public Character SummonObject(GameObject summonObject)
     {
-        if (Occupant != null) { return; }
+        if (Occupant != null) { return null; }
 
         GameObject go = Instantiate(summonObject, GridManager.Instance.IsoToWorld(coordinates.x, coordinates.y), Quaternion.identity);
 
         Character character = go.GetComponent<Character>();
 
-        if (character == null) { return; }
+        if (character == null) { return null; }
 
         // Instantiate's position argument only sets the transform - Character.Start() runs at end of
         // frame and re-places itself onto whatever startCoordinates it was authored with, which would
@@ -129,6 +139,8 @@ public class GridTile : MonoBehaviour
         character.PlaceOnGrid(coordinates);
 
         if (BattleManager.Instance != null) { BattleManager.Instance.AddCharacter(character); }
+
+        return character;
     }
 
     /// Spawns an item on this tile, e.g. loot from a character that just died here or loot it was

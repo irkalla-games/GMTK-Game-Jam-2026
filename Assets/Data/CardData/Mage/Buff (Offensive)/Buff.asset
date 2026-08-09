@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: Buff
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Buff
+  <cost>k__BackingField: 2
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 0
+    maxDistance: 5
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 2
+  <tags>k__BackingField: 00000000
+  <description>k__BackingField: Double an ally's next attack. Lasts until they attack.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField:
+  - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5008, type: 2}
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []

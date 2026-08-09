@@ -23,7 +23,7 @@ public class ShieldStatus : StatusEffect
 
         stacks -= absorbed;
 
-        return info.WithAmount(info.amount - absorbed);
+        return info.AbsorbedByShield(absorbed);
     }
 
     /// The one status that clears itself at the top of the round. Zeroing stacks makes it IsExpired,

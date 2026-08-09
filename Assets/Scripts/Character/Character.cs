@@ -186,6 +186,11 @@ public class Character : MonoBehaviour
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
 
+    /// This character's own animation vocabulary, or null on a body with no CharacterAnimator - the
+    /// Totem, or any prefab nobody has wired up yet. GameAction.Perform already no-ops on null, so
+    /// nothing downstream needs its own guard for this.
+    public CharacterAnimator Animation { get; private set; }
+
     /// The cards currently held. ActiveHandViewer builds the viewers for whichever character is active.
     public IReadOnlyList<Card> Hand => hand;
 
@@ -202,9 +207,53 @@ public class Character : MonoBehaviour
     public event Action<Character> Died;
 
     /// <summary>
-    /// Raised whenever this character's health, shield or status list changed. Character knows
-    /// nothing about who is listening - exactly the CardDrawn contract, and the reason
+    /// Raised from TakeDamage once a hit has been through every mitigation and something actually got
+    /// through - `amount` is what survived, never the raw incoming number. A hit Shield or Block
+    /// absorbed entirely raises nothing, which is deliberate: CharacterAnimator plays a flinch off this
+    /// event, and a fully blocked hit should visibly not flinch. Not raised by TakeUnblockableDamage -
+    /// poison is not an attack, same distinction that method's own doc comment draws.
+    /// </summary>
+    public event Action<Character, int> Damaged;
+
+    /// <summary>
+    /// Raised for every attack TakeDamage processes, carrying how much of it actually registered
+    /// against this character - Health lost, plus anything a Shield status absorbed into its own pool
+    /// (DamageInfo.shieldAbsorbed). A Block reduction and a Parry negation are both excluded from that
+    /// figure on purpose: neither redirects the damage anywhere, they simply prevent it, so a hit that
+    /// Block eats three points of reports the five that got through rather than the eight that were
+    /// swung, and a hit Parry eats outright reports zero rather than nothing.
+    ///
+    /// Unlike Damaged this fires even when the total is zero. Damaged skips a fully mitigated hit so
+    /// CharacterAnimator's flinch does not play on it - that contract stays exactly as it is - but a
+    /// damage-number popup still wants to say "this landed for nothing" instead of showing nothing at
+    /// all, which is the whole reason this is a second event rather than a change to Damaged.
+    /// </summary>
+    public event Action<Character, int> DamageRegistered;
+
+    /// <summary>
+    /// Raised from TakeUnblockableDamage with the nominal amount - poison is not an attack and runs no
+    /// OnTakeDamage hooks, so unlike Damaged there is no post-mitigation figure to report; the number
+    /// dealt is the number that lands. Kept separate from Damaged rather than folded into it because
+    /// CharacterAnimator's flinch is keyed off Damaged, and a poison tick should not flinch.
+    /// </summary>
+    public event Action<Character, int> DamagedUnblockable;
+
+    /// <summary>
+    /// Raised from Heal with the actual amount restored, not the amount requested - Heal clamps at
+    /// maxHealth, so a full-health character healed for 20 gained nothing and should raise nothing.
+    /// Not raised at all when the delta is zero, same reasoning as Damaged skipping a fully mitigated
+    /// hit.
+    /// </summary>
+    public event Action<Character, int> Healed;
+
+    /// <summary>
+    /// Raised whenever this character's health, shield, energy or status list changed. Character
+    /// knows nothing about who is listening - exactly the CardDrawn contract, and the reason
     /// CharacterOverheadViewer exists at all rather than this class writing straight at a Text field.
+    ///
+    /// Energy is in that list because playability is drawn from it: what a card highlight needs to
+    /// know is exactly "did anything about this character change", and splitting energy out into an
+    /// event of its own would only mean every listener subscribing to both.
     ///
     /// Carries only the subject, no numbers. A listener re-reads Health, MaxHealth and
     /// StatusStacks(Shield) itself, so a future fourth number on the bar needs no new event - the
@@ -253,11 +302,13 @@ public class Character : MonoBehaviour
     {
         Energy = Mathf.Max(0, Energy - cost);
         BattleManager.Instance.ChangeActiveMana(this.Energy);
+        RaiseStatsChanged();
     }
 
     public void ResetEnergy()
     {
         Energy = maxEnergy;
+        RaiseStatsChanged();
     }
 
     /// <summary>
@@ -296,6 +347,16 @@ public class Character : MonoBehaviour
 
         Health = Mathf.Max(0, Health - info.amount);
         RaiseStatsChanged();
+
+        // Only when something actually landed - a hit Shield or Block absorbed entirely raises
+        // nothing, which is the point: CharacterAnimator's flinch is keyed off this, so a fully
+        // blocked hit visibly does not flinch.
+        if (info.amount > 0) { Damaged?.Invoke(this, info.amount); }
+
+        // Health lost plus whatever a Shield status siphoned into its own pool - see the doc on
+        // DamageRegistered for why that is the right number and why this fires even at zero.
+        DamageRegistered?.Invoke(this, info.amount + info.shieldAbsorbed);
+
         CheckDeath();
     }
 
@@ -340,6 +401,7 @@ public class Character : MonoBehaviour
 
         Health = Mathf.Max(0, Health - amount);
         RaiseStatsChanged();
+        DamagedUnblockable?.Invoke(this, amount);
 
         CheckDeath();
     }
@@ -362,7 +424,16 @@ public class Character : MonoBehaviour
         MoveTo(null);
     }
 
-    public void Heal(int amount) { Health = Mathf.Min(maxHealth, Health + amount); RaiseStatsChanged(); }
+    public void Heal(int amount)
+    {
+        int before = Health;
+        Health = Mathf.Min(maxHealth, Health + amount);
+        RaiseStatsChanged();
+
+        // The delta, not `amount` - see the doc on Healed. A full-health character healed for 20
+        // gained nothing and should pop no number.
+        if (Health > before) { Healed?.Invoke(this, Health - before); }
+    }
 
     /// <summary>
     /// Sets health outright, for a character arriving from somewhere that already knows how hurt it
@@ -610,15 +681,16 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// Ticks every card's Cooldown down by one round. Safe to only walk these three piles rather than
-    /// innateCards too, as long as this runs after RestoreInnateCards each turn - by then every innate
-    /// card is already back in hand.
+    /// Ticks every card's timed keywords (Cooldown, Dormant) down by one round. Safe to only walk
+    /// these three piles rather than innateCards too, as long as this runs after RestoreInnateCards
+    /// each turn - by then every innate card is already back in hand, and a rewarded innate card
+    /// (added straight to hand by AddCardToHand/AddCard) is covered by the same walk.
     /// </summary>
-    public void TickCardCooldowns()
+    public void TickCardTimers()
     {
-        foreach (Card card in drawPile) { card.TickCooldown(); }
-        foreach (Card card in hand) { card.TickCooldown(); }
-        foreach (Card card in discardPile) { card.TickCooldown(); }
+        foreach (Card card in drawPile) { card.TickTimers(); }
+        foreach (Card card in hand) { card.TickTimers(); }
+        foreach (Card card in discardPile) { card.TickTimers(); }
     }
 
     /// <summary>
@@ -647,18 +719,63 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// Adds one card straight into the draw pile mid-battle - a reward chosen from LootManager's panel.
-    /// Not routed through `deck`: `deck` is the authored starting list BuildDeck rebuilds piles from
-    /// wholesale, and rebuilding here would discard whatever this character already drew, played or
-    /// discarded this battle. The run-persistence half of a reward is separate - see
+    /// Adds one card straight into this character's draw pile mid-battle - the general-purpose grant,
+    /// for anything that hands over a card without the player needing to see it play out immediately
+    /// (a relic, a card-that-adds-a-card). Not routed through `deck`: `deck` is the authored starting
+    /// list BuildDeck rebuilds piles from wholesale, and rebuilding here would discard whatever this
+    /// character already drew, played or discarded this battle.
+    ///
+    /// See AddCardToHand for the sibling that puts the card in hand instead - use that one wherever
+    /// the point is that the card is immediately visible and playable, a loot pickup being the case
+    /// that motivated it. The run-persistence half of a reward is separate either way - see
     /// BattleManager.RecordRunCard, which writes into the PartyMember record instead of here.
     /// </summary>
     public void AddCard(CardData data)
     {
         if (data == null) { return; }
 
-        drawPile.Add(new Card(data));
+        Card card = new Card(data);
+
+        // An Innate card sitting in the draw pile is a contradiction, and quietly a bug: it would be
+        // drawn like anything else and then, on Discard, skip the discard pile - Discard routes Innate
+        // cards nowhere because it assumes RestoreInnateCards will put them back, which only happens
+        // for cards BuildDeck already knows about. BuildDeck avoids this the same way, by routing
+        // Innate straight to hand instead of the draw pile.
+        if (card.HasKeyword(CardKeywordType.Innate)) { PutInHand(card); return; }
+
+        drawPile.Add(card);
         Shuffle(drawPile);
+    }
+
+    /// <summary>
+    /// Adds one card straight into this character's hand, playable this turn - a reward picked up off
+    /// the ground is the caller. Distinct from AddCard on purpose: use this where the point is that
+    /// the card is immediately visible and usable, and AddCard everywhere else.
+    ///
+    /// Deliberately allowed to overshoot HandSize when the hand is already full. The overflow lasts
+    /// one turn at most - TurnStart discards the hand wholesale and re-deals to HandSize - and
+    /// shunting the reward into the draw pile instead would make the one card the player just chose
+    /// the one card they cannot see.
+    /// </summary>
+    public void AddCardToHand(CardData data)
+    {
+        if (data == null) { return; }
+
+        PutInHand(new Card(data));
+    }
+
+    /// The bookkeeping both AddCard (for an Innate card) and AddCardToHand share: the innateCards
+    /// entry is what RestoreInnateCards walks each turn to keep it in hand - the same two-list write
+    /// BuildDeck does for an authored innate card - and CardDrawn is the event DrawCard already
+    /// raises, so ActiveHandViewer builds a viewer through the one path it has. Nothing here knows
+    /// whether this character's hand is the one currently on screen.
+    private void PutInHand(Card card)
+    {
+        if (card.HasKeyword(CardKeywordType.Innate)) { innateCards.Add(card); }
+
+        hand.Add(card);
+
+        CardDrawn?.Invoke(this, card);
     }
 
     private void BuildDeck()
@@ -729,6 +846,10 @@ public class Character : MonoBehaviour
         Health = maxHealth;
         Energy = maxEnergy;
         BuildDeck();
+
+        // Cached rather than looked up on every play - null on a body with no CharacterAnimator
+        // component, e.g. Totem, which is a legal answer GameAction.Perform already handles.
+        Animation = GetComponent<CharacterAnimator>();
     }
 
     private void Start()

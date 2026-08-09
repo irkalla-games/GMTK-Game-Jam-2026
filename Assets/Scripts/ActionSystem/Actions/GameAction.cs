@@ -26,5 +26,57 @@ public abstract class GameAction
     protected virtual float ResolveDelay =>
         ActionManager.Instance != null ? ActionManager.Instance.DefaultResolveDelay : 0.15f;
 
+    /// <summary>
+    /// What this action looks like by default - DamageAction asks for MeleeAttack or RangedAttack
+    /// depending on the card's own range, MoveAction for Move. None (the default) means this action
+    /// never animates on its own; a card can still add one through AnimateEffect. A card's
+    /// CardAnimation may redirect a declared cue to something else entirely - see CueOverride.when.
+    ///
+    /// Takes ctx rather than being a bare property because DamageAction's answer depends on
+    /// ctx.card.range - the same TargetRange.IsRanged threshold CardViewer uses to pick the sword or
+    /// bow icon.
+    /// </summary>
+    protected virtual AnimationCue Cue(ActionContext ctx) => AnimationCue.None;
+
+    /// <summary>
+    /// Runs this action's animation and waits for it: face the target, perform the caster's cue,
+    /// send a projectile if the card authored one, spawn the impact. Resolves immediately - no wait,
+    /// no queue delay - when the card has no CardAnimation and this action declares no Cue, which is
+    /// every action and every card exactly as they behaved before this existed.
+    ///
+    /// Actions bake this in directly rather than going through a separate queued step, on purpose: a
+    /// card that queues several actions (a 5-hit card, an attack followed by a move) gets one
+    /// animation per action, played back to back in the same order the actions themselves resolve in
+    /// - because ActionManager already resolves one action's whole Execute before starting the next.
+    /// </summary>
+    protected IEnumerator Perform(ActionContext ctx)
+    {
+        AnimationCue cue = Cue(ctx);
+
+        if (cue == AnimationCue.None) { yield break; }
+
+        CardAnimation animation = ctx.card != null ? ctx.card.animation : null;
+
+        if (animation != null)
+        {
+            yield return animation.Perform(ctx, cue);
+        }
+        else
+        {
+            // No CardAnimation authored - still perform the caster's own binding for this cue, with
+            // no projectile and no override, so an unauthored card still swings on the character's
+            // default clip rather than animating nothing.
+            CharacterAnimator caster = ctx.source != null ? ctx.source.Animation : null;
+
+            if (caster != null)
+            {
+                GridTile aimedAt = ctx.targets.Count > 0 ? ctx.targets[0] : null;
+                if (aimedAt != null) { caster.SetFacing(aimedAt.transform.position); }
+
+                yield return caster.Play(cue);
+            }
+        }
+    }
+
     public abstract IEnumerator Execute(ActionContext ctx);
 }

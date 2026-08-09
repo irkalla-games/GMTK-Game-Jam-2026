@@ -43,11 +43,21 @@ public readonly struct DamageInfo
     /// or displaying a number would destroy the buff without an attack ever happening.
     public readonly bool consumeCharges;
 
+    /// <summary>
+    /// How much of this hit a Shield status has absorbed into its own pool so far. Tracked separately
+    /// from `amount` - which Shield reduces exactly like Block does, there is no other difference in
+    /// this pipeline - because a floating damage number wants to credit Shield-absorbed damage as
+    /// having landed (it spent a real resource, the shield's pool), while a Block reduction or a Parry
+    /// negation simply prevents damage and leaves nothing to show for it. See
+    /// Character.DamageRegistered.
+    /// </summary>
+    public readonly int shieldAbsorbed;
+
     public DamageInfo(Character attacker, Character target, int amount, bool consumeCharges = true)
-        : this(attacker, target, amount, reflected: 0, negated: false, consumeCharges) { }
+        : this(attacker, target, amount, reflected: 0, negated: false, consumeCharges, shieldAbsorbed: 0) { }
 
     private DamageInfo(Character attacker, Character target, int amount, int reflected, bool negated,
-                       bool consumeCharges)
+                       bool consumeCharges, int shieldAbsorbed)
     {
         this.attacker = attacker;
         this.target = target;
@@ -55,17 +65,25 @@ public readonly struct DamageInfo
         this.reflected = reflected;
         this.negated = negated;
         this.consumeCharges = consumeCharges;
+        this.shieldAbsorbed = shieldAbsorbed;
     }
 
     /// The same hit carrying a different number. Everything else rides along untouched, which is what
     /// keeps a status from having to know what the other fields are for.
     public DamageInfo WithAmount(int newAmount) =>
-        new(attacker, target, newAmount, reflected, negated, consumeCharges);
+        new(attacker, target, newAmount, reflected, negated, consumeCharges, shieldAbsorbed);
 
     /// Reduced by a flat amount, never past zero. Block.
     public DamageInfo Reduced(int reduction) => WithAmount(Mathf.Max(0, amount - reduction));
 
     /// Cancelled outright, with what it would have dealt queued up to go back at the attacker. Parry.
     public DamageInfo Reflected() =>
-        new(attacker, target, amount: 0, reflected + amount, negated: true, consumeCharges);
+        new(attacker, target, amount: 0, reflected + amount, negated: true, consumeCharges, shieldAbsorbed);
+
+    /// The portion of this hit a Shield status just absorbed into its own pool - reduces `amount` like
+    /// any other mitigation, but also credits `shieldAbsorbed` so TakeDamage can still count it as
+    /// having registered. ShieldStatus.OnTakeDamage is the only caller.
+    public DamageInfo AbsorbedByShield(int amount) =>
+        new(attacker, target, this.amount - amount, reflected, negated, consumeCharges,
+            shieldAbsorbed + amount);
 }

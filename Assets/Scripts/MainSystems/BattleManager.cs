@@ -22,8 +22,8 @@ public enum BattlePhase
 /// disrupting.
 ///
 ///   TurnStart      refresh energy + armor, draw back up, enemies commit an intent
-///   PlayerActing   free-form, immediate resolution. Ends on End Turn or when nobody can act, then
-///                  player-controlled statuses tick.
+///   PlayerActing   free-form, immediate resolution. Ends on End Turn and nothing else - never on
+///                  its own - then player-controlled statuses tick.
 ///   EnemyResolve   the committed intent executes right or wrong; everything after it is re-decided.
 ///                  Enemy statuses tick once every enemy has acted.
 ///   -> TurnStart
@@ -38,6 +38,10 @@ public class BattleManager : Singleton<BattleManager>
 {
     [SerializeField] private TextMeshProUGUI turnCounter;
     [SerializeField] private TextMeshProUGUI manaCounter;
+
+    [Tooltip("Plays the giant turn-count roll between the enemy's turn and the next player turn. "
+             + "Optional - a scene without one rolls straight into the next turn.")]
+    [SerializeField] private TurnTransitionViewer turnTransition;
 
     [Tooltip("Characters already placed in the scene. When LevelData/RunState are both wired up this "
              + "is normally empty - SpawnParty and SpawnEnemies populate `characters` instead - but "
@@ -119,7 +123,10 @@ public class BattleManager : Singleton<BattleManager>
 
     public void SetInputLocked(bool value) => InputLocked = value;
 
-    /// Hook this to the End Turn button. Ends the turn early, with energy still banked.
+    /// Hook this to the End Turn button. The only way out of PlayerActing, and it always works while
+    /// the phase is live - energy left unspent is simply banked. The button dims itself while there
+    /// is still something playable (see EndTurnButton) but never refuses the click; holding energy
+    /// back is a decision the player is allowed to make.
     public void RequestEndTurn()
     {
         if (Phase == BattlePhase.PlayerActing && !InputLocked) { endTurnRequested = true; }
@@ -197,6 +204,10 @@ public class BattleManager : Singleton<BattleManager>
         Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
         ChangeActiveMana(ActiveCharacter.Energy);
         ActiveCharacterChanged?.Invoke(character);
+
+        // The hand on screen is now somebody else's, so every card in it has to be re-asked against
+        // a different energy pool.
+        RaisePlayabilityChanged();
     }
 
     /// Raised when the selected character changes, for anything showing per-character info (health,
@@ -214,6 +225,10 @@ public class BattleManager : Singleton<BattleManager>
 
         SelectedCharacter = character;
         SelectedCharacterChanged?.Invoke(character);
+
+        // Selection is one of the things an outline is drawn from - see CharacterOutline, where it
+        // is what makes a hero white rather than green.
+        RaisePlayabilityChanged();
     }
 
     /// <summary>
@@ -232,6 +247,76 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     public event System.Action TurnAdvanced;
 
+    /// <summary>
+    /// Raised when anything that could change what is playable right now has changed - energy spent
+    /// or refilled, a card drawn or discarded, a status gained, a cooldown ticked, or the active or
+    /// selected character moving.
+    ///
+    /// Everything that draws the playability channel hangs off this one event: the green border on a
+    /// card, the outline on a hero, and the End Turn button's dim. They all answer the same question
+    /// from the same predicate (Card.PlayRefusal), so they get the same signal rather than three
+    /// subscriptions each to Character.StatsChanged, CardDrawn, CardDiscarded and TurnAdvanced.
+    ///
+    /// An event rather than polling, and that is not just taste: Character.CanAct walks
+    /// ActiveStatuses(), which builds a fresh List every call, so a per-frame sweep of the party's
+    /// hands would allocate every frame for an answer that changes a handful of times a turn.
+    ///
+    /// Parameterless and coarse, the same bargain TurnAdvanced strikes above - a listener re-asks
+    /// PlayRefusal itself rather than being told what moved.
+    /// </summary>
+    public event System.Action PlayabilityChanged;
+
+    private void RaisePlayabilityChanged() => PlayabilityChanged?.Invoke();
+
+    /// <summary>
+    /// Raised when a character is hooked into the battle, from either arrival route - the scene loop
+    /// in Start or AddCharacter for anything spawned or summoned. General purpose on purpose: this is
+    /// the notification a viewer needs to attach itself to every character without a component on
+    /// every character prefab - FloatingTextManager is the reason it exists.
+    /// </summary>
+    public event System.Action<Character> CharacterJoined;
+
+    /// The matching half, raised from Unsubscribe as a character leaves the board.
+    public event System.Action<Character> CharacterLeft;
+
+    /// <summary>
+    /// Hooks a character up to the battle. Called from the two places a character can arrive: the
+    /// scene loop in Start, and AddCharacter for anything spawned or summoned.
+    ///
+    /// One method rather than a line per event at each site: there are two arrival routes and four
+    /// subscriptions now, and the failure mode of spelling them out twice is a character that raises
+    /// Died correctly but never announces its energy - a hero whose cards silently stop updating.
+    /// </summary>
+    private void Subscribe(Character character)
+    {
+        character.Died += HandleCharacterDied;
+
+        // Whose energy, hand and statuses these are does not matter: playability is asked about the
+        // whole party at once (see CanAnyoneAct and the End Turn button), so any character moving is
+        // reason enough to re-ask.
+        character.StatsChanged += HandlePlayabilityMayHaveChanged;
+        character.CardDrawn += HandlePlayabilityMayHaveChanged;
+        character.CardDiscarded += HandlePlayabilityMayHaveChanged;
+
+        CharacterJoined?.Invoke(character);
+    }
+
+    private void Unsubscribe(Character character)
+    {
+        character.Died -= HandleCharacterDied;
+        character.StatsChanged -= HandlePlayabilityMayHaveChanged;
+        character.CardDrawn -= HandlePlayabilityMayHaveChanged;
+        character.CardDiscarded -= HandlePlayabilityMayHaveChanged;
+
+        CharacterLeft?.Invoke(character);
+    }
+
+    // Two shapes because Character's events carry different payloads; both mean the same thing here,
+    // and both are discarded - see the doc on PlayabilityChanged for why it carries nothing.
+    private void HandlePlayabilityMayHaveChanged(Character _) => RaisePlayabilityChanged();
+
+    private void HandlePlayabilityMayHaveChanged(Character _, Card __) => RaisePlayabilityChanged();
+
     private void Start()
     {
         // Before anything reads CurrentLevel. Does nothing when the player came here from the Main
@@ -249,7 +334,7 @@ public class BattleManager : Singleton<BattleManager>
         {
             if (character == null) { continue; }
 
-            character.Died += HandleCharacterDied;
+            Subscribe(character);
 
             // Their own Start places them, but nothing orders that against this Start, and the board
             // above may not have existed when it ran. Placing again here costs nothing when it did.
@@ -395,9 +480,9 @@ public class BattleManager : Singleton<BattleManager>
     {
         if (Keyboard.current == null) { return; }
 
-        // Keyboard fallback so the loop is playable before an End Turn button exists in the scene.
-        // Without it RequestEndTurn has no caller at all, and a turn can only end by running the
-        // whole party out of playable cards.
+        // Keyboard shortcut for the End Turn button, and the only other way out of PlayerActing -
+        // nothing ends the turn on its own any more, so a scene whose button came unwired would
+        // otherwise hang the round forever.
         if (Keyboard.current.enterKey.wasPressedThisFrame) { RequestEndTurn(); }
 
         // Debug: draw a card for whoever is active.
@@ -418,7 +503,11 @@ public class BattleManager : Singleton<BattleManager>
         if (character == null || characters.Contains(character)) { return; }
 
         characters.Add(character);
-        character.Died += HandleCharacterDied;
+        Subscribe(character);
+
+        // A body that just joined has a hand and an energy pool of its own, so what the party can
+        // still do has changed - a summoned ally is one more set of cards to light up.
+        RaisePlayabilityChanged();
     }
 
     /// <summary>
@@ -465,6 +554,11 @@ public class BattleManager : Singleton<BattleManager>
         if (character == ActiveCharacter) { SetActiveCharacter(FirstPlayableCharacter()); }
         if (character == SelectedCharacter) { SetSelectedCharacter(null); }
 
+        // Before Destroy, while the events are still there to detach from. The object going away
+        // would drop them anyway, but leaving a dead character subscribed means every one of its
+        // stat changes on the way out raises PlayabilityChanged at listeners re-reading a corpse.
+        Unsubscribe(character);
+
         Destroy(character.gameObject);
     }
 
@@ -498,7 +592,7 @@ public class BattleManager : Singleton<BattleManager>
     {
         TurnsRemaining = TurnsToSurvive;
         TurnsElapsed = 0;
-        turnCounter.text = TurnsRemaining.ToString();
+        RefreshTurnCounter();
 
         while (true)
         {
@@ -507,7 +601,16 @@ public class BattleManager : Singleton<BattleManager>
             Phase = BattlePhase.PlayerActing;
             endTurnRequested = false;
 
-            while (!endTurnRequested && CanAnyoneAct()) { yield return null; }
+            // The phase flip is the one thing the End Turn button watches that no character event
+            // announces, so it is said out loud here.
+            RaisePlayabilityChanged();
+
+            // Only the button ends the turn. This used to also break on !CanAnyoneAct(), which meant
+            // the round could roll over underneath the player the instant the last affordable card
+            // was played - no beat to read the board, and no way to deliberately hold energy back.
+            // CanAnyoneAct survives as the *visual* gate: see EndTurnButton, which dims itself while
+            // it is true rather than locking the click.
+            while (!endTurnRequested) { yield return null; }
 
             // A pickup queued on the very last action of the turn must resolve before the round rolls
             // over - otherwise EnemyResolve starts underneath a reward panel that is still up.
@@ -517,6 +620,8 @@ public class BattleManager : Singleton<BattleManager>
 
             yield return StartCoroutine(EnemyResolve());
 
+            int turnsBefore = TurnsRemaining;
+
             ReduceTurns();
 
             if (AllHeroesDead())
@@ -525,6 +630,20 @@ public class BattleManager : Singleton<BattleManager>
                 yield return WaitForAcknowledgement();
                 Finish(victory: false);
                 yield break;
+            }
+
+            // Between the two terminal checks on purpose. A wipe wants its modal, not a flourish, but
+            // the winning turn does want to see the counter land on 0 before Victory. The label write
+            // rides along inside the roll so the HUD and the giant number flip on the same frame; the
+            // else branch is what keeps a scene with no viewer wired up correct.
+            if (turnTransition != null)
+            {
+                yield return StartCoroutine(
+                    turnTransition.Play(turnsBefore, TurnsRemaining, RefreshTurnCounter));
+            }
+            else
+            {
+                RefreshTurnCounter();
             }
 
             if (TurnsRemaining <= 0)
@@ -537,11 +656,12 @@ public class BattleManager : Singleton<BattleManager>
         }
     }
 
-    private void ReduceTurns()
-    {
-        TurnsRemaining--;
-        turnCounter.text = TurnsRemaining.ToString();
-    }
+    private void ReduceTurns() => TurnsRemaining--;
+
+    /// The HUD label. Deliberately not written by ReduceTurns: the giant countdown is what reveals the
+    /// new number, and a small label that has already flipped spoils it. TurnTransitionViewer calls
+    /// this back at the exact frame the new number takes the centre, so both flip on the same frame.
+    private void RefreshTurnCounter() => turnCounter.text = TurnsRemaining.ToString();
 
     private IEnumerator TurnStart()
     {
@@ -564,7 +684,7 @@ public class BattleManager : Singleton<BattleManager>
             // with an empty hand has nothing to choose between and can only Wait.
             character.DrawCards(HandSize - character.Hand.Count);
 
-            character.TickCardCooldowns();
+            character.TickCardTimers();
 
             character.ResetEnergy();
 
@@ -581,6 +701,11 @@ public class BattleManager : Singleton<BattleManager>
         // Every OnTurnStart hook has run by here - Shield has wiped itself, and none of it went
         // through an action. Anything showing a character's stats needs telling.
         TurnAdvanced?.Invoke();
+
+        // TickCardTimers above is the reason this is not left to ResetEnergy's StatsChanged: a
+        // card coming off cooldown (or waking from Dormant) changes nothing about the character
+        // carrying it, so the only announcement it would otherwise get is none.
+        RaisePlayabilityChanged();
 
         // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
         // whole design: they announce one action, you spend the turn making it wrong, and it fires
@@ -603,12 +728,20 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Whether the player has any move left. Deliberately "can anyone afford anything in hand", not
-    /// "is everyone at zero energy" - a character sitting on 1 energy holding only 2-cost cards would
-    /// otherwise stall the turn forever, and an empty hand falls out of the same question. Frozen
-    /// characters cannot act at all, so a fully frozen party ends the turn rather than hanging it.
+    /// Whether the player has any move left. Deliberately "can anyone still play something", not "is
+    /// everyone at zero energy" - a character sitting on 1 energy holding only 2-cost cards has no
+    /// move, and an empty hand falls out of the same question.
+    ///
+    /// Asks Card.PlayRefusal, the same predicate the click and the card highlight are built from, so
+    /// a hand this reports as spent is exactly a hand with no green cards in it. It used to ask
+    /// CanAct and CanAfford directly and so missed Cooldown - a hand of recharging cards read as
+    /// playable while every one of them refused the click.
+    ///
+    /// Now purely a display question: it gates the End Turn button's dim, not the turn itself. The
+    /// early-out on the character before touching its hand is worth keeping - PlayRefusal calls
+    /// ActRefusal, which allocates.
     /// </summary>
-    private bool CanAnyoneAct()
+    public bool CanAnyoneAct()
     {
         foreach (Character character in characters)
         {
@@ -616,7 +749,7 @@ public class BattleManager : Singleton<BattleManager>
 
             foreach (Card card in character.Hand)
             {
-                if (character.CanAfford(card.cost)) { return true; }
+                if (card.PlayRefusal(character) == null) { return true; }
             }
         }
 
@@ -758,6 +891,9 @@ public class BattleManager : Singleton<BattleManager>
 
         // Poison has just bitten, and like the turn-start hooks it bypassed ActionManager entirely.
         TurnAdvanced?.Invoke();
+
+        // OnTurnEnd is where a Frozen wears off, which un-dims a whole hand at once.
+        RaisePlayabilityChanged();
     }
 
     /// <summary>

@@ -2,17 +2,19 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// One keyword this card is authored with, and its magnitude. Meaning depends on type - Cooldown reads
-/// magnitude as its length in turns, Innate ignores it. Lives here rather than as a fixed set of bool
-/// fields so a future keyword only needs a new CardKeywordType, not a new field on every card.
+/// One keyword this card is authored with, and its magnitude. Meaning depends on type - Cooldown and
+/// Dormant both read magnitude as a length in turns, Innate ignores it. Lives here rather than as a
+/// fixed set of bool fields so a future keyword only needs a new CardKeywordType, not a new field on
+/// every card.
 /// </summary>
 [System.Serializable]
 public struct CardKeywordEntry
 {
     public CardKeywordType type;
 
-    [Tooltip("Meaning depends on type. Cooldown: turns before it may be played, and again after each "
-             + "use. Innate: unused.")]
+    [Tooltip("Meaning depends on type. Cooldown: turns before it may be played again after each use "
+             + "(ready the first time). Dormant: turns before it may be played the first time, counted "
+             + "from when this copy was created. Innate: unused.")]
     public int magnitude;
 }
 
@@ -54,6 +56,12 @@ public class CardData : ScriptableObject
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }
+
+    [field: Tooltip("How this card's actions look when played. Left empty, every action animates "
+                    + "exactly as it would by itself - a plain swing, a plain cast - which is what "
+                    + "every card authored before this field existed keeps doing. Only needed to "
+                    + "redirect a cue (Fireball casting instead of swinging) or to send a projectile.")]
+    [field: SerializeField] public CardAnimation animation { get; private set; }
 
     [field: Tooltip("Reusable tags this card carries - Innate, Cooldown, and whatever gets added later.")]
     [field: SerializeField] public List<CardKeywordEntry> keywords { get; private set; } = new();

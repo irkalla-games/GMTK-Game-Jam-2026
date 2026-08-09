@@ -38,7 +38,16 @@ public class AuraReaction
 
     [SerializeField] private CardEffect effect;
 
+    [Tooltip("One sentence for the totem's tooltip, e.g. \"When an ally attacks nearby, they gain "
+             + "Shield 3.\" Left blank, this reaction is not described.")]
+    [TextArea]
+    [SerializeField] private string description;
+
     public CardEffect Effect => effect;
+
+    /// The totem tooltip's prose for this reaction, or blank if it should say nothing - see
+    /// TotemTooltip.
+    public string Description => description;
 
     public bool Matches(GameAction action) => trigger switch
     {

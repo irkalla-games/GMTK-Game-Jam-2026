@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -41,7 +42,52 @@ public class CardViewer : MonoBehaviour
         "part of the card you can actually hit.")]
     [SerializeField] private Collider2D hitbox;
 
+    [Header("Playability")]
+    [Tooltip("The card's frame - the CardBorder child. Turned green while this card can actually be " +
+        "played. Optional: without it a card still greys out, it just gains no outline.")]
+    [SerializeField] private SpriteRenderer border;
 
+    [Tooltip("The frame's colour while this card is playable right now - feeds both the flat tint on " +
+        "CardBorder itself and the enlarged ring behind it, so its alpha controls how intrusive both " +
+        "read together. Kept translucent by default rather than a solid fill.")]
+    [SerializeField] private Color playableBorderColor = new(0.45f, 1f, 0.55f, 0.5f);
+
+    [Tooltip("A solid, non-hollow sprite for the backing ring - CardBackground's own sprite (White " +
+        "Stop) is the natural choice, since it already matches the card's silhouette. CardBorder's " +
+        "own sprite cannot be reused here the way it first was: it is a hollow frame graphic, and " +
+        "enlarging a hollow shape draws a second, separate ring rather than thickening the first one.")]
+    [SerializeField] private Sprite outlineSprite;
+
+    [Tooltip("How much bigger than CardBorder the backing ring is, as a multiplier on its own scale - " +
+        "1.2 means 20% bigger on both axes, growing evenly outward from CardBorder's own centre.")]
+    [SerializeField] private float outlineScale = 1.2f;
+
+    [Tooltip("How far an unplayable card is pushed toward grey. 0 leaves it fully coloured, 1 makes " +
+        "it monochrome.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float unplayableDesaturation = 0.75f;
+
+    [Tooltip("How far an unplayable card is dimmed, after the desaturation above.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float unplayableBrightness = 0.6f;
+
+    [Tooltip("What an unplayable card's text fades to. Separate from the brightness above because " +
+        "alpha is the only channel that reaches the glossary-tinted keywords in the description - a " +
+        "<color> tag overrides the rest. Keep it high enough that the card stays readable.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float unplayableTextAlpha = 0.55f;
+
+    [Header("Timers")]
+    [Tooltip("The turns-remaining badge behind lockCounter - shown whenever Cooldown or Dormant still " +
+        "has this card locked. Optional: without it a locked card still greys out via SetPlayable, it " +
+        "just does not say for how many more turns.")]
+    [SerializeField] private SpriteRenderer lockBadge;
+
+    [Tooltip("The number on the badge - Card.LockedTurns, whichever of Cooldown/Dormant is currently " +
+        "longer. Excluded from the Awake grey-out scan below along with lockBadge, on purpose: this " +
+        "is only ever visible on a card SetPlayable has already dimmed, and letting Dimmed() reach it " +
+        "would grey out the one thing explaining why the card is grey.")]
+    [SerializeField] private TMP_Text lockCounter;
 
     /// <summary>
     /// Set by RewardPanel on a card it built for the choice screen. When set, a click goes here instead
@@ -86,11 +132,110 @@ public class CardViewer : MonoBehaviour
     private Tweener positionTween;
     private Tweener rotationTween;
 
+    // Every renderer under the card, with the colour the prefab authored for it. Cached so the grey-out
+    // is a transform of what was authored rather than a hard-coded palette - the same reason
+    // TileSelector keeps an idleColor to return to instead of assuming white.
+    private readonly List<SpriteRenderer> sprites = new();
+    private readonly List<Color> spriteRestColors = new();
+    private readonly List<TMP_Text> texts = new();
+    private readonly List<Color> textRestColors = new();
+
+    private bool isPlayable = true;
+
+    /// False until SetPlayable has run once, so the first call always paints even though isPlayable
+    /// already starts true. A card is dealt into a hand it may not be able to afford.
+    private bool playabilityApplied;
+
+    /// The enlarged, tinted copy of `border` sitting behind it - the ring SetPlayable turns on and
+    /// off. Null whenever `border` was never wired up, same bargain every optional reference in this
+    /// class strikes.
+    private SpriteRenderer outlineRenderer;
+
     private void Awake()
     {
         // The root collider is the thing OnMouseEnter already fires from, so an unassigned field means
         // the obvious answer rather than no tooltip at all.
         if (hitbox == null) { hitbox = GetComponent<Collider2D>(); }
+
+        // Found rather than serialized: a card is eleven renderers deep and listing them all in the
+        // Inspector would mean a new child silently escaping the grey-out. The border is the one
+        // exception - it needs naming, because it is the only one that gets its own colour.
+        GetComponentsInChildren(true, sprites);
+        foreach (SpriteRenderer sprite in sprites) { spriteRestColors.Add(sprite.color); }
+
+        GetComponentsInChildren(true, texts);
+        foreach (TMP_Text text in texts) { textRestColors.Add(text.color); }
+
+        // lockBadge/lockCounter are the second exception, for the opposite reason to border: they
+        // must only ever be visible on a card SetPlayable has already dimmed, so letting the grey-out
+        // reach them would grey out the one thing explaining why the card is grey.
+        RemoveFromGreyOut(lockBadge);
+        RemoveFromGreyOut(lockCounter);
+
+        BuildOutlineRenderer();
+    }
+
+    /// Drops `renderer` out of the grey-out scan, keeping sprites/spriteRestColors paired by index.
+    /// No-op if it was never wired or GetComponentsInChildren never found it.
+    private void RemoveFromGreyOut(SpriteRenderer renderer)
+    {
+        if (renderer == null) { return; }
+
+        int index = sprites.IndexOf(renderer);
+        if (index < 0) { return; }
+
+        sprites.RemoveAt(index);
+        spriteRestColors.RemoveAt(index);
+    }
+
+    /// Same as above, for the text half.
+    private void RemoveFromGreyOut(TMP_Text text)
+    {
+        if (text == null) { return; }
+
+        int index = texts.IndexOf(text);
+        if (index < 0) { return; }
+
+        texts.RemoveAt(index);
+        textRestColors.RemoveAt(index);
+    }
+
+    /// <summary>
+    /// Builds the backing ring once, as a sibling of `border` sitting behind everything on the card -
+    /// the same "bigger copy of the same shape, further back" trick CharacterOutline uses for a
+    /// health bar. Uses outlineSprite rather than border's own sprite on purpose: CardBorder is
+    /// itself a hollow frame graphic (that hollowness is what makes tinting it read as a border in
+    /// the first place), so an enlarged copy of it is a second, separate ring rather than a thicker
+    /// version of the first - the same mistake would repeat with any other hollow shape. A solid
+    /// sprite has no inner edge to draw a second ring from; only its one outer edge ever shows.
+    ///
+    /// A pure uniform scale multiplier rather than a fixed-unit padding: CardBorder's own scale is
+    /// non-uniform (its rectangle isn't square), and multiplying both axes by the same factor grows
+    /// it proportionally without distorting the shape or needing any per-axis correction - there is
+    /// no shader here trying to reconstruct a world-unit thickness, so there is nothing for a
+    /// non-uniform scale to trip up.
+    /// </summary>
+    private void BuildOutlineRenderer()
+    {
+        if (border == null || outlineSprite == null) { return; }
+
+        GameObject outlineObject = new("CardOutlineRing", typeof(SpriteRenderer));
+        Transform outlineTransform = outlineObject.transform;
+
+        outlineTransform.SetParent(border.transform.parent, false);
+        outlineTransform.SetLocalPositionAndRotation(border.transform.localPosition, border.transform.localRotation);
+        outlineTransform.localScale = border.transform.localScale * outlineScale;
+
+        outlineRenderer = outlineObject.GetComponent<SpriteRenderer>();
+        outlineRenderer.sprite = outlineSprite;
+        outlineRenderer.sortingLayerID = border.sortingLayerID;
+
+        // Below every other renderer on the card (the lowest authored order is CardBackground's 0),
+        // so only the margin this scale-up grows past CardBorder's own edge is ever visible - the
+        // rest sits behind CardBackground, fully hidden, same as BarBack hides HealthBarOutline's
+        // own body on a character.
+        outlineRenderer.sortingOrder = -1;
+        outlineRenderer.color = new Color(1f, 1f, 1f, 0f);
     }
 
     public void Setup(Card newCard)
@@ -106,7 +251,7 @@ public class CardViewer : MonoBehaviour
 
         cost.text = card.cost.ToString();
         image.sprite = card.image;
-        if (card.range.MaxDistance > 1)
+        if (card.range.IsRanged)
         {
             rangeIndicator.sprite = bowIcon;
         } else if (card.range.MaxDistance == 1){
@@ -115,6 +260,103 @@ public class CardViewer : MonoBehaviour
         {
             rangeIndicator.sprite = null;
         }
+    }
+
+    /// <summary>
+    /// Whether this card can be played right now, said in colour: a green frame when it can, the whole
+    /// card pushed grey when it cannot.
+    ///
+    /// The one place the card's colour is written, so nothing else has to know what a dimmed card
+    /// looks like - the same bargain TileSelector.ApplyColor strikes for a tile. ActiveHandViewer is
+    /// the only caller, and it answers from Card.PlayRefusal, the same predicate the click is gated
+    /// on. A reward card is never told either way and simply keeps the colours the prefab authored:
+    /// nobody owns it yet, so "can you afford it" has no answer.
+    /// </summary>
+    public void SetPlayable(bool value)
+    {
+        if (playabilityApplied && isPlayable == value) { return; }
+
+        isPlayable = value;
+        playabilityApplied = true;
+
+        for (int i = 0; i < sprites.Count; i++)
+        {
+            if (sprites[i] == null) { continue; }
+
+            sprites[i].color = value ? spriteRestColors[i] : Dimmed(spriteRestColors[i]);
+        }
+
+        for (int i = 0; i < texts.Count; i++)
+        {
+            if (texts[i] == null) { continue; }
+
+            if (value) { texts[i].color = textRestColors[i]; continue; }
+
+            // The alpha here is load-bearing, not decoration. The description is glossary-tagged, and
+            // a <color> tag overrides the RGB this sets - so the grey alone never reaches the tinted
+            // keywords. TMP does cap a tag's alpha at the base colour's, which is the one channel
+            // that still gets through; without it a greyed-out card keeps a row of bright links
+            // across its middle.
+            Color dimmed = Dimmed(textRestColors[i]);
+            dimmed.a = textRestColors[i].a * unplayableTextAlpha;
+            texts[i].color = dimmed;
+        }
+
+        // After the loop above, which has just painted the border grey along with everything else.
+        if (border != null && value) { border.color = playableBorderColor; }
+
+        ApplyOutline(value);
+    }
+
+    /// <summary>
+    /// The enlarged ring behind `border` - additive to the flat tint above, not a replacement for it.
+    /// Both use playableBorderColor, so together they read as one thicker margin; turning the ring
+    /// off when unplayable leaves border's own colour to fall through to Dimmed() exactly as it did
+    /// before this existed. Alpha doubles as the switch, same as CharacterOutline's health-bar ring -
+    /// a fully transparent copy is indistinguishable from no ring at all.
+    /// </summary>
+    private void ApplyOutline(bool value)
+    {
+        if (outlineRenderer == null) { return; }
+
+        outlineRenderer.color = value ? playableBorderColor : new Color(1f, 1f, 1f, 0f);
+    }
+
+    /// <summary>
+    /// Shows or hides the turns-remaining badge and updates its number from Card.LockedTurns -
+    /// whichever of Cooldown/Dormant is currently longer. Kept separate from SetPlayable rather than
+    /// folded into it: SetPlayable early-returns once isPlayable stops moving, but a locked card's
+    /// countdown keeps changing turn over turn while it stays unplayable the whole time. Called by
+    /// ActiveHandViewer alongside every SetPlayable call, so the two can never disagree.
+    /// </summary>
+    public void RefreshLockCounter()
+    {
+        if (card == null) { return; }
+
+        int turns = card.LockedTurns;
+
+        if (lockBadge != null) { lockBadge.enabled = turns > 0; }
+
+        if (lockCounter != null)
+        {
+            lockCounter.enabled = turns > 0;
+            lockCounter.text = turns.ToString();
+        }
+    }
+
+    /// Pushes a colour toward grey and then darkens it, leaving alpha alone except for the text dim.
+    /// Two steps rather than one multiply because a flat multiply only darkens - a bright red cost
+    /// pip stays a bright red pip, and the card reads as "in shadow" rather than "unavailable".
+    private Color Dimmed(Color color)
+    {
+        float grey = color.grayscale;
+        Color desaturated = Color.Lerp(color, new Color(grey, grey, grey, color.a), unplayableDesaturation);
+
+        return new Color(
+            desaturated.r * unplayableBrightness,
+            desaturated.g * unplayableBrightness,
+            desaturated.b * unplayableBrightness,
+            color.a);
     }
 
     /// Grows the card from nothing - called once, when it is first dealt into a hand.

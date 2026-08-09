@@ -14,6 +14,14 @@ public class GridManager : Singleton<GridManager>
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Transform tileParent;
 
+    [Tooltip("How long a step's tween takes. MoveAction waits this exact number rather than the "
+             + "unrelated ActionManager pacing delay, which used to only coincidentally match it, and "
+             + "holds the walk animation for the same length. The old 0.15 was tuned for a character "
+             + "that teleported between tiles with no animation to read.")]
+    [SerializeField] private float moveDuration = 0.4f;
+
+    public float MoveDuration => moveDuration;
+
     private readonly Dictionary<Vector2Int, GridTile> tiles = new();
 
 
@@ -116,7 +124,7 @@ public class GridManager : Singleton<GridManager>
         // MoveTo already clears the old tile and claims the new one. Doing it here too would throw
         // on a character that has not been placed on the board yet (Tile is still null).
         character.MoveTo(destination);
-        character.transform.DOMove(destination.transform.position, .15f);
+        character.transform.DOMove(destination.transform.position, moveDuration);
 
         destination.TryPickUpItem(character);
 

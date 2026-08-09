@@ -94,7 +94,7 @@ public class LootManager : Singleton<LootManager>
 
                 if (panel.ChosenCard != null)
                 {
-                    pickup.picker.AddCard(panel.ChosenCard);
+                    pickup.picker.AddCardToHand(panel.ChosenCard);
 
                     if (BattleManager.Instance != null)
                     {

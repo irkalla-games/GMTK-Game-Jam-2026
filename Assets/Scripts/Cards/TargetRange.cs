@@ -61,6 +61,11 @@ public struct TargetRange
     /// whatever its cards say it is, not a stat of its own.
     public int MaxDistance => maxDistance;
 
+    /// True past melee reach - the same threshold CardViewer uses to pick between the sword and bow
+    /// icon, and what DamageAction reads to default to Attack vs RangedAttack without a card needing
+    /// to author an override just to pick the right arm.
+    public bool IsRanged => maxDistance > 1;
+
     public TargetRange(RangeShape shape, int minDistance, int maxDistance)
     {
         this.shape = shape;
@@ -94,6 +99,26 @@ public struct TargetRange
         int distance = shape == RangeShape.Chebyshev ? Mathf.Max(dx, dy) : dx + dy;
 
         return distance >= minDistance && distance <= maxDistance;
+    }
+
+    /// <summary>
+    /// How far apart two tiles are under this shape's own metric, or -1 when there is nothing to
+    /// measure. Contains answers "is it in range"; this answers "how far in", which is what the aura
+    /// ripple needs to know which ring a tile sits on.
+    ///
+    /// Anywhere and SelfTile have no distance of their own - the first ignores distance, the second
+    /// only ever spans zero - so both fall back to Chebyshev. Every covered tile still gets a ring
+    /// number that way, and Chebyshev is the metric the board's square adjacency already uses.
+    /// </summary>
+    public int Distance(GridTile origin, GridTile target)
+    {
+        if (origin == null || target == null) { return -1; }
+
+        Vector2Int step = target.Coordinates - origin.Coordinates;
+        int dx = Mathf.Abs(step.x);
+        int dy = Mathf.Abs(step.y);
+
+        return shape == RangeShape.Manhattan ? dx + dy : Mathf.Max(dx, dy);
     }
 
     /// For the refusal log line.

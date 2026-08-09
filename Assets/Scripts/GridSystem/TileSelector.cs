@@ -32,6 +32,17 @@ public class TileSelector : MonoBehaviour
         ApplyColor();
     }
 
+    /// Called by whatever is standing on this tile and stealing its OnMouseEnter/OnMouseExit with a
+    /// collider of its own - a Totem's hitbox, say. Lets the tile still light up under the cursor
+    /// even though it never received the mouse event itself.
+    public void SetHovered(bool value)
+    {
+        if (isHovered == value) { return; }
+
+        isHovered = value;
+        ApplyColor();
+    }
+
     private void Awake()
     {
         // Awake, not Start: GridManager builds the grid in its own Awake and a highlight can arrive

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   enemies:
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 2, y: 5}
+    cell: {x: 2, y: 3}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -22,7 +22,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 4, y: 5}
+    cell: {x: 4, y: 3}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -30,7 +30,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 3, y: 5}
+    cell: {x: 3, y: 4}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -38,36 +38,17 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   waves:
-  - turn: 3
+  - turn: 2
     enemies:
     - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
       cell: {x: 1, y: 5}
       deckOverride: []
     - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-      cell: {x: 4, y: 5}
-      deckOverride: []
-  - turn: 8
-    enemies:
-    - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-      cell: {x: 4, y: 3}
-      deckOverride: []
-    - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-      cell: {x: 0, y: 3}
-      deckOverride:
-      - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
-      - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
-      - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
-      - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
-      - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
-    - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-      cell: {x: 0, y: 5}
-      deckOverride: []
-    - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-      cell: {x: 4, y: 5}
+      cell: {x: 3, y: 5}
       deckOverride: []
   partySpawnCells:
-  - {x: 1, y: 0}
-  - {x: 3, y: 0}
+  - {x: 2, y: 1}
+  - {x: 2, y: 0}
   boardSize: {x: 5, y: 6}
   turnsToSurvive: 10
   handSize: 5

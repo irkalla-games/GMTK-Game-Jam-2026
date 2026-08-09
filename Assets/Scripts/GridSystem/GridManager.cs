@@ -109,6 +109,80 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// <summary>
+    /// Whether this cell sits on the outer edge of the board - it is missing at least one of its four
+    /// cardinal neighbours.
+    ///
+    /// Derived from the tile dictionary rather than from a stored size, because there is no stored
+    /// size to trust: BuildGrid throws the dimensions it was handed away, and the serialized
+    /// width/height above are only the fallback, so they say nothing about a board a level sized
+    /// itself. Deriving needs no second copy to keep in sync, and it stays correct if the board ever
+    /// stops being a plain rectangle.
+    /// </summary>
+    public bool IsBorderCell(Vector2Int cell)
+    {
+        if (!tiles.ContainsKey(cell)) { return false; }
+
+        return !tiles.ContainsKey(cell + Vector2Int.up)
+            || !tiles.ContainsKey(cell + Vector2Int.down)
+            || !tiles.ContainsKey(cell + Vector2Int.left)
+            || !tiles.ContainsKey(cell + Vector2Int.right);
+    }
+
+
+    /// <summary>
+    /// Where a body aimed at `cell` can actually stand: `cell` itself when it is free, otherwise the
+    /// nearest free *border* tile. Null when there is nowhere - the caller is expected to give up on
+    /// the spawn rather than stack two characters on one tile.
+    ///
+    /// The authored cell wins outright even when it is interior, because it is distance 0 from itself
+    /// and "as close to where it was authored as possible" is the whole rule. The border restriction
+    /// is on the search for somewhere else: reinforcements arriving mid-battle come in from the edge,
+    /// not out of thin air in the middle of a fight.
+    ///
+    /// Here rather than on BattleManager because `tiles` is private and there is no way to enumerate
+    /// the board from outside - which cells exist and which are free is the board's own question.
+    /// Note this is deliberately not MoveRefusal: that asks whether a character already on the board
+    /// may walk somewhere, and consults its statuses. Nobody exists yet to be Rooted.
+    /// </summary>
+    public GridTile NearestFreeSpawnTile(Vector2Int cell)
+    {
+        if (IsTileAvailable(cell)) { return GetTile(cell); }
+
+        GridTile best = null;
+        int bestDistance = int.MaxValue;
+
+        foreach (KeyValuePair<Vector2Int, GridTile> entry in tiles)
+        {
+            if (entry.Value.Occupant != null) { continue; }
+
+            if (!IsBorderCell(entry.Key)) { continue; }
+
+            Vector2Int step = entry.Key - cell;
+            int distance = Mathf.Abs(step.x) + Mathf.Abs(step.y);
+
+            if (distance > bestDistance) { continue; }
+
+            // Ties broken on coordinates, never on which one the dictionary happened to hand back
+            // first: enumeration order is not something to lean on, and the same board being asked
+            // the same question twice should answer the same way both times.
+            if (best != null && distance == bestDistance && !IsEarlier(entry.Key, best.Coordinates))
+            {
+                continue;
+            }
+
+            best = entry.Value;
+            bestDistance = distance;
+        }
+
+        return best;
+    }
+
+
+    /// Lower x first, then lower y. Only exists to make NearestFreeSpawnTile's tie-break deterministic.
+    private static bool IsEarlier(Vector2Int a, Vector2Int b) => a.x != b.x ? a.x < b.x : a.y < b.y;
+
+
     public bool MoveCharacter(Character character, GridTile destination)
     {
         string refusal = MoveRefusal(character, destination);

@@ -3,6 +3,27 @@
 Unity 6 (6000.5.4f1) 2D card game. Cards are played onto a tile grid; tiles mutate the characters
 standing on them.
 
+## Ask before you plan
+
+**Every plan for this project starts with questions, not assumptions.** Do not present a plan until
+you have asked about whatever the request left open — then ask it all in one batch, as concrete
+options with a recommendation, rather than one question at a time.
+
+The conventions below are what makes this necessary: nearly every design decision here has a settled
+answer that is not guessable from the code in front of you. Before planning, ask which of these the
+change lands on:
+
+- **Which half of a split does this belong to** — `CardData` or `Card`, `AuraData` or `Aura`, the
+  card's range rule or the effect's refusal, `Character.MoveTo` or `GridManager.MoveCharacter`.
+- **Is this a `Status` subclass?** Most combat rules are. Ask before adding a field to `Character`.
+- **Does an existing `.asset` have to keep deserializing correctly?** Enum values, serialized field
+  order and sorting layer ids are all written into assets — appending is safe, reordering is not.
+- **Refusal or hook** — a gate asked before the fact (`Refusal`, `ActRefusal`, `MoveRefusal`) or a
+  notification after it (`OnTakeDamage`, `OnTurnEnd`).
+- **Authoring numbers or per-play state** — constructor args on a `GameAction` vs. `ActionContext`.
+
+Small, direct edits where I have already said what to change do not need a question round.
+
 ## Checking that it compiles
 
 Unity's own batch-mode compile refuses to run while the Editor has the project open

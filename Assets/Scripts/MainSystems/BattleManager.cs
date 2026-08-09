@@ -415,10 +415,6 @@ public class BattleManager : Singleton<BattleManager>
     /// Here rather than in a spawner of its own because ordering is the whole difficulty: the roster
     /// has to be complete before anything walks it, and two components' Awakes have no guaranteed
     /// order between them. BattleManager already owns the roster, so it does the spawning.
-    ///
-    /// Each one is placed explicitly rather than left to its own Start - a character instantiated
-    /// during this Start would not run its Start until the end of the frame, and the first TurnStart
-    /// happens before that. It would be asked for an intent with no tile, and answer Wait.
     /// </summary>
     private void SpawnEnemies()
     {
@@ -426,21 +422,59 @@ public class BattleManager : Singleton<BattleManager>
 
         foreach (EnemyPlacement placement in CurrentLevel.Enemies)
         {
-            if (placement.prefab == null) { continue; }
-
-            GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
-            Character enemy = enemyObject.GetComponent<Character>();
-            enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
-
-            if (placement.deckOverride != null && placement.deckOverride.Count > 0)
-            {
-                enemy.SetDeck(placement.deckOverride);
-            }
-
-            enemy.PlaceOnGrid(placement.cell);
-
-            AddCharacter(enemy);
+            SpawnPlacement(placement);
         }
+    }
+
+    /// <summary>
+    /// Instantiates one authored placement onto the board and puts it on the roster.
+    ///
+    /// The cell it was authored on is a request, not a guarantee: Character.MoveTo claims a tile
+    /// unconditionally, so spawning onto an occupied cell would overwrite that tile's Occupant and
+    /// leave the character already standing there alive, visible, and permanently unclickable - it
+    /// keeps its Tile pointer while the tile now points at the newcomer, and the tile under a body is
+    /// the only thing you can click. GridManager answers where the body can actually go; a taken cell
+    /// sends it to the nearest free border tile.
+    ///
+    /// Shared by the opening roster and the waves because the two had drifted into byte-for-byte
+    /// duplicates, and an occupancy rule fixed in one of them is a rule the other still gets wrong.
+    ///
+    /// Placed explicitly here rather than left to the character's own Start - one instantiated during
+    /// BattleManager.Start would not run its Start until the end of the frame, and the first TurnStart
+    /// happens before that. It would be asked for an intent with no tile, and answer Wait.
+    /// </summary>
+    private void SpawnPlacement(EnemyPlacement placement)
+    {
+        if (placement.prefab == null) { return; }
+
+        // Resolved per placement, inside the caller's loop rather than once for a whole wave: the
+        // sequence below is fully synchronous, so the second enemy of a wave sees the first one's
+        // claim and cannot be handed the same tile.
+        GridTile tile = GridManager.Instance.NearestFreeSpawnTile(placement.cell);
+
+        // Before Instantiate: a board with no room left should cost no GameObject and no roster entry.
+        if (tile == null)
+        {
+            Debug.LogWarning($"{placement.prefab.name} not spawned: {placement.cell} is taken and "
+                             + "every border tile is occupied");
+            return;
+        }
+
+        GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
+        Character enemy = enemyObject.GetComponent<Character>();
+        enemy.name = $"{placement.prefab.name} {tile.Coordinates.x},{tile.Coordinates.y}";
+
+        if (placement.deckOverride != null && placement.deckOverride.Count > 0)
+        {
+            enemy.SetDeck(placement.deckOverride);
+        }
+
+        // The resolved cell, never placement.cell. PlaceOnGrid writes startCoordinates, and
+        // Character.Start re-places itself from those at the end of the frame - handing it the
+        // authored cell would quietly drag a relocated enemy back on top of whoever displaced it.
+        enemy.PlaceOnGrid(tile.Coordinates);
+
+        AddCharacter(enemy);
     }
 
     /// <summary>
@@ -458,20 +492,7 @@ public class BattleManager : Singleton<BattleManager>
 
             foreach (EnemyPlacement placement in wave.enemies)
             {
-                if (placement.prefab == null) { continue; }
-
-                GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
-                Character enemy = enemyObject.GetComponent<Character>();
-                enemy.name = $"{placement.prefab.name} {placement.cell.x},{placement.cell.y}";
-
-                if (placement.deckOverride != null && placement.deckOverride.Count > 0)
-                {
-                    enemy.SetDeck(placement.deckOverride);
-                }
-
-                enemy.PlaceOnGrid(placement.cell);
-
-                AddCharacter(enemy);
+                SpawnPlacement(placement);
             }
         }
     }

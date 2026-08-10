@@ -53,6 +53,12 @@ public class CardData : ScriptableObject
                     + "favours cards tagged Poison. A card can carry more than one, or none.")]
     [field: SerializeField] public List<CardTag> tags { get; private set; } = new();
 
+    [field: Tooltip("Keeps this card out of every reward pool while leaving its rarity alone - for a "
+                    + "card every deck already starts with, like Move. Rarity.NotOffered is the other "
+                    + "half of this and stays for enemy-only cards; this one is the 'it is a real "
+                    + "Common, just not a reward' case.")]
+    [field: SerializeField] public bool excludeFromRewards { get; private set; }
+
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
     [field: SerializeField] public List<CardEffect> effects { get; private set; }

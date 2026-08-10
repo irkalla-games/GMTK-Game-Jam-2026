@@ -72,6 +72,12 @@ public class LevelData : ScriptableObject
              + "own LootTable overrides this for its own drop - see Character.LootTable.")]
     [SerializeField] private LootTable lootTable;
 
+    [Tooltip("Odds and choice count for the reward each living hero is offered once this level is "
+             + "cleared. Separate from lootTable above, which is only what enemies drop mid-fight - a "
+             + "later level can offer better clear-reward odds without touching what its enemies drop. "
+             + "Unassigned falls back to LootManager's fallbackTable.")]
+    [SerializeField] private LootTable clearRewardTable;
+
     public IReadOnlyList<EnemyPlacement> Enemies => enemies;
 
     public IReadOnlyList<EnemyWave> Waves => waves;
@@ -90,4 +96,6 @@ public class LevelData : ScriptableObject
     public int HandSize => handSize;
 
     public LootTable LootTable => lootTable;
+
+    public LootTable ClearRewardTable => clearRewardTable;
 }

@@ -1,23 +1,45 @@
 using UnityEngine;
 
 /// <summary>
-/// One damage event on its way through the status hooks.
+/// One shield-gain event on its way through the status hooks.
 ///
-/// Immutable, and passed *through* the hooks rather than handed to them: each status receives one of
-/// these and returns the next, so `info = status.OnTakeDamage(info)` is the whole pipeline. A status
-/// therefore cannot quietly half-modify a shared object, and a hook that forgets to account for
-/// something returns the value it was given rather than leaving a partly-written one behind.
+/// The Shield counterpart to DamageInfo, and the same reasoning applies: immutable, passed *through*
+/// the hooks rather than handed to them, so `info = status.OnGainShield(info)` is the whole pipeline
+/// and no status can quietly half-modify a shared object.
 ///
-/// A readonly struct rather than a class because these are produced one per status per hit and
-/// discarded immediately - by value there is nothing to collect. Same reasoning TargetRange documents
-/// for being a value type.
+/// A readonly struct rather than a class for the same reason DamageInfo is - produced one per status
+/// per gain and discarded immediately, so there is nothing for a value type to collect.
 ///
-/// Used in both directions. On the way out (Character.ComputeOutgoingDamage) `attacker` is the carrier
-/// and `target` is null - nobody has been picked yet, because an AoE resolves this once for every tile
-/// it is about to hit. On the way in (Character.TakeDamage) `target` is the carrier and `attacker` is
-/// whoever swung, or null for damage with no author.
+/// Only one direction, unlike DamageInfo: shield is granted straight to `carrier`, there is no
+/// separate "who is receiving it" to track, since a card that grants shield always targets the tile
+/// it lands on. See Character.GainShield.
 /// </summary>
-public readonly struct ShieldInfo   
+public readonly struct ShieldInfo
 {
-  
+    /// Who is gaining the shield. There is no "source" counterpart to DamageInfo.attacker: shield is
+    /// granted to a tile's occupant, and who played the card has no bearing on the amount.
+    public readonly Character carrier;
+
+    /// The running total, as it stands after every hook so far.
+    public readonly int amount;
+
+    /// False when somebody is only *looking* at this number - a tooltip, a card preview, an enemy
+    /// brain scoring a move it has not made yet. Statuses that spend a charge must check this first,
+    /// or displaying a number would destroy the buff without a gain ever happening. Same contract as
+    /// DamageInfo.consumeCharges.
+    public readonly bool consumeCharges;
+
+    public ShieldInfo(Character carrier, int amount, bool consumeCharges = true)
+    {
+        this.carrier = carrier;
+        this.amount = amount;
+        this.consumeCharges = consumeCharges;
+    }
+
+    /// The same gain carrying a different number. Everything else rides along untouched.
+    public ShieldInfo WithAmount(int newAmount) => new(carrier, newAmount, consumeCharges);
+
+    /// Reduced by a flat amount, never past zero. No current caller - kept symmetric with
+    /// DamageInfo.Reduced for whatever the first shield-reducing status turns out to be.
+    public ShieldInfo Reduced(int reduction) => WithAmount(Mathf.Max(0, amount - reduction));
 }

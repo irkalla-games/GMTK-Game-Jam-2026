@@ -609,6 +609,30 @@ public class Character : MonoBehaviour
         return info.amount;
     }
 
+    /// <summary>
+    /// Grants this character shield, once every OnGainShield hook has had a turn - the shield-gain
+    /// counterpart to ComputeOutgoingDamage, and the reason ShieldInfo exists: without a pipeline here
+    /// a status like Double Shield has nothing to intercept, since GridTile.GainShield used to hand
+    /// straight off to AddStatus.
+    ///
+    /// Only ShieldAction/GridTile.GainShield route through here today - a card authored directly as
+    /// ApplyStatusEffect(status: Shield) reaches AddStatus without running this pipeline, so it will
+    /// not be doubled. Author shield gains as a ShieldEffect if that matters.
+    /// </summary>
+    public void GainShield(int amount, bool shouldConsume = true)
+    {
+        // Guarding zero before the hooks matters: a 0-shield gain must not spend a Double Shield charge.
+        if (amount <= 0) { return; }
+
+        ShieldInfo info = new(this, amount, consumeCharges: shouldConsume);
+
+        foreach (Status status in ActiveStatuses()) { info = status.OnGainShield(info); }
+
+        if (shouldConsume) { PruneExpired(); }
+
+        AddStatus(StatusType.Shield, info.amount, Status.Indefinite);
+    }
+
     public void MoveTo(GridTile moveTo)
     {
         if (Tile != null && Tile.Occupant == this)

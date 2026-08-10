@@ -53,3 +53,4 @@ MonoBehaviour:
   turnsToSurvive: 10
   handSize: 5
   lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}
+  clearRewardTable: {fileID: 11400000, guid: c62c36e35137fb44586a68fb995f5192, type: 2}

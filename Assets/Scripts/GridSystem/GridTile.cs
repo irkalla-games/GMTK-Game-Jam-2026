@@ -69,7 +69,7 @@ public class GridTile : MonoBehaviour
 
     public void GainShield(int amount)
     {
-        if (Occupant != null) { Occupant.AddStatus(StatusType.Shield, amount, Status.Indefinite); }
+        if (Occupant != null) { Occupant.GainShield(amount); }
     }
 
     /// Block is the one that cannot go through the type/stacks form: `amount` comes off each hit and

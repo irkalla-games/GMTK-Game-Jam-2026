@@ -40,7 +40,8 @@ public class CardLibrary : ScriptableObject
 
         foreach (CardData card in cards)
         {
-            if (card == null || card.rarity != tier || card.rarity == Rarity.NotOffered) { continue; }
+            if (card == null || card.excludeFromRewards) { continue; }
+            if (card.rarity != tier || card.rarity == Rarity.NotOffered) { continue; }
             if (!card.CanBeUsedBy(picker)) { continue; }
 
             results.Add(card);

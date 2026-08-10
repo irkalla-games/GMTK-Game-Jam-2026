@@ -71,6 +71,13 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 8
+  - title: DOUBLE SHIELD
+    body: The next {stacks} Shield this character gains is doubled.
+    terms:
+    - Double Shield
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 9
   keywords:
   - title: INNATE
     body: Always in hand. Never enters the draw or discard pile.

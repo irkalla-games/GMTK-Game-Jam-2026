@@ -71,6 +71,11 @@ public abstract class Status
     /// The carrier is being hit. Return it reduced, or negated outright - see DamageInfo.
     public virtual DamageInfo OnTakeDamage(DamageInfo info) => info;
 
+    /// The carrier is about to gain shield. Return it doubled, reduced, or untouched - see ShieldInfo.
+    /// Only reaches statuses on the carrier receiving the shield; there is no "dealing" side to this
+    /// one the way OnDealDamage has an attacker, since nobody swings to grant shield.
+    public virtual ShieldInfo OnGainShield(ShieldInfo info) => info;
+
     /// The top of a round, before anybody acts. Shield wipes itself here.
     public virtual void OnTurnStart(Character carrier) { }
 

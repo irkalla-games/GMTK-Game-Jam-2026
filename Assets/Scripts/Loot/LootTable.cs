@@ -43,10 +43,27 @@ public class LootTable : ScriptableObject
              + "one signature drop. Leave empty if tag weighting already covers what you need.")]
     [SerializeField] private List<CardWeight> cardWeights = new();
 
+    [Tooltip("Cards this table never offers, even where they are offerable everywhere else. A hard "
+             + "gate, unlike cardWeights which only biases - a weight of 0 still leaves a card in the "
+             + "pool. Takes priority over guaranteedCards if a card is listed in both.")]
+    [SerializeField] private List<CardData> excludedCards = new();
+
+    [Tooltip("Cards this table always offers, ignoring the rarity roll and excludeFromRewards - a boss "
+             + "whose drop is a fixed signature card. Each one takes a slot out of choiceCount; the "
+             + "rest are rolled normally. Still skipped for a picker who cannot hold the card, and "
+             + "loses to excludedCards if a card is listed in both.")]
+    [SerializeField] private List<CardData> guaranteedCards = new();
+
     [Tooltip("How many cards the reward panel offers. Clamped to at least 1.")]
     [SerializeField] private int choiceCount = 3;
 
     public int ChoiceCount => Mathf.Max(1, choiceCount);
+
+    public IReadOnlyList<CardData> GuaranteedCards => guaranteedCards;
+
+    /// True if `card` is on this table's hard-exclude list. Checked ahead of guaranteedCards too - see
+    /// the tooltips above for why exclusion wins a contradiction rather than the guarantee.
+    public bool Excludes(CardData card) => card != null && excludedCards.Contains(card);
 
     /// <summary>
     /// Rolls a rarity tier by weight. Returns Common if nothing is authored, since Common == 0 is

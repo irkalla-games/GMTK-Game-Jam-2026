@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Turns a pickup into a reward choice, one at a time, well after the card that caused it has finished
-/// resolving.
+/// Turns an occasion into a reward choice: a mid-battle pickup, or a hero's share of a level-clear
+/// reward. Both funnel through the same pool (CardLibrary), the same weighted sampler, and the same
+/// RewardPanel - only the LootTable, the skip options offered, and what a chosen card is granted into
+/// differ between them.
 ///
-/// Deliberately a pending queue drained on ActionManager.IsIdle, not a GameAction queued alongside
-/// everything else a card does. AddAction runs the first action synchronously up to its first yield
-/// (see the gotcha documented on ActionManager.IsIdle), so a loot action queued from inside
-/// MoveAction.Execute would resolve *before* the rest of the card that moved the character there - a
-/// card that damages and moves in one play could open a reward panel for a character about to die, or
-/// interrupt its own resolution to wait on the player. Draining separately, once the whole card and any
-/// other in-flight actions have settled, avoids both.
+/// The pickup half is deliberately a pending queue drained on ActionManager.IsIdle, not a GameAction
+/// queued alongside everything else a card does. AddAction runs the first action synchronously up to
+/// its first yield (see the gotcha documented on ActionManager.IsIdle), so a loot action queued from
+/// inside MoveAction.Execute would resolve *before* the rest of the card that moved the character there
+/// - a card that damages and moves in one play could open a reward panel for a character about to die,
+/// or interrupt its own resolution to wait on the player. Draining separately, once the whole card and
+/// any other in-flight actions have settled, avoids both.
 ///
 /// The picker is also passed in explicitly by GridTile.TryPickUpItem rather than read back off an
 /// ActionContext, which matters for a future "damage and move the target" card: ctx.source there would
@@ -29,13 +31,20 @@ public class LootManager : Singleton<LootManager>
 
     [SerializeField] private CardLibrary library;
 
-    [Tooltip("One button per entry on the reward panel. A second skip option later is a new SkipReward "
-             + "asset added here, nothing else changes.")]
+    [Tooltip("One button per entry on a mid-battle pickup's reward panel. A second skip option later "
+             + "is a new SkipReward asset added here, nothing else changes.")]
     [SerializeField] private List<SkipReward> skipRewards = new();
+
+    [Tooltip("One button per entry on the level-clear reward panel - Skip and Remove a Card by "
+             + "default. Kept separate from skipRewards above: the two occasions offer genuinely "
+             + "different things, Heal makes no sense once the battle is already won, and Remove a "
+             + "Card needs the RewardContext.record a mid-battle pickup never sets.")]
+    [SerializeField] private List<SkipReward> levelClearSkipRewards = new();
 
     [SerializeField] private RewardPanel panel;
 
-    [Tooltip("Used when neither the dropping character nor the level has a LootTable assigned.")]
+    [Tooltip("Used when neither the dropping character, the level's drop table, nor a level's clear "
+             + "reward table is assigned.")]
     [SerializeField] private LootTable fallbackTable;
 
     private readonly Queue<Pickup> pending = new();
@@ -82,15 +91,15 @@ public class LootManager : Singleton<LootManager>
                 continue;
             }
 
-            List<CardData> candidates = BuildCandidates(pickup.tier, pickup.picker, table);
+            List<CardData> candidates = BuildOffer(pickup.tier, pickup.picker, table);
 
             if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(true); }
 
             if (panel != null)
             {
-                panel.Show(candidates, skipRewards);
+                RewardContext context = new() { character = pickup.picker };
 
-                yield return new WaitUntil(() => panel.Resolved);
+                yield return StartCoroutine(RunOffer(candidates, skipRewards, context));
 
                 if (panel.ChosenCard != null)
                 {
@@ -101,10 +110,6 @@ public class LootManager : Singleton<LootManager>
                         BattleManager.Instance.RecordRunCard(pickup.picker, panel.ChosenCard);
                     }
                 }
-                else if (panel.ChosenSkip != null)
-                {
-                    panel.ChosenSkip.Grant(pickup.picker);
-                }
             }
 
             if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(false); }
@@ -114,42 +119,139 @@ public class LootManager : Singleton<LootManager>
     }
 
     /// <summary>
-    /// `table.ChoiceCount` distinct cards `picker` may hold, weighted by `table`. Widens down through
+    /// Offers `hero` their share of a level-clear reward, granted straight into their PartyMember
+    /// record rather than their hand - the battle is over, there is no hand left to add to by the time
+    /// the next level's Character exists. Called once per living hero from BattleManager, in sequence,
+    /// so only one panel is ever up at a time.
+    /// </summary>
+    public IEnumerator OfferLevelClear(Character hero, PartyMember record, LootTable table)
+    {
+        if (hero == null || record == null || panel == null) { yield break; }
+
+        LootTable resolvedTable = table != null ? table : fallbackTable;
+
+        if (resolvedTable == null)
+        {
+            Debug.LogWarning($"LootManager: no clear-reward LootTable for {hero.name} and no fallback "
+                             + "is assigned - reward skipped");
+            yield break;
+        }
+
+        Rarity tier = resolvedTable.Roll();
+        List<CardData> candidates = BuildOffer(tier, hero, resolvedTable);
+
+        if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(true); }
+
+        RewardContext context = new() { character = hero, record = record };
+
+        yield return StartCoroutine(RunOffer(candidates, levelClearSkipRewards, context));
+
+        if (panel.ChosenCard != null && BattleManager.Instance != null)
+        {
+            BattleManager.Instance.RecordRunCard(hero, panel.ChosenCard);
+        }
+
+        if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(false); }
+    }
+
+    /// <summary>
+    /// Shows the panel and waits for a resolution, re-showing the same candidates if the resolution was
+    /// a skip that backed out of itself (RewardContext.Reoffer) rather than one that actually resolved
+    /// anything. Leaves panel.ChosenCard/ChosenSkip for the caller to read afterward - a card choice
+    /// needs no per-occasion branching in here, only what it is granted into differs, and that is the
+    /// caller's business (AddCardToHand for a pickup, nothing but the run record for a level clear).
+    /// </summary>
+    private IEnumerator RunOffer(List<CardData> candidates, List<SkipReward> skips, RewardContext context)
+    {
+        do
+        {
+            context.Reoffer = false;
+
+            string title = context.character != null ? $"{context.character.name}'s reward" : null;
+            panel.Show(candidates, skips, title);
+
+            yield return new WaitUntil(() => panel.Resolved);
+
+            if (panel.ChosenSkip != null) { yield return panel.ChosenSkip.Grant(context); }
+        }
+        while (context.Reoffer);
+    }
+
+    /// <summary>
+    /// `table.ChoiceCount` distinct cards `picker` may hold, weighted by `table`, minus whatever
+    /// `table.GuaranteedCards` already fills. Guarantees are seeded first (see LootTable.GuaranteedCards
+    /// and Excludes for the precedence between the two), then the remaining slots widen down through
     /// lower tiers when the pool at `tier` is thin - a Rare drop for a class with only one Rare card
     /// still offers three choices rather than one, borrowing from Uncommon and then Common. The tag
     /// weighting carries through the widening, so a poison table still favours poison among whatever it
-    /// borrowed.
+    /// borrowed. The result is shuffled so a guaranteed card does not always land leftmost.
     /// </summary>
-    private List<CardData> BuildCandidates(Rarity tier, Character picker, LootTable table)
+    public List<CardData> BuildOffer(Rarity tier, Character picker, LootTable table)
     {
-        List<CardData> found = new();
+        List<CardData> seeded = new();
 
-        if (library == null) { return found; }
+        if (library == null || table == null) { return seeded; }
 
         HashSet<CardData> seen = new();
-        Rarity current = tier;
 
-        // At most four tiers exist (Common..Legendary), so four attempts always bottoms out at Common.
-        for (int attempt = 0; attempt < 4; attempt++)
+        foreach (CardData card in table.GuaranteedCards)
         {
-            foreach (CardData card in library.Offerable(current, picker))
+            if (card == null) { continue; }
+
+            if (table.Excludes(card))
             {
-                if (seen.Add(card)) { found.Add(card); }
+                Debug.LogWarning($"{table.name}: {card.cardName} is in both guaranteedCards and "
+                                 + "excludedCards - excluded wins, dropped from the guarantee.");
+                continue;
             }
 
-            if (found.Count >= table.ChoiceCount || current == Rarity.Common) { break; }
+            if (!card.CanBeUsedBy(picker)) { continue; }
 
-            current = current.Lower();
+            if (seen.Add(card)) { seeded.Add(card); }
         }
 
-        if (found.Count < table.ChoiceCount)
+        if (seeded.Count > table.ChoiceCount)
         {
-            Debug.LogWarning($"LootManager: only {found.Count} card(s) offerable to {picker.name} at "
-                             + $"{tier} or below (wanted {table.ChoiceCount}) - the pool is thin, "
-                             + "author more cards at this rarity/class or widen it further.");
+            Debug.LogWarning($"{table.name}: {seeded.Count} guaranteed cards exceed choiceCount "
+                             + $"{table.ChoiceCount} - only the first {table.ChoiceCount} are offered.");
+            seeded.RemoveRange(table.ChoiceCount, seeded.Count - table.ChoiceCount);
         }
 
-        return WeightedSample(found, table, table.ChoiceCount);
+        int remaining = table.ChoiceCount - seeded.Count;
+
+        if (remaining > 0)
+        {
+            List<CardData> found = new();
+            Rarity current = tier;
+
+            // At most four tiers exist (Common..Legendary), so four attempts always bottoms out at
+            // Common.
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                foreach (CardData card in library.Offerable(current, picker))
+                {
+                    if (table.Excludes(card)) { continue; }
+                    if (seen.Add(card)) { found.Add(card); }
+                }
+
+                if (found.Count >= remaining || current == Rarity.Common) { break; }
+
+                current = current.Lower();
+            }
+
+            if (found.Count < remaining)
+            {
+                Debug.LogWarning($"LootManager: only {found.Count} card(s) offerable to {picker.name} "
+                                 + $"at {tier} or below (wanted {remaining}) - the pool is thin, author "
+                                 + "more cards at this rarity/class or widen it further.");
+            }
+
+            seeded.AddRange(WeightedSample(found, table, remaining));
+        }
+
+        Shuffle(seeded);
+
+        return seeded;
     }
 
     /// Picks up to `count` distinct cards from `pool` without replacement, each draw weighted by
@@ -193,5 +295,15 @@ public class LootManager : Singleton<LootManager>
         }
 
         return result;
+    }
+
+    /// Fisher-Yates - used to keep guaranteed cards from always sitting leftmost on the panel.
+    private static void Shuffle<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
     }
 }

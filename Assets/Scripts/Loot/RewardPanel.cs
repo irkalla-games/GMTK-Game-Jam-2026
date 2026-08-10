@@ -13,6 +13,10 @@ public class RewardPanel : MonoBehaviour
     [Tooltip("Backdrop root, toggled on Show/Hide. Optional - a panel with no backdrop just has no dim.")]
     [SerializeField] private GameObject root;
 
+    [Tooltip("Shows who the offer is for, e.g. \"Knight's reward\". Optional - a mid-battle pickup "
+             + "passes no title since only one character can be standing on the tile.")]
+    [SerializeField] private TMP_Text titleLabel;
+
     [Tooltip("Same prefab hands are built from, so a reward card looks exactly like a card in hand.")]
     [SerializeField] private CardViewer cardPrefab;
 
@@ -23,6 +27,12 @@ public class RewardPanel : MonoBehaviour
     [Tooltip("Gap between offered cards. Layout is width-driven off however many are offered, not a "
              + "fixed count - LootTable.ChoiceCount can differ per table.")]
     [SerializeField] private float cardSpacing = 2.2f;
+
+    [Tooltip("Total width the offered cards may span before spacing is squeezed - a level-clear offer "
+             + "of 5 would otherwise run off CameraFrame's fixed 19.2-unit frame at the pickup offer's "
+             + "3-card spacing. 3 cards well under this stay at cardSpacing; more get compressed. "
+             + "0 disables the clamp entirely.")]
+    [SerializeField] private float maxWidth = 15f;
 
     [Tooltip("How large an offered card sits on the choice screen. 1 is the size of a card in hand.")]
     [SerializeField] private float cardScale = 1.6f;
@@ -59,7 +69,7 @@ public class RewardPanel : MonoBehaviour
         if (root != null) { root.SetActive(false); }
     }
 
-    public void Show(List<CardData> candidates, List<SkipReward> skipRewards)
+    public void Show(List<CardData> candidates, List<SkipReward> skipRewards, string title = null)
     {
         Resolved = false;
         ChosenCard = null;
@@ -68,6 +78,8 @@ public class RewardPanel : MonoBehaviour
         Clear();
 
         if (root != null) { root.SetActive(true); }
+
+        if (titleLabel != null) { titleLabel.text = title ?? string.Empty; }
 
         SpawnCards(candidates);
         SpawnSkipButtons(skipRewards);
@@ -81,7 +93,18 @@ public class RewardPanel : MonoBehaviour
             return;
         }
 
-        float startX = -(candidates.Count - 1) * cardSpacing / 2f;
+        // 3 cards at the authored spacing is unaffected; a level-clear offer of 5 would otherwise run
+        // past CameraFrame's fixed frame - see maxWidth's tooltip.
+        //
+        // maxWidth <= 0 means no clamp, and has to: this panel was authored in Game.unity before the
+        // field existed, so it deserializes to 0 there, and treating that as a real width would divide
+        // the spacing down to nothing and stack every card on the same spot. Same hazard as
+        // RangeShape.Anywhere being 0 - the zero value must be the old behaviour.
+        float spacing = maxWidth > 0f && candidates.Count > 1
+            ? Mathf.Min(cardSpacing, maxWidth / (candidates.Count - 1))
+            : cardSpacing;
+
+        float startX = -(candidates.Count - 1) * spacing / 2f;
 
         for (int i = 0; i < candidates.Count; i++)
         {
@@ -89,21 +112,16 @@ public class RewardPanel : MonoBehaviour
 
             if (data == null) { continue; }
 
-            Vector3 position = cardAnchor.position + new Vector3(startX + i * cardSpacing, 0f, 0f);
-            CardViewer viewer = Instantiate(cardPrefab, position, Quaternion.identity);
-
-            viewer.Setup(new Card(data));
-
-            // Overlay is above the notification modal's own layer, since a reward can in principle be
-            // offered while one is still up (an EnemyResolve hero-shove is not gated on
-            // NotificationManager). PresentAt rather than a bare sorting write: it also pins the rest
-            // scale and hover lift, so leaving a card does not snap it back to hand size and the
-            // Cards layer.
-            viewer.PresentAt(SortingLayers.Overlay, i, cardScale, cardHoverScale);
+            Vector3 position = cardAnchor.position + new Vector3(startX + i * spacing, 0f, 0f);
 
             // Captured per-iteration on purpose - `data` is reassigned every loop, `chosen` is not.
             CardData chosen = data;
-            viewer.clickOverride = _ => Choose(chosen);
+
+            // Overlay is above the notification modal's own layer, since a reward can in principle be
+            // offered while one is still up (an EnemyResolve hero-shove is not gated on
+            // NotificationManager).
+            CardViewer viewer = OfferedCard.Spawn(
+                cardPrefab, data, position, i, cardScale, cardHoverScale, _ => Choose(chosen));
 
             spawnedCards.Add(viewer);
         }

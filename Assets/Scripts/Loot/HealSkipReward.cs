@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -12,8 +13,10 @@ public class HealSkipReward : SkipReward
 
     public override string Label => $"Skip — Heal {amount}";
 
-    public override void Grant(Character picker)
+    public override IEnumerator Grant(RewardContext context)
     {
-        if (picker != null) { picker.Heal(amount); }
+        if (context.character != null) { context.character.Heal(amount); }
+
+        yield break;
     }
 }

@@ -80,6 +80,7 @@ public abstract class StatusEffect : Status
         StatusType.Shield => new ShieldStatus(stacks, turnsRemaining),
         StatusType.Block => new BlockStatus(stacks, 1, turnsRemaining),
         StatusType.Parry => new ParryStatus(stacks, turnsRemaining),
+        StatusType.DoubleShield => new DoubleShieldStatus(stacks, turnsRemaining),
         _ => null,
     };
 }

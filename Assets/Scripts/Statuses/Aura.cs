@@ -59,6 +59,8 @@ public class Aura : Status
 
     public override DamageInfo OnTakeDamage(DamageInfo info) => projectedEffect.OnTakeDamage(info);
 
+    public override ShieldInfo OnGainShield(ShieldInfo info) => projectedEffect.OnGainShield(info);
+
     public override void OnTurnStart(Character carrier) => projectedEffect.OnTurnStart(carrier);
 
     public override void OnTurnEnd(Character carrier) => projectedEffect.OnTurnEnd(carrier);

@@ -671,6 +671,7 @@ public class BattleManager : Singleton<BattleManager>
             {
                 NotificationManager.Instance.Show("Victory", "The party made it out!");
                 yield return WaitForAcknowledgement();
+                yield return StartCoroutine(OfferLevelClearRewards());
                 Finish(victory: true);
                 yield break;
             }
@@ -961,6 +962,32 @@ public class BattleManager : Singleton<BattleManager>
         if (notifications == null) { yield break; }
 
         yield return new WaitUntil(() => notifications == null || !notifications.IsShowing);
+    }
+
+    /// <summary>
+    /// Offers each surviving hero their own share of the level-clear reward, one at a time so only one
+    /// panel is ever up. Runs before Finish, not inside it: Finish loads a new scene synchronously,
+    /// which would destroy these very Characters (their names title each panel) mid-offer.
+    ///
+    /// Walks `characters` rather than `partyRecords` so the order the player sees is spawn order - a
+    /// Dictionary makes no ordering promise. A hero who died this level is already out of both
+    /// `characters` and `partyRecords` (see HandleCharacterDied), so they are skipped for free rather
+    /// than needing a separate death check here.
+    /// </summary>
+    private IEnumerator OfferLevelClearRewards()
+    {
+        LootManager loot = LootManager.Instance;
+        LevelData level = CurrentLevel;
+
+        if (loot == null || level == null) { yield break; }
+
+        foreach (Character hero in new List<Character>(characters))
+        {
+            if (hero == null || hero.IsDead || !hero.IsPlayerControlled) { continue; }
+            if (!partyRecords.TryGetValue(hero, out PartyMember record)) { continue; }
+
+            yield return StartCoroutine(loot.OfferLevelClear(hero, record, level.ClearRewardTable));
+        }
     }
 
     /// <summary>

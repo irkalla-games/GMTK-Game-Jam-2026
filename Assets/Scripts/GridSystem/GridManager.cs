@@ -182,6 +182,66 @@ public class GridManager : Singleton<GridManager>
     /// Lower x first, then lower y. Only exists to make NearestFreeSpawnTile's tie-break deterministic.
     private static bool IsEarlier(Vector2Int a, Vector2Int b) => a.x != b.x ? a.x < b.x : a.y < b.y;
 
+    /// Clockwise from north, index 0. Index i and index i+4 (mod 8) are always opposite each other,
+    /// which StepAwayFrom leans on to build each distance tier as a pair of indices.
+    private static readonly Vector2Int[] ClockwiseSteps =
+    {
+        new(0, 1), new(1, 1), new(1, 0), new(1, -1),
+        new(0, -1), new(-1, -1), new(-1, 0), new(-1, 1),
+    };
+
+    /// <summary>
+    /// Where a status like Dodge relocates its carrier to: the neighbour tile directly opposite
+    /// `awayFrom`, ranked farthest-from-`awayFrom` first. The 8 neighbours form 4 tiers by ring-distance
+    /// from the opposite direction - {opposite alone}, then its two ring-neighbours, then the next two
+    /// out, then the last two, deliberately excluding the direction pointing straight at `awayFrom`
+    /// itself (always occupied by it, so never a legal candidate anyway). Each tier is tried in full
+    /// before falling to the next; a two-tile tier picks between them at random. Null once no tier has
+    /// a legal tile - MoveRefusal decides legality, so Rooted, occupied neighbours and board edges are
+    /// already handled exactly as an ordinary move would be. `awayFrom` null (sourceless damage) starts
+    /// the ranking due south instead of computing a direction.
+    /// </summary>
+    public GridTile StepAwayFrom(Character carrier, GridTile awayFrom)
+    {
+        if (carrier == null || carrier.Tile == null) { return null; }
+
+        Vector2Int origin = carrier.Tile.Coordinates;
+        int oppositeIndex = 4;
+
+        if (awayFrom != null)
+        {
+            int dx = System.Math.Sign(origin.x - awayFrom.Coordinates.x);
+            int dy = System.Math.Sign(origin.y - awayFrom.Coordinates.y);
+
+            int found = System.Array.IndexOf(ClockwiseSteps, new Vector2Int(dx, dy));
+            if (found >= 0) { oppositeIndex = found; }
+        }
+
+        List<GridTile> tier = new();
+
+        for (int radius = 0; radius <= 3; radius++)
+        {
+            tier.Clear();
+
+            int a = (oppositeIndex + radius) % 8;
+            int b = (oppositeIndex - radius + 8) % 8;
+
+            AddIfLegal(tier, carrier, origin + ClockwiseSteps[a]);
+            if (b != a) { AddIfLegal(tier, carrier, origin + ClockwiseSteps[b]); }
+
+            if (tier.Count > 0) { return tier[Random.Range(0, tier.Count)]; }
+        }
+
+        return null;
+    }
+
+    private void AddIfLegal(List<GridTile> into, Character carrier, Vector2Int cell)
+    {
+        GridTile candidate = GetTile(cell);
+
+        if (candidate != null && MoveRefusal(carrier, candidate) == null) { into.Add(candidate); }
+    }
+
 
     public bool MoveCharacter(Character character, GridTile destination)
     {
@@ -309,6 +369,46 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
+    /// Reddens every tile that would actually be affected if `card` were played on `hovered` right
+    /// now - the aiming preview. Raw geometry from Card.AreaFootprint, not filtered by who is standing
+    /// where: the shape is what the player needs to see to aim it, same as ShowPlayableTiles shows every
+    /// legal tile rather than only the ones with something worth hitting on them.
+    ///
+    /// A card with no area entries paints nothing, which is exactly right - the existing yellow hover
+    /// tint already marks a single-target card's one tile, and TileSelector's priority ladder puts hover
+    /// above area anyway, so a Single entry would be invisible here even if it were included.
+    /// </summary>
+    public void ShowAreaPreview(Card card, Character source, GridTile hovered)
+    {
+        ClearAreaPreview();
+
+        if (card == null || hovered == null) { return; }
+
+        foreach (GridTile tile in card.AreaFootprint(source, hovered)) { tile.SetInArea(true); }
+    }
+
+
+    public void ClearAreaPreview()
+    {
+        foreach (GridTile tile in tiles.Values) { tile.SetInArea(false); }
+    }
+
+
+    /// <summary>
+    /// Drops the hover tint from every tile, leaving the range highlight alone. Called by
+    /// BattleManager when input locks: a tile lit under the cursor gets no OnMouseExit when a modal
+    /// opens over it, because the cursor never actually moved.
+    ///
+    /// Here rather than on BattleManager for the same reason ShowPlayableTiles is - `tiles` is
+    /// private and there is no way to enumerate the board from outside.
+    /// </summary>
+    public void ClearHoveredTiles()
+    {
+        foreach (GridTile tile in tiles.Values) { tile.SetHovered(false); }
+    }
+
+
+    /// <summary>
     /// A coordinates-only snapshot of the board for the enemy brains.
     ///
     /// Built fresh each time it is asked for rather than cached: an enemy decides against the board
@@ -347,6 +447,26 @@ public class GridManager : Singleton<GridManager>
         foreach (GridTile tile in tiles.Values)
         {
             if (range.Contains(start, tile)) { results.Add(tile); }
+        }
+
+        return results;
+    }
+
+
+    /// Every tile a footprint aimed from `caster` toward `aim` covers. The metric itself lives in
+    /// AreaShape, so this and Card.ResolveEffects can never drift apart, the same relationship
+    /// GetTilesInRange has with TargetRange.
+    public List<GridTile> GetTilesInArea(GridTile caster, GridTile aim, AreaShape area)
+    {
+        List<GridTile> results = new();
+
+        if (aim == null) { return results; }
+
+        Vector2Int casterCoord = caster != null ? caster.Coordinates : aim.Coordinates;
+
+        foreach (GridTile tile in tiles.Values)
+        {
+            if (area.Covers(casterCoord, aim.Coordinates, tile.Coordinates)) { results.Add(tile); }
         }
 
         return results;

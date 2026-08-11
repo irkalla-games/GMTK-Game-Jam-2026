@@ -19,6 +19,27 @@ public struct CardKeywordEntry
 }
 
 /// <summary>
+/// One effect this card resolves, and where and how wide it lands. The binding lives here rather than
+/// on the CardEffect asset because CardEffect assets are shared - Damage 5.asset is reused by Slash,
+/// Quick Attack and Bash, so a radius or a Source aim baked into the asset would silently retarget all
+/// of them. A card that wants one of its effects wide just gives its own entry a non-Single area; the
+/// same Damage 5.asset stays single-target everywhere else it's referenced.
+/// </summary>
+[System.Serializable]
+public struct CardEffectEntry
+{
+    public CardEffect effect;
+
+    [Tooltip("Where this effect lands. Source aims it at the caster instead of the clicked tile, "
+             + "which is how one card can damage an enemy and buff its own player.")]
+    public EffectTarget aimsAt;
+
+    [Tooltip("The footprint around the aim tile this effect covers. Single (the default) is one tile, "
+             + "exactly like today.")]
+    public AreaShape area;
+}
+
+/// <summary>
 /// Base for every card asset. This is the card *type* - it is shared by every copy in a deck, so
 /// nothing here may be written to at runtime (in the Editor those writes persist into the .asset
 /// file). Per-copy and per-run state belongs on Card.
@@ -61,7 +82,17 @@ public class CardData : ScriptableObject
 
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
+
+    // Legacy input for CardEffectEntryMigration only. Every card should have an equivalent, same-order
+    // effectEntries list below - read that one, not this. Kept only until it is deleted in a
+    // follow-up once the migration is verified. HideInInspector needs the field: target, or Unity's
+    // Inspector (which reads the backing field, not the property) won't honour it.
+    [field: HideInInspector]
     [field: SerializeField] public List<CardEffect> effects { get; private set; }
+
+    [field: Tooltip("What this card actually does when played, one entry per effect: the effect asset "
+                    + "itself, where it aims, and how wide it lands.")]
+    [field: SerializeField] public List<CardEffectEntry> effectEntries { get; private set; } = new();
 
     [field: Tooltip("How this card's actions look when played. Left empty, every action animates "
                     + "exactly as it would by itself - a plain swing, a plain cast - which is what "
@@ -80,12 +111,16 @@ public class CardData : ScriptableObject
     /// character marked Any may hold anything - which is what unclassed things like goblins are.
     /// Reading it as a restriction in only one direction quietly emptied every enemy deck of every
     /// card that happened to be authored for a class.
+    ///
+    /// requiredClass is a mask now (see CharacterClass), so a character's single class only needs to
+    /// share one bit with it, not equal it exactly - that is what lets one card belong to more than
+    /// one class.
     /// </summary>
     public bool CanBeUsedBy(Character character) =>
         requiredClass == CharacterClass.Any
         || character == null
         || character.Class == CharacterClass.Any
-        || character.Class == requiredClass;
+        || (requiredClass & character.Class) != 0;
 
     //public string CardName => cardName;
     //public int Cost => cost;

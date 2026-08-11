@@ -48,6 +48,13 @@ public class GridTile : MonoBehaviour
         if (selector != null) { selector.SetInRange(value); }
     }
 
+    /// Lights this tile up as covered by the selected card's area footprint, aimed at the hovered tile.
+    /// See TileSelector.SetInArea.
+    public void SetInArea(bool value)
+    {
+        if (selector != null) { selector.SetInArea(value); }
+    }
+
     /// Lights this tile's hover tint on or off from the outside - see TileSelector.SetHovered.
     public void SetHovered(bool value)
     {
@@ -56,7 +63,17 @@ public class GridTile : MonoBehaviour
 
     public void DealDamage(int amount, Character attacker = null)
     {
-        if (Occupant != null) { Occupant.TakeDamage(amount, attacker); }
+        if (Occupant != null)
+        {
+            Occupant.TakeDamage(amount, attacker);
+            return;
+        }
+
+        // Nobody here to hit - most often because they dodged away since this attack was aimed. Still
+        // worth a "0" so the swing (which has already played by the time this runs - see
+        // GameAction.Perform, which aims at the tile itself, never the occupant) doesn't read as having
+        // vanished into nothing.
+        if (FloatingTextManager.Instance != null) { FloatingTextManager.Instance.ShowMiss(this); }
     }
 
     public void Heal(int amount)

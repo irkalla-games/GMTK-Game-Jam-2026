@@ -21,9 +21,20 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Deal 5 damage to an enemy within 5 tiles.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 11400000, guid: 35f9ec7e5f744b44c98ccb7b7a389628, type: 2}
   <keywords>k__BackingField: []

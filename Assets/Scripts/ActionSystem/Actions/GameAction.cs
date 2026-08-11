@@ -70,7 +70,7 @@ public abstract class GameAction
 
             if (caster != null)
             {
-                GridTile aimedAt = ctx.targets.Count > 0 ? ctx.targets[0] : null;
+                GridTile aimedAt = ctx.epicenter;
                 if (aimedAt != null) { caster.SetFacing(aimedAt.transform.position); }
 
                 yield return caster.Play(cue);

@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: PoisonSkeleton
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
-  - rarity: 0
-    weight: 70
   - rarity: 1
+    weight: 70
+  - rarity: 2
     weight: 30
   tagWeights:
   - tag: 4
     weight: 100
   cardWeights: []
+  excludedCards: []
+  guaranteedCards: []
   choiceCount: 3

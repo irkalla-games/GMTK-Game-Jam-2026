@@ -26,7 +26,13 @@ public class Character : MonoBehaviour
 
     [Tooltip("Which cards this character may hold. Cards not matching are skipped when the deck is "
              + "built.")]
+    [SingleClass]
     [SerializeField] private CharacterClass characterClass;
+
+    [Tooltip("Shown in player-facing UI instead of this GameObject's raw name (which is either the "
+             + "prefab's authoring name, e.g. \"PlayerKnight\", or has a runtime suffix like \"(Clone)\" "
+             + "or a spawn coordinate appended). Leave blank to fall back to gameObject.name.")]
+    [SerializeField] private string displayName;
 
     [Tooltip("Actions this character takes per turn. Enemies only - players spend energy instead.")]
     [SerializeField] private int actionPoints = 2;
@@ -97,6 +103,8 @@ public class Character : MonoBehaviour
 
     public CharacterClass Class => characterClass;
 
+    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
+
     public int ActionPoints => actionPoints;
 
     public BrainType Brain => brain;
@@ -139,14 +147,12 @@ public class Character : MonoBehaviour
     private Intent committedIntent;
 
     /// <summary>
-    /// What this enemy told the player it was going to do, decided at the start of the turn.
+    /// What this enemy would do if its turn came right now - what the overhead icon shows.
     ///
-    /// Held rather than recomputed because the whole point is that it can go stale: the player spends
-    /// the turn making it wrong, and it executes anyway. Recomputing at execution time would quietly
-    /// undo every block and every kill the player set up.
-    ///
-    /// What is actually held is the *kind* alone - the concrete card and tile are re-derived inside
-    /// that kind when the enemy acts. See EnemyBrain.Resolve.
+    /// Kept live rather than decided once: BattleManager recomputes it whenever the board changes (see
+    /// BattleManager.LateUpdate), and re-derives it outright, kind included, the moment the enemy
+    /// actually acts. There is no separate "stale but committed" state - moving a hero out of an
+    /// archer's reach turns its Attack back into a Move rather than leaving it to swing at nothing.
     /// </summary>
     public Intent CommittedIntent
     {
@@ -448,6 +454,18 @@ public class Character : MonoBehaviour
     {
         Health = Mathf.Clamp(value, 1, maxHealth);
         RaiseStatsChanged();
+    }
+
+    /// <summary>
+    /// Overrides DisplayName for this instance - for a spawned party member sharing its class with
+    /// another member of the same run, where "Knight" and "Knight" would otherwise be indistinguishable
+    /// in every player-facing readout (SelectedCharacterPanel, reward titles). Never touches the
+    /// prefab's own authored name; this is per-instance state set after Instantiate, same as SetDeck
+    /// and SetHealth.
+    /// </summary>
+    public void SetDisplayName(string value)
+    {
+        displayName = value;
     }
 
     /// <summary>

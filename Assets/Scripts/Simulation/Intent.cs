@@ -1,16 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// The category an enemy announces at the top of the turn. Not a card and not a tile - those are
-/// re-derived when it actually acts, against a board the player has spent the turn rearranging.
+/// The category an enemy would act on if its turn came right now. Not a card and not a tile - those
+/// are re-derived every time this is asked, against the board as it currently stands.
 ///
 /// Wait = 0 because Intent is a struct and Intent.Wait() is `default` - the all-zero value has to mean
 /// "nothing promised", the same reasoning as RangeShape.Anywhere = 0. These values are written into
 /// IntentIcons.asset, so append new kinds and never reorder them.
 ///
-/// The icon this drives is a LOWER bound on threat. A committed Move may turn into an Attack if one
-/// becomes legal; a committed Attack may come to nothing. It never goes the other way - see
-/// EnemyBrain.Resolve.
+/// The icon this drives is live, not a promise made once at TurnStart - BattleManager recomputes every
+/// enemy's Intent whenever the board changes (see BattleManager.LateUpdate) and re-asks it outright
+/// when the enemy actually acts, so what you see over an enemy's head is always what EnemyBrain.Decide
+/// would return right now.
 /// </summary>
 public enum IntentKind
 {
@@ -29,12 +30,12 @@ public enum IntentKind
 /// reach" is one too many, and the card one already answers it.
 ///
 /// Targets a tile, never a character. Whoever is standing there is resolved when the card actually
-/// resolves, which is what lets a committed intent miss: the player has a whole turn to move the
-/// target out from under it.
+/// resolves, so moving a target out from under a committed Attack turns it back into a Move on the
+/// very next recompute rather than firing anyway.
 ///
-/// The card and tile are not the promise - the kind is. What gets committed at TurnStart is only
-/// Intent.kind; EnemyBrain.Resolve re-derives a concrete card and tile inside that kind against the
-/// live board when the enemy actually acts. See EnemyBrain.Resolve for the exact rules.
+/// Every field here is re-derived together, every time - see EnemyBrain.Decide. There is no separate
+/// "kind was promised, card and tile are still stale" step; CommittedIntent always holds the result of
+/// the most recent Decide call.
 /// </summary>
 public struct Intent
 {

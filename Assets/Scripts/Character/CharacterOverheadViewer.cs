@@ -26,9 +26,24 @@ public class CharacterOverheadViewer : MonoBehaviour
     [Tooltip("Unused if intentIcon is empty.")]
     [SerializeField] private IntentIcons icons;
 
+    [Tooltip("Placeholder motion for the intent icon changing - the new icon falls in and pushes the "
+             + "old one out, the same mechanic TurnTransitionViewer plays for the turn counter. Unused "
+             + "if intentIcon is empty.")]
+    [SerializeField] private IntentRoll intentRoll = new();
+
     private Character character;
 
-    private void Awake() => character = GetComponent<Character>();
+    /// What the icon is currently showing, kept separately from character.CommittedIntent.kind so
+    /// RefreshIntent can tell a real change from a re-assignment of the same kind - the refresh pass in
+    /// BattleManager already guards this on its own side, but TurnStart's re-commit does not.
+    private IntentKind shownKind;
+
+    private void Awake()
+    {
+        character = GetComponent<Character>();
+
+        if (intentIcon != null) { intentRoll.Build(intentIcon); }
+    }
 
     private void Start()
     {
@@ -43,7 +58,15 @@ public class CharacterOverheadViewer : MonoBehaviour
         // pull, a hero arriving hurt from the previous level would show a full bar until the next
         // stat change, and a freshly spawned enemy would wear no icon until its second turn.
         RefreshBar();
-        RefreshIntent();
+
+        // Set directly rather than through RefreshIntent/intentRoll.Play - a freshly spawned enemy's
+        // first icon should not fall in while its own spawn scale-in is still playing.
+        shownKind = character.CommittedIntent.kind;
+
+        if (intentIcon != null)
+        {
+            intentRoll.Show(icons != null ? icons.For(shownKind) : null);
+        }
     }
 
     private void OnDestroy()
@@ -55,6 +78,8 @@ public class CharacterOverheadViewer : MonoBehaviour
         }
 
         if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced -= RefreshBar; }
+
+        intentRoll.Kill();
     }
 
     private void OnStatsChanged(Character _) => RefreshBar();
@@ -79,9 +104,17 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         if (intentIcon == null) { return; }
 
-        Sprite sprite = icons != null ? icons.For(character.CommittedIntent.kind) : null;
+        IntentKind next = character.CommittedIntent.kind;
 
-        intentIcon.sprite = sprite;
-        intentIcon.enabled = sprite != null && !character.CommittedIntent.IsWait;
+        // Guards the case IntentChanged does not: BattleManager's own refresh pass already skips
+        // assigning an unchanged kind, but TurnStart re-commits every enemy from scratch every round,
+        // including Wait-to-Wait, and CommittedIntent's setter has no equality check of its own.
+        if (next == shownKind) { return; }
+
+        Sprite from = icons != null ? icons.For(shownKind) : null;
+        Sprite to = icons != null ? icons.For(next) : null;
+
+        shownKind = next;
+        intentRoll.Play(from, to);
     }
 }

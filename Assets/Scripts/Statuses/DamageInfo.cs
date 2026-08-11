@@ -80,6 +80,11 @@ public readonly struct DamageInfo
     public DamageInfo Reflected() =>
         new(attacker, target, amount: 0, reflected + amount, negated: true, consumeCharges, shieldAbsorbed);
 
+    /// Cancelled outright with nothing thrown back - Dodge. Unlike Reflected(), `reflected` is left
+    /// untouched: sidestepping a hit is not a counter-attack.
+    public DamageInfo Negated() =>
+        new(attacker, target, amount: 0, reflected, negated: true, consumeCharges, shieldAbsorbed);
+
     /// The portion of this hit a Shield status just absorbed into its own pool - reduces `amount` like
     /// any other mitigation, but also credits `shieldAbsorbed` so TakeDamage can still count it as
     /// having registered. ShieldStatus.OnTakeDamage is the only caller.

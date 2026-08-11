@@ -27,9 +27,9 @@ public enum TriggeringActionType
 ///
 /// Deliberately reuses CardEffect rather than inventing a parallel "aura effect" asset type - Grant
 /// Block, Apply Status and friends already express exactly "do this to whoever the action context
-/// points at", which for a reaction is always the triggering character. AimsAt on the effect asset is
-/// ignored here: a reaction has no played tile to distinguish it from, only the one character it fired
-/// for.
+/// points at", which for a reaction is always the triggering character. There is no CardEffectEntry
+/// here to say where the effect aims or how wide it lands: a reaction has no played tile to distinguish
+/// it from, only the one character it fired for, and always resolves single-target.
 /// </summary>
 [Serializable]
 public class AuraReaction

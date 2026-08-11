@@ -19,8 +19,32 @@ MonoBehaviour:
     minDistance: 0
     maxDistance: 0
   <requiredClass>k__BackingField: 1
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Gain 8 Shield. Draw 1 card.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5005, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5005, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []

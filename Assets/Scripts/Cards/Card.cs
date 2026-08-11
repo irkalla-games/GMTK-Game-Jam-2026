@@ -24,7 +24,27 @@ public class Card
     public Sprite image => data.image;
     public CardAnimation animation => data.animation;
 
-    private List<CardEffect> effects;
+    private Sprite areaIcon;
+    private bool areaIconBuilt;
+
+    /// A small footprint glyph summarizing every non-Single area entry on this card, or null if every
+    /// entry is Single - what CardViewer draws in the corner of the card face. Built once and cached:
+    /// every copy of the same CardData draws the identical shape and it never changes after the card
+    /// is constructed, so there is nothing to invalidate the cache on.
+    public Sprite AreaIcon()
+    {
+        if (!areaIconBuilt)
+        {
+            areaIcon = CardAreaIconBuilder.Build(effectEntries);
+            areaIconBuilt = true;
+        }
+
+        return areaIcon;
+    }
+
+    /// Aliased from the asset, not copied - each entry's effect is a shared, stateless ScriptableObject
+    /// resolver and the entry struct itself (aimsAt, area) is per-card authoring, not per-copy state.
+    private List<CardEffectEntry> effectEntries;
 
     /// Per-copy runtime instances built from data.keywords - see CardKeyword.
     private readonly List<CardKeyword> keywords = new();
@@ -34,8 +54,7 @@ public class Card
         this.data = newData;
         this.cost = newData.cost;
         this.range = newData.range;
-        // Effects are shared, stateless ScriptableObject resolvers, so aliasing the asset's list is safe.
-        this.effects = newData.effects;
+        this.effectEntries = newData.effectEntries;
 
         // Cooldown starts at 0 - ready the first time, locked again only after each play (see
         // ResolveEffects). Dormant starts locked at its own magnitude and never relocks - that is the
@@ -69,7 +88,8 @@ public class Card
 
     /// True if this card's effects include one of this type - how the enemy brain tells a Summon card
     /// apart from a Move card, since both are only legal on an empty tile.
-    public bool HasEffect<TEffect>() where TEffect : CardEffect => effects.Exists(e => e is TEffect);
+    public bool HasEffect<TEffect>() where TEffect : CardEffect =>
+        effectEntries.Exists(e => e.effect is TEffect);
 
     /// Why a timed keyword refuses to let this card be played right now, or null if neither does.
     /// Dormant checked first since it is the rarer, longer-lived lock - a card counting down both
@@ -147,16 +167,23 @@ public class Card
         string lockRefusal = LockRefusal();
         if (lockRefusal != null) { return lockRefusal; }
 
-        foreach (var effect in effects)
+        foreach (var entry in effectEntries)
         {
-            if (effect == null) { continue; }
+            if (entry.effect == null) { continue; }
 
             // Source-aimed effects are not asked. They land on the caster no matter where the click
             // went, so letting one object would mean Steely Attack refusing itself the moment
             // ShieldEffect grew a rule - the caster's own tile is, of course, occupied by the caster.
-            if (effect.AimsAt == EffectTarget.Source) { continue; }
+            if (entry.aimsAt == EffectTarget.Source) { continue; }
 
-            string refusal = effect.Refusal(source, target);
+            // An area entry is legal anywhere in range, even a tile its own effect would refuse - a
+            // 3x3 Fireball may be centred on empty ground as long as the blast catches an enemy
+            // somewhere in it. Whether it actually will is a question for ResolveEffects, not this
+            // gate; asking it here would mean sweeping the whole footprint before a single tile is
+            // even known to be legal to click.
+            if (!entry.area.IsSingle && entry.effect.SupportsArea) { continue; }
+
+            string refusal = entry.effect.Refusal(source, target);
 
             if (refusal != null) { return refusal; }
         }
@@ -165,10 +192,99 @@ public class Card
     }
 
     /// <summary>
+    /// The union of every non-Single entry's area footprint, aimed as it would be if this card were
+    /// played on `hovered` right now - what GridManager paints red while aiming. Raw geometry, not
+    /// filtered by who is actually standing there: the aiming preview is meant to teach the shape, and
+    /// RefuseByOccupant only runs at resolve time in ResolveEffects below.
+    /// </summary>
+    public IEnumerable<GridTile> AreaFootprint(Character source, GridTile hovered)
+    {
+        HashSet<GridTile> footprint = new();
+
+        if (GridManager.Instance == null) { return footprint; }
+
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect == null || entry.area.IsSingle || !entry.effect.SupportsArea) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : hovered;
+            if (aim == null) { continue; }
+
+            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
+            {
+                footprint.Add(tile);
+            }
+        }
+
+        return footprint;
+    }
+
+    /// <summary>
+    /// Every tile a damage-dealing entry on this card would actually land on, aimed as it would be if
+    /// played on `target` - filtered by each entry's own Refusal exactly like ResolveEffects, so an
+    /// empty tile or a friendly one already drops out the same way a real play would drop it.
+    ///
+    /// What EnemyBrain.TryFindAttack reads to judge a card by who it would actually hit rather than
+    /// just who stands on the clicked tile, which an area entry may legally leave empty.
+    /// </summary>
+    public IEnumerable<GridTile> DamageFootprint(Character source, GridTile target)
+    {
+        HashSet<GridTile> landed = new();
+
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect is not DamageEffect) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            if (aim == null) { continue; }
+
+            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+            {
+                if (entry.effect.Refusal(source, aim) == null) { landed.Add(aim); }
+                continue;
+            }
+
+            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
+            {
+                if (entry.effect.Refusal(source, tile) == null) { landed.Add(tile); }
+            }
+        }
+
+        return landed;
+    }
+
+    /// The furthest any one entry's area footprint reaches beyond its own aim tile - 0 for a card
+    /// with no area entries. What EnemyBrain.LongestReach reads to know a splash card threatens
+    /// further out than its plain click range suggests: the blast covers the rest of the gap, so an
+    /// archer holding one does not need to stand as close as an ordinary card of the same range would
+    /// require.
+    public int WidestAreaReach()
+    {
+        int widest = 0;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect == null || !entry.effect.SupportsArea) { continue; }
+
+            widest = Mathf.Max(widest, entry.area.MaxReach);
+        }
+
+        return widest;
+    }
+
+    /// <summary>
     /// Resolves every effect on this card, each against its own context.
     ///
     /// A context per effect, not per card - that is what lets one card point its effects at different
-    /// things. Steely Attack damages the tile you clicked and armors the character who played it.
+    /// things. Steely Attack damages the tile you clicked and armors the character who played it. An
+    /// entry with a non-Single area fans its aim tile out to every tile its footprint covers and asks
+    /// SupportsArea before filtering that footprint by the effect's own Refusal - that filter is the
+    /// entire ally/enemy story: a Shield entry's wantAlly:true drops enemies and empty ground the same
+    /// way it already does for a single tile, and a Damage entry with canHitAllies off drops allies.
     /// </summary>
     public void ResolveEffects(Character source, GridTile target)
     {
@@ -179,15 +295,33 @@ public class Card
         CardKeyword cooldown = Keyword(CardKeywordType.Cooldown);
         if (cooldown != null) { cooldown.remaining = cooldown.magnitude; }
 
-        foreach (var effect in effects)
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        foreach (var entry in effectEntries)
         {
-            if (effect == null) { continue; }
+            if (entry.effect == null) { continue; }
 
-            GridTile aim = effect.AimsAt == EffectTarget.Source
-                ? (source != null ? source.Tile : null)
-                : target;
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
 
-            effect.Resolve(new ActionContext(this, source, aim));
+            List<GridTile> landed;
+
+            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+            {
+                landed = aim != null ? new List<GridTile> { aim } : new List<GridTile>();
+            }
+            else
+            {
+                landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area);
+                landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
+
+                // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)
+                // and CardAnimation both read ctx.epicenter for facing/projectile/impact rather than
+                // targets[0], so this ordering is cosmetic now, not load-bearing. Kept anyway so a log
+                // or a future reader sees the clicked tile first.
+                if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
+            }
+
+            entry.effect.Resolve(new ActionContext(this, source, landed, aim));
         }
     }
 }

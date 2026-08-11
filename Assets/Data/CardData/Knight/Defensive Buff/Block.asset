@@ -18,13 +18,23 @@ MonoBehaviour:
     shape: 3
     minDistance: 0
     maxDistance: 0
-  <requiredClass>k__BackingField: 0
-  <rarity>k__BackingField: 0
+  <requiredClass>k__BackingField: 1
+  <rarity>k__BackingField: 1
   <tags>k__BackingField: 02000000
-  <description>k__BackingField: Gain Block 5. Reduces each of the next 3 hits by
-    5.
+  <excludeFromRewards>k__BackingField: 0
+  <description>k__BackingField: Gain 3 stacks of Block.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 0127534bcea64814bb034e9a43239154, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 0127534bcea64814bb034e9a43239154, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

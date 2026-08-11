@@ -114,7 +114,9 @@ public class CardAnimation : ScriptableObject
         CueOverride entry = For(defaultCue);
 
         CharacterAnimator animation = ctx.source != null ? ctx.source.Animation : null;
-        GridTile aimedAt = ctx.targets.Count > 0 ? ctx.targets[0] : null;
+        // The tile actually clicked, even for an area effect whose footprint spills onto other tiles -
+        // a projectile always flies to the epicenter, never to an arbitrary tile the blast also hit.
+        GridTile aimedAt = ctx.epicenter;
 
         if (animation != null && aimedAt != null) { animation.SetFacing(aimedAt.transform.position); }
 

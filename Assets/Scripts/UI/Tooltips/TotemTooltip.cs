@@ -60,7 +60,15 @@ public class TotemTooltip : MonoBehaviour
             TooltipManager.Instance.Show(this, BuildContent(), anchor, TooltipPriority.Hovered);
         }
 
-        if (owner != null && owner.Tile != null) { owner.Tile.SetHovered(true); }
+        if (owner != null && owner.Tile != null)
+        {
+            owner.Tile.SetHovered(true);
+
+            // The totem's collider steals OnMouseEnter from the tile beneath it, so it has to forward
+            // to the same hover door TileSelector uses or an area-of-effect preview would never learn
+            // the cursor is sitting on a totem-covered tile.
+            if (BattleManager.Instance != null) { BattleManager.Instance.OnTileHovered(owner.Tile); }
+        }
     }
 
     private void OnMouseExit()
@@ -81,6 +89,8 @@ public class TotemTooltip : MonoBehaviour
         if (TooltipManager.Instance != null) { TooltipManager.Instance.Hide(this); }
 
         if (owner != null && owner.Tile != null) { owner.Tile.SetHovered(false); }
+
+        if (BattleManager.Instance != null) { BattleManager.Instance.OnTileHovered(null); }
     }
 
     private void OnMouseDown()
@@ -116,7 +126,7 @@ public class TotemTooltip : MonoBehaviour
         {
             if (string.IsNullOrWhiteSpace(reaction.Description)) { continue; }
 
-            content.Add(named ? null : totem.DisplayName, glossary.Tag(reaction.Description));
+            content.Add(named ? null : owner.DisplayName, glossary.Tag(reaction.Description));
             named = true;
         }
 

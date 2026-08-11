@@ -21,9 +21,20 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 0
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Deal 4 damage.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: abee4d4f63fb20347a76a5c8221892f2, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: abee4d4f63fb20347a76a5c8221892f2, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

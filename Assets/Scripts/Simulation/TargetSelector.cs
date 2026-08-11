@@ -86,6 +86,7 @@ public static class TargetSelector
         {
             TargetPriority.Closest => Board.ChebyshevDistance(candidate.Tile.Coordinates, from),
             TargetPriority.Furthest => -Board.ChebyshevDistance(candidate.Tile.Coordinates, from),
+            TargetPriority.Strongest => -candidate.Health,
             _ => candidate.Health, // Weakest, and the fallback for anything unhandled.
         };
     }

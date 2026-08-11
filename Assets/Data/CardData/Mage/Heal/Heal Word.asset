@@ -21,9 +21,20 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 07000000
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: 'Heal 5 at range. '
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

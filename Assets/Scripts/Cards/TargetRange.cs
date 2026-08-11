@@ -88,7 +88,19 @@ public struct TargetRange
 
         if (origin == null) { return false; }
 
-        Vector2Int step = target.Coordinates - origin.Coordinates;
+        return Contains(origin.Coordinates, target.Coordinates);
+    }
+
+    /// <summary>
+    /// Same predicate as the GridTile overload, but on bare coordinates - what AreaShape needs to
+    /// measure a footprint, and what Board and the enemy brains can call without a GridTile existing.
+    /// Anywhere still answers true unconditionally, matching the GridTile overload's own shortcut.
+    /// </summary>
+    public bool Contains(Vector2Int origin, Vector2Int target)
+    {
+        if (shape == RangeShape.Anywhere) { return true; }
+
+        Vector2Int step = target - origin;
         int dx = Mathf.Abs(step.x);
         int dy = Mathf.Abs(step.y);
 

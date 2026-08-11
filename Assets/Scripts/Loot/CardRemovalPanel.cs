@@ -39,7 +39,9 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
              + "whole deck at once, not a handful of choices.")]
     [SerializeField] private float cardScale = 0.7f;
 
-    [SerializeField] private float cardHoverScale = 0.78f;
+    [Tooltip("Multiplier on top of Card Scale while hovered - CardViewer computes rest * hover, so "
+             + "this has to be above 1 or hovering shrinks the card instead of popping it up.")]
+    [SerializeField] private float cardHoverScale = 1.08f;
 
     [SerializeField] private Button cancelButton;
 

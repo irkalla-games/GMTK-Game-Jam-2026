@@ -35,47 +35,11 @@ public abstract class EnemyBrain
         _ => null,
     };
 
-    /// The category to announce at TurnStart. See Resolve for what actually plays.
+    /// What this enemy would do right now, against the board as it stands. Asked continuously - every
+    /// time the board changes - not just once at TurnStart, so the icon it drives is always the truth
+    /// rather than a promise made a turn ago. Also what actually plays when this enemy's action point
+    /// resolves; there is no separate re-derivation step.
     public abstract Intent Decide(Character self, Board board);
-
-    /// <summary>
-    /// A concrete card and tile inside a category this enemy already announced, against the board as
-    /// it stands now. This is the whole promise: what was committed at TurnStart is the *kind*, never
-    /// the card and never the tile - so an archer that showed a sword hits you wherever you moved to,
-    /// as long as some legal shot exists.
-    ///
-    /// Summon is honoured first and is never preempted by an available shot - a ranger that can call
-    /// in backup does it on cooldown, which is the same sentence RangerBrain.Decide already says.
-    /// Only a Summon that has become *illegal* - every tile in range filled up - gives way, and it
-    /// gives way to an attack rather than to nothing.
-    ///
-    /// Every remaining kind then tries to attack: Attack because that is what it promised, Move
-    /// because a committed Move upgrades into an Attack the moment one becomes legal, and a blocked
-    /// Summon because falling back to a swing beats standing still. A Boot turning into a hit only
-    /// ever surprises the player upward.
-    ///
-    /// Neither a committed Attack nor a blocked Summon falls back to walking. This is the inverse of
-    /// the usual and it is the point - burning the action point is what a block is bought to produce.
-    ///
-    /// Non-virtual: the flow is the same for every brain, and the one part that differs - where this
-    /// kind of enemy wants to stand - is MoveScore.
-    /// </summary>
-    public Intent Resolve(Character self, Board board, IntentKind committed)
-    {
-        if (self.Tile == null || committed == IntentKind.Wait) { return Intent.Wait(); }
-
-        TargetPriority priority = self.CurrentPriority;
-
-        if (committed == IntentKind.Summon && TryFindSummon(self, out Intent summon)) { return summon; }
-
-        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
-
-        if (committed != IntentKind.Move) { return Intent.Wait(); }
-
-        System.Func<Vector2Int, int> score = MoveScore(self, priority);
-
-        return score != null && TryFindMove(self, score, out Intent move) ? move : Intent.Wait();
-    }
 
     /// Where this kind of enemy wants to stand, given who the current TargetPriority points at. Null
     /// when there is nobody left to point at, which is a Wait rather than a scoreless wander.
@@ -90,14 +54,18 @@ public abstract class EnemyBrain
     /// <summary>
     /// The best card this character could play at something on the other side, or none.
     ///
-    /// A card counts as an attack purely because it is legal on a tile holding an enemy - DamageEffect
-    /// refuses empty tiles and its own side, so only attacks pass there, and MoveEffect refuses
-    /// occupied tiles so it never does. No card needs to be labelled; the refusal rules already
-    /// separate them.
+    /// A card counts as an attack by whether Card.DamageFootprint lands on anybody at all once aimed
+    /// at a legal tile - not by whether the clicked tile itself holds an enemy, which is all a Single
+    /// card ever needed but an area card may legally leave empty (Card.Refusal allows aiming a splash
+    /// at open ground as long as the range check passes). No card needs to be labelled; DamageEffect's
+    /// own Refusal already separates an attack from a Move or a buff.
     ///
-    /// The victim is chosen among *legal* targets by the current TargetPriority - a Furthest archer
-    /// that cannot reach the furthest hero still shoots the furthest one it can reach. Weakest is the
-    /// old hardcoded tie-break, preserved as TargetSelector's fallback.
+    /// The victim is chosen among *legal* targets by the current TargetPriority, exactly as before -
+    /// a Furthest archer that cannot reach the furthest hero still shoots the furthest one it can
+    /// reach. Among the tiles that would catch that victim, the one hitting the most enemies and the
+    /// fewest of this character's own side wins; a Single card's footprint is always exactly one
+    /// enemy and zero allies, so that comparison never has anything to break and the first legal tile
+    /// found wins, the same as before.
     /// </summary>
     protected static bool TryFindAttack(Character self, TargetPriority priority, out Intent intent)
     {
@@ -105,39 +73,75 @@ public abstract class EnemyBrain
 
         if (self.Tile == null || GridManager.Instance == null) { return false; }
 
-        List<(Card card, GridTile tile, Character victim)> options = new();
-        List<Character> victims = new();
+        List<(Card card, GridTile tile, List<Character> enemiesHit, int alliesHit)> options = new();
+        List<Character> reachableEnemies = new();
 
         foreach (Card card in self.Hand)
         {
             foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
             {
-                Character occupant = tile.Occupant;
-
-                if (occupant == null || !self.IsEnemyOf(occupant)) { continue; }
-
                 if (card.Refusal(self, tile) != null) { continue; }
 
-                options.Add((card, tile, occupant));
+                List<Character> enemies = new();
+                int allies = 0;
 
-                if (!victims.Contains(occupant)) { victims.Add(occupant); }
+                foreach (GridTile landed in card.DamageFootprint(self, tile))
+                {
+                    Character occupant = landed.Occupant;
+
+                    if (occupant == null) { continue; }
+
+                    if (self.IsEnemyOf(occupant)) { enemies.Add(occupant); }
+                    else if (Character.AreAllies(occupant.Affiliation, self.Affiliation)) { allies++; }
+                }
+
+                if (enemies.Count == 0) { continue; }
+
+                options.Add((card, tile, enemies, allies));
+
+                foreach (Character enemy in enemies)
+                {
+                    if (!reachableEnemies.Contains(enemy)) { reachableEnemies.Add(enemy); }
+                }
             }
         }
 
-        if (!TargetSelector.TryPick(priority, self.Tile.Coordinates, victims, out Character chosen))
+        if (!TargetSelector.TryPick(priority, self.Tile.Coordinates, reachableEnemies, out Character chosen))
         {
             return false;
         }
 
-        foreach ((Card card, GridTile tile, Character victim) option in options)
-        {
-            if (option.victim != chosen) { continue; }
+        (Card card, GridTile tile, List<Character> enemiesHit, int alliesHit) best = default;
+        bool found = false;
 
-            intent = Intent.Play(IntentKind.Attack, option.card, option.tile.Coordinates);
-            return true;
+        foreach (var option in options)
+        {
+            if (!option.enemiesHit.Contains(chosen)) { continue; }
+            if (found && !BetterAttack(option, best)) { continue; }
+
+            best = option;
+            found = true;
         }
 
-        return false;
+        if (!found) { return false; }
+
+        intent = Intent.Play(IntentKind.Attack, best.card, best.tile.Coordinates);
+        return true;
+    }
+
+    /// True if `candidate` is the better of two attacks that both already cover the chosen victim:
+    /// more enemies caught, then fewer of the attacker's own side caught. A Single card's footprint
+    /// is always exactly (1 enemy, 0 allies), so this only ever discriminates between area footprints.
+    private static bool BetterAttack(
+        (Card card, GridTile tile, List<Character> enemiesHit, int alliesHit) candidate,
+        (Card card, GridTile tile, List<Character> enemiesHit, int alliesHit) current)
+    {
+        if (candidate.enemiesHit.Count != current.enemiesHit.Count)
+        {
+            return candidate.enemiesHit.Count > current.enemiesHit.Count;
+        }
+
+        return candidate.alliesHit < current.alliesHit;
     }
 
     /// <summary>
@@ -211,14 +215,18 @@ public abstract class EnemyBrain
         return !intent.IsWait;
     }
 
-    /// The longest reach among this character's cards. An enemy's "range" is whatever it is holding.
+    /// The longest reach among this character's cards. An enemy's "range" is whatever it is holding -
+    /// a card's own click range, plus how far its widest area entry reaches beyond wherever it is
+    /// aimed. A splash card does not need to be clicked as close as its plain range suggests; the
+    /// blast covers the rest of the gap, which is what keeps a Ranger holding one from walking in
+    /// closer than it actually has to.
     protected static int LongestReach(Character self)
     {
         int longest = 1;
 
         foreach (Card card in self.Hand)
         {
-            longest = Mathf.Max(longest, card.range.MaxDistance);
+            longest = Mathf.Max(longest, card.range.MaxDistance + card.WidestAreaReach());
         }
 
         return longest;

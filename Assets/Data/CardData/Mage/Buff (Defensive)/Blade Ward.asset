@@ -21,9 +21,20 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 02000000
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Adds 2 Block to an Ally or Self.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

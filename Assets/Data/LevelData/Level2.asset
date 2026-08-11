@@ -29,6 +29,8 @@ MonoBehaviour:
   partySpawnCells:
   - {x: 1, y: 0}
   - {x: 3, y: 0}
+  - {x: 4, y: 0}
+  - {x: 5, y: 0}
   boardSize: {x: 5, y: 6}
   turnsToSurvive: 10
   handSize: 5

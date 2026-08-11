@@ -22,7 +22,7 @@ public class RemoveCardSkipReward : SkipReward
 
         if (panel == null || context.record == null || context.record.deck == null) { yield break; }
 
-        panel.Show(context.record.deck, context.character != null ? context.character.name : null);
+        panel.Show(context.record.deck, context.character != null ? context.character.DisplayName : null);
 
         yield return new WaitUntil(() => panel.Resolved);
 

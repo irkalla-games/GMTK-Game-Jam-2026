@@ -18,8 +18,8 @@ MonoBehaviour:
     stateOverride: 
     projectileSprite: {fileID: 21300128, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
     travelDuration: 0.5
-    projectileScale: 0.5
-    projectileRotation: 90
+    projectileScale: 0.7
+    projectileRotation: -90
     lockProjectileRotation: 0
     impactPrefab: {fileID: 0}
     targetSpawnPrefab: {fileID: 0}

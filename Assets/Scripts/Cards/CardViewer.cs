@@ -25,6 +25,16 @@ public class CardViewer : MonoBehaviour
 
     [SerializeField] private Sprite swordIcon;
 
+    [Header("Area Icon")]
+    [Tooltip("Where the area-footprint glyph sits, in the card's local space. Built at runtime rather "
+        + "than placed on the prefab, so there is nothing to drag in the Editor - tune these two "
+        + "fields instead to land it in whichever corner reads best against the card art.")]
+    [SerializeField] private Vector3 areaIconLocalPosition = new(0.75f, 0.95f, 0f);
+
+    [Tooltip("How wide the glyph sits on the card, in world units, regardless of how far the shape "
+        + "itself actually reaches - a tight radius and a long cone both render at this same size.")]
+    [SerializeField] private float areaIconSize = 0.35f;
+
     [SerializeField] private float hoverScale = 1.5f;
 
     [SerializeField] private float hoverDuration = 0.1f;
@@ -151,6 +161,10 @@ public class CardViewer : MonoBehaviour
     /// class strikes.
     private SpriteRenderer outlineRenderer;
 
+    /// The area-footprint glyph - see BuildAreaIconRenderer. Always created, but its sprite stays
+    /// null (drawing nothing) for a card whose entries are all Single.
+    private SpriteRenderer areaIconRenderer;
+
     private void Awake()
     {
         // The root collider is the thing OnMouseEnter already fires from, so an unassigned field means
@@ -173,6 +187,47 @@ public class CardViewer : MonoBehaviour
         RemoveFromGreyOut(lockCounter);
 
         BuildOutlineRenderer();
+        BuildAreaIconRenderer();
+    }
+
+    /// <summary>
+    /// Creates the area-footprint glyph as a runtime child, the same "built here, not on the prefab"
+    /// choice BuildOutlineRenderer makes for the playable ring - there is then nothing on the card
+    /// prefab that a future artist could accidentally leave stale.
+    ///
+    /// Added to the grey-out lists *after* the Awake scan above found everything the prefab authored,
+    /// so it dims exactly like the card's own art on an unplayable card without ever being caught by
+    /// RemoveFromGreyOut. Its rest colour is left at the SpriteRenderer default (opaque white) rather
+    /// than set here - CardAreaIconBuilder already paints the shape's colour into the sprite's own
+    /// pixels, the same way `image`'s art carries its own colour and this component's tint stays white.
+    /// </summary>
+    private void BuildAreaIconRenderer()
+    {
+        GameObject iconObject = new("CardAreaIcon", typeof(SpriteRenderer));
+        iconObject.transform.SetParent(transform, false);
+        iconObject.transform.localPosition = areaIconLocalPosition;
+
+        areaIconRenderer = iconObject.GetComponent<SpriteRenderer>();
+
+        // One layer above the highest order the prefab authored, so the glyph always draws on top of
+        // the card art it summarizes rather than disappearing behind whichever renderer happens to
+        // share its corner.
+        int topOrder = 0;
+        string layer = SortingLayers.Cards;
+
+        foreach (SpriteRenderer sprite in sprites)
+        {
+            if (sprite == null) { continue; }
+
+            topOrder = Mathf.Max(topOrder, sprite.sortingOrder);
+            layer = sprite.sortingLayerName;
+        }
+
+        areaIconRenderer.sortingLayerName = layer;
+        areaIconRenderer.sortingOrder = topOrder + 1;
+
+        sprites.Add(areaIconRenderer);
+        spriteRestColors.Add(areaIconRenderer.color);
     }
 
     /// Drops `renderer` out of the grey-out scan, keeping sprites/spriteRestColors paired by index.
@@ -260,6 +315,28 @@ public class CardViewer : MonoBehaviour
         {
             rangeIndicator.sprite = null;
         }
+
+        if (areaIconRenderer != null)
+        {
+            Sprite icon = card.AreaIcon();
+            areaIconRenderer.sprite = icon;
+            ApplyAreaIconScale(icon);
+        }
+    }
+
+    /// A footprint glyph is built at a fixed pixels-per-cell, so its native size grows with how far
+    /// the shape reaches - a long cone would otherwise dwarf a tight blast on the card face. Scaling
+    /// by the sprite's own bounds, rather than a hardcoded factor per AreaKind, is what keeps every
+    /// shape landing at the same areaIconSize regardless of how CardAreaIconBuilder happened to size
+    /// its texture.
+    private void ApplyAreaIconScale(Sprite icon)
+    {
+        if (icon == null) { return; }
+
+        float nativeSize = icon.bounds.size.x;
+        float scale = nativeSize > 0f ? areaIconSize / nativeSize : 1f;
+
+        areaIconRenderer.transform.localScale = Vector3.one * scale;
     }
 
     /// <summary>

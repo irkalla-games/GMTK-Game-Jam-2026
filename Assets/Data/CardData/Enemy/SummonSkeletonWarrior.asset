@@ -21,10 +21,21 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 0
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Summons
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField:
   - type: 3

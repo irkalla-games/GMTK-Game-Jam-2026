@@ -64,10 +64,10 @@ public static class Projectile
                 degrees += Mathf.Atan2(heading.y, heading.x) * Mathf.Rad2Deg;
             }
         }
-
+        float averageCharacterHeight = 1.5f;
         go.transform.rotation = Quaternion.Euler(0f, 0f, degrees);
-
-        go.transform.DOMove(to, duration);
+        Vector3 heightedTo = new Vector3(to.x, to.y + averageCharacterHeight/2, to.z);
+        go.transform.DOMove(heightedTo, duration);
         yield return new WaitForSeconds(duration);
 
         Object.Destroy(go);

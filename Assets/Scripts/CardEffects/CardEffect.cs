@@ -4,8 +4,10 @@ using UnityEngine;
 /// Where an effect lands, relative to the tile the player clicked.
 ///
 /// PlayedTile = 0 so every effect asset authored before this field existed keeps aiming where it
-/// always did.
-/// </summary> 
+/// always did. Lives here rather than nowhere because AuraReaction and CardEffectEntry both need the
+/// vocabulary, even though the aim choice itself now lives on CardEffectEntry, not on this asset - see
+/// that struct's doc comment for why.
+/// </summary>
 public enum EffectTarget
 {
     /// The tile the card was played on.
@@ -18,17 +20,19 @@ public enum EffectTarget
 
 public abstract class CardEffect : ScriptableObject
 {
-    [Tooltip("Where this effect lands. Source aims it at the caster instead of the clicked tile, "
-             + "which is how one card can damage an enemy and buff its own player.")]
-    [SerializeField] private EffectTarget aimsAt;
-
-    public EffectTarget AimsAt => aimsAt;
-
     /// <summary>
     /// Called when a card is played.
     /// The effect should queue one or more GameActions.
     /// </summary>
     public abstract void Resolve(ActionContext ctx);
+
+    /// <summary>
+    /// False for an effect that can only ever mean one tile - Move, principally, since MoveAction
+    /// throws if it is handed more than one target. Card.ResolveEffects forces an entry back to
+    /// AreaKind.Single before building its footprint when this is false, no matter what area the card
+    /// was authored with, so a Move entry can never be handed a multi-tile ActionContext.
+    /// </summary>
+    public virtual bool SupportsArea => true;
 
     /// <summary>
     /// Why this effect could not land on `target`, or null if it can. Asked before the card is paid

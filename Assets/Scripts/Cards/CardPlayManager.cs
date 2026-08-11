@@ -95,6 +95,20 @@ public class CardPlayManager : Singleton<CardPlayManager>
     }
 
 
+    /// <summary>
+    /// Refreshes the selected card's area-of-effect preview against whichever tile the cursor is now
+    /// over - the red footprint the user aims by. BattleManager.OnTileHovered is hover's single door,
+    /// same as OnTileClicked is for clicks. With nothing selected, or the cursor over nothing,
+    /// GridManager.ShowAreaPreview clears the preview on its own.
+    /// </summary>
+    public void RefreshAreaPreview(GridTile hovered)
+    {
+        if (GridManager.Instance == null) { return; }
+
+        Character actor = BattleManager.Instance != null ? BattleManager.Instance.ActiveCharacter : null;
+        GridManager.Instance.ShowAreaPreview(HasSelection ? selected.card : null, actor, hovered);
+    }
+
     private static string Name(CardViewer cardViewer) =>
         cardViewer != null && cardViewer.card != null ? cardViewer.card.cardName : "null";
 
@@ -109,6 +123,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
         if (GridManager.Instance != null)
         {
             GridManager.Instance.ShowPlayableTiles(cardViewer.card, BattleManager.Instance.ActiveCharacter);
+
+            // Switching cards without the mouse moving would otherwise leave the old card's area
+            // preview lit until the next hover event - nobody will refresh it, since nothing moved.
+            GridManager.Instance.ClearAreaPreview();
         }
     }
 
@@ -124,7 +142,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     private static void ClearHighlights()
     {
-        if (GridManager.Instance != null) { GridManager.Instance.ClearPlayableTiles(); }
+        if (GridManager.Instance == null) { return; }
+
+        GridManager.Instance.ClearPlayableTiles();
+        GridManager.Instance.ClearAreaPreview();
     }
 
     private void Update()

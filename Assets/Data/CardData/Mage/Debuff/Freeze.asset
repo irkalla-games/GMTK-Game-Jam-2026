@@ -13,18 +13,29 @@ MonoBehaviour:
   m_Name: Freeze
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Freeze
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
     minDistance: 1
     maxDistance: 5
   <requiredClass>k__BackingField: 2
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 2
   <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Freeze an enemy within 5 tiles. It loses its entire
     next turn.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 3580edba556b41dfacf7b14e5dc9d88d, type: 2}
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 3580edba556b41dfacf7b14e5dc9d88d, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

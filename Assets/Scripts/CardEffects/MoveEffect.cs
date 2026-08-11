@@ -12,4 +12,8 @@ public class MoveEffect : CardEffect
     // defence can never disagree about where a character may stand.
     public override string Refusal(Character source, GridTile target) =>
         GridManager.MoveRefusal(source, target);
+
+    // MoveAction throws unless it gets exactly one tile - a Move entry can never legally fan out, no
+    // matter what area a card author sets on it.
+    public override bool SupportsArea => false;
 }

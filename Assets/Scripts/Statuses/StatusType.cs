@@ -45,4 +45,8 @@ public enum StatusType
     Rooted = 8,
 
     DoubleShield = 9,
+
+    /// Negates each of the next few hits outright and sidesteps to a nearby tile, no reflection.
+    /// stacks is the charge count - see DodgeStatus and GridManager.StepAwayFrom.
+    Dodge = 10,
 }

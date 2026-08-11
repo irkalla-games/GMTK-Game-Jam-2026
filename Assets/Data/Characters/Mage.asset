@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e424af3dee2e819428d8ee96039f179f, type: 3}
+  m_Name: Mage
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterOption
+  displayName: Mage
+  portrait: {fileID: 0}
+  prefab: {fileID: 6338188868612233919, guid: cb01aa46fbd50204695accbc09080159, type: 3}
+  decks:
+  - {fileID: 11400000, guid: 9f0dcb1faa73a1a42a88a8cc100fd4c4, type: 2}

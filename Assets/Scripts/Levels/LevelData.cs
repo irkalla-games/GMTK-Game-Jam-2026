@@ -54,8 +54,10 @@ public class LevelData : ScriptableObject
     [SerializeField] private List<EnemyWave> waves = new();
 
     [Tooltip("Where the run's party is placed, index for index against RunState's roster. A party "
-             + "with more members than this list has spawn cells for is short the extras - they are "
-             + "logged and left unplaced rather than guessed at.")]
+             + "with more members than this list has spawn cells for requests the last authored cell "
+             + "for the extras - GridManager.NearestFreeSpawnTile then fans them out from there, same "
+             + "as an over-full enemy wave. Tools/Level/Top Up Party Spawn Cells adds cells up to the "
+             + "roster's max party size in one pass.")]
     [OneBasedCell]
     [SerializeField] private List<Vector2Int> partySpawnCells = new();
 

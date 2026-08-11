@@ -153,6 +153,16 @@ public static class LevelRewardWiring
 
             titleLabel.objectReferenceValue = CreateTitle(parent, RewardTitleName, "Reward");
         }
+        else if (titleLabel.objectReferenceValue is TMP_Text existingTitle
+                 && root.objectReferenceValue is GameObject backdrop
+                 && existingTitle.transform.parent != backdrop.transform)
+        {
+            // Title was authored as a sibling of Backdrop, not a child, so root.SetActive(false) in
+            // RewardPanel.Hide() never hid it - the label just sat there with stale text after the
+            // panel closed. Reparenting it here is what fixes that, not a runtime clear-text call.
+            existingTitle.transform.SetParent(backdrop.transform, worldPositionStays: true);
+            Debug.Log("Level reward wiring: reparented RewardPanel's title under its backdrop.");
+        }
 
         // 0 is what this panel deserialized to - the field did not exist when the scene was authored -
         // and SpawnCards reads that as "no clamp". 15 is what actually keeps five cards on screen.
@@ -191,6 +201,18 @@ public static class LevelRewardWiring
         SetIfEmpty(so, "cardPrefab", ReadObject(rewardPanel, "cardPrefab"));
         SetIfEmpty(so, "gridAnchor", EnsureGridAnchor());
         SetIfEmpty(so, "cancelButton", EnsureCancelButton(backdrop.transform, rewardPanel));
+
+        // Authored as 0.78 - CardViewer.OnMouseEnter computes rest * hover, and 0.7 * 0.78 is smaller
+        // than 0.7, so hovering a card in the deck-thinning grid shrank it instead of popping it up.
+        // Force-corrected rather than SetIfEmpty above: the field already holds a wrong value, not an
+        // empty one.
+        SerializedProperty cardHoverScale = so.FindProperty("cardHoverScale");
+
+        if (Mathf.Approximately(cardHoverScale.floatValue, 0.78f))
+        {
+            cardHoverScale.floatValue = 1.08f;
+            Debug.Log("Level reward wiring: CardRemovalPanel cardHoverScale 0.78 -> 1.08 (was shrinking on hover).");
+        }
 
         so.ApplyModifiedProperties();
 
@@ -265,17 +287,23 @@ public static class LevelRewardWiring
 
     /// <summary>
     /// A root-level plain Transform, not a canvas child - CardViewers are world-space sprite objects,
-    /// and gridAnchor.position is read as a world position. Mirrors RewardCardAnchor, just lower and
-    /// centred, because a whole deck needs vertical room where a row of five does not.
+    /// and gridAnchor.position is read as a world position.
+    ///
+    /// Position always re-applied, not just set on creation: the camera sits at world (0.81334, 5.4,
+    /// -1), and CameraFrame's fixed 10.8-tall design frame means the visible vertical range is y in
+    /// [0, 10.8] - not [-5.4, 5.4], which "camera size 5.4" suggests on its own. The old y (0.5) sat
+    /// almost on the frame's bottom edge, so every row past the first fell off-screen; 5.4 is the
+    /// frame's true vertical centre, giving the grid the most symmetric room to grow in both
+    /// directions. x stays 0, matching RewardCardAnchor's own world x once its parent offset is
+    /// worked through - that is this design's centre line, not the camera's own x.
     /// </summary>
     private static Object EnsureGridAnchor()
     {
-        GameObject existing = GameObject.Find(RemovalAnchorName);
+        GameObject anchor = GameObject.Find(RemovalAnchorName);
 
-        if (existing != null) { return existing.transform; }
+        if (anchor == null) { anchor = new GameObject(RemovalAnchorName); }
 
-        GameObject anchor = new(RemovalAnchorName);
-        anchor.transform.position = new Vector3(0f, 0.5f, -0.67f);
+        anchor.transform.position = new Vector3(0f, 5.4f, -0.67f);
 
         return anchor.transform;
     }

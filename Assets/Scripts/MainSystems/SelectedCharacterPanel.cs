@@ -150,7 +150,7 @@ public class SelectedCharacterPanel : MonoBehaviour
 
         panelRoot.SetActive(true);
 
-        if (nameText != null) { nameText.text = character.name; }
+        if (nameText != null) { nameText.text = character.DisplayName; }
 
         // Shield is not a field on Character - it is whatever a ShieldStatus in its list says it is.
         int shield = character.StatusStacks(StatusType.Shield);

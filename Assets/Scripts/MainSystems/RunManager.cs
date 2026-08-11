@@ -42,6 +42,8 @@ public class RunManager : PersistantSingleton<RunManager>
 
     private int levelIndex;
 
+    private bool tutorialEnabled;
+
     private readonly List<PartyMember> party = new();
 
     /// The run's roster. Members removed by death do not come back - see RemoveMember.
@@ -57,11 +59,28 @@ public class RunManager : PersistantSingleton<RunManager>
     public int LevelNumber => levelIndex + 1;
 
     /// <summary>
+    /// Whether there is no level after the current one. Non-mutating, unlike AdvanceLevel, which is
+    /// the only other way to find out and answers by *moving the index* - the winning turn has to
+    /// know which modal to show before it decides to move on.
+    ///
+    /// No campaign counts as final, matching what AdvanceLevel would say: there is nothing to go on
+    /// to, so this is the last thing that happens.
+    /// </summary>
+    public bool IsFinalLevel => campaign == null || levelIndex >= campaign.Levels.Count - 1;
+
+    /// <summary>
+    /// Whether this run asked for the tutorial. Snapshotted at StartRun rather than read from
+    /// GameSettings wherever it is needed, so toggling the option cannot change a run already under
+    /// way - the same reason the party is copied out of RunData rather than pointed at.
+    /// </summary>
+    public bool TutorialEnabled => tutorialEnabled;
+
+    /// <summary>
     /// Begins a run, from the Main Menu's Play button. Reuses the existing object when there is one
     /// rather than destroying and re-instantiating: Destroy is deferred to the end of the frame, so a
     /// fresh Instantiate in the same call would find Instance still set and destroy itself instead.
     /// </summary>
-    public static void StartRun(RunData campaign)
+    public static void StartRun(RunData campaign, bool showTutorial)
     {
         RunManager manager = Instance;
 
@@ -70,20 +89,23 @@ public class RunManager : PersistantSingleton<RunManager>
             manager = new GameObject(nameof(RunManager)).AddComponent<RunManager>();
         }
 
-        manager.Begin(campaign);
+        manager.Begin(campaign, showTutorial);
     }
 
     /// <summary>
     /// Starts a run only if one is not already under way. This is what lets Game.unity be opened and
     /// played on its own without going through the Main Menu first - BattleManager calls it with its
     /// debug campaign, and it does nothing at all when the player arrived here through a real run.
+    ///
+    /// Never with the tutorial. This path exists for iterating on a level in the Editor, and a modal
+    /// to dismiss on every Play is exactly the friction it is meant to avoid.
     /// </summary>
     public static void EnsureRun(RunData fallback)
     {
         if (Instance != null && Instance.campaign != null) { return; }
         if (fallback == null) { return; }
 
-        StartRun(fallback);
+        StartRun(fallback, showTutorial: false);
     }
 
     /// <summary>
@@ -124,13 +146,15 @@ public class RunManager : PersistantSingleton<RunManager>
     {
         campaign = null;
         levelIndex = 0;
+        tutorialEnabled = false;
         party.Clear();
     }
 
-    private void Begin(RunData runData)
+    private void Begin(RunData runData, bool showTutorial)
     {
         campaign = runData;
         levelIndex = 0;
+        tutorialEnabled = showTutorial;
         party.Clear();
 
         if (runData == null)
@@ -140,6 +164,52 @@ public class RunManager : PersistantSingleton<RunManager>
             return;
         }
 
+        // StartingHeroes is what a real run through the Main Menu's character select produces; empty
+        // means this RunData was authored the old way (StartingParty only, e.g. DebugRun.asset), which
+        // is the standalone-play path - opening Game.unity directly and pressing Play goes through
+        // EnsureRun with no menu in between. Never both: a select-screen run always sets one and leaves
+        // the other at its authored default.
+        if (runData.StartingHeroes.Count > 0)
+        {
+            BeginFromHeroes(runData);
+        }
+        else
+        {
+            BeginFromStartingParty(runData);
+        }
+    }
+
+    private void BeginFromHeroes(RunData runData)
+    {
+        foreach (PartyEntry entry in runData.StartingHeroes)
+        {
+            if (entry.prefab == null) { continue; }
+
+            Character character = entry.prefab.GetComponent<Character>();
+
+            if (character == null)
+            {
+                Debug.LogError($"{entry.prefab.name} is in {runData.name}'s starting heroes but has no "
+                               + "Character component - skipped");
+                continue;
+            }
+
+            // Null deck means no choice was made for this hero - fall back to the prefab's own
+            // authored deck, same as picking no CharacterOption.Decks entry means at the select screen.
+            IReadOnlyList<CardData> cards =
+                entry.deck != null ? entry.deck.Cards : character.AuthoredDeck;
+
+            party.Add(new PartyMember
+            {
+                prefab = character,
+                deck = new List<CardData>(cards),
+                currentHealth = character.MaxHealth,
+            });
+        }
+    }
+
+    private void BeginFromStartingParty(RunData runData)
+    {
         foreach (GameObject prefab in runData.StartingParty)
         {
             if (prefab == null) { continue; }

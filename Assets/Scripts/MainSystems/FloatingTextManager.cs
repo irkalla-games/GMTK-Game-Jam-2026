@@ -127,6 +127,11 @@ public class FloatingTextManager : Singleton<FloatingTextManager>
         Show(target, body, color, height);
     }
 
+    /// A "0" over an empty tile - an attack landed on nobody, most often because the target dodged away
+    /// earlier in the same resolution. GridTile.DealDamage is the only caller: there's no Character
+    /// there to raise DamageRegistered from, which is the event every other damage popup rides on.
+    public void ShowMiss(GridTile tile) => Show(tile, "0", attackColor, minHeight);
+
     /// <summary>
     /// Pops an arbitrary label over a character's tile - the general door damage numbers are the first
     /// caller of, not the only one. `height` at 0 means "unset" and falls back to defaultHeight, the

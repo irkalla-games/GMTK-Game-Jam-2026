@@ -12,5 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 894f70d8477906942b2320f3890d3689, type: 3}
   m_Name: Parry x2
   m_EditorClassIdentifier: Assembly-CSharp::ParryEffect
-  aimsAt: 1
-  parryCharges: 2
+  parryCharges: 1

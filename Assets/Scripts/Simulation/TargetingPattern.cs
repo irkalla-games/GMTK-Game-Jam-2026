@@ -18,6 +18,7 @@ public enum TargetPriority
     Closest = 1,
     Furthest = 2,
     Random = 3,
+    Strongest = 4,
 }
 
 /// <summary>

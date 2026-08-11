@@ -18,14 +18,15 @@ public enum BattlePhase
 /// <summary>
 /// The round. Not a turn order - inside PlayerActing there is none, and clicking a character still
 /// makes it active exactly as before. The boundary exists for two reasons only: energy and armor need
-/// a refresh point, and enemies need a moment to act on intents the player has spent the turn
-/// disrupting.
+/// a refresh point, and enemies need a moment to act.
 ///
-///   TurnStart      refresh energy + armor, draw back up, enemies commit an intent
+///   TurnStart      refresh energy + armor, draw back up, enemies commit an opening intent
 ///   PlayerActing   free-form, immediate resolution. Ends on End Turn and nothing else - never on
-///                  its own - then player-controlled statuses tick.
-///   EnemyResolve   the committed intent executes right or wrong; everything after it is re-decided.
-///                  Enemy statuses tick once every enemy has acted.
+///                  its own - then player-controlled statuses tick. Every enemy's intent is kept live
+///                  the whole time - see LateUpdate - so the icon over its head always shows what it
+///                  would actually do if EnemyResolve started this instant.
+///   EnemyResolve   each enemy re-decides outright and acts on it - see Decide and Execute. Enemy
+///                  statuses tick once every enemy has acted.
 ///   -> TurnStart
 ///
 /// Statuses deliberately tick at the end of the phase they gate rather than at the shared TurnStart -
@@ -56,6 +57,17 @@ public class BattleManager : Singleton<BattleManager>
              + "playable in the Editor without going through the Main Menu. Ignored when the player "
              + "arrived here through a real run.")]
     [SerializeField] private RunData debugCampaign;
+
+    /// The tutorial copy. Consts rather than serialized fields on purpose: a field added to a
+    /// component the scene already holds deserializes to empty, not to its initialiser, so the text
+    /// would silently vanish until someone retyped it in the Inspector.
+    private const string TutorialTitle = "How to Play";
+
+    private const string TutorialMessage =
+        "You are a group of adventurers waiting for your friend to open the Door. Survive until the "
+        + "turn counter reaches 0 to make it out alive! Select the Knight or Mage using the Left "
+        + "Mouse Button and then select cards to play. Each Character has their own deck and amount "
+        + "of energy each turn. Good Luck!";
 
     /// <summary>
     /// The level being played. The run answers this wherever there is one; the serialized field is the
@@ -108,20 +120,41 @@ public class BattleManager : Singleton<BattleManager>
 
     private bool endTurnRequested;
 
+    /// <summary>
+    /// Set whenever something the intent recompute cares about might have changed - an action
+    /// resolving, a character's stats changing, or one joining or leaving the board - and drained once
+    /// per frame in LateUpdate. Coalescing this way means a card that queues three actions produces one
+    /// recompute pass and at most one icon roll per enemy, not three.
+    /// </summary>
+    private bool intentDirty;
+
     /// Which run record each spawned party member came from, so the state it finishes the level with
     /// can be written back to the run. Only party members are in here - an enemy has nothing that
     /// outlives the battle.
     private readonly Dictionary<Character, PartyMember> partyRecords = new();
 
-    /// <summary>
-    /// True while a reward panel is up. Not Time.timeScale - that would stall the WaitForSeconds inside
-    /// EnemyResolve (an enemy shoving a hero onto loot takes that exact path) and would not actually
-    /// block a click, since OnMouseDown is a physics raycast no uGUI panel intercepts. This is the
-    /// real gate; OnTileClicked and CardPlayManager.OnCardClicked both check it.
-    /// </summary>
-    public bool InputLocked { get; private set; }
+    /// Set by LootManager while a reward panel is up. The other half of InputLocked.
+    private bool rewardPanelUp;
 
-    public void SetInputLocked(bool value) => InputLocked = value;
+    /// <summary>
+    /// True while a modal owns the screen - a reward panel or a notification. Not Time.timeScale -
+    /// that would stall the WaitForSeconds inside EnemyResolve (an enemy shoving a hero onto loot
+    /// takes that exact path) and would not actually block a click, since OnMouseDown is a physics
+    /// raycast no uGUI panel intercepts. This is the real gate; OnTileClicked and
+    /// CardPlayManager.OnCardClicked both check it.
+    ///
+    /// The notification half is *pulled* rather than pushed, the same way auras are. If Show/Hide
+    /// wrote the flag instead, a notification opening over a reward panel would clear the panel's
+    /// lock when it was dismissed - one bool cannot remember that two things wanted it held.
+    /// </summary>
+    public bool InputLocked =>
+        rewardPanelUp
+        || (NotificationManager.Instance != null && NotificationManager.Instance.IsShowing);
+
+    public void SetInputLocked(bool value) => rewardPanelUp = value;
+
+    /// Last frame's InputLocked, so Update can spot the moment it goes up. See ClearStuckHover.
+    private bool inputWasLocked;
 
     /// Hook this to the End Turn button. The only way out of PlayerActing, and it always works while
     /// the phase is live - energy left unspent is simply banked. The button dims itself while there
@@ -180,6 +213,22 @@ public class BattleManager : Singleton<BattleManager>
         Debug.Log($"tile clicked: {tile.Coordinates} - activating {occupant.name}");
         SetSelectedCharacter(occupant);
         SetActiveCharacter(occupant);
+    }
+
+    /// <summary>
+    /// Every tile hover starts here, the same centralizing OnTileClicked already does for clicks -
+    /// GridTile has no OnMouseEnter/Exit of its own, but TileSelector's do, and TotemTooltip's own
+    /// collider steals them the same way it already forwards its OnMouseDown here. Refreshes the
+    /// selected card's area-of-effect preview against the hovered tile; `tile` null means the cursor
+    /// left it, which clears the preview.
+    ///
+    /// Not gated on InputLocked here - TileSelector.OnMouseEnter already refuses to report a hover
+    /// while a modal is up, and the exit/null path has to stay live regardless so a preview does not
+    /// get stuck lit behind a panel, matching ClearStuckHover's own reasoning for the tint itself.
+    /// </summary>
+    public void OnTileHovered(GridTile tile)
+    {
+        if (CardPlayManager.Instance != null) { CardPlayManager.Instance.RefreshAreaPreview(tile); }
     }
 
     /// <summary>
@@ -298,6 +347,12 @@ public class BattleManager : Singleton<BattleManager>
         character.CardDrawn += HandlePlayabilityMayHaveChanged;
         character.CardDiscarded += HandlePlayabilityMayHaveChanged;
 
+        // A character's health feeds Weakest/Strongest targeting, so any stat change can flip who an
+        // enemy means to hit. A character arriving is itself a change - a fresh body on the board can
+        // turn someone else's committed Move into an Attack.
+        character.StatsChanged += HandleIntentMayHaveChanged;
+        intentDirty = true;
+
         CharacterJoined?.Invoke(character);
     }
 
@@ -308,6 +363,12 @@ public class BattleManager : Singleton<BattleManager>
         character.CardDrawn -= HandlePlayabilityMayHaveChanged;
         character.CardDiscarded -= HandlePlayabilityMayHaveChanged;
 
+        character.StatsChanged -= HandleIntentMayHaveChanged;
+
+        // A character leaving the board is itself a change - the enemy that meant to swing at it needs
+        // to pick something else.
+        intentDirty = true;
+
         CharacterLeft?.Invoke(character);
     }
 
@@ -317,8 +378,16 @@ public class BattleManager : Singleton<BattleManager>
 
     private void HandlePlayabilityMayHaveChanged(Character _, Card __) => RaisePlayabilityChanged();
 
+    private void HandleIntentMayHaveChanged(Character _) => intentDirty = true;
+
+    private void HandleActionResolved(GameAction action, ActionContext ctx) => intentDirty = true;
+
     private void Start()
     {
+        // Every board mutation resolves through here, so it is the one hook the intent refresh pass
+        // needs beyond the per-character subscriptions Subscribe already sets up.
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += HandleActionResolved; }
+
         // Before anything reads CurrentLevel. Does nothing when the player came here from the Main
         // Menu; starts a throwaway run when this scene was opened on its own.
         RunManager.EnsureRun(debugCampaign);
@@ -349,12 +418,42 @@ public class BattleManager : Singleton<BattleManager>
         // whoever is active. Order is safe either way now - ActiveHandViewer reads ActiveCharacter in
         // its own Start if it happened to subscribe after this fired.
         SetActiveCharacter(FirstPlayableCharacter());
-        NotificationManager.Instance.Show("How to Play",
-            "You are a group of adventures waitng for your friend to open the Door. Survive as long until the turn counter reaches 0 to make it out alive! Select the Knight or Mage using the Left Mouse Button and then select cards to play. Each Character has their own deck and amount of energy each turn. Good Luck!");
 
-
+        ShowTutorialIfWanted();
 
         StartCoroutine(RunBattle());
+    }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= HandleActionResolved; }
+    }
+
+    /// <summary>
+    /// The How to Play prompt, on the first level of a run that asked for it and nowhere else.
+    ///
+    /// Gated on the run rather than on a flag of our own: the Game scene is reloaded for every level,
+    /// so anything scene-local forgets between levels and would show this again each time - which is
+    /// exactly what it used to do. RunManager is the only thing that survives the load.
+    ///
+    /// The notification is null-checked because this sits between SetActiveCharacter and
+    /// StartCoroutine(RunBattle): an exception here would leave a battle that looks alive - clicking
+    /// a character still works - but never draws a card. See the doc on ActiveCharacterChanged.
+    ///
+    /// RunBattle deliberately starts behind the prompt rather than waiting for it. InputLocked is
+    /// true while it is up, so nothing can be played and the turn cannot be ended; the player just
+    /// watches the board deal itself in while they read.
+    /// </summary>
+    private void ShowTutorialIfWanted()
+    {
+        RunManager run = RunManager.Instance;
+
+        if (run == null || !run.TutorialEnabled || run.LevelNumber != 1) { return; }
+        if (NotificationManager.Instance == null) { return; }
+
+        NotificationManager.Instance.Show(TutorialTitle, TutorialMessage);
     }
 
     /// <summary>
@@ -371,6 +470,13 @@ public class BattleManager : Singleton<BattleManager>
     /// Explicit per-member placement for the same reason SpawnEnemies uses PlaceOnGrid rather than
     /// each character's own Start: a character instantiated during this Start would not run its own
     /// Start until the end of the frame, and the first TurnStart happens before that.
+    ///
+    /// A party can now be larger than the level's authored spawn cells (up to 4, chosen at the select
+    /// screen) and can hold duplicates of the same hero, so placement goes through
+    /// GridManager.NearestFreeSpawnTile exactly as SpawnPlacement already does for enemies, rather than
+    /// writing PlaceOnGrid(spawnCells[i]) unconditionally - see SpawnPlacement's own comment for why an
+    /// occupied cell is a real bug (Character.MoveTo claims a tile unconditionally, leaving whoever was
+    /// already there alive, visible, and permanently unclickable) and not just a cosmetic overlap.
     /// </summary>
     private void SpawnParty()
     {
@@ -381,15 +487,46 @@ public class BattleManager : Singleton<BattleManager>
         IReadOnlyList<PartyMember> roster = RunManager.Instance.Party;
         IReadOnlyList<Vector2Int> spawnCells = level.PartySpawnCells;
 
+        if (spawnCells.Count == 0)
+        {
+            Debug.LogWarning($"{level.name} has no party spawn cells authored - nobody placed");
+            return;
+        }
+
+        // Duplicates are allowed (two Knights, say), and every reader of DisplayName -
+        // SelectedCharacterPanel, reward titles - would otherwise show two identical "Knight"s with no
+        // way to tell them apart. A name that appears once in the roster is left exactly as authored.
+        Dictionary<string, int> totalByName = new();
+
+        foreach (PartyMember entry in roster)
+        {
+            if (entry?.prefab == null) { continue; }
+
+            string baseName = entry.prefab.DisplayName;
+            totalByName[baseName] = totalByName.GetValueOrDefault(baseName) + 1;
+        }
+
+        Dictionary<string, int> spawnedByName = new();
+
         for (int i = 0; i < roster.Count; i++)
         {
             PartyMember record = roster[i];
 
             if (record == null || record.prefab == null) { continue; }
 
-            if (i >= spawnCells.Count)
+            // Past the authored cells, everyone else requests the last one - NearestFreeSpawnTile then
+            // fans them out from there, the same way an over-full enemy wave already spreads from its
+            // own requested cell.
+            Vector2Int wanted = i < spawnCells.Count ? spawnCells[i] : spawnCells[^1];
+
+            // Resolved before Instantiate: a board with no room left should cost no GameObject and no
+            // roster entry - same reasoning as SpawnPlacement.
+            GridTile tile = GridManager.Instance.NearestFreeSpawnTile(wanted);
+
+            if (tile == null)
             {
-                Debug.LogWarning($"{record.prefab.name} has no spawn cell in {level.name} - not placed");
+                Debug.LogWarning($"{record.prefab.name} not spawned: {wanted} is taken and every "
+                                 + "border tile is occupied");
                 continue;
             }
 
@@ -401,7 +538,20 @@ public class BattleManager : Singleton<BattleManager>
             member.SetDeck(record.deck);
             member.SetHealth(record.currentHealth);
 
-            member.PlaceOnGrid(spawnCells[i]);
+            string baseDisplayName = record.prefab.DisplayName;
+
+            if (totalByName[baseDisplayName] > 1)
+            {
+                int occurrence = spawnedByName.GetValueOrDefault(baseDisplayName) + 1;
+                spawnedByName[baseDisplayName] = occurrence;
+                member.SetDisplayName($"{baseDisplayName} {occurrence}");
+            }
+
+            // The resolved cell, never `wanted` - PlaceOnGrid writes startCoordinates, and
+            // Character.Start re-places itself from those at the end of the frame, so handing it the
+            // requested cell would drag a relocated hero back on top of whoever displaced it. Same
+            // reasoning as SpawnPlacement.
+            member.PlaceOnGrid(tile.Coordinates);
 
             partyRecords[member] = record;
 
@@ -499,6 +649,8 @@ public class BattleManager : Singleton<BattleManager>
 
     private void Update()
     {
+        ClearStuckHover();
+
         if (Keyboard.current == null) { return; }
 
         // Keyboard shortcut for the End Turn button, and the only other way out of PlayerActing -
@@ -510,6 +662,66 @@ public class BattleManager : Singleton<BattleManager>
         if (Keyboard.current.spaceKey.wasPressedThisFrame && ActiveCharacter != null)
         {
             ActiveCharacter.DrawCard();
+        }
+    }
+
+    /// <summary>
+    /// Keeps every enemy's CommittedIntent - and so the icon over its head - equal to what would
+    /// actually happen if EnemyResolve ran right now. Runs once per frame rather than from inside each
+    /// handler, so one card that queues three actions produces one recompute instead of three.
+    ///
+    /// Only while the player is rearranging the board. EnemyResolve clears each enemy's icon the
+    /// instant it finishes acting, and a pass landing after that would hand the icon straight back
+    /// before the next enemy has even gone; TurnStart re-commits everyone from a fresh board the
+    /// moment PlayerActing begins again, so a change dropped here while it is not our turn is never
+    /// actually lost.
+    /// </summary>
+    private void LateUpdate()
+    {
+        if (!intentDirty) { return; }
+
+        intentDirty = false;
+
+        if (Phase != BattlePhase.PlayerActing) { return; }
+
+        Board board = GridManager.Instance.Read();
+
+        foreach (Character enemy in LivingEnemies())
+        {
+            Intent next = Decide(enemy, board);
+
+            // Kind only - assigning an identical kind would still raise IntentChanged and roll the
+            // icon over to the sprite it is already showing.
+            if (next.kind == enemy.CommittedIntent.kind) { continue; }
+
+            enemy.CommittedIntent = next;
+        }
+    }
+
+    /// <summary>
+    /// Drops the hover tint from the board the moment input locks.
+    ///
+    /// TileSelector gates OnMouseEnter, which stops a *new* tile lighting up, but a tile already lit
+    /// when the modal opened never receives OnMouseExit - the cursor has not moved, it has just
+    /// stopped mattering - so it sits there yellow behind the panel. Watching the rising edge here
+    /// rather than having Show call in keeps the knowledge of what a lock means in one place, and
+    /// covers the reward panels for free.
+    /// </summary>
+    private void ClearStuckHover()
+    {
+        bool locked = InputLocked;
+
+        if (locked == inputWasLocked) { return; }
+
+        inputWasLocked = locked;
+
+        if (locked && GridManager.Instance != null)
+        {
+            GridManager.Instance.ClearHoveredTiles();
+            // Same staleness this whole method exists to fix, one layer up: a tile lit red by the
+            // area preview when the modal opened gets no OnMouseExit either, since the cursor never
+            // moved.
+            GridManager.Instance.ClearAreaPreview();
         }
     }
 
@@ -647,7 +859,11 @@ public class BattleManager : Singleton<BattleManager>
 
             if (AllHeroesDead())
             {
-                NotificationManager.Instance.Show("Defeat", "All Heroes were Slain.");
+                if (NotificationManager.Instance != null)
+                {
+                    NotificationManager.Instance.Show("Defeat", "All Heroes were Slain.");
+                }
+
                 yield return WaitForAcknowledgement();
                 Finish(victory: false);
                 yield break;
@@ -669,13 +885,52 @@ public class BattleManager : Singleton<BattleManager>
 
             if (TurnsRemaining <= 0)
             {
-                NotificationManager.Instance.Show("Victory", "The party made it out!");
-                yield return WaitForAcknowledgement();
-                yield return StartCoroutine(OfferLevelClearRewards());
-                Finish(victory: true);
+                yield return StartCoroutine(EndLevel());
                 yield break;
             }
         }
+    }
+
+    /// <summary>
+    /// The winning turn. Which modal shows and whether rewards are offered both hinge on the one
+    /// question - is there a level after this one - which RunManager.IsFinalLevel answers without
+    /// moving the index the way AdvanceLevel does.
+    ///
+    /// Victory is the end of the *run*, not the end of a level. Showing it between levels spent the
+    /// only beat the game has for its ending on a room the player is about to walk out of; the
+    /// levels in between get a plainer acknowledgement instead.
+    /// </summary>
+    private IEnumerator EndLevel()
+    {
+        RunManager run = RunManager.Instance;
+
+        // No run at all means this scene was opened stand-alone with nothing to advance to, which is
+        // the last level by any useful definition.
+        bool finalLevel = run == null || run.IsFinalLevel;
+
+        if (NotificationManager.Instance != null)
+        {
+            if (finalLevel)
+            {
+                NotificationManager.Instance.Show("Victory", "The party made it out!");
+            }
+            else
+            {
+                NotificationManager.Instance.Show($"Level {run.LevelNumber} Cleared",
+                    "The party pushes on. Another door, another room - take something with you.");
+            }
+        }
+
+        yield return WaitForAcknowledgement();
+
+        // Skipped on the last level: there is no next level to carry a new card into, and Finish
+        // ends the run either way, so the offer would be a choice with nothing behind it.
+        //
+        // Before Finish, not inside it: Finish loads a scene synchronously, which would destroy the
+        // very Characters each panel is named after, mid-offer.
+        if (!finalLevel) { yield return StartCoroutine(OfferLevelClearRewards()); }
+
+        Finish(victory: true);
     }
 
     private void ReduceTurns() => TurnsRemaining--;
@@ -729,9 +984,8 @@ public class BattleManager : Singleton<BattleManager>
         // carrying it, so the only announcement it would otherwise get is none.
         RaisePlayabilityChanged();
 
-        // Enemies commit now, at the top of your turn, not at the end of it. That ordering is the
-        // whole design: they announce one action, you spend the turn making it wrong, and it fires
-        // anyway. Deciding at execution time instead would quietly undo every block you set up.
+        // Enemies commit an opening intent now, at the top of your turn - LateUpdate takes over from
+        // here and keeps every enemy's intent live for the rest of PlayerActing as the board changes.
         Board board = GridManager.Instance.Read();
 
         foreach (Character enemy in LivingEnemies())
@@ -795,13 +1049,9 @@ public class BattleManager : Singleton<BattleManager>
 
             for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++)
             {
-                // Step 0 keeps the *category* promised at TurnStart and re-picks a card and a tile
-                // inside it against the live board - see EnemyBrain.Resolve. What was ever stale was
-                // the card and the tile, not the threat. Every step after it is decided outright,
-                // category included.
-                Intent step = ap == 0
-                    ? Resolve(enemy, GridManager.Instance.Read(), enemy.CommittedIntent.kind)
-                    : Decide(enemy, GridManager.Instance.Read());
+                // Every action point decided outright against the live board. CommittedIntent is only
+                // ever what the icon shows - it is kept live by the refresh pass, not consulted here.
+                Intent step = Decide(enemy, GridManager.Instance.Read());
 
                 if (step.IsWait) { break; }
 
@@ -839,24 +1089,13 @@ public class BattleManager : Singleton<BattleManager>
         return brain.Decide(character, board);
     }
 
-    /// Asks this character's brain for one action inside the category it already committed to. Wait
-    /// if it has no brain, exactly like Decide.
-    private static Intent Resolve(Character character, Board board, IntentKind committed)
-    {
-        EnemyBrain brain = EnemyBrain.For(character.Brain);
-
-        if (brain == null || character.Tile == null) { return Intent.Wait(); }
-
-        return brain.Resolve(character, board, committed);
-    }
-
     /// <summary>
-    /// Plays the committed card, if it is still legal.
+    /// Plays the decided card, if it is still legal.
     ///
-    /// The fizzle is Card.Refusal saying no - the same call the player's click is gated on. An intent
-    /// is a promise made a whole turn ago against a board you have spent the turn rearranging, so a
-    /// goblin that meant to walk somewhere you are now standing, or swing at somebody who has moved
-    /// or died, simply finds its card illegal and burns the action point.
+    /// The fizzle is Card.Refusal saying no - the same call the player's click is gated on. Decide is
+    /// asked fresh against the live board immediately before this runs, so a fizzle here means the
+    /// board changed in the single frame between deciding and acting, not that a stale plan met a
+    /// rearranged board.
     ///
     /// Resolution goes through ResolveEffects exactly as a played card does, so enemy attacks pick up
     /// Strength, Double Attack and the target's armor for free. Nothing in the card pipeline needed
@@ -1000,7 +1239,8 @@ public class BattleManager : Singleton<BattleManager>
     ///
     /// The last level cleared lands in the same place as a defeat, the Main Menu, but by way of
     /// EndRun rather than in spite of it. Skipping that would leave a finished run sitting in the
-    /// RunManager for the next Play button to resume.
+    /// RunManager for the next Play button to resume. What tells the two apart for the player is the
+    /// modal EndLevel put up on the way in, not anything here.
     /// </summary>
     private void Finish(bool victory)
     {

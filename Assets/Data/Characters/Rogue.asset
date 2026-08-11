@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e424af3dee2e819428d8ee96039f179f, type: 3}
+  m_Name: Rogue
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterOption
+  displayName: Rogue
+  portrait: {fileID: 0}
+  prefab: {fileID: 8814313836042315297, guid: 4890c32cf8bb9a246ae74c2d24ea358d, type: 3}
+  decks:
+  - {fileID: 11400000, guid: 61700adfc31e8a14b891082883868820, type: 2}

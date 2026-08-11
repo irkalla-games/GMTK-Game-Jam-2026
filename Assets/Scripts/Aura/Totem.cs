@@ -49,10 +49,6 @@ public class Totem : MonoBehaviour
     [Tooltip("Colour of this totem's pulse on the board. Alpha is ignored - AuraPulse owns that.")]
     [SerializeField] private Color auraColor = DefaultAuraColor;
 
-    [Tooltip("Shown as this totem's tooltip title. Falls back to \"Totem\" when blank, since "
-             + "gameObject.name is just \"Totem(Clone)\" at runtime.")]
-    [SerializeField] private string displayName;
-
     /// The dark blue every totem pulses in until somebody authors otherwise.
     private static readonly Color DefaultAuraColor = new(0.13f, 0.22f, 0.55f, 1f);
 
@@ -143,8 +139,6 @@ public class Totem : MonoBehaviour
     /// rather than an aura that is obviously misconfigured.
     /// </summary>
     public Color AuraColor => auraColor.maxColorComponent <= 0f ? DefaultAuraColor : auraColor;
-
-    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? "Totem" : displayName;
 
     /// Read-only views for TotemTooltip - Totem itself builds no TooltipContent, the same reason
     /// Character never calls back into a viewer.

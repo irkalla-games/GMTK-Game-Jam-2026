@@ -1326,7 +1326,7 @@ MonoBehaviour:
   - {fileID: 1475607496}
   slotParent: {fileID: 657390561}
   slotPrefab: {fileID: 7307541510227481173, guid: 8e7902fa9b5a3bf439bab5fc04574094, type: 3}
-  slotSpacing: 420
+  slotSpacing: 500
   startButton: {fileID: 39413926}
   backButton: {fileID: 137443341}
 --- !u!224 &1157535914

@@ -16,13 +16,24 @@
 .PARAMETER NoCsvMirror
     Skip writing Docs/CardDesign/*.csv. The mirror exists so git diffs of the workbook are readable.
 
+.PARAMETER WriteBaseline
+    Record the state both sides now agree on into baseline.json. Passed by the sync, which has just
+    made them agree. Running the export on its own does NOT move the baseline, because on its own it
+    has not reconciled anything.
+
+.PARAMETER Force
+    Rebuild the sheet even though it holds edits that have not reached the assets, discarding them.
+    Without this the export refuses rather than silently overwriting your work.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File Tools/CardSheet/Export-CardSheet.ps1
 #>
 [CmdletBinding()]
 param(
     [string]$WorkbookPath,
-    [switch]$NoCsvMirror
+    [switch]$NoCsvMirror,
+    [switch]$WriteBaseline,
+    [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,30 +65,14 @@ if (Test-Path -LiteralPath $WorkbookPath) {
     }
 }
 
-# The authoring columns, in sheet order. Shared by the class tabs and the Ideas tabs.
-#
-# This list is the single source of truth for column order: the sheet, the CSV mirror and every
-# column-letter lookup in Write-CardWorkbook derive from it by name, so reordering here is safe and
-# needs no other change. Nothing reads a card row positionally - Import-Excel and Import-Csv both key
-# by header text - which is what keeps the import tool indifferent to this order.
-#
-# Ordered for reading a card at a glance: what it is, what it costs, what it does, then the targeting
-# rules. The bookkeeping columns (Key, GUID, Sync) and the per-effect aim/area detail sit behind that,
-# since they are rarely what you are scanning for.
-$script:CardColumns = @(
-    'Card Name', 'Cost', 'Rarity',
-    'Effect 1', 'Effect 2', 'Effect 3',
-    'Description',
-    'Range Shape', 'Range Min', 'Range Max',
-    'Key', 'Class', 'Folder', 'Tags',
-    'Aim 1', 'Area 1',
-    'Aim 2', 'Area 2',
-    'Aim 3', 'Area 3',
-    'Keywords', 'No Reward', 'Animation', 'GUID', 'Sync', 'Notes'
-)
+# Column order comes from CardSheet.Common (Get-CardColumns), which is also what the merge compares -
+# one list, so the sheet, the CSV mirror and the three-way merge can never disagree about what a
+# column is called. Nothing reads a card row positionally: Import-Excel and Import-Csv both key by
+# header text, which is what keeps the order a purely cosmetic choice.
+$script:CardColumns = @(Get-CardColumns)
 
 # The four extra columns that make an Ideas tab a backlog rather than a card list.
-$script:IdeaColumns = $script:CardColumns + @('Buildable', 'Engine Work', 'Source', 'Priority')
+$script:IdeaColumns = $script:CardColumns + @(Get-IdeaBacklogColumns)
 
 $script:ClassTabs = [ordered]@{
     Knight  = @('Knight')
@@ -338,6 +333,70 @@ foreach ($asset in ($assetIndex.All | Where-Object { $_.Type -eq 'CardData' })) 
 Write-Host "  $($allCards.Count) cards, $($assetIndex.All.Count) assets total"
 
 # ---------------------------------------------------------------------------------------------------
+# Refuse to discard unsynced sheet edits
+#
+# This export rebuilds every authoring column from the assets, so on its own it is a one-way overwrite.
+# Before this guard existed, rewording cards in the sheet and then running the export to pick up a card
+# authored in the Inspector silently threw the rewording away - the exact workflow the sync is for.
+# ---------------------------------------------------------------------------------------------------
+
+if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
+    $baseline = Read-Baseline -ToolDir $scriptDir
+    $byGuid = @{}
+    foreach ($card in $allCards) {
+        $g = [string]$card.Row['GUID']
+        if ($g) { $byGuid[$g] = $card }
+    }
+
+    $pending = @()
+
+    foreach ($tab in $script:ClassTabs.Keys) {
+        foreach ($row in (Get-ExistingSheet -SheetName $tab)) {
+            $guid = ''
+            if ($row.PSObject.Properties.Name -contains 'GUID') { $guid = ([string]$row.GUID).Trim() }
+
+            $key = ''
+            if ($row.PSObject.Properties.Name -contains 'Key') { $key = ([string]$row.Key).Trim() }
+
+            # A row with no GUID is a card the sheet is asking to create - unsynced by definition.
+            if (-not $guid) {
+                if ($key) { $pending += "$key (new row, not yet created)" }
+                continue
+            }
+
+            if (-not $byGuid.ContainsKey($guid)) { continue }
+            $card = $byGuid[$guid]
+            $hasBase = $baseline.Cards.ContainsKey($guid)
+
+            foreach ($col in (Get-MergeColumns)) {
+                $sheetValue = ''
+                if ($row.PSObject.Properties.Name -contains $col) { $sheetValue = $row.$col }
+
+                $baseValue = $null
+                if ($hasBase -and $baseline.Cards[$guid].ContainsKey($col)) { $baseValue = $baseline.Cards[$guid][$col] }
+
+                $verdict = Resolve-ThreeWay -Baseline $baseValue -Asset $card.Row[$col] -Sheet $sheetValue `
+                                            -HasBaselineEntry $hasBase
+
+                if ($verdict -in @('takeSheet', 'conflict', 'noBaseline')) {
+                    $pending += "$key -> $col"
+                }
+            }
+        }
+    }
+
+    if ($pending.Count -gt 0) {
+        $shown = @($pending | Select-Object -First 12)
+        $more = if ($pending.Count -gt 12) { "`n  ... and $($pending.Count - 12) more" } else { '' }
+
+        throw ("The sheet holds $($pending.Count) edit(s) that have not reached the assets. Rebuilding it " +
+               "now would discard them:`n  " + ($shown -join "`n  ") + $more +
+               "`n`nRun the sync instead - Tools > Sync With Sheet in Unity - which applies these " +
+               "first and then refreshes the sheet. Pass -Force to overwrite them anyway.")
+    }
+}
+
+# ---------------------------------------------------------------------------------------------------
 # Build sheet data
 # ---------------------------------------------------------------------------------------------------
 
@@ -574,6 +633,11 @@ if (-not $NoCsvMirror) {
         }
     }
     Write-Host "CSV mirror written to Docs/CardDesign/" -ForegroundColor DarkGray
+}
+
+if ($WriteBaseline) {
+    Write-Baseline -ToolDir $scriptDir -CardRecords $allCards -GlossaryRows $glossaryRows
+    Write-Host "Baseline recorded ($($allCards.Count) cards, $($glossaryRows.Count) glossary entries)" -ForegroundColor DarkGray
 }
 
 Write-Host "`nWrote $WorkbookPath" -ForegroundColor Green

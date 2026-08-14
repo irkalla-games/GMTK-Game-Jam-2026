@@ -10,26 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
-  m_Name: SummonTotem
+  m_Name: Parry
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: Summon Totem
-  <cost>k__BackingField: 2
+  <cardName>k__BackingField: Parry
+  <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 1
-    minDistance: 1
-    maxDistance: 3
-  <requiredClass>k__BackingField: 2
+    shape: 3
+    minDistance: 0
+    maxDistance: 0
+  <requiredClass>k__BackingField: 1
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Summons a Totem that provides Shield everytime anyone
-    attacks nearby.
+  <description>k__BackingField: Gain 1 Parry
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
-  - {fileID: 11400000, guid: aaaa1117bbbb2228cccc3339dddd444a, type: 2}
+  - {fileID: 11400000, guid: 8dec97316b8344c796239e2f86af1374, type: 2}
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: aaaa1117bbbb2228cccc3339dddd444a, type: 2}
-    aimsAt: 0
+  - effect: {fileID: 11400000, guid: 8dec97316b8344c796239e2f86af1374, type: 2}
+    aimsAt: 1
     area:
       kind: 0
       radius:

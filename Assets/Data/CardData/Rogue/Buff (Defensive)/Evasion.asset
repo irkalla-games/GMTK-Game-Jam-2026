@@ -10,21 +10,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
-  m_Name: SummonPoisonShield
+  m_Name: Evasion
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: 
-  <cost>k__BackingField: 0
+  <cardName>k__BackingField: Evasion
+  <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 0
+    shape: 3
     minDistance: 0
     maxDistance: 0
-  <requiredClass>k__BackingField: 0
-  <rarity>k__BackingField: 0
-  <tags>k__BackingField: 
+  <requiredClass>k__BackingField: 4
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: 
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
-  <effectEntries>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []

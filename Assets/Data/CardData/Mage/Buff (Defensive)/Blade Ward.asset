@@ -28,7 +28,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
-    aimsAt: 1
+    aimsAt: 0
     area:
       kind: 0
       radius:

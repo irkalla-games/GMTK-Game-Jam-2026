@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: WallOfForce
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Wall of Force
+  <cost>k__BackingField: 2
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 1
+    maxDistance: 3
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 2
+  <tags>k__BackingField: 02000000
+  <excludeFromRewards>k__BackingField: 0
+  <description>k__BackingField: Raises a wall of force across three tiles. Nothing
+    may move onto them for 2 turns.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 8b40ec0331a65494e86c0a3cc51f6ca7, type: 2}
+    aimsAt: 0
+    area:
+      kind: 2
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 11400000, guid: 8f79c6a0cdb32114494d00fc261c76fd, type: 2}
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []

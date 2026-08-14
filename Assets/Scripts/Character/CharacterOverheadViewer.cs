@@ -86,18 +86,11 @@ public class CharacterOverheadViewer : MonoBehaviour
 
     private void OnIntentChanged(Character _) => RefreshIntent();
 
+    /// The arithmetic lives in HealthBarFill, shared with SelectedCharacterPanel - the two bars show
+    /// the same numbers and must not be able to disagree about what they mean.
     private void RefreshBar()
     {
-        float max = Mathf.Max(1, character.MaxHealth);
-        int shield = character.StatusStacks(StatusType.Shield);
-
-        if (healthFill != null) { healthFill.fillAmount = Mathf.Clamp01(character.Health / max); }
-
-        if (shieldFill != null)
-        {
-            shieldFill.fillAmount = Mathf.Clamp01(shield / max);
-            shieldFill.enabled = shield > 0;
-        }
+        HealthBarFill.Apply(healthFill, shieldFill, character);
     }
 
     private void RefreshIntent()

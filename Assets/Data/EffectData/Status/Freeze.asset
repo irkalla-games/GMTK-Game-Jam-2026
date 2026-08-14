@@ -15,5 +15,4 @@ MonoBehaviour:
   aimsAt: 0
   status: 4
   stacks: 1
-  turnsRemaining: 1
   alliesOnly: 0

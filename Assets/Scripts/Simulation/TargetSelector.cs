@@ -14,15 +14,50 @@ using UnityEngine;
 /// Random is resolved here, once per pick, by reservoir sampling - never as a per-comparison score. A
 /// score function that redrew per call would make TryFindMove's tile scan incoherent, and the
 /// movement quarry would disagree with the attack target inside the same decision.
+///
+/// Being the one answer is also what makes Taunt a small change: a status that names a forced quarry
+/// is consulted here, ahead of the priority, and both callers inherit it at once - the swing and the
+/// walk redirect together without either brain knowing the status exists.
 /// </summary>
 public static class TargetSelector
 {
+    /// <summary>
+    /// Takes `self` rather than a bare origin coordinate: the distance metrics need where it stands,
+    /// and Taunt needs the statuses it is carrying. Both callers were already passing
+    /// self.Tile.Coordinates, so nothing about the ranking changed when this became a character.
+    /// </summary>
     public static bool TryPick(
-        TargetPriority priority, Vector2Int from, IReadOnlyList<Character> candidates, out Character picked)
+        TargetPriority priority, Character self, IReadOnlyList<Character> candidates, out Character picked)
     {
         picked = null;
 
         if (candidates == null || candidates.Count == 0) { return false; }
+
+        if (self == null || self.Tile == null) { return false; }
+
+        Character forced = ForcedQuarry(self);
+
+        if (forced != null)
+        {
+            // A taunt overrides the priority outright, and refuses everyone else rather than falling
+            // back to it. That single choice reads differently in each caller purely because they pass
+            // different candidates: TryFindAttack passes only enemies it could legally hit, so an
+            // out-of-reach taunter comes back false and becomes "no attack this action point", while
+            // TryQuarry passes everyone alive, so the brain's move heads for the taunter instead. The
+            // enemy therefore spends the turn closing on whoever taunted it.
+            foreach (Character candidate in candidates)
+            {
+                if (candidate != forced) { continue; }
+
+                picked = forced;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        Vector2Int from = self.Tile.Coordinates;
 
         if (priority == TargetPriority.Random)
         {
@@ -76,6 +111,27 @@ public static class TargetSelector
         }
 
         return found;
+    }
+
+    /// <summary>
+    /// Who a status is forcing `self` to go after, or null if nothing is. Taunt, today.
+    ///
+    /// First answer wins, which is ActiveStatuses' own FIFO order - auras ahead of carried statuses,
+    /// then in the order they were gained. Only one Taunt can be carried at a time (a second one merges
+    /// into the first and replaces its taunter), so this only ever has something to arbitrate when a
+    /// totem is projecting a taunt aura as well, and there the aura winning is the same precedence
+    /// every other hook in the codebase uses.
+    /// </summary>
+    private static Character ForcedQuarry(Character self)
+    {
+        foreach (Status status in self.ActiveStatuses())
+        {
+            Character forced = status.ForcedQuarry(self);
+
+            if (forced != null) { return forced; }
+        }
+
+        return null;
     }
 
     /// Lower is better, so every caller keeps the `value >= best -> continue` shape the Try* helpers

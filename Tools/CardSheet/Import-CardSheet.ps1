@@ -250,22 +250,23 @@ Write-Host "  $($cardsByKey.Count) cards, $($effectsByName.Count) effect assets"
 # Walk the sheet
 # ---------------------------------------------------------------------------------------------------
 
-# The authoring columns that actually round-trip into an asset. Sync, Notes and the Ideas-only backlog
-# columns are deliberately absent: they are for humans, and a change to one is not a change to a card.
-$comparedColumns = @(
-    'Card Name', 'Class', 'Folder', 'Cost', 'Rarity', 'Tags',
-    'Range Shape', 'Range Min', 'Range Max',
-    'Effect 1', 'Aim 1', 'Area 1',
-    'Effect 2', 'Aim 2', 'Area 2',
-    'Effect 3', 'Aim 3', 'Area 3',
-    'Keywords', 'No Reward', 'Description', 'Animation'
-)
+# The columns the merge arbitrates. Defined once in CardSheet.Common so the sheet writer, the exporter
+# and this planner cannot drift apart about what a column is called.
+$comparedColumns = @(Get-MergeColumns)
+
+# Where the two sides last agreed. Without it a difference is just a difference - there is no way to
+# tell which side moved, and picking one is a coin flip with somebody's work on it.
+$baseline = Read-Baseline -ToolDir $scriptDir
 
 $actions        = @()
 $seenKeys       = @{}
+$seenGuids      = @{}
 $skipped        = 0
 $problems       = @()
 $pendingEffects = @{}
+$conflicts      = @()   # changed on both sides since the last sync - left alone, reported
+$unresolved     = @()   # differ with no baseline to say which side moved
+$removedRows    = @()   # in the baseline and in the assets, but no longer in the sheet
 
 $filtered = 0
 
@@ -295,6 +296,14 @@ foreach ($tab in $cardTabs) {
         $existing = $null
         if ($guid -and $cardsByGuid.ContainsKey($guid)) { $existing = $cardsByGuid[$guid] }
         elseif ($cardsByKey.ContainsKey($key))          { $existing = $cardsByKey[$key] }
+
+        # Record the asset this row claims by GUID, not just by Key. A rename changes the Key, so
+        # matching only on Key would leave the old name looking like an asset whose row was deleted -
+        # reporting every rename as a deletion as well as a move.
+        if ($null -ne $existing) {
+            $seenGuid = [string]$existing.Row['GUID']
+            if ($seenGuid) { $seenGuids[$seenGuid] = $true }
+        }
 
         # Resolve the three effect slots.
         $entries = @()
@@ -341,6 +350,7 @@ foreach ($tab in $cardTabs) {
         $card = [ordered]@{
             key            = $key
             assetPath      = $path
+            newAssetPath   = ''
             guid           = $guid
             cardName       = Get-Cell $row 'Card Name' $key
             cost           = [int](ConvertTo-IntOrDefault (Get-Cell $row 'Cost'))
@@ -371,21 +381,65 @@ foreach ($tab in $cardTabs) {
             continue
         }
 
-        # Compare only what an asset actually stores.
+        # Three-way merge, per column. The asset is only written where the SHEET is the side that moved;
+        # where Unity moved, the export pass at the end of the sync brings the sheet up to date instead,
+        # so there is nothing to do here.
+        $assetGuid = [string]$existing.Row['GUID']
+        $hasBase = $assetGuid -and $baseline.Cards.ContainsKey($assetGuid)
+
         $changed = @()
+        $conflicted = @()
+        $unknown = @()
+
         foreach ($col in $comparedColumns) {
             $sheetValue = Get-Cell $row $col
-            $assetValue = [string]$existing.Row[$col]
-            if ($null -eq $assetValue) { $assetValue = '' }
-            if ($sheetValue.Trim() -ne $assetValue.Trim()) { $changed += "$col ('$assetValue' -> '$sheetValue')" }
+            $assetValue = $existing.Row[$col]
+
+            $baseValue = $null
+            if ($hasBase -and $baseline.Cards[$assetGuid].ContainsKey($col)) {
+                $baseValue = $baseline.Cards[$assetGuid][$col]
+            }
+
+            switch (Resolve-ThreeWay -Baseline $baseValue -Asset $assetValue -Sheet $sheetValue -HasBaselineEntry $hasBase) {
+                'takeSheet'  { $changed += "$col ('$assetValue' -> '$sheetValue')" }
+                'conflict'   { $conflicted += [ordered]@{ column = $col; unity = [string]$assetValue; sheet = $sheetValue; wasLast = [string]$baseValue } }
+                'noBaseline' { $unknown += [ordered]@{ column = $col; unity = [string]$assetValue; sheet = $sheetValue } }
+            }
         }
 
-        if ($changed.Count -gt 0) {
-            $card['action'] = 'update'
-            $card['assetPath'] = $existing.AssetPath -replace '^', 'Assets/Data/CardData/'
-            $card['changed'] = $changed
-            $actions += $card
+        # A single conflicting column disqualifies the whole card. Writing the rest would leave it
+        # half-merged, which is harder to reason about than leaving it exactly as both sides had it.
+        if ($conflicted.Count -gt 0) {
+            $conflicts += [ordered]@{ key = $key; tab = $tab; columns = @($conflicted) }
+            continue
         }
+
+        if ($unknown.Count -gt 0) {
+            $unresolved += [ordered]@{ key = $key; tab = $tab; columns = @($unknown) }
+            continue
+        }
+
+        if ($changed.Count -eq 0) { continue }
+
+        $currentPath = 'Assets/Data/CardData/' + $existing.AssetPath
+        $card['assetPath'] = $currentPath
+        $card['changed'] = $changed
+
+        # Key drives the filename and Folder the directory, so a sheet-side change to either is a move
+        # rather than a field write. Done through AssetDatabase.MoveAsset in Unity, which keeps the GUID
+        # and therefore every deck reference.
+        $keyMoved = @($changed | Where-Object { $_ -like 'Key (*' }).Count -gt 0
+        $folderMoved = @($changed | Where-Object { $_ -like 'Folder (*' }).Count -gt 0
+
+        if ($keyMoved -or $folderMoved) {
+            $card['action'] = 'move'
+            $card['newAssetPath'] = $path      # built above from the sheet's Key and Folder
+        }
+        else {
+            $card['action'] = 'update'
+        }
+
+        $actions += $card
     }
 }
 
@@ -446,12 +500,37 @@ if (-not $OnlyTab -and -not $OnlyKey) {
             continue
         }
 
+        # Same three-way rule as cards, keyed on Kind/Type instead of GUID.
+        $baseKey = "$kind/$type"
+        $hasBase = $baseline.Glossary.ContainsKey($baseKey)
+        $base = if ($hasBase) { $baseline.Glossary[$baseKey] } else { @{} }
+
+        $fields = @(
+            @{ Name = 'Title';          Sheet = $title;              Asset = $existing.Title },
+            @{ Name = 'Body';           Sheet = $body;               Asset = $existing.Body },
+            @{ Name = 'Terms';          Sheet = ($terms -join ', '); Asset = $existing.Terms },
+            @{ Name = 'Default Stacks'; Sheet = $entry.defaultStacks; Asset = $existing.'Default Stacks' },
+            @{ Name = 'Default Amount'; Sheet = $entry.defaultAmount; Asset = $existing.'Default Amount' }
+        )
+
         $changed = @()
-        if ($title -ne [string]$existing.Title)                { $changed += 'Title' }
-        if ($body  -ne [string]$existing.Body)                 { $changed += 'Body' }
-        if (($terms -join ', ') -ne [string]$existing.Terms)   { $changed += 'Terms' }
-        if ($entry.defaultStacks -ne [int]$existing.'Default Stacks') { $changed += 'Default Stacks' }
-        if ($entry.defaultAmount -ne [int]$existing.'Default Amount') { $changed += 'Default Amount' }
+        $conflicted = @()
+
+        foreach ($f in $fields) {
+            $baseValue = $null
+            if ($base.ContainsKey($f.Name)) { $baseValue = $base[$f.Name] }
+
+            switch (Resolve-ThreeWay -Baseline $baseValue -Asset $f.Asset -Sheet $f.Sheet -HasBaselineEntry $hasBase) {
+                'takeSheet'  { $changed += $f.Name }
+                'conflict'   { $conflicted += [ordered]@{ column = $f.Name; unity = [string]$f.Asset; sheet = [string]$f.Sheet; wasLast = [string]$baseValue } }
+                'noBaseline' { $conflicted += [ordered]@{ column = $f.Name; unity = [string]$f.Asset; sheet = [string]$f.Sheet; wasLast = '(never synced)' } }
+            }
+        }
+
+        if ($conflicted.Count -gt 0) {
+            $conflicts += [ordered]@{ key = "$kind $type"; tab = 'Glossary'; columns = @($conflicted) }
+            continue
+        }
 
         if ($changed.Count -gt 0) {
             $entry['action'] = 'update'
@@ -463,10 +542,22 @@ if (-not $OnlyTab -and -not $OnlyKey) {
 
 # Assets with no row in the sheet. Reported, never removed. Suppressed entirely under a filter, where
 # "not seen" only means "not looked at" and reporting it would be actively misleading.
+#
+# The baseline splits these into two very different cases: a card that was never in the sheet is one
+# you just authored in the Inspector and the export pass will add it, while a card that WAS in the
+# sheet means you deleted the row. Only the second is worth saying anything about.
 $orphans = @()
 if (-not $OnlyTab -and -not $OnlyKey) {
     foreach ($key in $cardsByKey.Keys) {
-        if (-not $seenKeys.ContainsKey($key)) { $orphans += $key }
+        if ($seenKeys.ContainsKey($key)) { continue }
+
+        $guid = [string]$cardsByKey[$key].Row['GUID']
+
+        # Claimed by a row under a different Key - that is a rename in progress, not a deletion.
+        if ($guid -and $seenGuids.ContainsKey($guid)) { continue }
+
+        if ($guid -and $baseline.Cards.ContainsKey($guid)) { $removedRows += $key }
+        else { $orphans += $key }
     }
 }
 
@@ -496,7 +587,10 @@ $payload = [ordered]@{
     cards        = @($actions)
     newEffects   = @($newEffects)
     glossary     = @($glossary)
-    orphans      = @($orphans | Sort-Object)
+    conflicts    = @($conflicts)
+    unresolved   = @($unresolved)
+    removedRows  = @($removedRows | Sort-Object)
+    newInUnity   = @($orphans | Sort-Object)
     problems     = @($problems)
 }
 
@@ -507,6 +601,7 @@ Set-Content -LiteralPath $OutputPath -Value $json -Encoding utf8
 
 $creates = @($actions | Where-Object { $_.action -eq 'create' })
 $updates = @($actions | Where-Object { $_.action -eq 'update' })
+$moves   = @($actions | Where-Object { $_.action -eq 'move' })
 
 Write-Host ""
 Write-Host "Create : $($creates.Count)" -ForegroundColor $(if ($creates.Count) { 'Green' } else { 'DarkGray' })
@@ -514,6 +609,31 @@ foreach ($c in $creates) { Write-Host "    $($c.key)  ->  $($c.assetPath)" -Fore
 
 Write-Host "Update : $($updates.Count)" -ForegroundColor $(if ($updates.Count) { 'Yellow' } else { 'DarkGray' })
 foreach ($u in $updates) { Write-Host "    $($u.key)  :  $($u.changed -join '; ')" -ForegroundColor DarkGray }
+
+Write-Host "Move   : $($moves.Count)" -ForegroundColor $(if ($moves.Count) { 'Yellow' } else { 'DarkGray' })
+foreach ($m in $moves) { Write-Host "    $($m.assetPath)  ->  $($m.newAssetPath)" -ForegroundColor DarkGray }
+
+if ($conflicts.Count -gt 0) {
+    Write-Host "CONFLICTS : $($conflicts.Count) - changed in BOTH Unity and the sheet, left untouched on both sides" -ForegroundColor Red
+    foreach ($c in $conflicts) {
+        Write-Host "    $($c.key) [$($c.tab)]" -ForegroundColor Red
+        foreach ($col in $c.columns) {
+            Write-Host "        $($col.column):" -ForegroundColor DarkGray
+            Write-Host "            was    '$($col.wasLast)'" -ForegroundColor DarkGray
+            Write-Host "            Unity  '$($col.unity)'" -ForegroundColor DarkGray
+            Write-Host "            sheet  '$($col.sheet)'" -ForegroundColor DarkGray
+        }
+    }
+    Write-Host "    Resolve by making both sides agree, or edit only one side and sync again." -ForegroundColor Red
+}
+
+if ($unresolved.Count -gt 0) {
+    Write-Host "UNRESOLVED : $($unresolved.Count) - differ, but there is no baseline saying which side moved" -ForegroundColor Red
+    foreach ($u in $unresolved) {
+        Write-Host "    $($u.key): $((@($u.columns | ForEach-Object { $_.column })) -join ', ')" -ForegroundColor DarkGray
+    }
+    Write-Host "    Run Export-CardSheet.ps1 -Force -WriteBaseline to declare Unity correct and start tracking." -ForegroundColor Red
+}
 
 Write-Host "New effect assets : $($newEffects.Count)" -ForegroundColor $(if ($newEffects.Count) { 'Green' } else { 'DarkGray' })
 foreach ($n in $newEffects) { Write-Host "    $($n.name)  ($($n.kind) $($n.amount))" -ForegroundColor DarkGray }
@@ -526,7 +646,8 @@ foreach ($g in $glossary) {
 
 Write-Host "Ideas tabs                       : not read (design only)" -ForegroundColor DarkGray
 if ($filtered -gt 0)         { Write-Host "Rows excluded by -OnlyKey filter : $filtered" -ForegroundColor DarkGray }
-if ($orphans.Count -gt 0)    { Write-Host "In assets but not in the sheet   : $($orphans -join ', ')" -ForegroundColor DarkGray }
+if ($orphans.Count -gt 0)     { Write-Host "New in Unity, will be added       : $($orphans -join ', ')" -ForegroundColor Green }
+if ($removedRows.Count -gt 0) { Write-Host "Row deleted from the sheet        : $($removedRows -join ', ') (asset kept - delete it in Unity if you meant to)" -ForegroundColor Yellow }
 if ($problems.Count -gt 0) {
     Write-Host "Problems :" -ForegroundColor Red
     foreach ($p in $problems) { Write-Host "    $p" -ForegroundColor Red }
@@ -534,9 +655,9 @@ if ($problems.Count -gt 0) {
 
 Write-Host ""
 if ($actions.Count -eq 0 -and $newEffects.Count -eq 0 -and $glossary.Count -eq 0) {
-    Write-Host "Nothing to do - the sheet and the assets agree." -ForegroundColor Green
+    Write-Host "No sheet edits to apply." -ForegroundColor Green
 }
 else {
     Write-Host "Wrote $OutputPath" -ForegroundColor Green
-    Write-Host "Now focus the Unity Editor and pick  Tools > Cards > Sync From Sheet" -ForegroundColor Cyan
+    Write-Host "Now focus the Unity Editor and pick  Tools > Sync With Sheet" -ForegroundColor Cyan
 }

@@ -11,11 +11,16 @@
 /// </summary>
 public class RootedStatus : StatusEffect
 {
-    public RootedStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Rooted, stacks, turnsRemaining) { }
+    public RootedStatus(int stacks) : base(StatusType.Rooted, stacks) { }
 
     public override string MoveRefusal(Character carrier, GridTile destination) =>
         $"{(carrier != null ? carrier.name : "it")} is rooted in place";
+
+    /// Self-ticking: the counter is remaining turns, so a turn passing spends one.
+    public override void OnTurnEnd(Character carrier)
+    {
+        stacks--;
+    }
 
     public override string Describe() => "Rooted";
 }

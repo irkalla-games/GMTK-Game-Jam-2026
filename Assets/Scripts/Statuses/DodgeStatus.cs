@@ -15,8 +15,7 @@
 /// </summary>
 public class DodgeStatus : StatusEffect
 {
-    public DodgeStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Dodge, stacks, turnsRemaining) { }
+    public DodgeStatus(int stacks) : base(StatusType.Dodge, stacks) { }
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {

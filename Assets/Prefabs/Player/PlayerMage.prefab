@@ -1053,7 +1053,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 576ab6616f9067d458e6811318815c6c, type: 2}
   - {fileID: 11400000, guid: 93cab38da2c31ed409077c18f3807992, type: 2}
   - {fileID: 11400000, guid: 52e101b3e4c5baa4cb2771825ac229a6, type: 2}
-  - {fileID: 11400000, guid: aaaa1118bbbb2229cccc333adddd444b, type: 2}
   <Health>k__BackingField: 10
 --- !u!210 &8600000000000000001
 SortingGroup:

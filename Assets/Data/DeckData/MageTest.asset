@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc05c1dab7b1b25479b78eb721423298, type: 3}
+  m_Name: MageTest
+  m_EditorClassIdentifier: Assembly-CSharp::DeckData
+  displayName: Mage Test
+  description: 
+  forClass: 2
+  cards:
+  - {fileID: 11400000, guid: 0313f5e3f95e9704d8ddff8d29ecefcd, type: 2}
+  - {fileID: 11400000, guid: 317ae1a15cf5e44499040e5816fc71aa, type: 2}
+  - {fileID: 11400000, guid: c5d25d3eaabd87644b8f9bf160b035f4, type: 2}
+  - {fileID: 11400000, guid: 2c30a3f1489172a4eaf06a3d1f3a592f, type: 2}
+  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6004, type: 2}
+  locked: 0
+  unlockId: 

@@ -14,8 +14,7 @@
 /// </summary>
 public class ShieldStatus : StatusEffect
 {
-    public ShieldStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Shield, stacks, turnsRemaining) { }
+    public ShieldStatus(int stacks) : base(StatusType.Shield, stacks) { }
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {

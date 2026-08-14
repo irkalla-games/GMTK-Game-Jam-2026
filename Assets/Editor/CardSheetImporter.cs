@@ -46,8 +46,28 @@ public static class CardSheetImporter
         public List<CardSpec> cards = new();
         public List<EffectSpec> newEffects = new();
         public List<GlossarySpec> glossary = new();
-        public List<string> orphans = new();
+        public List<ConflictSpec> conflicts = new();
+        public List<ConflictSpec> unresolved = new();
+        public List<string> removedRows = new();
+        public List<string> newInUnity = new();
         public List<string> problems = new();
+    }
+
+    [Serializable]
+    private class ConflictSpec
+    {
+        public string key;
+        public string tab;
+        public List<ConflictColumn> columns = new();
+    }
+
+    [Serializable]
+    private class ConflictColumn
+    {
+        public string column;
+        public string unity;
+        public string sheet;
+        public string wasLast;
     }
 
     [Serializable]
@@ -68,9 +88,10 @@ public static class CardSheetImporter
     private class CardSpec
     {
         public string key;
-        public string assetPath;
+        public string assetPath;      // where the asset is now
+        public string newAssetPath;   // where a rename/move should put it; empty otherwise
         public string guid;
-        public string action;
+        public string action;         // create | update | move
         public string cardName;
         public int cost;
         public int requiredClass;
@@ -117,10 +138,30 @@ public static class CardSheetImporter
         public string status;
     }
 
+    private const string ImportScript = "Tools/CardSheet/Import-CardSheet.ps1";
+    private const string ExportScript = "Tools/CardSheet/Export-CardSheet.ps1";
+    private const int ScriptTimeoutMs = 180_000;
+
+    // ------------------------------------------------------------------------------------------
+    // The button
     // ------------------------------------------------------------------------------------------
 
-    [MenuItem("Tools/Cards/Sync From Sheet")]
-    public static void Sync()
+    /// <summary>
+    /// The everyday action: reconcile the workbook and the assets in both directions.
+    ///
+    /// Sheet edits are applied to the assets, then the workbook is rebuilt so anything authored in the
+    /// Inspector shows up as a row. Safe to press whatever you changed and wherever - the merge decides
+    /// per column which side moved, and refuses to guess when both did.
+    ///
+    /// Runs as three steps because neither tool can do the other's job: PowerShell owns the .xlsx (no
+    /// Excel interop in Unity), Unity owns the asset writes (GUIDs, serialization), and Unity's own
+    /// batch mode cannot run while the Editor holds Temp/UnityLockfile.
+    /// </summary>
+    /// Top level and first in the menu on purpose - this is the one you press constantly, and burying
+    /// the everyday action a submenu deep costs a click every time. The large negative priority floats
+    /// it above everything else in Tools; the gap to the next item also gives it its own separator.
+    [MenuItem("Tools/Sync With Sheet", priority = -1000)]
+    public static void SyncWithSheet()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -128,11 +169,150 @@ public static class CardSheetImporter
             return;
         }
 
+        try
+        {
+            EditorUtility.DisplayProgressBar("Sync With Sheet", "Reading the workbook...", 0.1f);
+            if (!RunPowerShell(ImportScript, string.Empty)) { return; }
+
+            EditorUtility.DisplayProgressBar("Sync With Sheet", "Applying changes to assets...", 0.45f);
+            if (!Apply(out int conflicts)) { return; }
+
+            if (conflicts > 0)
+            {
+                // Deliberately do not refresh the workbook. The conflicting rows still hold the wording
+                // you typed, and rebuilding the sheet from the assets now would overwrite it with the
+                // Unity side - silently resolving the conflict in Unity's favour, which is the one thing
+                // this whole design exists to prevent.
+                Debug.LogWarning($"Card sheet sync: stopped after applying everything else - {conflicts} card(s) "
+                                 + "changed on both sides. Your sheet edits are untouched. Resolve them and sync again.");
+                return;
+            }
+
+            EditorUtility.DisplayProgressBar("Sync With Sheet", "Refreshing the workbook...", 0.8f);
+            RunPowerShell(ExportScript, "-WriteBaseline");
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+        }
+    }
+
+    /// <summary>
+    /// Escape hatch: throw away whatever is in the sheet and rebuild it from the assets. Only for when
+    /// the sheet is known to be wrong - the normal path is Sync With Sheet, which keeps both sides.
+    /// </summary>
+    [MenuItem("Tools/Cards/Refresh Sheet From Unity (discards sheet edits)")]
+    public static void RefreshSheetFromUnity()
+    {
+        if (!EditorUtility.DisplayDialog(
+                "Refresh Sheet From Unity",
+                "This rebuilds Docs/CardDesign.xlsx from the assets and DISCARDS any edit in the sheet "
+                + "that has not been synced.\n\nSync With Sheet keeps both sides. Use that unless the "
+                + "sheet is known to be wrong.",
+                "Discard sheet edits", "Cancel"))
+        {
+            return;
+        }
+
+        try
+        {
+            EditorUtility.DisplayProgressBar("Refresh Sheet", "Rebuilding the workbook...", 0.5f);
+            RunPowerShell(ExportScript, "-Force -WriteBaseline");
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+        }
+    }
+
+    /// <summary>
+    /// Runs one of the CardSheet PowerShell scripts and pipes its output into the Unity console.
+    ///
+    /// The project's only shell-out from an Editor script, kept in one place on purpose. Both streams
+    /// are drained asynchronously rather than with two ReadToEnd calls, which deadlock as soon as one
+    /// pipe's buffer fills while the other is being waited on.
+    /// </summary>
+    private static bool RunPowerShell(string scriptRelativePath, string arguments)
+    {
+        string root = Directory.GetCurrentDirectory();
+        string script = Path.Combine(root, scriptRelativePath.Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(script))
+        {
+            Debug.LogError($"Card sheet sync: {scriptRelativePath} not found.");
+            return false;
+        }
+
+        System.Text.StringBuilder output = new();
+        System.Text.StringBuilder errors = new();
+
+        System.Diagnostics.ProcessStartInfo psi = new()
+        {
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{script}\" {arguments}",
+            WorkingDirectory = root,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        try
+        {
+            using System.Diagnostics.Process process = new() { StartInfo = psi };
+
+            process.OutputDataReceived += (_, e) => { if (e.Data != null) { output.AppendLine(e.Data); } };
+            process.ErrorDataReceived += (_, e) => { if (e.Data != null) { errors.AppendLine(e.Data); } };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            if (!process.WaitForExit(ScriptTimeoutMs))
+            {
+                try { process.Kill(); } catch { /* already gone */ }
+                Debug.LogError($"Card sheet sync: {scriptRelativePath} did not finish within "
+                               + $"{ScriptTimeoutMs / 1000}s and was stopped.");
+                return false;
+            }
+
+            string log = output.ToString().TrimEnd();
+            string err = errors.ToString().TrimEnd();
+
+            if (process.ExitCode != 0)
+            {
+                // The script's own message is far more useful than the exit code, so lead with it.
+                Debug.LogError($"Card sheet sync: {scriptRelativePath} failed.\n"
+                               + (string.IsNullOrEmpty(err) ? log : err));
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(log)) { Debug.Log($"[{Path.GetFileName(script)}]\n{log}"); }
+            if (!string.IsNullOrEmpty(err)) { Debug.LogWarning($"[{Path.GetFileName(script)}]\n{err}"); }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Card sheet sync: could not run {scriptRelativePath} - {e.Message}. "
+                           + "PowerShell must be on PATH.");
+            return false;
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // Applying the plan
+    // ------------------------------------------------------------------------------------------
+
+    private static bool Apply(out int conflictCount)
+    {
+        conflictCount = 0;
+
         string full = Path.Combine(Directory.GetCurrentDirectory(), JsonPath);
         if (!File.Exists(full))
         {
-            Debug.LogError($"Card sheet sync: {JsonPath} not found. Run Tools/CardSheet/Import-CardSheet.ps1 first.");
-            return;
+            Debug.LogError($"Card sheet sync: {JsonPath} not found.");
+            return false;
         }
 
         Payload payload;
@@ -147,13 +327,13 @@ public static class CardSheetImporter
         catch (Exception e)
         {
             Debug.LogError($"Card sheet sync: could not read {JsonPath} - {e.Message}");
-            return;
+            return false;
         }
 
         if (payload == null)
         {
             Debug.LogError($"Card sheet sync: {JsonPath} was empty or malformed.");
-            return;
+            return false;
         }
 
         foreach (string problem in payload.problems)
@@ -161,10 +341,13 @@ public static class CardSheetImporter
             Debug.LogWarning($"Card sheet: {problem}");
         }
 
+        conflictCount = payload.conflicts.Count + payload.unresolved.Count;
+        ReportConflicts(payload);
+
         if (payload.cards.Count == 0 && payload.newEffects.Count == 0 && payload.glossary.Count == 0)
         {
-            Debug.Log("Card sheet sync: nothing to do - the sheet and the assets already agree.");
-            return;
+            Debug.Log("Card sheet sync: no sheet edits to apply.");
+            return true;
         }
 
         try
@@ -185,25 +368,36 @@ public static class CardSheetImporter
                 madeEffects++;
             }
 
-            int created2 = 0;
+            int createdCards = 0;
             int updated = 0;
+            int moved = 0;
             int failed = 0;
 
             foreach (CardSpec card in payload.cards)
             {
+                // Move before writing fields, so the SerializedObject is opened on the asset at its
+                // final path rather than one Unity is about to relocate underneath it.
+                if (card.action == "move" && !MoveCard(card))
+                {
+                    failed++;
+                    continue;
+                }
+
                 if (!WriteCard(card, effects))
                 {
                     failed++;
                     continue;
                 }
 
-                if (card.action == "update") { updated++; } else { created2++; }
+                if (card.action == "move") { moved++; }
+                else if (card.action == "update") { updated++; }
+                else { createdCards++; }
             }
 
             int glossaryWritten = WriteGlossary(payload.glossary);
 
-            Debug.Log($"Card sheet sync: {created2} created, {updated} updated, {madeEffects} new effect assets, "
-                      + $"{glossaryWritten} tooltip(s) reworded"
+            Debug.Log($"Card sheet sync: {createdCards} created, {updated} updated, {moved} moved, "
+                      + $"{madeEffects} new effect assets, {glossaryWritten} tooltip(s) reworded"
                       + (failed > 0 ? $", {failed} FAILED - see errors above." : "."));
         }
         finally
@@ -212,11 +406,87 @@ public static class CardSheetImporter
             AssetDatabase.Refresh();
         }
 
-        if (payload.orphans.Count > 0)
+        if (payload.removedRows.Count > 0)
         {
-            Debug.Log($"Card sheet: {payload.orphans.Count} card asset(s) have no row in the sheet and were "
-                      + $"left untouched - {string.Join(", ", payload.orphans)}");
+            Debug.LogWarning($"Card sheet: {payload.removedRows.Count} row(s) were deleted from the sheet. The "
+                             + "assets were KEPT - delete them in Unity if that was the intent: "
+                             + string.Join(", ", payload.removedRows));
         }
+
+        if (payload.newInUnity.Count > 0)
+        {
+            Debug.Log($"Card sheet: {payload.newInUnity.Count} card(s) authored in Unity will be added to the "
+                      + $"sheet - {string.Join(", ", payload.newInUnity)}");
+        }
+
+        return true;
+    }
+
+    private static void ReportConflicts(Payload payload)
+    {
+        foreach (ConflictSpec c in payload.conflicts)
+        {
+            System.Text.StringBuilder sb = new();
+            sb.AppendLine($"Card sheet CONFLICT: '{c.key}' changed in BOTH Unity and the sheet since the last "
+                          + "sync. Nothing was written to it on either side.");
+
+            foreach (ConflictColumn col in c.columns)
+            {
+                sb.AppendLine($"    {col.column}:");
+                sb.AppendLine($"        was    '{col.wasLast}'");
+                sb.AppendLine($"        Unity  '{col.unity}'");
+                sb.AppendLine($"        sheet  '{col.sheet}'");
+            }
+
+            sb.Append("    Make both sides agree, or change only one of them, then sync again.");
+            Debug.LogWarning(sb.ToString());
+        }
+
+        foreach (ConflictSpec c in payload.unresolved)
+        {
+            Debug.LogWarning($"Card sheet: '{c.key}' differs between Unity and the sheet, but there is no "
+                             + "baseline recording which side moved, so neither was written. Use "
+                             + "Tools > Cards > Refresh Sheet From Unity if the assets are correct.");
+        }
+    }
+
+    /// <summary>
+    /// Renames and/or refiles a card because its Key or Folder changed in the sheet.
+    ///
+    /// AssetDatabase.MoveAsset rather than a file move: it carries the .meta with the asset, so the GUID
+    /// survives and every DeckData still points at the card. A plain file move risks Unity reimporting
+    /// the pair separately and minting a fresh GUID, which silently empties the decks referencing it.
+    /// </summary>
+    private static bool MoveCard(CardSpec spec)
+    {
+        if (string.IsNullOrWhiteSpace(spec.newAssetPath) || spec.newAssetPath == spec.assetPath) { return true; }
+
+        if (AssetDatabase.LoadAssetAtPath<CardData>(spec.assetPath) == null)
+        {
+            Debug.LogError($"Card sheet: cannot move '{spec.key}' - nothing at {spec.assetPath}.");
+            return false;
+        }
+
+        if (AssetDatabase.LoadAssetAtPath<CardData>(spec.newAssetPath) != null)
+        {
+            Debug.LogError($"Card sheet: cannot move '{spec.key}' to {spec.newAssetPath} - a card is already there.");
+            return false;
+        }
+
+        EnsureFolder(Path.GetDirectoryName(spec.newAssetPath).Replace('\\', '/'));
+
+        string error = AssetDatabase.MoveAsset(spec.assetPath, spec.newAssetPath);
+        if (!string.IsNullOrEmpty(error))
+        {
+            Debug.LogError($"Card sheet: could not move {spec.assetPath} -> {spec.newAssetPath}: {error}");
+            return false;
+        }
+
+        Debug.Log($"Card sheet: moved {spec.assetPath}  ->  {spec.newAssetPath}");
+
+        // Everything downstream writes through the new path.
+        spec.assetPath = spec.newAssetPath;
+        return true;
     }
 
     /// <summary>

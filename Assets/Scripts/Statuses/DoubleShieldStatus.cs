@@ -9,8 +9,7 @@
 /// </summary>
 public class DoubleShieldStatus : StatusEffect
 {
-    public DoubleShieldStatus(int stacks, int turnsRemaining)
-        : base(StatusType.DoubleShield, stacks, turnsRemaining) { }
+    public DoubleShieldStatus(int stacks) : base(StatusType.DoubleShield, stacks) { }
 
     public override ShieldInfo OnGainShield(ShieldInfo info)
     {

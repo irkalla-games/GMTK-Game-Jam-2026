@@ -12,8 +12,7 @@
 /// </summary>
 public class DoubleNextAttackStatus : StatusEffect
 {
-    public DoubleNextAttackStatus(int stacks, int turnsRemaining)
-        : base(StatusType.DoubleNextAttack, stacks, turnsRemaining) { }
+    public DoubleNextAttackStatus(int stacks) : base(StatusType.DoubleNextAttack, stacks) { }
 
     public override DamageInfo OnDealDamage(DamageInfo info)
     {

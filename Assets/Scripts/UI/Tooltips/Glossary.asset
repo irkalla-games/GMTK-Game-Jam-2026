@@ -29,15 +29,15 @@ MonoBehaviour:
     type: 2
   - title: POISON
     body: Deals {stacks} damage at the end of this character's turn, ignoring every
-      defence.
+      defence, then weakens by 1.
     terms:
     - Poison
     - Poisoned
-    defaultStacks: 3
+    defaultStacks: 4
     defaultAmount: 1
     type: 3
   - title: FROZEN
-    body: Cannot act at all this turn - no cards, no attacks, no movement.
+    body: Cannot act for {stacks} more turns - no cards, no attacks, no movement.
     terms:
     - Frozen
     - Freeze

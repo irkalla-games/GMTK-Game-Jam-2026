@@ -13,13 +13,32 @@ public class HealEffect : CardEffect
         ActionManager.Instance.AddAction(new HealAction(healAmount), ctx);
     }
 
-    /// Healing needs somebody to heal, and by default that somebody is an ally. Asked before the card
-    /// is paid for, so aiming at thin air costs nothing - and it is the same question GridManager asks
-    /// to light up tiles, so only the tiles this can actually heal are highlighted.
+    /// <summary>
+    /// Healing needs somebody to heal, by default an ally, and that somebody has to have room to be
+    /// healed - Character.Heal clamps to MaxHealth, so a full-health target would spend the energy and
+    /// the card for nothing at all.
+    ///
+    /// Asked before the card is paid for, so a refused play costs nothing, and it is the same question
+    /// GridManager asks to light up tiles - a full-health ally's tile stays dark rather than promising
+    /// a heal the click would then refuse.
+    ///
+    /// For an area entry Card.Refusal skips this and ResolveEffects runs it per tile instead, which is
+    /// what makes the full-health rule do the right thing on both: a single-target heal is refused
+    /// outright, while a splash heal stays legal and simply drops the allies who do not need it.
+    /// </summary>
     public override string Refusal(Character source, GridTile target)
     {
-        if (!canHitEnemies) { return RefuseByOccupant(source, target, wantAlly: true); }
+        string refusal = canHitEnemies
+            ? (target != null && target.Occupant != null ? null : "there is nobody there")
+            : RefuseByOccupant(source, target, wantAlly: true);
 
-        return target != null && target.Occupant != null ? null : "there is nobody there";
+        if (refusal != null) { return refusal; }
+
+        // Both branches above have already established there is somebody standing here.
+        Character occupant = target.Occupant;
+
+        return occupant.Health >= occupant.MaxHealth
+            ? $"{occupant.name} is already at full health"
+            : null;
     }
 }

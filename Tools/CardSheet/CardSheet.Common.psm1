@@ -1031,6 +1031,198 @@ function Get-TotemProjection {
     }
 }
 
+# ---------------------------------------------------------------------------------------------------
+# Column definitions
+#
+# Canonical here rather than in each script, because a three-way merge compares the same columns the
+# sheet writes and the importer reads. Three copies of this list drifting apart would show up as
+# phantom conflicts on whichever column one of them forgot.
+# ---------------------------------------------------------------------------------------------------
+
+function Get-CardColumns {
+    <# The authoring columns, in sheet order. #>
+    return @(
+        'Card Name', 'Cost', 'Rarity',
+        'Effect 1', 'Effect 2', 'Effect 3',
+        'Description',
+        'Range Shape', 'Range Min', 'Range Max',
+        'Key', 'Class', 'Folder', 'Tags',
+        'Aim 1', 'Area 1',
+        'Aim 2', 'Area 2',
+        'Aim 3', 'Area 3',
+        'Keywords', 'No Reward', 'Animation', 'GUID', 'Sync', 'Notes'
+    )
+}
+
+function Get-IdeaBacklogColumns {
+    return @('Buildable', 'Engine Work', 'Source', 'Priority')
+}
+
+function Get-MergeColumns {
+    <#
+        The columns a three-way merge actually arbitrates.
+
+        GUID is the identity, not a value. Sync is a formula. Notes is a human scratchpad that never
+        reaches an asset, so an edit there must not read as a change worth syncing - or worse, as a
+        conflict blocking the card's real edits.
+    #>
+    return @(Get-CardColumns | Where-Object { $_ -notin @('GUID', 'Sync', 'Notes') })
+}
+
+function ConvertTo-Comparable {
+    <#
+        Both sides of a comparison arrive from different worlds - Import-Excel hands back numeric cells
+        as doubles, the YAML parser hands back strings - so 1 and "1" and "1.0" must all read as equal
+        or every integer column reports a permanent false conflict.
+    #>
+    param($Value)
+
+    if ($null -eq $Value) { return '' }
+
+    if ($Value -is [double] -or $Value -is [single] -or $Value -is [decimal]) {
+        if ([Math]::Floor([double]$Value) -eq [double]$Value) { return ([long]$Value).ToString() }
+        return ([double]$Value).ToString([Globalization.CultureInfo]::InvariantCulture)
+    }
+
+    $text = ([string]$Value).Trim()
+
+    # "1.0" out of a CSV round-trip is the same cost as 1.
+    if ($text -match '^-?\d+\.0+$') { return ([long][double]$text).ToString() }
+
+    return $text
+}
+
+# ---------------------------------------------------------------------------------------------------
+# Baseline - where the sheet and the assets last agreed
+# ---------------------------------------------------------------------------------------------------
+
+function Get-BaselinePath {
+    param([string]$ToolDir)
+    return (Join-Path $ToolDir 'baseline.json')
+}
+
+function Read-Baseline {
+    <#
+        .SYNOPSIS
+            The snapshot written at the end of the last successful sync.
+
+        .DESCRIPTION
+            Returns a hashtable with Cards (keyed by GUID) and Glossary (keyed by "Kind/Type"), plus
+            Exists so callers can tell "nothing changed" from "we have never synced".
+
+            Cards are keyed by GUID rather than Key precisely so a rename is visible as a changed Key
+            on the same card, instead of looking like one card vanishing and another appearing.
+    #>
+    param([string]$ToolDir)
+
+    $path = Get-BaselinePath -ToolDir $ToolDir
+    $result = @{ Exists = $false; Cards = @{}; Glossary = @{}; WrittenUtc = '' }
+
+    if (-not (Test-Path -LiteralPath $path)) { return $result }
+
+    try {
+        $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    }
+    catch {
+        Write-Warning "baseline.json could not be read ($($_.Exception.Message)) - treating this as a first sync."
+        return $result
+    }
+
+    $result.Exists = $true
+    if ($json.PSObject.Properties.Name -contains 'writtenUtc') { $result.WrittenUtc = [string]$json.writtenUtc }
+
+    if ($json.PSObject.Properties.Name -contains 'cards') {
+        foreach ($entry in @($json.cards)) {
+            if (-not $entry.guid) { continue }
+            $cols = @{}
+            foreach ($p in $entry.columns.PSObject.Properties) { $cols[$p.Name] = ConvertTo-Comparable $p.Value }
+            $result.Cards[[string]$entry.guid] = $cols
+        }
+    }
+
+    if ($json.PSObject.Properties.Name -contains 'glossary') {
+        foreach ($entry in @($json.glossary)) {
+            $key = "$($entry.kind)/$($entry.type)"
+            $result.Glossary[$key] = @{
+                Title           = ConvertTo-Comparable $entry.title
+                Body            = ConvertTo-Comparable $entry.body
+                Terms           = ConvertTo-Comparable $entry.terms
+                'Default Stacks' = ConvertTo-Comparable $entry.defaultStacks
+                'Default Amount' = ConvertTo-Comparable $entry.defaultAmount
+            }
+        }
+    }
+
+    return $result
+}
+
+function Write-Baseline {
+    <# Records the state both sides now agree on. Called only after a successful sync. #>
+    param([string]$ToolDir, $CardRecords, $GlossaryRows)
+
+    $cards = @()
+    foreach ($card in @($CardRecords)) {
+        $guid = [string]$card.Row['GUID']
+        if (-not $guid) { continue }   # never synced, so there is no agreed state to record
+
+        $cols = [ordered]@{}
+        foreach ($col in (Get-MergeColumns)) { $cols[$col] = ConvertTo-Comparable $card.Row[$col] }
+
+        $cards += [ordered]@{ guid = $guid; columns = $cols }
+    }
+
+    $glossary = @()
+    foreach ($row in @($GlossaryRows)) {
+        $glossary += [ordered]@{
+            kind          = [string]$row.Kind
+            type          = [string]$row.Type
+            title         = [string]$row.Title
+            body          = [string]$row.Body
+            terms         = [string]$row.Terms
+            defaultStacks = [int]$row.'Default Stacks'
+            defaultAmount = [int]$row.'Default Amount'
+        }
+    }
+
+    $payload = [ordered]@{
+        writtenUtc = (Get-Date).ToUniversalTime().ToString('o')
+        cards      = @($cards)
+        glossary   = @($glossary)
+    }
+
+    $path = Get-BaselinePath -ToolDir $ToolDir
+    Set-Content -LiteralPath $path -Value ($payload | ConvertTo-Json -Depth 8) -Encoding utf8
+}
+
+function Resolve-ThreeWay {
+    <#
+        .SYNOPSIS
+            Which side of a disagreement should win, given what both looked like last time.
+
+        .OUTPUTS
+            agree      - the two sides already match
+            takeAsset  - only Unity moved; the sheet will pick this up on the export pass
+            takeSheet  - only the sheet moved; write it to the asset
+            conflict   - both moved, in different directions
+            noBaseline - they differ and there is no record of them ever agreeing
+    #>
+    param($Baseline, $Asset, $Sheet, [bool]$HasBaselineEntry)
+
+    $a = ConvertTo-Comparable $Asset
+    $s = ConvertTo-Comparable $Sheet
+
+    if ($a -eq $s) { return 'agree' }
+
+    if (-not $HasBaselineEntry) { return 'noBaseline' }
+
+    $b = ConvertTo-Comparable $Baseline
+
+    if ($s -eq $b) { return 'takeAsset' }
+    if ($a -eq $b) { return 'takeSheet' }
+
+    return 'conflict'
+}
+
 function Get-GlossaryPath {
     <#
         The one asset holding every tooltip the game shows. Lives under Assets/Scripts rather than

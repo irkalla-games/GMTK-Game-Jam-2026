@@ -851,6 +851,10 @@ public class BattleManager : Singleton<BattleManager>
 
             TickStatuses(playerControlled: true);
 
+            // Tiles belong to nobody's "own phase" - ticked once per round, here, rather than split by
+            // side like TickStatuses. See GridManager.TickTileEffects.
+            if (GridManager.Instance != null) { GridManager.Instance.TickTileEffects(); }
+
             yield return StartCoroutine(EnemyResolve());
 
             int turnsBefore = TurnsRemaining;
@@ -1131,12 +1135,15 @@ public class BattleManager : Singleton<BattleManager>
     /// <summary>
     /// Ticks one side's statuses by one - player-controlled characters at the end of PlayerActing,
     /// enemies at the end of EnemyResolve. Each side ticks at the end of its *own* phase rather than
-    /// both together at the shared TurnStart, so turnsRemaining always means "survives this many of my
-    /// own turns" no matter which side applied the status. Ticking everyone at TurnStart instead would
+    /// both together at the shared TurnStart, so a duration always means "survives this many of my own
+    /// turns" no matter which side applied the status. Ticking everyone at TurnStart instead would
     /// make that number direction-dependent: a status put on an enemy mid-PlayerActing would coast
     /// through that same cycle's EnemyResolve untouched, while one put on a player during EnemyResolve
     /// would get ticked down at the very next TurnStart before that player ever got to act on it -
-    /// the same turnsRemaining would then mean two different things depending on who cast it.
+    /// the same number would then mean two different things depending on who cast it.
+    ///
+    /// This only calls Character.OnTurnEnd. What a tick *does* is each status's own business now: see
+    /// Status for the three shapes, and PoisonStatus for the one that both bites and decays here.
     /// </summary>
     private void TickStatuses(bool playerControlled)
     {

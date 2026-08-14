@@ -9,7 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 894f70d8477906942b2320f3890d3689, type: 3}
-  m_Name: Parry x2
-  m_EditorClassIdentifier: Assembly-CSharp::ParryEffect
-  parryCharges: 1
+  m_Script: {fileID: 11500000, guid: 7b6d8ff1a5375c444a696d7434c98c72, type: 3}
+  m_Name: Wall of Force
+  m_EditorClassIdentifier: Assembly-CSharp::ApplyTileEffect
+  effect: 1
+  turns: 2
+  magnitude: 0

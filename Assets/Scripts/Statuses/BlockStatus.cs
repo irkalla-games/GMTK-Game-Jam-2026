@@ -1,27 +1,31 @@
-﻿using UnityEngine;
-
 /// <summary>
-/// A flat reduction taken off each of the next few hits. `stacks` is how many hits it still applies
-/// to; `amountPerHit` is the reduction each of those hits gets.
+/// A flat reduction taken off each of the next few hits. The counter is how many hits it still applies
+/// to; how much comes off each one is the same for every Block in the game - see AmountPerHit.
 ///
-/// Per-hit, not pooled, which is the whole difference from Shield: Block 5 against three hits of 8
-/// leaves three hits of 3, where 5 Shield would have absorbed 5 once. Against small frequent hits it
-/// is worth far more than the same number of Shield, and it gets better the more enemies there are.
+/// Per-hit, not pooled, which is the whole difference from Shield: Block against three hits of 8 leaves
+/// three hits of 3, where 5 Shield would have absorbed 5 once. Against small frequent hits it is worth
+/// far more than the same number of Shield, and it gets better the more enemies there are.
 ///
-/// The only status with two numbers, which is why it cannot be authored through the generic Apply
-/// Status asset - BlockEffect has both fields. StatusEffect.Create still handles the type, reading its
-/// one number as "reduce the next hit by this much".
+/// Used to be the one status with two numbers, which is why it needed its own effect asset and its own
+/// Merge. Fixing the amount collapsed it to one counter like everything else - "Block 3" now means
+/// three charges rather than needing an amount alongside it.
 /// </summary>
 public class BlockStatus : StatusEffect
 {
-    /// How much comes off each hit. Not `stacks`, which is the charge count.
-    public int amountPerHit;
+    /// <summary>
+    /// How much comes off each hit, for every Block in the game.
+    ///
+    /// A constant rather than authoring on the effect asset so "Block 3" means one thing everywhere. It
+    /// lives here, next to the rule that spends it, rather than in a tuning asset - a ScriptableObject
+    /// would buy retuning without a recompile at the cost of threading a reference to wherever statuses
+    /// are built, and of the runtime-mutation trap every SO here carries.
+    ///
+    /// Against the current 3-5 enemy damage band one charge fully negates most hits, which is what the
+    /// balance note in CLAUDE.md is about: per-hit mitigation beats the pooled kind at these numbers.
+    /// </summary>
+    public const int AmountPerHit = 5;
 
-    public BlockStatus(int amountPerHit, int charges, int turnsRemaining)
-        : base(StatusType.Block, charges, turnsRemaining)
-    {
-        this.amountPerHit = amountPerHit;
-    }
+    public BlockStatus(int stacks) : base(StatusType.Block, stacks) { }
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {
@@ -29,32 +33,16 @@ public class BlockStatus : StatusEffect
 
         stacks--;
 
-        return info.Reduced(amountPerHit);
+        return info.Reduced(AmountPerHit);
     }
 
-    /// <summary>
-    /// Keeps the higher of the two per-hit amounts and adds the charges, so a top-up can never
-    /// downgrade what is already there.
-    ///
-    /// The amount is settled *before* base.Merge runs, because base.Merge is what changes `stacks` and
-    /// the "is there any block left" test has to see the old value.
-    /// </summary>
-    public override void Merge(StatusEffect incoming)
-    {
-        if (incoming is BlockStatus block)
-        {
-            amountPerHit = stacks > 0 ? Mathf.Max(amountPerHit, block.amountPerHit) : block.amountPerHit;
-        }
+    public override string Describe() => $"Block {AmountPerHit} x{stacks}";
 
-        base.Merge(incoming);
-    }
-
-    public override string Describe() => $"Block {amountPerHit} x{stacks}";
-
-    /// The only status that contributes a second number, which is what makes Describe(string) a virtual
-    /// on Status instead of a string.Format at the call site.
+    /// Still overridden even though the amount is fixed: the Glossary's authored bodies spell
+    /// "{amount}", and this is what fills it. Without it every Block tooltip would fall back to the
+    /// entry's defaultAmount rather than the number the status actually applies.
     public override string Describe(string template)
     {
-        return base.Describe(template)?.Replace(Glossary.AmountToken, amountPerHit.ToString());
+        return base.Describe(template)?.Replace(Glossary.AmountToken, AmountPerHit.ToString());
     }
 }

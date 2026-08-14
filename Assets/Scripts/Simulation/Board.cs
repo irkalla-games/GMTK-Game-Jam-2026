@@ -35,16 +35,25 @@ public class Board
     /// Coordinate -> that occupant's affiliation. Absent means the tile is empty.
     private readonly Dictionary<Vector2Int, PlayableCharacter> occupants = new();
 
+    /// Cells a tile effect refuses entry to - a Wall of Force. Separate from `cells` on purpose: a
+    /// blocked tile still exists for range and line-of-fire purposes (Exists, TryLineTarget), it just
+    /// cannot be walked onto. Folding it into `cells` would make a walled tile invisible to a card's
+    /// reach, not just to movement.
+    private readonly HashSet<Vector2Int> blocked = new();
+
     public void AddCell(Vector2Int cell) => cells.Add(cell);
 
     public void SetOccupant(Vector2Int cell, PlayableCharacter affiliation) => occupants[cell] = affiliation;
+
+    public void SetBlocked(Vector2Int cell) => blocked.Add(cell);
 
     public bool Exists(Vector2Int cell) => cells.Contains(cell);
 
     public bool IsOccupied(Vector2Int cell) => occupants.ContainsKey(cell);
 
-    /// A tile you could stand on: on the board and nobody there.
-    public bool IsWalkable(Vector2Int cell) => cells.Contains(cell) && !occupants.ContainsKey(cell);
+    /// A tile you could stand on: on the board, nobody there, and no wall refusing entry.
+    public bool IsWalkable(Vector2Int cell) =>
+        cells.Contains(cell) && !occupants.ContainsKey(cell) && !blocked.Contains(cell);
 
     public bool IsEnemyOf(Vector2Int cell, PlayableCharacter affiliation) =>
         occupants.TryGetValue(cell, out PlayableCharacter occupant) && Character.AreEnemies(occupant, affiliation);

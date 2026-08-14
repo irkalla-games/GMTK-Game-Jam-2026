@@ -36,7 +36,7 @@ public class CharacterSelectPanel : MonoBehaviour
              + "- same reasoning as SelectedCharacterPanel.Place: the row stays a live number that "
              + "re-flows on every party-size change, with no ContentSizeFitter/LayoutGroup interplay to "
              + "depend on.")]
-    [SerializeField] private float slotSpacing = 420f;
+    [SerializeField] private float slotSpacing = 500f;
 
     [SerializeField] private Button startButton;
 

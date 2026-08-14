@@ -14,8 +14,7 @@
 /// </summary>
 public class ParryStatus : StatusEffect
 {
-    public ParryStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Parry, stacks, turnsRemaining) { }
+    public ParryStatus(int stacks) : base(StatusType.Parry, stacks) { }
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {

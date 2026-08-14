@@ -5,24 +5,31 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Read-only readout of whatever character is selected - name, health, shield, and a wrapping row of
-/// status icons. Works for allies and enemies alike, since Character exposes the same properties for
-/// both.
+/// Read-only readout of one side's selected character - name, health, shield, a wrapping row of status
+/// icons, and (enemy side only) what it means to do next. Two of these sit in the battle HUD, one per
+/// PanelAudience value, built from the same class because the layout and drawing code are entirely
+/// side-agnostic - only *which* character each one will show differs.
 ///
-/// Shows `SelectedCharacter ?? ActiveCharacter`. That one rule covers two cases a straight reading of
-/// SelectedCharacter gets wrong: battle start, where BattleManager sets an active character but never
-/// a selected one, and a selected enemy dying, where SetSelectedCharacter(null) would otherwise leave
-/// the panel blank. Resolved here rather than by making the battle select somebody on its behalf -
-/// see the doc comments on both events for why the battle must not depend on the view.
+/// PlayerControlled shows `SelectedCharacter ?? ActiveCharacter`, filtered to IsPlayerControlled. That
+/// covers two cases a straight reading of SelectedCharacter gets wrong: battle start, where
+/// BattleManager sets an active character but never a selected one, and clicking an enemy, which must
+/// not blank or repoint the hero panel. NotPlayerControlled shows SelectedCharacter only when it is
+/// *not* player-controlled, and hides otherwise - see Shown(). Resolved here rather than by making the
+/// battle track two selections on its behalf - see the doc comments on both events for why the battle
+/// must not depend on the view.
 ///
 /// Refreshed from three signals, and it needs all three: SelectedCharacterChanged and
 /// ActiveCharacterChanged for *who* is shown, ActionManager.ActionResolved for damage and buffs, and
 /// BattleManager.TurnAdvanced for the things that never pass through an action at all - Poison biting
 /// in OnTurnEnd and Shield wiping itself in OnTurnStart. This class used to claim ActionResolved was
 /// the only point stats could change; it was wrong, and a poisoned enemy's bar visibly did not move.
+/// A fourth, per-character signal (Character.IntentChanged) keeps the intent icon live against a shown
+/// character whose intent BattleManager recomputes silently in LateUpdate - see UpdateIntentSource.
 /// </summary>
 public class SelectedCharacterPanel : MonoBehaviour
 {
+    [SerializeField] private PanelAudience audience = PanelAudience.PlayerControlled;
+
     [SerializeField] private GameObject panelRoot;
 
     [SerializeField] private TMP_Text nameText;
@@ -30,8 +37,8 @@ public class SelectedCharacterPanel : MonoBehaviour
     [Tooltip("Filled horizontally from the left. fillAmount is driven from Health/MaxHealth.")]
     [SerializeField] private Image healthFill;
 
-    [Tooltip("The same bar, filled from the *right* so shield reads as a distinct segment meeting the " +
-        "health fill rather than covering it. Hidden when there is no shield.")]
+    [Tooltip("The same bar, filled from the left over the health fill and capped at current health, " +
+        "so the dark remainder always reads as missing health. Hidden when there is no shield.")]
     [SerializeField] private Image shieldFill;
 
     [SerializeField] private TMP_Text healthText;
@@ -65,6 +72,13 @@ public class SelectedCharacterPanel : MonoBehaviour
     [Tooltip("Gap left under the last row of chips when panelRect is being resized.")]
     [SerializeField] private float panelBottomPadding = 12f;
 
+    [Header("Intent (leave empty on the hero panel)")]
+    [Tooltip("What the shown character means to do next. Empty on the hero panel - players have no " +
+        "committed intent, and an empty field here also skips the IntentChanged subscription entirely.")]
+    [SerializeField] private Image intentIcon;
+
+    [SerializeField] private IntentIcons intentIcons;
+
     /// Grown on demand and reused. Refresh runs on every resolved action, so building and destroying
     /// chips each time would churn garbage to arrive back where it started.
     private readonly List<StatusChip> chips = new();
@@ -82,6 +96,10 @@ public class SelectedCharacterPanel : MonoBehaviour
     /// Found rather than serialized - the panel is already a child of it, so a second reference in the
     /// Inspector would only be a way to get it wrong.
     private Canvas canvas;
+
+    /// Whoever intentIcon's IntentChanged subscription currently points at - see UpdateIntentSource.
+    /// Null on the hero panel, since intentIcon is left empty there and the subscription never starts.
+    private Character intentSource;
 
     /// How many chips fit before wrapping. At least one, however narrow the row is set.
     private int PerRow => Mathf.Max(1, Mathf.FloorToInt((rowWidth + chipSpacing) / (chipSize + chipSpacing)));
@@ -117,6 +135,8 @@ public class SelectedCharacterPanel : MonoBehaviour
         }
 
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
+
+        UpdateIntentSource(null);
     }
 
     /// Both selection events land here. The argument is ignored on purpose - Refresh re-resolves who
@@ -125,6 +145,12 @@ public class SelectedCharacterPanel : MonoBehaviour
 
     private void OnActionResolved(GameAction action, ActionContext ctx) => Refresh();
 
+    /// The shown character's intent changed without their stats changing - BattleManager.LateUpdate
+    /// recomputes it silently whenever the board does, with no ActionResolved or TurnAdvanced to ride
+    /// along on. The argument is the same character UpdateIntentSource already subscribed to, so this
+    /// only ever fires for whoever is currently shown.
+    private void OnIntentChanged(Character character) => RefreshIntent(character);
+
     private Character Shown()
     {
         BattleManager battle = BattleManager.Instance;
@@ -132,8 +158,24 @@ public class SelectedCharacterPanel : MonoBehaviour
         if (battle == null) { return null; }
 
         // Unity's == means a destroyed character already compares equal to null here, which is what
-        // makes the fallback cover a selected enemy dying without any extra bookkeeping.
-        return battle.SelectedCharacter != null ? battle.SelectedCharacter : battle.ActiveCharacter;
+        // makes the enemy panel's own fallback (below) cover a selected enemy dying without any extra
+        // bookkeeping.
+        Character selected = battle.SelectedCharacter;
+
+        if (audience == PanelAudience.PlayerControlled)
+        {
+            // Falls back to ActiveCharacter rather than going blank when an enemy is selected - the
+            // hero panel must not repoint or hide just because you clicked something else to inspect
+            // it. ActiveCharacter is only ever set to a player-controlled character (BattleManager's
+            // FirstPlayableCharacter and its OnTileClicked hero branch both gate on it), so this never
+            // falls through to something the panel would then have to filter again.
+            return selected != null && selected.IsPlayerControlled ? selected : battle.ActiveCharacter;
+        }
+
+        // No ActiveCharacter fallback here - there is no "always shown" enemy the way there is always
+        // an active hero, so this panel is meant to go blank until something not player-controlled is
+        // actually selected.
+        return selected != null && !selected.IsPlayerControlled ? selected : null;
     }
 
     private void Refresh()
@@ -145,6 +187,7 @@ public class SelectedCharacterPanel : MonoBehaviour
         if (character == null)
         {
             panelRoot.SetActive(false);
+            UpdateIntentSource(null);
             return;
         }
 
@@ -152,20 +195,12 @@ public class SelectedCharacterPanel : MonoBehaviour
 
         if (nameText != null) { nameText.text = character.DisplayName; }
 
-        // Shield is not a field on Character - it is whatever a ShieldStatus in its list says it is.
-        int shield = character.StatusStacks(StatusType.Shield);
+        // Shared with the overhead bar so the two can never disagree - see HealthBarFill. Hands back
+        // the shield total it read, which the text below needs anyway.
+        int shield = HealthBarFill.Apply(healthFill, shieldFill, character);
 
-        // A character authored with 0 max health would otherwise divide by zero and blank the bar.
-        float max = Mathf.Max(1, character.MaxHealth);
-
-        if (healthFill != null) { healthFill.fillAmount = Mathf.Clamp01(character.Health / max); }
-
-        if (shieldFill != null)
-        {
-            shieldFill.fillAmount = Mathf.Clamp01(shield / max);
-            shieldFill.enabled = shield > 0;
-        }
-
+        // The *full* shield, even when the bar caps its fill at current health. The bar shows where
+        // the shield sits, this states how much of it there actually is.
         if (healthText != null)
         {
             healthText.text = shield > 0
@@ -173,7 +208,45 @@ public class SelectedCharacterPanel : MonoBehaviour
                 : $"{character.Health}/{character.MaxHealth}";
         }
 
+        UpdateIntentSource(character);
+        RefreshIntent(character);
         LayOutStatuses(character);
+    }
+
+    /// <summary>
+    /// Points the IntentChanged subscription at whoever is now shown, so the icon stays live against a
+    /// committed intent BattleManager recomputes silently in LateUpdate whenever the board changes -
+    /// none of Refresh's other three signals fire for that. A no-op on the hero panel: intentIcon is
+    /// left empty there, so this never subscribes to anything and every shown hero pays nothing for it.
+    /// </summary>
+    private void UpdateIntentSource(Character character)
+    {
+        if (intentIcon == null || intentSource == character) { return; }
+
+        if (intentSource != null) { intentSource.IntentChanged -= OnIntentChanged; }
+
+        intentSource = character;
+
+        if (intentSource != null) { intentSource.IntentChanged += OnIntentChanged; }
+    }
+
+    /// <summary>
+    /// Sets the icon straight to the character's current intent - no roll. IntentRoll's fall-in belongs
+    /// to CharacterOverheadViewer, where it always animates the same character's intent changing; here
+    /// the shown character itself can change between two refreshes, and rolling from one enemy's icon
+    /// to a different enemy's would read as a change in *that enemy's* intent rather than as a change
+    /// of who is being looked at.
+    /// </summary>
+    private void RefreshIntent(Character character)
+    {
+        if (intentIcon == null) { return; }
+
+        Sprite sprite = character != null && intentIcons != null
+            ? intentIcons.For(character.CommittedIntent.kind)
+            : null;
+
+        intentIcon.sprite = sprite;
+        intentIcon.enabled = sprite != null;
     }
 
     private void LayOutStatuses(Character character)

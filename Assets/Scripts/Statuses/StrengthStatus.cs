@@ -8,8 +8,7 @@
 /// </summary>
 public class StrengthStatus : StatusEffect
 {
-    public StrengthStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Strength, stacks, turnsRemaining) { }
+    public StrengthStatus(int stacks) : base(StatusType.Strength, stacks) { }
 
     public override DamageInfo OnDealDamage(DamageInfo info) => info.WithAmount(info.amount + stacks);
 }

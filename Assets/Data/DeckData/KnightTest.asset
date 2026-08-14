@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc05c1dab7b1b25479b78eb721423298, type: 3}
+  m_Name: KnightTest
+  m_EditorClassIdentifier: Assembly-CSharp::DeckData
+  displayName: Knight Test
+  description: 
+  forClass: 1
+  cards:
+  - {fileID: 11400000, guid: af8bc827dc0c0c043aadfbceb9c91246, type: 2}
+  - {fileID: 11400000, guid: aaaa1118bbbb2229cccc333adddd444b, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
+  - {fileID: 11400000, guid: d33a9e1db0e9c6e42a163a3bb49dbf0f, type: 2}
+  locked: 0
+  unlockId: 

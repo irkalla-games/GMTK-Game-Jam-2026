@@ -47,9 +47,12 @@ public abstract class EnemyBrain
 
     /// The character the current priority names, out of everyone alive on the other side. The move's
     /// destination and the attack's victim are the same question - see TargetSelector.
+    ///
+    /// "The current priority" is not the last word: a Taunt on this character overrides it inside
+    /// TryPick, so a taunted enemy walks toward whoever taunted it whatever its pattern says.
     protected static bool TryQuarry(Character self, TargetPriority priority, out Character quarry) =>
         TargetSelector.TryPick(
-            priority, self.Tile.Coordinates, TargetSelector.LivingEnemiesOf(self), out quarry);
+            priority, self, TargetSelector.LivingEnemiesOf(self), out quarry);
 
     /// <summary>
     /// The best card this character could play at something on the other side, or none.
@@ -66,6 +69,14 @@ public abstract class EnemyBrain
     /// fewest of this character's own side wins; a Single card's footprint is always exactly one
     /// enemy and zero allies, so that comparison never has anything to break and the first legal tile
     /// found wins, the same as before.
+    ///
+    /// A Taunt is the one thing that makes this answer false while enemies are standing in reach: it
+    /// names a quarry inside TryPick and refuses every substitute, so a taunted character with its
+    /// taunter out of reach takes no attack at all and falls through to the move below - which heads
+    /// for that same taunter. See TargetSelector and TauntStatus.
+    ///
+    /// Note this governs who is *aimed at*, not who a footprint may catch: a taunted enemy swinging an
+    /// area card at its taunter still prefers the tile that also splashes somebody else.
     /// </summary>
     protected static bool TryFindAttack(Character self, TargetPriority priority, out Intent intent)
     {
@@ -106,7 +117,7 @@ public abstract class EnemyBrain
             }
         }
 
-        if (!TargetSelector.TryPick(priority, self.Tile.Coordinates, reachableEnemies, out Character chosen))
+        if (!TargetSelector.TryPick(priority, self, reachableEnemies, out Character chosen))
         {
             return false;
         }

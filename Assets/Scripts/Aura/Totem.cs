@@ -187,7 +187,7 @@ public class Totem : MonoBehaviour
 
         foreach (AuraData aura in auras)
         {
-            StatusEffect projectedEffect = StatusEffect.Create(aura.Type, aura.Stacks, Status.Indefinite);
+            StatusEffect projectedEffect = StatusEffect.Create(aura.Type, aura.Stacks);
 
             if (projectedEffect != null) { into.Add(new Aura(this, projectedEffect)); }
         }

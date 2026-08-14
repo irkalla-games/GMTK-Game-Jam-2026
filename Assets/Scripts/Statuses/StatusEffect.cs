@@ -1,8 +1,6 @@
-using UnityEngine;
-
 /// <summary>
-/// A status a character carries itself: applied by a card, held in its own list, aged by its own
-/// turns, and spending real charges when a hook uses one.
+/// A status a character carries itself: applied by a card, held in its own list, spending real charges
+/// when a hook uses one, and doing its own ageing if ageing is what its counter means.
 ///
 /// The other half of the hierarchy is Aura, which a Totem projects onto whoever stands in range.
 /// Everything a StatusEffect can do an Aura can do too - the split is about ownership and lifetime,
@@ -11,18 +9,13 @@ using UnityEngine;
 /// implementing it.
 ///
 /// StatusType is the type and this is the copy, the same split as CardData/Card - the enum says what a
-/// Poison is, this says how much of it is on this particular goblin and for how long.
+/// Poison is, this says how much of it is on this particular goblin.
 ///
-/// Two independent ways to expire, and one may use either, both, or neither:
-///
-///   duration  turnsRemaining ticks down at the end of the carrier's own turn, and it drops at 0.
-///                                                              Poison, Frozen, Rooted.
-///   charge    an event spends a stack.        DoubleNextAttack, Block, Parry, Shield.
-///   neither   Indefinite, lasts the whole combat.                          Strength.
-///
-/// Keeping those separate is what lets one class cover all of them. Folding duration into stacks - the
-/// Slay the Spire trick where poison's stack count doubles as its remaining turns - would force
-/// Strength and Poison into different storage.
+/// There is one counter and the subclass decides what spends it - see Status for the three shapes.
+/// This class used to hold a second field, turnsRemaining, and its own docstring argued that folding
+/// duration into stacks "would force Strength and Poison into different storage". That was true only
+/// while something *outside* the status did the ageing: once each status ages itself, Strength simply
+/// never ticks and Poison decays in its own OnTurnEnd, and one field covers both.
 /// </summary>
 public abstract class StatusEffect : Status
 {
@@ -32,13 +25,10 @@ public abstract class StatusEffect : Status
 
     public override int stacks { get; set; }
 
-    public override int turnsRemaining { get; set; }
-
-    protected StatusEffect(StatusType type, int stacks, int turnsRemaining)
+    protected StatusEffect(StatusType type, int stacks)
     {
         statusType = type;
         this.stacks = stacks;
-        this.turnsRemaining = turnsRemaining;
     }
 
     /// <summary>
@@ -47,41 +37,40 @@ public abstract class StatusEffect : Status
     /// Only carried statuses merge - an Aura is owned by its totem and rebuilt per query, so there is
     /// nothing to fold into. That is why this lives here rather than on Status.
     ///
-    /// Takes the *longer* of the two durations so a top-up can never shorten what is already there -
-    /// and Indefinite, being -1, has to be special-cased or Mathf.Max would treat it as the shortest.
+    /// Adding is the only reading that works for one counter, and it means duration statuses now
+    /// *extend* where the two-field version took the longer of the two: freezing an already-frozen
+    /// enemy gives two turns rather than one. A status wanting something else overrides this, as
+    /// TauntStatus does to replace rather than accumulate.
     /// </summary>
     public virtual void Merge(StatusEffect incoming)
     {
         stacks += incoming.stacks;
-
-        if (turnsRemaining == Indefinite) { return; }
-
-        turnsRemaining = incoming.turnsRemaining == Indefinite
-            ? Indefinite
-            : Mathf.Max(turnsRemaining, incoming.turnsRemaining);
     }
 
     /// <summary>
     /// The one place a StatusType turns into the object that implements it. Returns null for None, and
     /// for anything not yet implemented, so an unset dropdown does nothing rather than throwing.
     ///
-    /// Block is the awkward one: it needs a per-hit amount *and* a charge count, and this signature
-    /// only carries one number. Here `stacks` is read as the per-hit amount for a single hit, which is
-    /// the sensible reading of "apply Block 5". A card that wants Block 5 three times over uses
-    /// BlockEffect, which has both fields.
+    /// Block used to be the awkward one here, needing a per-hit amount as well as a charge count. Its
+    /// amount is a constant now (BlockStatus.AmountPerHit), so it builds like everything else.
+    ///
+    /// Taunt is the one type still missing on purpose: it carries a reference to the character that
+    /// applied it, which this signature has nowhere to put. TauntEffect builds it directly.
     /// </summary>
-    public static StatusEffect Create(StatusType type, int stacks, int turnsRemaining) => type switch
+    public static StatusEffect Create(StatusType type, int stacks) => type switch
     {
-        StatusType.Strength => new StrengthStatus(stacks, turnsRemaining),
-        StatusType.DoubleNextAttack => new DoubleNextAttackStatus(stacks, turnsRemaining),
-        StatusType.Poison => new PoisonStatus(stacks, turnsRemaining),
-        StatusType.Frozen => new FrozenStatus(stacks, turnsRemaining),
-        StatusType.Rooted => new RootedStatus(stacks, turnsRemaining),
-        StatusType.Shield => new ShieldStatus(stacks, turnsRemaining),
-        StatusType.Block => new BlockStatus(stacks, 1, turnsRemaining),
-        StatusType.Parry => new ParryStatus(stacks, turnsRemaining),
-        StatusType.DoubleShield => new DoubleShieldStatus(stacks, turnsRemaining),
-        StatusType.Dodge => new DodgeStatus(stacks, turnsRemaining),
+        StatusType.Strength => new StrengthStatus(stacks),
+        StatusType.DoubleNextAttack => new DoubleNextAttackStatus(stacks),
+        StatusType.Poison => new PoisonStatus(stacks),
+        StatusType.Frozen => new FrozenStatus(stacks),
+        StatusType.Rooted => new RootedStatus(stacks),
+        StatusType.Shield => new ShieldStatus(stacks),
+        StatusType.Block => new BlockStatus(stacks),
+        StatusType.Parry => new ParryStatus(stacks),
+        StatusType.DoubleShield => new DoubleShieldStatus(stacks),
+        StatusType.Dodge => new DodgeStatus(stacks),
+        StatusType.Weaken => new WeakenStatus(stacks),
+        StatusType.Summoned => new SummonedStatus(stacks),
         _ => null,
     };
 }

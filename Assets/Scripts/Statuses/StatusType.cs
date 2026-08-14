@@ -14,7 +14,7 @@ public enum StatusType
 {
     None = 0,
 
-    /// Buff. Adds its stack count to outgoing damage. Indefinite.
+    /// Buff. Adds its counter to outgoing damage. Never ticks - it lasts the whole combat.
     Strength = 1,
 
     /// Buff. Doubles outgoing damage, then spends a charge. No duration - it waits.
@@ -31,9 +31,8 @@ public enum StatusType
     /// stacks is the pool.
     Shield = 5,
 
-    /// A flat reduction applied to each of the next few hits. stacks is the charge count; the
-    /// per-hit amount lives on BlockStatus, which is why this one cannot be authored through the
-    /// generic Apply Status asset - see BlockEffect.
+    /// A flat reduction applied to each of the next few hits. The counter is the charge count; how
+    /// much comes off each hit is BlockStatus.AmountPerHit, the same for every Block in the game.
     Block = 6,
 
     /// Negates each of the next few hits outright and reflects them at the attacker. stacks is the
@@ -49,4 +48,23 @@ public enum StatusType
     /// Negates each of the next few hits outright and sidesteps to a nearby tile, no reflection.
     /// stacks is the charge count - see DodgeStatus and GridManager.StepAwayFrom.
     Dodge = 10,
+
+    Weaken = 11,
+
+    /// Curse. The carrier goes after whoever applied it - both the victim it attacks and the direction
+    /// it walks - instead of consulting its own TargetingPattern, and takes no attack at all while that
+    /// character is out of reach. See TauntStatus and TargetSelector.
+    ///
+    /// The one status that cannot be authored through the generic Apply Status asset: it carries a
+    /// reference to the taunter, which StatusEffect.Create's type/stacks signature has nowhere to put.
+    /// TauntEffect is its authoring half.
+    Taunt = 12,
+
+    /// Curse, in the sense that it ends its carrier - a summoned body's own lifetime clock. Counts down
+    /// each of the carrier's own turns and, at zero, deals it its own remaining Health as unblockable
+    /// damage, which routes through the ordinary CheckDeath -> Died path so loot, roster removal and
+    /// death animation all behave exactly as they would for any other death. Not authored through the
+    /// generic Apply Status asset - see SummonEffect.lifetimeTurns and SummonAction.
+    Summoned = 13,
+
 }

@@ -7,20 +7,18 @@ public class StatusAction : GameAction
 {
     private readonly StatusType status;
     private readonly int stacks;
-    private readonly int turnsRemaining;
 
-    public StatusAction(StatusType status, int stacks, int turnsRemaining)
+    public StatusAction(StatusType status, int stacks)
     {
         this.status = status;
         this.stacks = stacks;
-        this.turnsRemaining = turnsRemaining;
     }
 
     public override IEnumerator Execute(ActionContext ctx)
     {
         foreach (GridTile target in ctx.targets)
         {
-            target.ApplyStatus(status, stacks, turnsRemaining);
+            target.ApplyStatus(status, stacks);
         }
 
         yield return new WaitForSeconds(ResolveDelay);

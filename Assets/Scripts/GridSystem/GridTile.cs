@@ -26,6 +26,14 @@ public class GridTile : MonoBehaviour
 
     public IReadOnlyList<ItemPickup> Items => items;
 
+    /// Persistent effects this tile itself carries, independent of who is standing on it - a Wall of
+    /// Force, a patch of flames. See TileEffect.
+    private readonly List<TileEffect> tileEffects = new();
+
+    public IReadOnlyList<TileEffect> TileEffects => tileEffects;
+
+    private TileEffectOverlay effectOverlay;
+
     private void Awake()
     {
         selector = GetComponent<TileSelector>();
@@ -89,18 +97,16 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.GainShield(amount); }
     }
 
-    /// Block is the one that cannot go through the type/stacks form: `amount` comes off each hit and
-    /// `count` is how many hits it applies to, which is two numbers - see BlockStatus.
-    public void GainBlock(int amount, int count)
+    /// `count` is how many hits the Block applies to. How much comes off each is
+    /// BlockStatus.AmountPerHit, the same for every Block in the game.
+    public void GainBlock(int count)
     {
-        if (Occupant == null || amount <= 0 || count <= 0) { return; }
-
-        Occupant.AddStatus(new BlockStatus(amount, count, Status.Indefinite));
+        if (Occupant != null) { Occupant.AddStatus(StatusType.Block, count); }
     }
 
     public void GainParry(int count)
     {
-        if (Occupant != null) { Occupant.AddStatus(StatusType.Parry, count, Status.Indefinite); }
+        if (Occupant != null) { Occupant.AddStatus(StatusType.Parry, count); }
     }
 
     /// <summary>
@@ -120,9 +126,20 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.DrawCards(drawAmount); }
     }
 
-    public void ApplyStatus(StatusType status, int stacks, int turnsRemaining)
+    public void ApplyStatus(StatusType status, int stacks)
     {
-        if (Occupant != null) { Occupant.AddStatus(status, stacks, turnsRemaining); }
+        if (Occupant != null) { Occupant.AddStatus(status, stacks); }
+    }
+
+    /// Taunt is the one that cannot go through the type/stacks form - it carries a reference to the
+    /// character being taunted *by*, which StatusEffect.Create has nowhere to put. A null taunter would
+    /// be a taunt pointing at nobody, so it is refused here rather than becoming a status that can
+    /// never be satisfied. `stacks` is how many turns it lasts.
+    public void Taunt(Character taunter, int stacks)
+    {
+        if (Occupant == null || taunter == null) { return; }
+
+        Occupant.AddStatus(new TauntStatus(taunter, stacks));
     }
 
     private void OnMouseDown()
@@ -215,5 +232,69 @@ public class GridTile : MonoBehaviour
         }
 
         items.Clear();
+    }
+
+    /// <summary>
+    /// Applies a tile effect, merging into one of the same type already here - the same
+    /// merge-by-type shape Character.AddStatus uses. Lazily attaches the overlay wash on the first
+    /// effect and tints it from whichever effect is oldest, which is also the only one today's two
+    /// wall cards would ever let coexist with a second of a different kind on the same tile.
+    /// </summary>
+    public void AddTileEffect(TileEffect incoming)
+    {
+        if (incoming == null || incoming.type == TileEffectType.None || incoming.turnsRemaining <= 0)
+        {
+            return;
+        }
+
+        foreach (TileEffect existing in tileEffects)
+        {
+            if (existing.type != incoming.type) { continue; }
+
+            existing.Merge(incoming);
+            RefreshEffectOverlay();
+            return;
+        }
+
+        tileEffects.Add(incoming);
+        RefreshEffectOverlay();
+    }
+
+    /// Why a tile effect on this tile refuses to let `mover` step here, or null if none object. Asked
+    /// by GridManager.MoveRefusal, the same choke point a status's own MoveRefusal already answers
+    /// through.
+    public string EnterRefusal(Character mover)
+    {
+        foreach (TileEffect effect in tileEffects)
+        {
+            string refusal = effect.EnterRefusal(mover, this);
+
+            if (refusal != null) { return refusal; }
+        }
+
+        return null;
+    }
+
+    /// Runs every tile effect's end-of-turn hook, then drops whatever just expired. See
+    /// GridManager.TickTileEffects - called once per round, at the end of the player turn, since a
+    /// tile belongs to nobody's "own phase" the way a character's statuses do.
+    public void TickTileEffects()
+    {
+        foreach (TileEffect effect in tileEffects) { effect.OnTurnEnd(this); }
+
+        tileEffects.RemoveAll(effect => effect.IsExpired);
+        RefreshEffectOverlay();
+    }
+
+    private void RefreshEffectOverlay()
+    {
+        if (tileEffects.Count == 0)
+        {
+            if (effectOverlay != null) { effectOverlay.Clear(); }
+            return;
+        }
+
+        if (effectOverlay == null) { effectOverlay = TileEffectOverlay.AttachTo(this); }
+        if (effectOverlay != null) { effectOverlay.SetTint(tileEffects[0].OverlayColor); }
     }
 }

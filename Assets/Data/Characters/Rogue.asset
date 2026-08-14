@@ -17,3 +17,4 @@ MonoBehaviour:
   prefab: {fileID: 8814313836042315297, guid: 4890c32cf8bb9a246ae74c2d24ea358d, type: 3}
   decks:
   - {fileID: 11400000, guid: 61700adfc31e8a14b891082883868820, type: 2}
+  - {fileID: 11400000, guid: be0df1fa51a20ce48ab5462975d8fc45, type: 2}

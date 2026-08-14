@@ -13,5 +13,4 @@ MonoBehaviour:
   m_Name: Block 1
   m_EditorClassIdentifier: Assembly-CSharp::BlockEffect
   aimsAt: 1
-  blockAmount: 3
   blockCount: 1

@@ -15,15 +15,20 @@
 ///
 /// Its value is asymmetric and worth watching while tuning - an enemy has one action point, so
 /// freezing one denies a single 3-5 damage swing, while freezing a player denies roughly three cards.
-/// The lever for making it stronger is duration, not stacks: the effect is binary.
+/// The counter is turns, which is the only lever there is: the effect itself is binary.
 /// </summary>
 public class FrozenStatus : StatusEffect
 {
-    public FrozenStatus(int stacks, int turnsRemaining)
-        : base(StatusType.Frozen, stacks, turnsRemaining) { }
+    public FrozenStatus(int stacks) : base(StatusType.Frozen, stacks) { }
 
     public override string ActRefusal(Character carrier) =>
         $"{(carrier != null ? carrier.name : "it")} is frozen solid";
+
+    /// Self-ticking: the counter is remaining turns, so a turn passing spends one.
+    public override void OnTurnEnd(Character carrier)
+    {
+        stacks--;
+    }
 
     public override string Describe() => "Frozen";
 }

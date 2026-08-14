@@ -18,10 +18,17 @@
 # make DOTweenModuleUI.cs's extension methods (CanvasGroup.DOFade, RectTransform.DOAnchorPosY, ...)
 # invisible here even though Unity itself compiles and runs them fine.
 #
-# NOT covered: Assets/Editor/**, which Unity puts in Assembly-CSharp-Editor. Nothing here points at
-# that csproj, so a broken Editor script still only surfaces once the Unity Editor is focused. It
-# could be added by calling Compile-Project on Assembly-CSharp-Editor.csproj as well - the
-# ProjectReference walk above already resolves everything it needs.
+# Assets/Editor/** lives in Assembly-CSharp-Editor and is NOT checked by default. Pass -IncludeEditor
+# to compile it too:
+#
+#   powershell -ExecutionPolicy Bypass -File Tools/compile-check.ps1 -IncludeEditor
+#
+# That path also sweeps in any .cs under Assets/Editor and Assets/Scripts/Editor that the csproj has
+# not caught up with yet. The csproj is gitignored and only regenerated when the Unity Editor is
+# focused, so a file added since the last focus is otherwise invisible here - which would make the
+# check quietly pass on a script it never read.
+[CmdletBinding()]
+param([switch]$IncludeEditor)
 
 $ErrorActionPreference = 'Stop'
 
@@ -55,7 +62,7 @@ if (-not $csc) { throw "csc.dll not found under $sdkRoot\sdk" }
 $built = @{}
 $building = New-Object System.Collections.Generic.HashSet[string]
 
-function Compile-Project([string]$csprojPath) {
+function Compile-Project([string]$csprojPath, [string[]]$extraSources = @()) {
     $csprojPath = [System.IO.Path]::GetFullPath($csprojPath)
 
     if ($built.ContainsKey($csprojPath)) { return }
@@ -72,6 +79,20 @@ function Compile-Project([string]$csprojPath) {
     $name = [System.IO.Path]::GetFileNameWithoutExtension($csprojPath)
 
     $srcs = @($x.SelectNodes("//*[local-name()='Compile']") | ForEach-Object { $_.GetAttribute('Include') })
+
+    # Sources the csproj does not know about yet, because Unity has not been focused since they were
+    # added. Compared on full path so a differently-spelled Include does not smuggle in a duplicate.
+    if ($extraSources.Count -gt 0) {
+        $known = @{}
+        foreach ($s in $srcs) { $known[[System.IO.Path]::GetFullPath((Join-Path $root $s))] = $true }
+
+        foreach ($extra in $extraSources) {
+            $fullExtra = [System.IO.Path]::GetFullPath($extra)
+            if ($known.ContainsKey($fullExtra)) { continue }
+            Write-Host "  + $($fullExtra.Substring($root.Length + 1)) (not in csproj yet)"
+            $srcs += $fullExtra
+        }
+    }
     $hintRefs = @($x.SelectNodes("//*[local-name()='HintPath']") | ForEach-Object { $_.InnerText })
     $projRefs = @($x.SelectNodes("//*[local-name()='ProjectReference']") | ForEach-Object { $_.GetAttribute('Include') })
     $defines = ($x.SelectNodes("//*[local-name()='DefineConstants']") | Select-Object -First 1).InnerText
@@ -108,7 +129,12 @@ function Compile-Project([string]$csprojPath) {
         $lines.Add("-r:`"$p`"")
     }
     foreach ($d in $projRefDlls) { $lines.Add("-r:`"$d`"") }
-    foreach ($s in $srcs) { $lines.Add("`"$(Join-Path $root $s)`"") }
+    # Includes out of the csproj are repo-relative; injected extras are already absolute.
+    foreach ($s in $srcs) {
+        $p = $s
+        if (-not [System.IO.Path]::IsPathRooted($p)) { $p = Join-Path $root $p }
+        $lines.Add("`"$p`"")
+    }
 
     $rsp = Join-Path $env:TEMP "gmtk-compile-check-$name.rsp"
     Set-Content -Path $rsp -Value $lines -Encoding utf8
@@ -133,6 +159,20 @@ function Compile-Project([string]$csprojPath) {
 }
 
 Compile-Project $proj
+
+if ($IncludeEditor) {
+    $editorProj = Join-Path $root 'Assembly-CSharp-Editor.csproj'
+
+    $editorSources = @()
+    foreach ($dir in @('Assets\Editor', 'Assets\Scripts\Editor')) {
+        $full = Join-Path $root $dir
+        if (Test-Path $full) {
+            $editorSources += @(Get-ChildItem -Path $full -Recurse -Filter '*.cs' -File | ForEach-Object { $_.FullName })
+        }
+    }
+
+    Compile-Project $editorProj $editorSources
+}
 
 Write-Host "COMPILE OK"
 exit 0

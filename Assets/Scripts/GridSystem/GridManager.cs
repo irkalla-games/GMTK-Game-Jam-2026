@@ -291,6 +291,43 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
+    /// Swaps two characters' places outright - Shambles. Deliberately consults no refusal at all: a
+    /// swap is something done TO both characters, not a move either one is choosing to make, so a
+    /// Rooted target and a Wall of Force both stand aside for it. GridManager's business for the same
+    /// reason MoveCharacter and PlaceCharacter are - where a tile sits in world space, and the
+    /// occupancy bookkeeping that goes with it.
+    ///
+    /// Both tiles are cleared before either character claims one: Character.MoveTo only clears a tile
+    /// whose Occupant still points at the mover, so calling it straight through would have the second
+    /// MoveTo see the first character's stale reference sitting on the tile it is about to leave.
+    /// Clearing both up front sidesteps that regardless of which order the two MoveTo calls run in.
+    /// </summary>
+    public bool SwapCharacters(Character a, Character b)
+    {
+        if (a == null || b == null || a == b || a.Tile == null || b.Tile == null) { return false; }
+
+        GridTile tileA = a.Tile;
+        GridTile tileB = b.Tile;
+
+        tileA.SetOccupant(null);
+        tileB.SetOccupant(null);
+
+        a.MoveTo(tileB);
+        b.MoveTo(tileA);
+
+        a.transform.DOMove(tileB.transform.position, moveDuration);
+        b.transform.DOMove(tileA.transform.position, moveDuration);
+
+        // Each character lands on a tile it was not just standing on, so both may have something to
+        // pick up - unlike an ordinary move, where only the single destination matters.
+        tileB.TryPickUpItem(a);
+        tileA.TryPickUpItem(b);
+
+        return true;
+    }
+
+
+    /// <summary>
     /// Every rule about where a character may move lives here. Null means the move is legal, anything
     /// else is the reason it was refused, for the caller to log.
     ///
@@ -308,6 +345,10 @@ public class GridManager : Singleton<GridManager>
         if (destination.Occupant == character) { return "it is already standing there"; }
 
         if (destination.Occupant != null) { return $"{destination.Occupant.name} is standing there"; }
+
+        // A tile effect may object to itself - Wall of Force refuses every mover, occupant or not.
+        string tileRefusal = destination.EnterRefusal(character);
+        if (tileRefusal != null) { return tileRefusal; }
 
         // A status may object to the mover rather than to the tile - Rooted refuses every destination.
         // Asked here rather than anywhere else precisely because this method is the single answer both
@@ -432,9 +473,28 @@ public class GridManager : Singleton<GridManager>
             {
                 board.SetOccupant(entry.Key, occupant.Affiliation);
             }
+
+            // A Wall of Force blocks pathing the same way an occupant does, without being one - asked
+            // through EnterRefusal(null) rather than a bespoke query so the board never disagrees with
+            // what an actual move would be refused for.
+            if (entry.Value.EnterRefusal(null) != null) { board.SetBlocked(entry.Key); }
         }
 
         return board;
+    }
+
+
+    /// <summary>
+    /// Ticks every tile's own effects by one round - Wall of Flames burns, both walls age. Called once
+    /// per round, at the end of the player turn (see BattleManager.RunBattle), since a tile belongs to
+    /// nobody's "own phase" the way TickStatuses splits by side.
+    ///
+    /// Here rather than on BattleManager for the same reason Read() is - `tiles` is private and there
+    /// is no way to enumerate the board from outside.
+    /// </summary>
+    public void TickTileEffects()
+    {
+        foreach (GridTile tile in tiles.Values) { tile.TickTileEffects(); }
     }
 
 

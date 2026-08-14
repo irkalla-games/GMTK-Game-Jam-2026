@@ -1021,6 +1021,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
   - {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
+  - {fileID: 11400000, guid: aaaa1118bbbb2229cccc333adddd444b, type: 2}
   <Health>k__BackingField: 30
 --- !u!210 &8600000000000000001
 SortingGroup:
@@ -1051,6 +1052,9 @@ MonoBehaviour:
   shieldFill: {fileID: 5000000000000034}
   intentIcon: {fileID: 0}
   icons: {fileID: 0}
+  intentRoll:
+    rollDuration: 0.5
+    rollEase: 9
 --- !u!114 &8896166220084701597
 MonoBehaviour:
   m_ObjectHideFlags: 0

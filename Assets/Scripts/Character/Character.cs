@@ -520,18 +520,19 @@ public class Character : MonoBehaviour
         return null;
     }
 
-    /// Applies a status by type, stacking onto one already present. The convenience form for the
-    /// statuses whose whole state is one number - GridTile.ApplyStatus and friends.
-    public void AddStatus(StatusType type, int stacks, int turnsRemaining)
+    /// Applies a status by type, stacking onto one already present. The convenience form for every
+    /// status the enum alone can describe - GridTile.ApplyStatus and friends.
+    public void AddStatus(StatusType type, int stacks)
     {
-        AddStatus(StatusEffect.Create(type, stacks, turnsRemaining));
+        AddStatus(StatusEffect.Create(type, stacks));
     }
 
     /// <summary>
     /// Applies an already-built status, merging into one of the same type if it is already there.
     ///
-    /// The object form exists for Block, whose two numbers do not fit the type/stacks/turns signature.
-    /// How a top-up combines is the status's own business - see StatusEffect.Merge.
+    /// The object form exists for Taunt, which carries a reference to whoever applied it and so cannot
+    /// come out of StatusEffect.Create. How a top-up combines is the status's own business - see
+    /// StatusEffect.Merge.
     ///
     /// Takes a StatusEffect, not a Status: an Aura is owned by its totem and rebuilt on every query,
     /// so there is nothing here for one to be added to. The type signature is what says so.
@@ -569,32 +570,26 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// The end of this character's own phase: statuses that do something on a passing turn do it, then
-    /// every timed status ages by one and the expired ones drop. Statuses with no duration (Strength,
-    /// and charge-spent ones like Double Attack) are untouched.
+    /// The end of this character's own phase: statuses that do something on a passing turn do it, and
+    /// the ones that run out drop.
     ///
     /// Called by BattleManager at the end of this character's own phase - PlayerActing for
     /// player-controlled characters, EnemyResolve for enemies - never at the shared TurnStart. See
     /// BattleManager.TickStatuses(bool) for why the timing matters.
     ///
-    /// Hooks run before durations age, so a status with one turn left still gets its last tick. Only
-    /// this character's own statuses age: an aura has no duration of its own, it lasts exactly as long
-    /// as you stand in it.
+    /// There is deliberately no ageing loop here. A status that expires with time spends its own
+    /// counter inside its OnTurnEnd - Poison bites and then decays, Frozen decrements, Weaken zeroes
+    /// itself - so this method does not know that durations exist, which is the same reason TakeDamage
+    /// does not know that Shield does. Adding a new timed status needs no change to this class.
     ///
-    /// Iterated backwards because expiring a status removes it mid-loop.
+    /// An aura ticking itself here is harmless: Totem rebuilds them on every query, so a counter it
+    /// spends belongs to a throwaway.
     /// </summary>
     public void OnTurnEnd()
     {
         foreach (Status status in ActiveStatuses()) { status.OnTurnEnd(this); }
 
-        // Only the carried ones age. An aura has no duration of its own - Aura.turnsRemaining is
-        // permanently Indefinite - so it would be nothing but a no-op here anyway.
-        for (int i = ownStatusEffects.Count - 1; i >= 0; i--)
-        {
-            if (ownStatusEffects[i].turnsRemaining > 0) { ownStatusEffects[i].turnsRemaining--; }
-
-            if (ownStatusEffects[i].IsExpired) { ownStatusEffects.RemoveAt(i); }
-        }
+        PruneExpired();
     }
 
     /// Drops carried statuses whose hooks just spent their last charge. Only walks this character's own
@@ -648,7 +643,7 @@ public class Character : MonoBehaviour
 
         if (shouldConsume) { PruneExpired(); }
 
-        AddStatus(StatusType.Shield, info.amount, Status.Indefinite);
+        AddStatus(StatusType.Shield, info.amount);
     }
 
     public void MoveTo(GridTile moveTo)

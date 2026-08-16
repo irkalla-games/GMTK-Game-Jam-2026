@@ -16,6 +16,11 @@ public class PartyMember
     public List<CardData> deck;
 
     public int currentHealth;
+
+    /// Equipment picked up this run, permanent for the rest of it - the equipment counterpart to deck.
+    /// Never null after Begin seeds it, same reason deck never is: BattleManager.SpawnParty hands it
+    /// straight to Character.SetEquipment with no null check of its own.
+    public List<EquipmentData> equipment = new();
 }
 
 /// <summary>

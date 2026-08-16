@@ -9,6 +9,12 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     public bool HasSelection => selected != null;
 
+    /// Cancels a pending card selection without playing it - the same effect Escape already has.
+    /// Exposed for anything that switches the active character out from under a selected card, e.g.
+    /// PartyPortraitPanel, where leaving the selection pointing at a hand that just left the screen
+    /// would be a bug rather than a feature.
+    public void ClearSelection() => Deselect();
+
     public void OnCardClicked(CardViewer cardViewer)
     {
         // A reward card routes its own click straight to RewardPanel (see CardViewer.clickOverride)
@@ -96,17 +102,21 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
 
     /// <summary>
-    /// Refreshes the selected card's area-of-effect preview against whichever tile the cursor is now
-    /// over - the red footprint the user aims by. BattleManager.OnTileHovered is hover's single door,
-    /// same as OnTileClicked is for clicks. With nothing selected, or the cursor over nothing,
-    /// GridManager.ShowAreaPreview clears the preview on its own.
+    /// Refreshes the selected card's two aiming previews against whichever tile the cursor is now over
+    /// - the red area footprint, and the yellow projected-loss preview on every health bar it would
+    /// actually hit. BattleManager.OnTileHovered is hover's single door, same as OnTileClicked is for
+    /// clicks. With nothing selected, or the cursor over nothing, GridManager clears both previews on
+    /// its own.
     /// </summary>
-    public void RefreshAreaPreview(GridTile hovered)
+    public void RefreshAimPreviews(GridTile hovered)
     {
         if (GridManager.Instance == null) { return; }
 
         Character actor = BattleManager.Instance != null ? BattleManager.Instance.ActiveCharacter : null;
-        GridManager.Instance.ShowAreaPreview(HasSelection ? selected.card : null, actor, hovered);
+        Card card = HasSelection ? selected.card : null;
+
+        GridManager.Instance.ShowAreaPreview(card, actor, hovered);
+        GridManager.Instance.ShowDamagePreview(card, actor, hovered);
     }
 
     private static string Name(CardViewer cardViewer) =>
@@ -124,9 +134,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
         {
             GridManager.Instance.ShowPlayableTiles(cardViewer.card, BattleManager.Instance.ActiveCharacter);
 
-            // Switching cards without the mouse moving would otherwise leave the old card's area
-            // preview lit until the next hover event - nobody will refresh it, since nothing moved.
+            // Switching cards without the mouse moving would otherwise leave the old card's aiming
+            // previews lit until the next hover event - nobody will refresh them, since nothing moved.
             GridManager.Instance.ClearAreaPreview();
+            GridManager.Instance.ClearDamagePreview();
         }
     }
 
@@ -146,6 +157,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         GridManager.Instance.ClearPlayableTiles();
         GridManager.Instance.ClearAreaPreview();
+        GridManager.Instance.ClearDamagePreview();
     }
 
     private void Update()

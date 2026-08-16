@@ -3,8 +3,8 @@
 ///
 /// Only doubles the card's own number; Strength is added on top by StrengthStatus. That ordering is
 /// deliberate where it holds, because it keeps this buff's value tied to the card it lands on rather
-/// than scaling with however much Strength has piled up. Under FIFO hooks it only holds when this
-/// status was applied first - see Status.
+/// than also doubling Strength's flat bonus. Under FIFO hooks it only holds when this status was
+/// applied first - see Status.
 ///
 /// It spends on the carrier's *next* attack, not their best one, which is the trap: buff the Knight
 /// and if they play Quick Attack (3) before Slash (9) the doubling burns for +3. That is real

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: Poison Blade
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Poison Blade
+  <cost>k__BackingField: 1
+  <range>k__BackingField:
+    shape: 3
+    minDistance: 0
+    maxDistance: 0
+  <requiredClass>k__BackingField: 4
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 0100000004000000
+  <excludeFromRewards>k__BackingField: 0
+  <description>k__BackingField: For 3 turns, your attacks apply 1 Poison.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: c4ef771153264c74986d3776f325b2b9, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []

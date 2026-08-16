@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Per-action runtime data. Each action in a card gets its own context, so one card can point its
@@ -25,12 +26,21 @@ public class ActionContext
     /// reads this instead of picking an arbitrary entry out of `targets`.
     public readonly GridTile epicenter;
 
-    public ActionContext(Card card, Character source, IReadOnlyList<GridTile> targets, GridTile epicenter)
+    /// The CardEffectEntry's own amountDelta/amountPercent - see Amount(). Both 0 for any context not
+    /// built from Card.ResolveEffects (a Totem reaction, an editor-authored example), which is the
+    /// identity transform and matches every card authored before these fields existed.
+    private readonly int amountDelta;
+    private readonly int amountPercent;
+
+    public ActionContext(Card card, Character source, IReadOnlyList<GridTile> targets, GridTile epicenter,
+                          int amountDelta = 0, int amountPercent = 0)
     {
         this.card = card;
         this.source = source;
         this.targets = targets ?? Array.Empty<GridTile>();
         this.epicenter = epicenter;
+        this.amountDelta = amountDelta;
+        this.amountPercent = amountPercent;
     }
 
     /// Convenience for the common single-tile case - the target is also the epicenter.
@@ -38,4 +48,16 @@ public class ActionContext
         : this(card, source, target != null ? new[] { target } : Array.Empty<GridTile>(), target) { }
 
     public ActionContext(Card card, Character source) : this(card, source, Array.Empty<GridTile>(), null) { }
+
+    /// <summary>
+    /// `authored` adjusted by this action's entry: amountDelta added first, then amountPercent scaled
+    /// (0 means +0%, not "no effect via multiplication by zero"). Never negative - a delta authored or
+    /// granted more negative than the base would otherwise flip a heal into damage or the reverse.
+    ///
+    /// What every CardEffect with a magnitude reads instead of its raw serialized field, so an upgraded
+    /// card variant or a card-tuning equipment modifier can change what one specific card deals without
+    /// touching the shared CardEffect asset - see CardEffectEntry.amountDelta.
+    /// </summary>
+    public int Amount(int authored) =>
+        Mathf.Max(0, Mathf.RoundToInt((authored + amountDelta) * (100 + amountPercent) / 100f));
 }

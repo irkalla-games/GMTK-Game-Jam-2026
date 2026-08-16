@@ -161,7 +161,21 @@ public static class CardSheetImporter
     /// the everyday action a submenu deep costs a click every time. The large negative priority floats
     /// it above everything else in Tools; the gap to the next item also gives it its own separator.
     [MenuItem("Tools/Sync With Sheet", priority = -1000)]
-    public static void SyncWithSheet()
+    public static void SyncWithSheet() => Sync(string.Empty);
+
+    /// <summary>
+    /// Same everyday sync, reading Docs/CardDesign/*.csv instead of the .xlsx. For when the workbook is
+    /// open in Excel and therefore locked - Import-CardSheet.ps1's own -FromCsv switch existed for this
+    /// already, it just had no button. The export step at the end still rewrites both the workbook and
+    /// the CSV mirror from the finished assets, so the workbook stays the source of truth once it is
+    /// closed again.
+    /// </summary>
+    [MenuItem("Tools/Cards/Sync With Sheet (From CSV)")]
+    public static void SyncWithSheetFromCsv() => Sync("-FromCsv");
+
+    /// The everyday action: reconcile the workbook (or its CSV mirror) and the assets in both
+    /// directions. See SyncWithSheet's own doc for why this runs as three steps.
+    private static void Sync(string importArgs)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -172,7 +186,7 @@ public static class CardSheetImporter
         try
         {
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Reading the workbook...", 0.1f);
-            if (!RunPowerShell(ImportScript, string.Empty)) { return; }
+            if (!RunPowerShell(ImportScript, importArgs)) { return; }
 
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Applying changes to assets...", 0.45f);
             if (!Apply(out int conflicts)) { return; }
@@ -676,7 +690,7 @@ public static class CardSheetImporter
                 // Hostile statuses land on enemies; the friendly ones are self-buffs. Matches how the
                 // hand-authored Status assets are set up today.
                 bool hostile = statusType is StatusType.Poison or StatusType.Frozen or StatusType.Rooted
-                               or StatusType.Weaken or StatusType.Taunt;
+                               or StatusType.Weaken or StatusType.Taunt or StatusType.Vulnerable;
                 SerializedProperty alliesOnly = so.FindProperty("alliesOnly");
                 if (alliesOnly != null) { alliesOnly.boolValue = !hostile; }
                 break;

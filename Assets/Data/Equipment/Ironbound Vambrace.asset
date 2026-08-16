@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
+  m_Name: Ironbound Vambrace
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  <equipmentName>k__BackingField: Ironbound Vambrace
+  <description>k__BackingField: +1 Block whenever you gain Block.
+  <icon>k__BackingField: {fileID: 0}
+  <rarity>k__BackingField: 1
+  <requiredClass>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 0
+  <modifiers>k__BackingField:
+  - {fileID: 618780541392997710}
+--- !u!114 &618780541392997710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50d292ed76048464a9c919df44e226ed, type: 3}
+  m_Name: GrantBonusModifier
+  m_EditorClassIdentifier: Assembly-CSharp::GrantBonusModifier
+  subject: 6
+  bonus: 1

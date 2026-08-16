@@ -46,10 +46,47 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
     [SerializeField] private float discardDuration = 0.15f;
 
+    [Tooltip("Where a drawn card's viewer grows out of, instead of the hand row's own root - the Deck "
+        + "icon's transform. Left null, a drawn card spawns exactly where it used to: at this "
+        + "component's own position.")]
+    [SerializeField] private Transform drawAnchor;
+
+    [Tooltip("Seconds between cards being released from the deal queue - what turns DrawCards' "
+        + "one-frame burst into cards visibly arriving one at a time. Independent of layoutDuration: "
+        + "a card's own grow-and-slide tween can outlast the gap before the next one starts.")]
+    [SerializeField] private float dealInterval = 0.06f;
+
     private readonly List<CardViewer> cardsInHand = new();
 
     /// Whose hand is on screen. Held so the CardDrawn subscription can be moved off it on a switch.
     private Character shown;
+
+    /// <summary>
+    /// One step of dealing: either one card arriving from the deck, or a reshuffle flourish that has
+    /// to finish before the next card is released. A struct rather than two separate queues so the
+    /// order between "this reshuffle" and "the card it just unblocked" - PilesReshuffled always fires
+    /// before the CardDrawn it enabled, from inside Character.DrawCard - is preserved by construction:
+    /// draining one queue in order can never interleave the two differently than they actually happened.
+    /// </summary>
+    private struct DealStep
+    {
+        public Card card;
+        public int reshuffleCount;
+        public bool isReshuffle;
+    }
+
+    private readonly Queue<DealStep> dealQueue = new();
+
+    private bool dealQueueRunning;
+
+    /// How many discard flights are currently in the air - see DiscardCardViewer. Paired with
+    /// dealQueueRunning in Busy so BattleManager's End Turn wait covers both directions at once.
+    private int discardsInFlight;
+
+    /// True while a card is still being dealt out of the deck or flown to the discard pile.
+    /// BattleManager waits on this after discarding the hand at End Turn, the same way it already
+    /// waits on LootManager.IsIdle - the round must not roll over on top of the animation.
+    public bool Busy => dealQueueRunning || discardsInFlight > 0;
 
     public bool Contains(CardViewer cardViewer) => cardsInHand.Contains(cardViewer);
 
@@ -110,6 +147,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         {
             shown.CardDrawn -= OnCardDrawn;
             shown.CardDiscarded -= OnCardDiscarded;
+            shown.PilesReshuffled -= OnPilesReshuffled;
         }
 
         shown = character;
@@ -118,13 +156,20 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         {
             shown.CardDrawn += OnCardDrawn;
             shown.CardDiscarded += OnCardDiscarded;
+            shown.PilesReshuffled += OnPilesReshuffled;
         }
 
         ClearHand();
 
+        // Whatever was mid-flight belonged to whoever was shown before this call - draining it now
+        // would add someone else's cards into the row that just replaced theirs.
+        dealQueue.Clear();
+
         if (shown == null) { return; }
 
-        foreach (Card card in shown.Hand) { AddToHand(card); }
+        // Instant, not dealt: rebuilding the row on a character switch is not a draw, it is catching
+        // up to a hand that already exists - see AddToHand's `instant` parameter.
+        foreach (Card card in shown.Hand) { AddToHand(card, instant: true); }
     }
 
     public IEnumerator AddCard(CardViewer cardViewer)
@@ -166,6 +211,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         {
             shown.CardDrawn -= OnCardDrawn;
             shown.CardDiscarded -= OnCardDiscarded;
+            shown.PilesReshuffled -= OnPilesReshuffled;
         }
 
         if (BattleManager.Instance != null)
@@ -176,9 +222,12 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     }
 
     /// Only ever fires for `shown` - ShowHandFor moves the subscription rather than filtering here.
+    /// Enqueued rather than added straight away: DrawCards fires this once per card in a single frame,
+    /// and the queue is what turns that burst into cards visibly arriving one at a time.
     private void OnCardDrawn(Character character, Card card)
     {
-        AddToHand(card);
+        dealQueue.Enqueue(new DealStep { card = card });
+        EnsureDealQueueRunning();
     }
 
     /// Only ever fires for `shown`, same as OnCardDrawn. Covers both a played card and a whole hand
@@ -192,26 +241,97 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         StartCoroutine(DiscardCardViewer(cardViewer));
     }
 
-    private IEnumerator DiscardCardViewer(CardViewer cardViewer)
+    /// <summary>
+    /// Only ever fires for `shown`. Raised from inside Character.DrawCard *before* the card that
+    /// triggered the reshuffle is taken off the pile, so this always reaches the queue ahead of the
+    /// CardDrawn it enabled - queuing it here, rather than playing it immediately, is what lets the
+    /// flourish land in between the cards dealt before it and the ones it just made possible instead
+    /// of stepping on whichever card is currently flying in.
+    /// </summary>
+    private void OnPilesReshuffled(Character character, int count)
     {
-        cardViewer.BeginPlay();
-
-        Vector3 target = discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
-        cardViewer.PlayDiscard(target, discardDuration);
-
-        yield return RemoveCard(cardViewer);
-        Destroy(cardViewer.gameObject);
+        dealQueue.Enqueue(new DealStep { isReshuffle = true, reshuffleCount = count });
+        EnsureDealQueueRunning();
     }
 
-    private void AddToHand(Card card)
+    private void EnsureDealQueueRunning()
     {
-        // Bail rather than throw. This runs off Character.CardDrawn, which is raised from inside
-        // DrawCard - so an exception here does not just skip one card, it unwinds through DrawCards
-        // and TurnStart and kills the whole battle coroutine. A missing prefab should cost you the
-        // card art, not the game. Start has already logged what is missing.
+        if (dealQueueRunning) { return; }
+
+        dealQueueRunning = true;
+        StartCoroutine(DrainDealQueue());
+    }
+
+    /// Releases one step at a time - a card dealt from the deck, or a reshuffle flourish that blocks
+    /// the rest of the queue until it finishes. See DealStep and OnPilesReshuffled for why order here
+    /// is never rearranged relative to how Character raised the events.
+    private IEnumerator DrainDealQueue()
+    {
+        while (dealQueue.Count > 0)
+        {
+            DealStep step = dealQueue.Dequeue();
+
+            if (step.isReshuffle)
+            {
+                if (CardPileHud.Instance != null) { yield return CardPileHud.Instance.PlayReshuffle(step.reshuffleCount); }
+                continue;
+            }
+
+            AddToHand(step.card, instant: false);
+            yield return new WaitForSeconds(dealInterval);
+        }
+
+        dealQueueRunning = false;
+    }
+
+    private IEnumerator DiscardCardViewer(CardViewer cardViewer)
+    {
+        discardsInFlight++;
+
+        try
+        {
+            cardViewer.BeginPlay();
+
+            // An Innate card never enters the discard pile (Character.Discard) - it just leaves hand
+            // and comes straight back next turn via RestoreInnateCards, so flying it to the discard
+            // icon would show it going somewhere it never actually goes. It keeps the old shrink-in-
+            // place instead.
+            bool innate = cardViewer.card != null && cardViewer.card.HasKeyword(CardKeywordType.Innate);
+            Vector3 target = !innate && discardAnchor != null ? discardAnchor.position : cardViewer.transform.position;
+            cardViewer.PlayDiscard(target, discardDuration);
+
+            yield return RemoveCard(cardViewer);
+
+            // Null-checked with Unity's overloaded == rather than assumed alive: ClearHand can destroy
+            // this same viewer out from under a still-running flight (a character switch mid-discard),
+            // and the finally below must still run either way.
+            if (cardViewer != null) { Destroy(cardViewer.gameObject); }
+        }
+        finally
+        {
+            discardsInFlight--;
+        }
+    }
+
+    /// <summary>
+    /// Builds one card's viewer and starts it flying into the hand layout.
+    ///
+    /// `instant` is true only from ShowHandFor's rebuild: a character switch is not a draw, so the
+    /// card appears at this component's own position (the hand row's root) rather than growing out of
+    /// the deck icon - see drawAnchor. A queued deal (instant: false) spawns at drawAnchor instead, so
+    /// it visibly comes from the pile the player just watched shrink.
+    /// </summary>
+    private void AddToHand(Card card, bool instant)
+    {
+        // Bail rather than throw. This runs off Character.CardDrawn (via the deal queue), which is
+        // raised from inside DrawCard - so an exception here does not just skip one card, it unwinds
+        // through DrawCards and TurnStart and kills the whole battle coroutine. A missing prefab
+        // should cost you the card art, not the game. Start has already logged what is missing.
         if (cardPrefab == null) { return; }
 
-        CardViewer cardViewer = Instantiate(cardPrefab, transform.position, Quaternion.identity);
+        Vector3 spawnPosition = !instant && drawAnchor != null ? drawAnchor.position : transform.position;
+
+        CardViewer cardViewer = Instantiate(cardPrefab, spawnPosition, Quaternion.identity);
         cardViewer.Setup(card);
 
         // Before it is ever drawn, not on the next PlayabilityChanged. A card dealt onto an empty

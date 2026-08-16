@@ -37,6 +37,17 @@ public struct CardEffectEntry
     [Tooltip("The footprint around the aim tile this effect covers. Single (the default) is one tile, "
              + "exactly like today.")]
     public AreaShape area;
+
+    [Tooltip("Flat adjustment to this entry's authored number (damage, shield, heal, and so on), "
+             + "applied before amountPercent. 0 is the authored number, unchanged - this is how an "
+             + "upgraded card variant (Slash+) deals more than the plain Slash it's built from without "
+             + "either of them needing its own effect asset. See ActionContext.Amount.")]
+    public int amountDelta;
+
+    [Tooltip("Percent adjustment to this entry's authored number, applied after amountDelta. 0 means "
+             + "+0%, i.e. unchanged - not a multiplier, so leaving this at its serialized default "
+             + "(a fresh entry deserializes to 0) never rescales anything.")]
+    public int amountPercent;
 }
 
 /// <summary>
@@ -102,6 +113,13 @@ public class CardData : ScriptableObject
 
     [field: Tooltip("Reusable tags this card carries - Innate, Cooldown, and whatever gets added later.")]
     [field: SerializeField] public List<CardKeywordEntry> keywords { get; private set; } = new();
+
+    [field: Tooltip("What this card becomes when upgraded - an ordinary CardData asset, its own cost, "
+                    + "range, effects and description authored independently rather than computed from "
+                    + "this one. Null means this card has no upgrade. Chains freely: an upgraded card "
+                    + "may itself name a further upgrade. Typically authored Rarity.NotOffered, since an "
+                    + "upgrade is earned by upgrading, not found as its own reward.")]
+    [field: SerializeField] public CardData upgradedForm { get; private set; }
 
     /// <summary>
     /// Also the hook a post-combat reward or draft screen filters on - which is the actual reason

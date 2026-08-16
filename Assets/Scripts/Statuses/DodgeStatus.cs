@@ -19,21 +19,28 @@ public class DodgeStatus : StatusEffect
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {
-        if (stacks <= 0 || !info.consumeCharges) { return info; }
+        if (stacks <= 0) { return info; }
 
-        stacks--;
-
-        Character carrier = info.target;
-
-        if (carrier != null && GridManager.Instance != null && ActionManager.Instance != null)
+        // Negation is unconditional whenever a charge is available (see the class comment) - a preview
+        // has to see the same zero a real hit would land as. Only the charge spend and the queued
+        // sidestep are gated behind consumeCharges, or displaying a number would burn the dodge and
+        // move the character without an attack ever happening - see DamageInfo.consumeCharges.
+        if (info.consumeCharges)
         {
-            GridTile awayFrom = info.attacker != null ? info.attacker.Tile : null;
-            GridTile destination = GridManager.Instance.StepAwayFrom(carrier, awayFrom);
+            stacks--;
 
-            if (destination != null)
+            Character carrier = info.target;
+
+            if (carrier != null && GridManager.Instance != null && ActionManager.Instance != null)
             {
-                ActionManager.Instance.AddAction(
-                    new MoveAction(), new ActionContext(card: null, source: carrier, target: destination));
+                GridTile awayFrom = info.attacker != null ? info.attacker.Tile : null;
+                GridTile destination = GridManager.Instance.StepAwayFrom(carrier, awayFrom);
+
+                if (destination != null)
+                {
+                    ActionManager.Instance.AddAction(
+                        new MoveAction(), new ActionContext(card: null, source: carrier, target: destination));
+                }
             }
         }
 

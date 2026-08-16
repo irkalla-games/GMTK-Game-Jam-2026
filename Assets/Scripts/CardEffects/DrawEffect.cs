@@ -7,7 +7,7 @@ public class DrawEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new DrawAction(drawAmount), ctx);
+        ActionManager.Instance.AddAction(new DrawAction(ctx.Amount(drawAmount)), ctx);
     }
 
     /// No refusal and no aiming to get wrong: DrawAction always draws for ctx.source, so this cannot

@@ -17,10 +17,6 @@ public class CharacterOption : ScriptableObject
 {
     [SerializeField] private string displayName;
 
-    [Tooltip("Shown on the select screen. Character has no portrait field of its own - identity there "
-             + "is a sprite rig, not a single image - so this is new, select-screen-only art.")]
-    [SerializeField] private Sprite portrait;
-
     [Tooltip("Prefab this option builds an instance from. Needs a Character component.")]
     [SerializeField] private GameObject prefab;
 
@@ -30,7 +26,11 @@ public class CharacterOption : ScriptableObject
 
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
 
-    public Sprite Portrait => portrait;
+    /// Read off the prefab's own Character rather than authored twice here - the select screen and the
+    /// battle portrait row are asking the same question, and two fields would drift.
+    public Sprite Portrait => prefab != null && prefab.TryGetComponent(out Character character)
+        ? character.Portrait
+        : null;
 
     public GameObject Prefab => prefab;
 

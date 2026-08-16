@@ -20,7 +20,8 @@ public class ParryStatus : StatusEffect
     {
         if (stacks <= 0) { return info; }
 
-        stacks--;
+        // Looking is free. Only an actual hit spends the charge - see DamageInfo.consumeCharges.
+        if (info.consumeCharges) { stacks--; }
 
         // Reflected() also marks the hit negated, so Block and Shield are never reached - there is
         // nothing left of it to reduce.

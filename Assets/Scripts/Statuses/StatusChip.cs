@@ -70,7 +70,14 @@ public class StatusChip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     /// shows its count rather than vanishing, which is what makes the icon asset safe to fill in
     /// gradually.
     /// </summary>
-    public void Show(Sprite sprite, int stacks)
+    public void Show(Sprite sprite, int stacks) => Show(sprite, stacks.ToString());
+
+    /// <summary>
+    /// The same chip, with hand-written text instead of a bare stack count - HeroPortrait's overflow
+    /// badge is "+N" rather than a status's own number, and reaches for this overload rather than a
+    /// second chip class just to say so.
+    /// </summary>
+    public void Show(Sprite sprite, string displayText)
     {
         gameObject.SetActive(true);
 
@@ -80,7 +87,7 @@ public class StatusChip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
             icon.enabled = sprite != null;
         }
 
-        if (count != null) { count.text = stacks.ToString(); }
+        if (count != null) { count.text = displayText; }
     }
 
     public void Hide()

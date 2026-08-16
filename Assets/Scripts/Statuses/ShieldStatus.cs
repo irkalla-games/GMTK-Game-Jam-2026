@@ -20,7 +20,8 @@ public class ShieldStatus : StatusEffect
     {
         int absorbed = Mathf.Min(stacks, info.amount);
 
-        stacks -= absorbed;
+        // Looking is free. Only an actual hit spends the pool - see DamageInfo.consumeCharges.
+        if (info.consumeCharges) { stacks -= absorbed; }
 
         return info.AbsorbedByShield(absorbed);
     }

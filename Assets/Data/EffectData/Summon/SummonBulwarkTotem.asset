@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fe512b5b7621294bbd48b603c3fe4c6, type: 3}
+  m_Name: SummonBulwarkTotem
+  m_EditorClassIdentifier: Assembly-CSharp::SummonEffect
+  summonedObject: {fileID: 5178952603932666744, guid: 244f38522011b184a9ac6fa1011c3518, type: 3}
+  lifetimeTurns: 0

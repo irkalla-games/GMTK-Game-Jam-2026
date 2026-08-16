@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9992cfc894aedd24bb3f58ea6ff329ff, type: 3}
+  m_Name: AllEquipment
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentLibrary
+  items:
+  - {fileID: 11400000, guid: 89f5e93cefec06e43be78d83693a59ac, type: 2}
+  - {fileID: 11400000, guid: 539a747d8bc65bc46bd8eade9b5d7e70, type: 2}
+  - {fileID: 11400000, guid: cb28d281a6db23d40a920ce38608486e, type: 2}
+  - {fileID: 11400000, guid: 85512a7c3918a0d4988dc995919f24d9, type: 2}
+  - {fileID: 11400000, guid: 6bde503f81c56f142885567f558b543f, type: 2}
+  - {fileID: 11400000, guid: a5f1ad9a6f7b32e4892c27e03079f2ec, type: 2}
+  - {fileID: 11400000, guid: a13cfd4aa91ed014f976397f823dccea, type: 2}
+  - {fileID: 11400000, guid: bc731371c2971c742a551d54bca83e42, type: 2}
+  - {fileID: 11400000, guid: eb2d981e17702cd429478ce8aee66d84, type: 2}

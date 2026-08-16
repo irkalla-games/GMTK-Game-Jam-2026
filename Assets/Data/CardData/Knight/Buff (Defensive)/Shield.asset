@@ -22,12 +22,12 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Gain 8 Shield.
+  <description>k__BackingField: Gain 7 Shield.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5004, type: 2}
+  - effect: {fileID: 11400000, guid: fb89cb613dac65a48827a7977d393398, type: 2}
     aimsAt: 1
     area:
       kind: 0
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

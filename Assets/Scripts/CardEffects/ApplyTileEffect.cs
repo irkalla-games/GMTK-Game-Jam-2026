@@ -23,6 +23,6 @@ public class ApplyTileEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new TileEffectAction(effect, turns, magnitude), ctx);
+        ActionManager.Instance.AddAction(new TileEffectAction(effect, turns, ctx.Amount(magnitude)), ctx);
     }
 }

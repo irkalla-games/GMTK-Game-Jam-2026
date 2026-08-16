@@ -1,18 +1,25 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The deck-thinning screen RemoveCardSkipReward opens: every card in one hero's run deck, laid out in
-/// a grid, click one to delete it. RewardPanel's near-sibling - same "real CardViewers, purely a view"
-/// shape - but a grid instead of a row, because a deck can run to a dozen-plus cards where an offer is
-/// only ever a handful.
+/// The deck-browsing choice screen a level-clear skip reward opens: every card in one hero's run deck,
+/// laid out in a grid, click one to commit to it. RewardPanel's near-sibling - same "real CardViewers,
+/// purely a view" shape - but a grid instead of a row, because a deck can run to a dozen-plus cards
+/// where an offer is only ever a handful.
+///
+/// Two skip rewards share this one screen rather than each getting its own: RemoveCardSkipReward deletes
+/// the chosen card, UpgradeCardSkipReward replaces it with CardData.upgradedForm. Both are "browse the
+/// deck, commit to one card" - the same shape CardGridView already generalizes over CardPilePanel's
+/// look-then-close - so the difference between them is entirely in what Grant does with ChosenIndex, not
+/// in this class. `eligible`, when given, greys out (and disables the click on) any card the calling
+/// skip reward would refuse - a card with no upgradedForm, on the upgrade screen.
 ///
 /// Resolves by index, not by CardData: a deck routinely holds several identical copies (four Move
 /// cards is typical), and the player clicked one specific tile in the grid, not "a Move" in the
-/// abstract. RemoveCardSkipReward is the only reader, and removes with List.RemoveAt for exactly that
-/// reason.
+/// abstract. Both skip rewards read ChosenIndex for exactly that reason.
 /// </summary>
 public class CardRemovalPanel : Singleton<CardRemovalPanel>
 {
@@ -34,6 +41,11 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
     [SerializeField] private float cellWidth = 2.2f;
 
     [SerializeField] private float cellHeight = 3.2f;
+
+    [Tooltip("Tallest the grid may run before CardGridView scales cells down to fit - keeps a big deck "
+             + "on screen instead of running off the top of CameraFrame's fixed 10.8-unit height. 0 "
+             + "disables the clamp.")]
+    [SerializeField] private float maxGridHeight = 9f;
 
     [Tooltip("How large a card sits in the grid. Smaller than RewardPanel's default - this shows a "
              + "whole deck at once, not a handful of choices.")]
@@ -63,7 +75,14 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
         if (cancelButton != null) { cancelButton.onClick.AddListener(Cancel); }
     }
 
-    public void Show(IReadOnlyList<CardData> deck, string heroName)
+    /// <summary>
+    /// `prompt` fills the back half of the title - "choose a card to remove" vs "choose a card to
+    /// upgrade" - so the same panel reads correctly for either skip reward. `eligible`, when given,
+    /// greys out and disables the click on any deck entry it returns false for; null (the default)
+    /// leaves every card clickable, which is RemoveCardSkipReward's original behaviour unchanged.
+    /// </summary>
+    public void Show(IReadOnlyList<CardData> deck, string heroName, string prompt = "choose a card to remove",
+                      Predicate<CardData> eligible = null)
     {
         Resolved = false;
         ChosenIndex = -1;
@@ -74,13 +93,13 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
 
         if (titleLabel != null)
         {
-            titleLabel.text = heroName != null ? $"{heroName}'s deck — choose a card to remove" : string.Empty;
+            titleLabel.text = heroName != null ? $"{heroName}'s deck — {prompt}" : string.Empty;
         }
 
-        SpawnGrid(deck);
+        SpawnGrid(deck, eligible);
     }
 
-    private void SpawnGrid(IReadOnlyList<CardData> deck)
+    private void SpawnGrid(IReadOnlyList<CardData> deck, Predicate<CardData> eligible)
     {
         if (cardPrefab == null || gridAnchor == null || deck == null)
         {
@@ -88,33 +107,24 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
             return;
         }
 
-        int count = deck.Count;
-        int cols = Mathf.Max(1, columns);
-        int rows = Mathf.CeilToInt(count / (float)cols);
-
-        float startX = -(cols - 1) * cellWidth / 2f;
-        float startY = (rows - 1) * cellHeight / 2f;
-
-        for (int i = 0; i < count; i++)
+        // The grid works from the authored deck list (CardData), not runtime copies - a card chosen
+        // here has never been drawn this battle (the deck record, not a live hand), so there is no
+        // existing Card to show. A fresh one per entry is exactly what the offer-screen path already
+        // builds.
+        //
+        // Built with one slot per deck entry, nulls included, so a null CardData still leaves a gap
+        // rather than shifting every later index - Choose(chosenIndex) has to land on the same index
+        // the calling skip reward then RemoveAt()s or replaces out of the same deck list.
+        List<Card> cards = new(deck.Count);
+        foreach (CardData data in deck)
         {
-            CardData data = deck[i];
-
-            if (data == null) { continue; }
-
-            int col = i % cols;
-            int row = i / cols;
-
-            Vector3 position = gridAnchor.position
-                + new Vector3(startX + col * cellWidth, startY - row * cellHeight, 0f);
-
-            // Captured per-iteration on purpose - `i` is reassigned every loop, `chosenIndex` is not.
-            int chosenIndex = i;
-
-            CardViewer viewer = OfferedCard.Spawn(
-                cardPrefab, data, position, i, cardScale, cardHoverScale, _ => Choose(chosenIndex));
-
-            spawnedCards.Add(viewer);
+            cards.Add(data != null ? new Card(data) : null);
         }
+
+        CardGridView.Build(
+            cards, cardPrefab, gridAnchor, columns, cellWidth, cellHeight, cardScale, cardHoverScale,
+            maxGridHeight, Choose, spawnedCards,
+            eligible != null ? i => eligible(deck[i]) : null);
     }
 
     private void Choose(int index)

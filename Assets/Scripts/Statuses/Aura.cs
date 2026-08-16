@@ -55,7 +55,15 @@ public class Aura : Status
 
     public override DamageInfo OnTakeDamage(DamageInfo info) => projectedEffect.OnTakeDamage(info);
 
+    public override void OnDamageDealt(DamageInfo info) => projectedEffect.OnDamageDealt(info);
+
+    /// Forwarded like every other hook, so a totem projecting a stealth cloud hides whoever stands in
+    /// it exactly as a Stealth card does.
+    public override bool Hides(Character carrier) => projectedEffect.Hides(carrier);
+
     public override ShieldInfo OnGainShield(ShieldInfo info) => projectedEffect.OnGainShield(info);
+
+    public override StatusGainInfo OnGainStatus(StatusGainInfo info) => projectedEffect.OnGainStatus(info);
 
     public override void OnTurnStart(Character carrier) => projectedEffect.OnTurnStart(carrier);
 

@@ -15,14 +15,14 @@ MonoBehaviour:
   <cardName>k__BackingField: Heal Word
   <cost>k__BackingField: 1
   <range>k__BackingField:
-    shape: 0
+    shape: 1
     minDistance: 0
-    maxDistance: 3
+    maxDistance: 5
   <requiredClass>k__BackingField: 2
-  <rarity>k__BackingField: 0
+  <rarity>k__BackingField: 1
   <tags>k__BackingField: 07000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: 'Heal 5 at range. '
+  <description>k__BackingField: Heal 5.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

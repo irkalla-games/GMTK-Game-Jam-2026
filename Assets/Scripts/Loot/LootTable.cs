@@ -57,7 +57,16 @@ public class LootTable : ScriptableObject
     [Tooltip("How many cards the reward panel offers. Clamped to at least 1.")]
     [SerializeField] private int choiceCount = 3;
 
+    [Tooltip("Odds that an offer rolled from this table is equipment instead of cards - the whole panel "
+             + "switches, not a per-slot mix. 0 (every table authored before this field existed "
+             + "deserializes to it) means never - the same load-bearing-zero rule RangeShape.Anywhere "
+             + "documents, so no existing table's behaviour changes until this is deliberately raised.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float equipmentChance;
+
     public int ChoiceCount => Mathf.Max(1, choiceCount);
+
+    public float EquipmentChance => equipmentChance;
 
     public IReadOnlyList<CardData> GuaranteedCards => guaranteedCards;
 

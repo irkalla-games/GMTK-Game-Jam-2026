@@ -37,7 +37,8 @@ $script:AreaKindNames= @('Single', 'Radius', 'Pattern')
 $script:AimNames     = @('Tile', 'Self')
 $script:KeywordNames = @('None', 'Innate', 'Cooldown', 'Dormant')
 $script:StatusNames  = @('None', 'Strength', 'DoubleNextAttack', 'Poison', 'Frozen', 'Shield', 'Block',
-                         'Parry', 'Rooted', 'DoubleShield', 'Dodge', 'Weaken', 'Taunt')
+                         'Parry', 'Rooted', 'DoubleShield', 'Dodge', 'Weaken', 'Taunt', 'Summoned',
+                         'PoisonBlade', 'Stealth')
 
 # Assets/Scripts/TileEffects/TileEffectType.cs
 $script:TileEffectNames = @('None', 'WallOfForce', 'WallOfFlames')

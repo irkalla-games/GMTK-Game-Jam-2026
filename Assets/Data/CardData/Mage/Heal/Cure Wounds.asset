@@ -19,10 +19,10 @@ MonoBehaviour:
     minDistance: 0
     maxDistance: 1
   <requiredClass>k__BackingField: 2
-  <rarity>k__BackingField: 0
+  <rarity>k__BackingField: 1
   <tags>k__BackingField: 07000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Heal 10 to Self or Ally
+  <description>k__BackingField: Heal 10.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 745a5e7dbc474ea44bacba8f994db823, type: 2}
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

@@ -10,6 +10,14 @@ public class SummonEffect : CardEffect
              + "Frozen, so a temporary summon needs no bespoke expiry code anywhere else.")]
     [SerializeField] private int lifetimeTurns;
 
+    /// Read by Glossary.SummonContent, the same tooltip data the card's own description points to -
+    /// see SummonedObject.
+    public int LifetimeTurns => lifetimeTurns;
+
+    /// The prefab this effect summons, exposed so a glossary row can read its Character/Totem stats
+    /// straight off the same asset the card actually plays rather than a hand-typed copy of them.
+    public GameObject SummonedObject => summonedObject;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new SummonAction(summonedObject, lifetimeTurns), ctx);
@@ -17,6 +25,5 @@ public class SummonEffect : CardEffect
 
     // Mirrors GridTile.SummonObject's own occupancy check, so a click on an occupied tile is refused
     // up front instead of costing energy for nothing.
-    public override string Refusal(Character source, GridTile target) =>
-        target != null && target.Occupant != null ? $"{target.Occupant.name} is already standing there" : null;
+    public override TargetAudience Audience => TargetAudience.EmptyTile;
 }

@@ -22,8 +22,8 @@ MonoBehaviour:
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Raises a wall of force across three tiles. Nothing
-    may move onto them for 2 turns.
+  <description>k__BackingField: Create a Wall of Force, stopping all movement through
+    that area.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 11400000, guid: 8f79c6a0cdb32114494d00fc261c76fd, type: 2}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

@@ -51,7 +51,8 @@ ActionManager                 queue of (action, context), resolved one at a time
 Tiles                         the only targetable thing; forwards effects to its Occupant
 TileSelector                  owns a tile's colour: idle / in-range highlight / hover
 Character                     health, its own energy pool, its own deck/hand/piles
-GameManager                   who is active, and whose hand is on screen
+BattleManager                 who is active, the turn/phase loop, tile clicks' one door
+ActiveHandViewer              whose hand is on screen, its layout, hover, draw/discard flight
 Status                        base: one modifier and the rule it carries
   ├─ StatusEffect             the character carries it; ages, merges, spends real charges
   └─ Aura                     a Totem projects it while you stand in range; applies first
@@ -146,29 +147,47 @@ move. `Camera.orthographicSize` is the matching rule on the other axis: `CameraF
 19.2 × 10.8 world frame visible, and the screen-space canvases have to stay on Scale With Screen Size /
 1920×1080 / **Expand** to scale by the identical factor.
 
-**Energy belongs to `Character`, not `GameManager`.** Multiple characters each have their own pool;
-playing a card charges `GameManager.ActiveCharacter`.
+**Energy belongs to `Character`, not `BattleManager`.** Multiple characters each have their own pool;
+playing a card charges `BattleManager.ActiveCharacter`.
 
 **There is no turn order.** Clicking a character makes it active. Characters have no colliders of
 their own, so the tile under them is what you click.
 
-**`GameManager.OnTileClicked` is the one door for tile clicks.** `GridTile.OnMouseDown` forwards
+**`BattleManager.OnTileClicked` is the one door for tile clicks.** `GridTile.OnMouseDown` forwards
 there, and it decides what the click meant: with a card selected it hands off to
 `CardPlayManager.PlaySelectedOn`, otherwise it activates the tile's occupant. `CardPlayManager` only
 knows how to play cards — it does not decide who is active.
 
 **Every `Character` owns its deck, hand, and piles.** `Character.BuildDeck()` runs in `Awake`;
-`GameManager` only deals the opening hands and rebuilds the on-screen row when the active character
-changes. The hand you see always belongs to `GameManager.ActiveCharacter`.
+`ActiveHandViewer` only deals the opening hands and rebuilds the on-screen row when the active
+character changes. The hand you see always belongs to `BattleManager.ActiveCharacter`. `DrawPile` and
+`DiscardPile` are exposed read-only the same way `Hand` is — for a UI to count or list, never to add
+to — see `CardPileHud`/`CardPilePanel` below.
 
 **Card objects persist for the whole battle.** `Character.BuildDeck()` constructs them once from that
 character's authored `List<CardData> deck`; they then move drawPile → hand → discardPile. Do not
 rebuild a `Card` on draw — that would silently discard its per-copy state.
 
-**Drawing is the character's business; displaying is `GameManager`'s.** `Character.DrawCard()` moves a
-card from its own draw pile to its own hand and raises `CardDrawn` — it knows nothing about viewers.
-`GameManager` subscribes to every character and builds a `CardViewer` only when the drawer is the
-active one. Never call back into `GameManager` from `Character` to update the view.
+**Drawing is the character's business; displaying is `ActiveHandViewer`'s.** `Character.DrawCard()`
+moves a card from its own draw pile to its own hand and raises `CardDrawn` — it knows nothing about
+viewers. `ActiveHandViewer` subscribes to every character and builds a `CardViewer` only when the
+drawer is the active one. Never call back into `ActiveHandViewer` from `Character` to update the view;
+`PilesReshuffled` follows the same one-way rule `CardDrawn`/`CardDiscarded` already set.
+
+**A synchronous burst becomes a visible sequence in the view, never in `Character`.**
+`Character.DrawCards`/`DiscardHand` fire their events for every card in one frame — that is correct;
+`Character` has no idea anything is watching. `ActiveHandViewer.dealQueue` is what turns that burst
+into cards arriving one at a time, and it is also where a reshuffle flourish
+(`CardPileHud.PlayReshuffle`) gets to sit between the cards dealt before it and the ones it unblocked,
+since `Character.PilesReshuffled` always fires before the `CardDrawn` it enabled. Do not add sequencing
+of this kind to `Character` — it would mean a card event's timing depends on whether anything is
+currently looking at the hand.
+
+**Read-only pile screens are `CardGridView` + a thin panel, not a mode on `CardRemovalPanel`.**
+`CardRemovalPanel` (choose one, `Resolved`/`ChosenIndex`, `RemoveCardSkipReward` is the only reader)
+and `CardPilePanel` (look, then close, nothing to resolve) are the same "real `CardViewer`s laid out in
+a grid" shape `CardGridView.Build` holds once. A screen that browses and a screen that commits to a
+choice are different concepts even when they share a grid — see `OfferedCard`, which both build on.
 
 ## Gotchas
 
@@ -194,8 +213,11 @@ type that will silently shadow ours.
 is played resolves *inside* the click, before the rest are even enqueued. Do not assume the queue is
 purely deferred.
 
-**The hover preview is a real `CardViewer` with a collider.** `CardHoverManager.largeCardViewer`
-receives `OnMouseDown` like any other card. Filter clicks with `HandViewer.Contains` before acting.
+**Hovering a hand card enlarges that same `CardViewer` in place — there is no separate preview
+object.** `CardViewer.OnMouseEnter` scales and re-sorts itself; the collider that receives
+`OnMouseDown` throughout is the card's own. A reward or removal-grid card is `clickOverride`d instead
+of routing through `CardPlayManager`, which is what filters a hand click with
+`ActiveHandViewer.Contains` before acting.
 
 **Deleting and recreating a `.cs` file changes its GUID.** Any scene or prefab referencing that
 MonoBehaviour loses the link. Rename or edit in place instead.

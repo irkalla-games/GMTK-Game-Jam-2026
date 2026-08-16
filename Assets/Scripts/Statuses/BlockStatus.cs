@@ -31,7 +31,8 @@ public class BlockStatus : StatusEffect
     {
         if (stacks <= 0) { return info; }
 
-        stacks--;
+        // Looking is free. Only an actual hit spends the charge - see DamageInfo.consumeCharges.
+        if (info.consumeCharges) { stacks--; }
 
         return info.Reduced(AmountPerHit);
     }

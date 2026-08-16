@@ -17,9 +17,9 @@ MonoBehaviour:
   forClass: 4
   cards:
   - {fileID: 11400000, guid: ea4ea121456773f47b2377471122e93e, type: 2}
-  - {fileID: 11400000, guid: 4ead4a101ac64ee4a8dbc0d5917ad849, type: 2}
+  - {fileID: 11400000, guid: 8a487f54103a58548956028d93692641, type: 2}
   - {fileID: 11400000, guid: 139ccd0500259c4429836b43f9a7145a, type: 2}
   - {fileID: 11400000, guid: ab457316daf03a740aac2696a6bb616b, type: 2}
-  - {fileID: 11400000, guid: 4ead4a101ac64ee4a8dbc0d5917ad849, type: 2}
+  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6002, type: 2}
   locked: 0
   unlockId: 

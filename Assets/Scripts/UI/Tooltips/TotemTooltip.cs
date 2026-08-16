@@ -104,32 +104,25 @@ public class TotemTooltip : MonoBehaviour
     }
 
     /// <summary>
-    /// Auras are titled by whichever status they are, generated the same way a StatusChip's tooltip
-    /// is - their numbers can never drift out of sync with what Glossary already knows. Reactions have
-    /// no status to title themselves with, so the first authored one carries the totem's own name and
-    /// the rest read as plain paragraphs underneath it.
+    /// The same box a card's "Venom Totem" link shows, built by the same Glossary.SummonContent - a
+    /// totem's health, remaining lifetime, aura reach, its aura's own status text and any reactions.
+    /// The only thing this hover supplies that the card link cannot: the totem's actual remaining
+    /// lifetime rather than the authored one, since this totem is already ticking down on the board.
     /// </summary>
     private TooltipContent BuildContent()
     {
-        TooltipContent content = new();
+        if (glossary == null || totem == null) { return new TooltipContent(); }
 
-        if (glossary == null || totem == null) { return content; }
+        return glossary.SummonContent(gameObject, RemainingLifetime());
+    }
 
-        foreach (AuraData aura in totem.Auras)
-        {
-            glossary.StatusContent(aura.Type, aura.Stacks, null, content);
-        }
+    /// Turns left before this totem crumbles on its own, or 0 for a permanent one. SummonedStatus is
+    /// only ever applied when SummonEffect.lifetimeTurns was nonzero, so a totem carrying none of it is
+    /// exactly the permanent case SummonContent already reads a 0 as.
+    private int RemainingLifetime()
+    {
+        Status summoned = owner != null ? owner.FindStatus(StatusType.Summoned) : null;
 
-        bool named = false;
-
-        foreach (AuraReaction reaction in totem.Reactions)
-        {
-            if (string.IsNullOrWhiteSpace(reaction.Description)) { continue; }
-
-            content.Add(named ? null : owner.DisplayName, glossary.Tag(reaction.Description));
-            named = true;
-        }
-
-        return content;
+        return summoned != null ? summoned.stacks : 0;
     }
 }

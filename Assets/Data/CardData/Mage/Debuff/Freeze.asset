@@ -22,8 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Freeze an enemy within 5 tiles. It loses its entire
-    next turn.
+  <description>k__BackingField: Freeze an Enemy.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 3580edba556b41dfacf7b14e5dc9d88d, type: 2}
@@ -37,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

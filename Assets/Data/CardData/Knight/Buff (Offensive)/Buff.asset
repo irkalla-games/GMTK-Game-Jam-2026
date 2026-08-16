@@ -19,10 +19,10 @@ MonoBehaviour:
     minDistance: 0
     maxDistance: 0
   <requiredClass>k__BackingField: 1
-  <rarity>k__BackingField: 2
-  <tags>k__BackingField: 00000000
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Double an ally's next attack. Lasts until they attack.
+  <description>k__BackingField: Double next attack.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5008, type: 2}
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

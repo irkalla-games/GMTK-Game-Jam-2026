@@ -14,7 +14,8 @@ public enum StatusType
 {
     None = 0,
 
-    /// Buff. Adds its counter to outgoing damage. Never ticks - it lasts the whole combat.
+    /// Buff. Adds StrengthStatus.AmountPerHit to each of the next few attacks. The counter is the
+    /// charge count, spent one per swing - the same shape as Block on the incoming side.
     Strength = 1,
 
     /// Buff. Doubles outgoing damage, then spends a charge. No duration - it waits.
@@ -67,4 +68,34 @@ public enum StatusType
     /// generic Apply Status asset - see SummonEffect.lifetimeTurns and SummonAction.
     Summoned = 13,
 
+    /// Buff, and the template for on-hit riders - see OnHitStatus. For as long as it lasts, every hit
+    /// the carrier lands also applies Poison to the victim. stacks is remaining turns, not charges - an
+    /// AoE that catches three enemies poisons all three without spending anything extra.
+    PoisonBlade = 14,
+
+    /// Buff. The carrier cannot be picked by enemy target selection - neither attacked nor walked
+    /// toward - for as long as this lasts. stacks is remaining turns. See TargetSelector.TryPick.
+    Stealth = 15,
+
+    /// Curse. Adds VulnerableStatus.AmountPerHit to each of the next few hits taken, then spends a
+    /// charge. The incoming-damage mirror of Strength - same charge-spent shape, opposite side of the
+    /// swing.
+    Vulnerable = 16,
+
+    /// Aura-only: StatusEffect.Create returns null for this, same as Taunt. Doubles (or otherwise
+    /// scales) the stack count of whatever status type it names whenever that type is applied to a
+    /// character standing in the totem's range - see GainMultiplierStatus, AuraData.subject/magnitude
+    /// and Character.AddStatus's OnGainStatus pipeline.
+    GainMultiplier = 17,
+
+    /// Aura-only: StatusEffect.Create returns null for this, same as Taunt. Adds a flat bonus to the
+    /// magnitude of whatever status type it names - more damage per Strength swing, more reduction per
+    /// Block charge - without touching the stack count itself. See PotencyStatus and
+    /// AuraData.subject/magnitude.
+    Potency = 18,
+
+    /// Aura-only: StatusEffect.Create returns null for this, same as Taunt. Grants stacks of whatever
+    /// status type it names to the carrier once per round, at whichever end of the round
+    /// AuraData.timing says - see TurnTickStatus and TurnTiming.
+    TurnTick = 19,
 }

@@ -12,28 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
   m_Name: SummonDrawTotem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  <cardName>k__BackingField: 
-  <cost>k__BackingField: 0
+  <cardName>k__BackingField: Draw Totem
+  <cost>k__BackingField: 2
   <range>k__BackingField:
-    shape: 0
-    minDistance: 0
-    maxDistance: 0
-  <requiredClass>k__BackingField: 0
-  <rarity>k__BackingField: 0
+    shape: 1
+    minDistance: 1
+    maxDistance: 3
+  <requiredClass>k__BackingField: 2
+  <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: 
+  <description>k__BackingField: Summon a Draw Totem.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
-  <effectEntries>k__BackingField:
-  - effect: {fileID: 0}
-    aimsAt: 0
-    area:
-      kind: 0
-      radius:
-        shape: 0
-        minDistance: 0
-        maxDistance: 0
-      pattern: {fileID: 0}
+  <effectEntries>k__BackingField: []
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

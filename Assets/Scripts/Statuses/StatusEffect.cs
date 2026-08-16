@@ -11,11 +11,11 @@
 /// StatusType is the type and this is the copy, the same split as CardData/Card - the enum says what a
 /// Poison is, this says how much of it is on this particular goblin.
 ///
-/// There is one counter and the subclass decides what spends it - see Status for the three shapes.
+/// There is one counter and the subclass decides what spends it - see Status for the two shapes.
 /// This class used to hold a second field, turnsRemaining, and its own docstring argued that folding
 /// duration into stacks "would force Strength and Poison into different storage". That was true only
-/// while something *outside* the status did the ageing: once each status ages itself, Strength simply
-/// never ticks and Poison decays in its own OnTurnEnd, and one field covers both.
+/// while something *outside* the status did the ageing: once each status ages itself, Strength spends
+/// its counter on its own attacks and Poison decays in its own OnTurnEnd, and one field covers both.
 /// </summary>
 public abstract class StatusEffect : Status
 {
@@ -71,6 +71,13 @@ public abstract class StatusEffect : Status
         StatusType.Dodge => new DodgeStatus(stacks),
         StatusType.Weaken => new WeakenStatus(stacks),
         StatusType.Summoned => new SummonedStatus(stacks),
+        StatusType.PoisonBlade => new PoisonBladeStatus(stacks),
+        StatusType.Stealth => new StealthStatus(stacks),
+        StatusType.Vulnerable => new VulnerableStatus(stacks),
+
+        // GainMultiplier, Potency and TurnTick are aura-only, same reason Taunt is missing here: each
+        // needs a subject StatusType (and TurnTick a TurnTiming) that this signature has nowhere to
+        // put. AuraData.CreateEffect builds them directly - see Totem.Project.
         _ => null,
     };
 }

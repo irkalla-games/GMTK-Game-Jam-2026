@@ -207,12 +207,15 @@ function ConvertTo-EffectSpec {
         $folder = @{ Damage = 'Damage'; Heal = 'Heal'; Shield = 'Shield'; Block = 'Block'; Parry = 'Status'; Draw = 'Draw' }[$kind]
         $create = [ordered]@{ kind = $kind; amount = $amount; folder = $folder; status = '' }
     }
-    elseif ($n -match '^(Poison|Strength|Weaken|Freeze|Frozen|Root|Rooted|Dodge|Taunt|Double Shield|Double Next Attack)(?:\s+(\d+))?$') {
+    # Poison Blade before Poison: regex alternation is first-match, not longest-match, so the bare
+    # "Poison" branch would otherwise claim the prefix and leave " Blade" unmatched.
+    elseif ($n -match '^(Poison Blade|Stealth|Poison|Strength|Weaken|Freeze|Frozen|Root|Rooted|Dodge|Taunt|Double Shield|Double Next Attack)(?:\s+(\d+))?$') {
         $statusNames = @{
             'Poison' = 'Poison'; 'Strength' = 'Strength'; 'Weaken' = 'Weaken'
             'Freeze' = 'Frozen'; 'Frozen' = 'Frozen'; 'Root' = 'Rooted'; 'Rooted' = 'Rooted'
             'Dodge' = 'Dodge'; 'Taunt' = 'Taunt'
             'Double Shield' = 'DoubleShield'; 'Double Next Attack' = 'DoubleNextAttack'
+            'Poison Blade' = 'PoisonBlade'; 'Stealth' = 'Stealth'
         }
         $status = $statusNames[$Matches[1]]
         $stacks = 1

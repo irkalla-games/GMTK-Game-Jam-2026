@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,10 +28,12 @@ public class Card
     private Sprite areaIcon;
     private bool areaIconBuilt;
 
-    /// A small footprint glyph summarizing every non-Single area entry on this card, or null if every
-    /// entry is Single - what CardViewer draws in the corner of the card face. Built once and cached:
-    /// every copy of the same CardData draws the identical shape and it never changes after the card
-    /// is constructed, so there is nothing to invalidate the cache on.
+    /// A small footprint glyph summarizing this card's reach into neighbouring tiles - what CardViewer
+    /// draws in the corner of the card face. Never null: a card with no area at all draws a lone dot,
+    /// so "hits one tile" and "glyph missing" cannot look the same. Built once and cached per effective
+    /// shape: a plain card's shape never changes after construction, and a CardModifier-bearing one only
+    /// ever changes shape through ResetToAuthored (see its doc comment), which is what clears this cache
+    /// - so between those two calls the cache is still exactly as good as "never changes" used to make it.
     public Sprite AreaIcon()
     {
         if (!areaIconBuilt)
@@ -42,8 +45,72 @@ public class Card
         return areaIcon;
     }
 
-    /// Aliased from the asset, not copied - each entry's effect is a shared, stateless ScriptableObject
-    /// resolver and the entry struct itself (aimsAt, area) is per-card authoring, not per-copy state.
+    /// <summary>
+    /// Who this card affects where it is aimed - what the face's audience stripe is painted from and
+    /// what the expanded tooltip puts into words.
+    ///
+    /// Source-aimed entries are excluded, on the same reasoning Refusal excludes them: they land on
+    /// the caster no matter where the click went, so a self-shield riding along on Attack and Block
+    /// says nothing about what you must aim at. Area entries *are* included, unlike in Refusal - the
+    /// question here is "who does this hurt", not "which tile may I click", and a Fireball centred on
+    /// empty ground is still an enemy card.
+    ///
+    /// A tile-aimed entry always wins, and the first one with an opinion settles it - Refusal returns
+    /// the first refusal it meets, so the first restrictive effect is the one a player collides with.
+    /// Source-aimed entries are only consulted when there are no tile-aimed ones at all: a pure
+    /// self-buff like Guardian's Aegis would otherwise have no audience to report.
+    /// </summary>
+    public TargetAudience Audience
+    {
+        get
+        {
+            TargetAudience fromSource = TargetAudience.Unrestricted;
+
+            foreach (CardEffectEntry entry in effectEntries)
+            {
+                if (entry.effect == null) { continue; }
+
+                TargetAudience audience = entry.effect.Audience;
+
+                if (audience == TargetAudience.Unrestricted) { continue; }
+
+                if (entry.aimsAt != EffectTarget.Source) { return audience; }
+
+                if (fromSource == TargetAudience.Unrestricted) { fromSource = audience; }
+            }
+
+            return fromSource;
+        }
+    }
+
+    /// <summary>
+    /// True when the caster is the only character this card can possibly reach: the one legal tile is
+    /// their own, and nothing spreads off it.
+    ///
+    /// Separate from Audience because "ally" and "me" are the same answer to the effect and different
+    /// answers to the player. Guardian's Aegis is SelfTile too, but its area carries it to neighbours,
+    /// so it is not self-only.
+    /// </summary>
+    public bool AffectsSelfOnly => range.Shape == RangeShape.SelfTile && WidestAreaReach() == 0;
+
+    /// The asset this copy was built from - what CardFilter/CardTag matching (equipment, upgrades) reads
+    /// to decide whether a modifier applies, since a Card itself carries no tags of its own.
+    public CardData Data => data;
+
+    /// Read-only so a describer can walk the aims and footprints without being able to re-author them.
+    /// CardData already exposes the same list; this is Card's matching window onto it. Use
+    /// SetEntry/AddEntry/RemoveEntriesWhere to write - see their doc comments for why those exist at
+    /// all rather than exposing the list directly.
+    public IReadOnlyList<CardEffectEntry> EffectEntries => effectEntries;
+
+    /// <summary>
+    /// A copy of the asset's list, not a reference to it - CardEffectEntry is a struct, so `new List<>`
+    /// gives every entry its own independent storage. This used to alias newData.effectEntries directly,
+    /// which was fine while nothing but ResolveEffects ever read it; the moment a CardModifier (an
+    /// upgraded variant, an equipment tuning) writes into an entry, aliasing would write straight through
+    /// into the shared CardData asset - the same "never mutate a ScriptableObject at runtime" hazard cost
+    /// and range are already copied to avoid.
+    /// </summary>
     private List<CardEffectEntry> effectEntries;
 
     /// Per-copy runtime instances built from data.keywords - see CardKeyword.
@@ -52,18 +119,91 @@ public class Card
     public Card(CardData newData)
     {
         this.data = newData;
-        this.cost = newData.cost;
-        this.range = newData.range;
-        this.effectEntries = newData.effectEntries;
+        ResetToAuthored();
+    }
+
+    /// <summary>
+    /// Re-seeds cost, range, effect entries and keywords from the authored CardData, discarding any
+    /// CardModifier writes this copy has accumulated - the reset half of "reset then reapply" that makes
+    /// re-equipping mid-battle safe to run more than once. Also what the constructor calls, so there is
+    /// exactly one place that knows how a fresh Card is built from its data.
+    ///
+    /// Clears the AreaIcon cache too: that cache used to be safe to build once and never invalidate
+    /// because a Card's shape never changed after construction. A CardModifier changing area is the one
+    /// thing that now falsifies that, and this is the only place a modifier's effects are ever discarded,
+    /// so it is the only place that needs to know the cache might now be stale.
+    /// </summary>
+    public void ResetToAuthored()
+    {
+        this.cost = data.cost;
+        this.range = data.range;
+        this.effectEntries = new List<CardEffectEntry>(data.effectEntries);
+
+        keywords.Clear();
 
         // Cooldown starts at 0 - ready the first time, locked again only after each play (see
         // ResolveEffects). Dormant starts locked at its own magnitude and never relocks - that is the
         // entire difference between the two keywords.
-        foreach (CardKeywordEntry entry in newData.keywords)
+        foreach (CardKeywordEntry entry in data.keywords)
         {
             int remaining = entry.type == CardKeywordType.Dormant ? entry.magnitude : 0;
             keywords.Add(new CardKeyword(entry.type, entry.magnitude, remaining));
         }
+
+        areaIconBuilt = false;
+    }
+
+    /// How many effect entries this copy currently has - for a CardModifier walking them by index
+    /// without being able to add or remove through the read-only EffectEntries view.
+    public int EntryCount => effectEntries.Count;
+
+    public CardEffectEntry GetEntry(int index) => effectEntries[index];
+
+    /// Overwrites one entry outright. The only way a CardModifier changes an entry's area, amount
+    /// adjustment or effect asset - callers read GetEntry, mutate the returned copy (entries are
+    /// structs), and write it back here.
+    public void SetEntry(int index, CardEffectEntry entry)
+    {
+        effectEntries[index] = entry;
+        areaIconBuilt = false;
+    }
+
+    /// Appends a whole new effect entry - AddEntryModifier's write path (an upgraded Poison Dagger that
+    /// also draws a card, say).
+    public void AddEntry(CardEffectEntry entry)
+    {
+        effectEntries.Add(entry);
+        areaIconBuilt = false;
+    }
+
+    /// Drops every entry the predicate matches - RemoveEntryModifier's write path. Walked backwards so
+    /// removing by index is safe mid-loop.
+    public void RemoveEntriesWhere(Func<CardEffectEntry, int, bool> predicate)
+    {
+        for (int i = effectEntries.Count - 1; i >= 0; i--)
+        {
+            if (predicate(effectEntries[i], i)) { effectEntries.RemoveAt(i); }
+        }
+
+        areaIconBuilt = false;
+    }
+
+    /// Adds a keyword this copy did not have before - KeywordModifier's write path. If one of this type
+    /// is already present it is replaced outright rather than merged: keyword magnitude is authoring,
+    /// not a stacking counter the way Status.stacks is.
+    public void AddKeyword(CardKeywordType type, int magnitude)
+    {
+        keywords.RemoveAll(k => k.type == type);
+
+        int remaining = type == CardKeywordType.Dormant ? magnitude : 0;
+        keywords.Add(new CardKeyword(type, magnitude, remaining));
+    }
+
+    /// Strips a keyword this copy had - KeywordModifier's other write path (an upgraded Bash that lost
+    /// its Cooldown).
+    public void RemoveKeyword(CardKeywordType type)
+    {
+        keywords.RemoveAll(k => k.type == type);
     }
 
     /// Read-only so a caller can list them - the hover tooltip explaining what Innate and Cooldown mean
@@ -195,7 +335,7 @@ public class Card
     /// The union of every non-Single entry's area footprint, aimed as it would be if this card were
     /// played on `hovered` right now - what GridManager paints red while aiming. Raw geometry, not
     /// filtered by who is actually standing there: the aiming preview is meant to teach the shape, and
-    /// RefuseByOccupant only runs at resolve time in ResolveEffects below.
+    /// RefuseByAudience only runs at resolve time in ResolveEffects below.
     /// </summary>
     public IEnumerable<GridTile> AreaFootprint(Character source, GridTile hovered)
     {
@@ -222,6 +362,26 @@ public class Card
     }
 
     /// <summary>
+    /// One entry's landed tiles, filtered by its own Refusal exactly like ResolveEffects - the walk
+    /// shared by DamageFootprint (which only wants the tiles) and PreviewDamage (which also wants an
+    /// amount per tile). `aim` is the entry's own aim tile, already resolved by the caller since a
+    /// Source-aimed entry reads the caster's tile instead of `target`.
+    /// </summary>
+    private IEnumerable<GridTile> EntryFootprint(Character source, GridTile casterTile, GridTile aim, CardEffectEntry entry)
+    {
+        if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+        {
+            if (entry.effect.Refusal(source, aim) == null) { yield return aim; }
+            yield break;
+        }
+
+        foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
+        {
+            if (entry.effect.Refusal(source, tile) == null) { yield return tile; }
+        }
+    }
+
+    /// <summary>
     /// Every tile a damage-dealing entry on this card would actually land on, aimed as it would be if
     /// played on `target` - filtered by each entry's own Refusal exactly like ResolveEffects, so an
     /// empty tile or a friendly one already drops out the same way a real play would drop it.
@@ -242,19 +402,59 @@ public class Card
             GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
             if (aim == null) { continue; }
 
-            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
-            {
-                if (entry.effect.Refusal(source, aim) == null) { landed.Add(aim); }
-                continue;
-            }
-
-            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
-            {
-                if (entry.effect.Refusal(source, tile) == null) { landed.Add(tile); }
-            }
+            foreach (GridTile tile in EntryFootprint(source, casterTile, aim, entry)) { landed.Add(tile); }
         }
 
         return landed;
+    }
+
+    /// <summary>
+    /// Health each character in this card's damage footprint would actually lose if it were played on
+    /// `target` right now - what GridManager.ShowDamagePreview reads to paint the hover preview.
+    ///
+    /// Runs the real pipeline both directions with nothing spent: Character.ComputeOutgoingDamage on
+    /// the attacker (Strength, Double Attack) once per entry, matching DamageAction.Execute's own
+    /// "once, not per tile" rule so an AoE does not report the buff several times over; then
+    /// Character.ComputeIncomingDamage on each occupant (Block, Shield, Parry, Dodge). Both calls pass
+    /// shouldConsume: false, so hovering never spends a real charge - see DamageInfo.consumeCharges.
+    ///
+    /// A card with two damage entries landing on the same character under-reports: neither previewed
+    /// hit depletes the charges the other would face in a real play, where the first entry's
+    /// DamageAction would already have spent them before the second resolved. Every damage card today
+    /// has a single entry; a truthful multi-hit preview would need to clone the status list per entry,
+    /// which is not worth it for that case.
+    /// </summary>
+    public Dictionary<Character, int> PreviewDamage(Character source, GridTile target)
+    {
+        Dictionary<Character, int> loss = new();
+
+        if (source == null) { return loss; }
+
+        GridTile casterTile = source.Tile;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect is not DamageEffect damage) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            if (aim == null) { continue; }
+
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+            int outgoing = source.ComputeOutgoingDamage(ctx.Amount(damage.Damage), shouldConsume: false);
+
+            foreach (GridTile tile in EntryFootprint(source, casterTile, aim, entry))
+            {
+                Character victim = tile.Occupant;
+                if (victim == null) { continue; }
+
+                int lost = victim.ComputeIncomingDamage(outgoing, source, shouldConsume: false).amount;
+                if (lost <= 0) { continue; }
+
+                loss[victim] = loss.TryGetValue(victim, out int existing) ? existing + lost : lost;
+            }
+        }
+
+        return loss;
     }
 
     /// The furthest any one entry's area footprint reaches beyond its own aim tile - 0 for a card
@@ -321,7 +521,7 @@ public class Card
                 if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
             }
 
-            entry.effect.Resolve(new ActionContext(this, source, landed, aim));
+            entry.effect.Resolve(new ActionContext(this, source, landed, aim, entry.amountDelta, entry.amountPercent));
         }
     }
 }

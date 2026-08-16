@@ -35,6 +35,19 @@ public static class TargetSelector
 
         if (self == null || self.Tile == null) { return false; }
 
+        // Stealth drops a candidate before either the forced quarry or the priority gets to see it -
+        // above ForcedQuarry on purpose. A hidden taunter must make its taunter stop being chased, not
+        // survive as an unreachable forced quarry that then refuses every substitute the way an
+        // out-of-reach one legitimately does.
+        List<Character> visible = new();
+
+        foreach (Character candidate in candidates)
+        {
+            if (candidate != null && !IsHidden(candidate)) { visible.Add(candidate); }
+        }
+
+        if (visible.Count == 0) { return false; }
+
         Character forced = ForcedQuarry(self);
 
         if (forced != null)
@@ -45,7 +58,7 @@ public static class TargetSelector
             // out-of-reach taunter comes back false and becomes "no attack this action point", while
             // TryQuarry passes everyone alive, so the brain's move heads for the taunter instead. The
             // enemy therefore spends the turn closing on whoever taunted it.
-            foreach (Character candidate in candidates)
+            foreach (Character candidate in visible)
             {
                 if (candidate != forced) { continue; }
 
@@ -65,7 +78,7 @@ public static class TargetSelector
             // which lands on a uniform choice without needing to know the count up front.
             int seen = 0;
 
-            foreach (Character candidate in candidates)
+            foreach (Character candidate in visible)
             {
                 seen++;
 
@@ -77,7 +90,7 @@ public static class TargetSelector
 
         int best = int.MaxValue;
 
-        foreach (Character candidate in candidates)
+        foreach (Character candidate in visible)
         {
             if (candidate == null || candidate.Tile == null) { continue; }
 
@@ -132,6 +145,19 @@ public static class TargetSelector
         }
 
         return null;
+    }
+
+    /// Whether any status is hiding `character` from being picked. Stealth. First answer wins, the
+    /// same ActiveStatuses FIFO order ForcedQuarry uses - not that more than one Hides source could
+    /// disagree, but it keeps the two queries symmetric.
+    private static bool IsHidden(Character character)
+    {
+        foreach (Status status in character.ActiveStatuses())
+        {
+            if (status.Hides(character)) { return true; }
+        }
+
+        return false;
     }
 
     /// Lower is better, so every caller keeps the `value >= best -> continue` shape the Try* helpers

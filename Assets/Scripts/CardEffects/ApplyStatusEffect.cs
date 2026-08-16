@@ -18,9 +18,9 @@ public class ApplyStatusEffect : CardEffect
 {
     [SerializeField] private StatusType status;
 
-    [Tooltip("What this status counts, which depends on the status: magnitude for Strength and Weaken, "
-             + "charges for the ones an event spends, turns for the ones that wear off, and both at "
-             + "once for Poison.")]
+    [Tooltip("What this status counts, which depends on the status: magnitude for Weaken, charges for "
+             + "the ones an event spends (Strength included), turns for the ones that wear off, and "
+             + "both at once for Poison.")]
     [SerializeField] private int stacks = 1;
 
     [Tooltip("On for buffs, off for curses.")]
@@ -28,9 +28,9 @@ public class ApplyStatusEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new StatusAction(status, stacks), ctx);
+        ActionManager.Instance.AddAction(new StatusAction(status, ctx.Amount(stacks)), ctx);
     }
 
-    public override string Refusal(Character source, GridTile target) =>
-        RefuseByOccupant(source, target, wantAlly: alliesOnly);
+    public override TargetAudience Audience =>
+        alliesOnly ? TargetAudience.Ally : TargetAudience.Enemy;
 }

@@ -19,11 +19,10 @@ public class TauntEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new TauntAction(turnsRemaining), ctx);
+        ActionManager.Instance.AddAction(new TauntAction(ctx.Amount(turnsRemaining)), ctx);
     }
 
     /// Needs somebody there, and it is always aimed at the other side - the same rule DamageEffect
     /// uses, which is what keeps the tile highlight from ever offering empty ground or an ally.
-    public override string Refusal(Character source, GridTile target) =>
-        RefuseByOccupant(source, target, wantAlly: false);
+    public override TargetAudience Audience => TargetAudience.Enemy;
 }

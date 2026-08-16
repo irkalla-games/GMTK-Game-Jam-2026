@@ -34,6 +34,10 @@ public class Character : MonoBehaviour
              + "or a spawn coordinate appended). Leave blank to fall back to gameObject.name.")]
     [SerializeField] private string displayName;
 
+    [Tooltip("Shown in the battle portrait row and the character-select screen. Identity there is a "
+             + "single framed image, not the sprite rig standing on the board, so this is separate art.")]
+    [SerializeField] private Sprite portrait;
+
     [Tooltip("Actions this character takes per turn. Enemies only - players spend energy instead.")]
     [SerializeField] private int actionPoints = 2;
 
@@ -84,6 +88,14 @@ public class Character : MonoBehaviour
     /// totems projecting them and only join the picture in ActiveStatuses.
     private readonly List<StatusEffect> ownStatusEffects = new();
 
+    /// Equipment this character has picked up this run - permanent for the rest of it, never expiring,
+    /// never pruned. Same reason ownStatusEffects is separate from auras: an EquipmentModifier's
+    /// Project half is pulled fresh into ActiveStatuses every call exactly like a Totem's aura, and its
+    /// Apply half is what RefreshCardModifiers re-runs over every held Card. See Character.Equip.
+    private readonly List<EquipmentData> equipment = new();
+
+    public IReadOnlyList<EquipmentData> Equipment => equipment;
+
     /// Current health. Serialized only so the live value is watchable in the Inspector during Play
     /// Mode; [ReadOnlyField] greys it out so nobody can type into it. Awake overwrites whatever was
     /// saved, so the stored value is a readout, never authoring data - edit Max Health instead.
@@ -95,6 +107,8 @@ public class Character : MonoBehaviour
     /// Each character has their own pool; playing a card spends the acting character's energy.
     public int Energy { get; private set; }
 
+    public int MaxEnergy => maxEnergy;
+
     public PlayableCharacter Affiliation => playableCharacter;
 
     /// True only for the party the player clicks to control directly. Ally, EnemyAllied and Neutral
@@ -104,6 +118,8 @@ public class Character : MonoBehaviour
     public CharacterClass Class => characterClass;
 
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
+
+    public Sprite Portrait => portrait;
 
     public int ActionPoints => actionPoints;
 
@@ -200,6 +216,15 @@ public class Character : MonoBehaviour
     /// The cards currently held. ActiveHandViewer builds the viewers for whichever character is active.
     public IReadOnlyList<Card> Hand => hand;
 
+    /// What is left to draw, read-only for the same reason AuthoredDeck is - a caller must not be able
+    /// to add a card by reaching into the list. CardPileHud reads this for the deck icon's count and
+    /// browse grid; the order is the real shuffle order, so anything showing it to the player should
+    /// sort it first rather than reveal the draw sequence.
+    public IReadOnlyList<Card> DrawPile => drawPile;
+
+    /// Everything discarded so far this battle. Same read-only bargain as DrawPile.
+    public IReadOnlyList<Card> DiscardPile => discardPile;
+
     /// Raised when a card lands in this hand. ActiveHandViewer listens so the row on screen follows the
     /// active character - drawing itself is none of its business.
     public event Action<Character, Card> CardDrawn;
@@ -208,6 +233,19 @@ public class Character : MonoBehaviour
     /// at turn start. ActiveHandViewer listens and removes the matching viewer - discarding itself is
     /// none of its business, same as CardDrawn.
     public event Action<Character, Card> CardDiscarded;
+
+    /// Raised when the discard pile has just been folded back into the draw pile, with how many cards
+    /// moved. The piles are otherwise silent about themselves - this is the one moment worth seeing.
+    public event Action<Character, int> PilesReshuffled;
+
+    /// <summary>
+    /// Raised after RefreshCardModifiers re-tunes every held card - equipping mid-battle can change a
+    /// card already sitting in hand (a relic granting +1 range, say), and a viewer already showing that
+    /// card has no other way to learn its cost or footprint just changed. Carries only the subject, same
+    /// contract as StatsChanged: a listener re-reads whichever Card it already holds a reference to
+    /// rather than this event describing what changed.
+    /// </summary>
+    public event Action<Character> CardsModified;
 
     /// Raised once, when this character drops to 0 and leaves the board.
     public event Action<Character> Died;
@@ -307,7 +345,21 @@ public class Character : MonoBehaviour
     public void SpendEnergy(int cost)
     {
         Energy = Mathf.Max(0, Energy - cost);
-        BattleManager.Instance.ChangeActiveMana(this.Energy);
+        RaiseStatsChanged();
+    }
+
+    /// <summary>
+    /// Adds energy on top of whatever the character is currently holding - EnergyEffect's action half.
+    ///
+    /// Deliberately uncapped by maxEnergy: the whole point of a card that grants energy at a cost is
+    /// spending past your normal pool for one turn, so clamping to maxEnergy here would make the card
+    /// do nothing on a turn it has not already been partly spent.
+    /// </summary>
+    public void GainEnergy(int amount)
+    {
+        if (amount <= 0) { return; }
+
+        Energy += amount;
         RaiseStatsChanged();
     }
 
@@ -318,11 +370,43 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
+    /// Runs a hit through every OnTakeDamage hook and returns what survives, without touching Health -
+    /// the incoming counterpart to ComputeOutgoingDamage.
+    ///
+    /// shouldConsume is the whole difference between being hit and being looked at. True spends real
+    /// charges and belongs to the one place actually landing a blow - TakeDamage below. False leaves
+    /// Block, Shield, Parry and Dodge untouched, for a damage preview or anything else scoring a hit it
+    /// has not thrown. Passing true to display a number would strip the target's defenses without an
+    /// attack ever happening.
+    ///
+    /// `info` is the accumulator, not a per-status value: each hook takes the hit as the previous one
+    /// left it and returns the next, so mitigations compose. A hit of 10 against Block 3 then Shield 4
+    /// goes 10 -> 7 -> 3. Rebuilding it inside the loop would hand every status the original 10 and
+    /// only the last one's result would survive.
+    /// </summary>
+    public DamageInfo ComputeIncomingDamage(int amount, Character attacker, bool shouldConsume)
+    {
+        DamageInfo info = new(attacker, this, amount, consumeCharges: shouldConsume);
+
+        foreach (Status status in ActiveStatuses())
+        {
+            info = status.OnTakeDamage(info);
+
+            // Parry cancelled the hit outright - there is nothing left for anything else to reduce.
+            if (info.negated) { break; }
+        }
+
+        if (shouldConsume) { PruneExpired(); }
+
+        return info;
+    }
+
+    /// <summary>
     /// The single choke point all ordinary damage passes through - GridTile.DealDamage forwards here.
     ///
-    /// Every defense is a status, so this runs the OnTakeDamage hooks and subtracts whatever survives
-    /// them. It does not know that Parry, Block or Shield exist, and adding a fourth mitigation type
-    /// needs no change here at all.
+    /// Every defense is a status, so this runs the OnTakeDamage hooks (via ComputeIncomingDamage) and
+    /// subtracts whatever survives them. It does not know that Parry, Block or Shield exist, and adding
+    /// a fourth mitigation type needs no change here at all.
     ///
     /// attacker is who to reflect a parried hit back at - null (from sources with no attacker) just
     /// means a parried hit vanishes instead of reflecting.
@@ -333,21 +417,7 @@ public class Character : MonoBehaviour
     {
         if (amount <= 0) { return; }
 
-        // `info` is the accumulator, not a per-status value: each hook takes the hit as the previous
-        // one left it and returns the next, so mitigations compose. A hit of 10 against Block 3 then
-        // Shield 4 goes 10 -> 7 -> 3. Rebuilding it inside the loop would hand every status the
-        // original 10 and only the last one's result would survive.
-        DamageInfo info = new(attacker, this, amount);
-
-        foreach (Status status in ActiveStatuses())
-        {
-            info = status.OnTakeDamage(info);
-
-            // Parry cancelled the hit outright - there is nothing left for anything else to reduce.
-            if (info.negated) { break; }
-        }
-
-        PruneExpired();
+        DamageInfo info = ComputeIncomingDamage(amount, attacker, shouldConsume: true);
 
         Reflect(info, attacker, bounces);
 
@@ -363,7 +433,27 @@ public class Character : MonoBehaviour
         // DamageRegistered for why that is the right number and why this fires even at zero.
         DamageRegistered?.Invoke(this, info.amount + info.shieldAbsorbed);
 
+        // The attacker's on-hit riders - Poison Blade, and whatever shield-on-attack the Knight gets
+        // next. Here, not in DamageAction, because this is the one place that knows the hit actually
+        // connected and what survived the target's mitigation. Only !negated: Shield or Block eating
+        // the hit down to zero still counts as connecting, Dodge and Parry sidestepping it does not.
+        // Reflect above has already run by this point, so a parried hit fires the *parrier's* riders
+        // on the counter-blow rather than the original attacker's - the right reading of "on hit".
+        if (!info.negated && attacker != null) { attacker.NotifyDamageDealt(info); }
+
         CheckDeath();
+    }
+
+    /// <summary>
+    /// Runs this character's on-hit riders for a blow it just landed. Called on the *attacker* from
+    /// the victim's TakeDamage - a cross-instance private call, the same shape Reflect already uses to
+    /// reach back into attacker.
+    /// </summary>
+    private void NotifyDamageDealt(DamageInfo info)
+    {
+        foreach (Status status in ActiveStatuses()) { status.OnDamageDealt(info); }
+
+        PruneExpired();
     }
 
     /// <summary>
@@ -484,14 +574,72 @@ public class Character : MonoBehaviour
     {
         List<Status> aurasThenOwn = new();
 
-        // Auras first - projected by whichever totems reach this character's tile right now, and
-        // resolved ahead of anything it carries itself.
+        // Equipment first - permanent for the run, so it resolves ahead of both a totem's aura and the
+        // character's own carried statuses. That ordering is what lets a flat equipment bonus land
+        // before a multiplier: +2 then x2, not x2 then +2. Pulled fresh every call for the same reason
+        // an aura is - see EquipmentModifier.Project.
+        foreach (EquipmentData item in equipment)
+        {
+            if (item == null) { continue; }
+
+            foreach (EquipmentModifier modifier in item.modifiers)
+            {
+                if (modifier != null) { modifier.Project(this, aurasThenOwn); }
+            }
+        }
+
+        // Then auras - projected by whichever totems reach this character's tile right now.
         Totem.CollectAuras(this, aurasThenOwn);
 
         // Then the character's own, in the order they were applied.
         aurasThenOwn.AddRange(ownStatusEffects);
 
         return aurasThenOwn;
+    }
+
+    /// <summary>
+    /// Equips `item` for the rest of the run: its permanent statuses start showing up in
+    /// ActiveStatuses immediately, and every card this character already holds is re-tuned to account
+    /// for it - see RefreshCardModifiers. Duplicates stack: equipping a second copy of the same item
+    /// runs its Project/Apply a second time, same as two totems both granting Strength give two
+    /// separate auras rather than one doubled entry.
+    /// </summary>
+    public void Equip(EquipmentData item)
+    {
+        if (item == null) { return; }
+
+        equipment.Add(item);
+        RefreshCardModifiers();
+        RaiseStatsChanged();
+    }
+
+    /// <summary>
+    /// Bulk form for SpawnParty: replaces this character's equipment wholesale from its PartyMember
+    /// record. Called before SetDeck, so BuildDeck constructs every card already tuned rather than
+    /// building once and re-tuning immediately after.
+    /// </summary>
+    public void SetEquipment(IEnumerable<EquipmentData> items)
+    {
+        equipment.Clear();
+
+        if (items != null) { equipment.AddRange(items); }
+    }
+
+    /// <summary>
+    /// Raises this character's health ceiling by a flat amount, and its current health along with it -
+    /// SummonHealthStatus's write path for "summons enter play with +N max health". Unlike SetHealth,
+    /// which only ever clamps *to* maxHealth, this is the one place maxHealth itself changes after
+    /// Awake has already set Health from the old value - raising both together is what keeps a freshly
+    /// summoned totem at full health under its new ceiling rather than clamped back down to what it had
+    /// a moment ago.
+    /// </summary>
+    public void AddMaxHealth(int bonus)
+    {
+        if (bonus == 0) { return; }
+
+        maxHealth = Mathf.Max(1, maxHealth + bonus);
+        Health = Mathf.Clamp(Health + bonus, 1, maxHealth);
+        RaiseStatsChanged();
     }
 
     /// How much of `type` this character currently has, auras and own statuses combined - callers
@@ -536,10 +684,22 @@ public class Character : MonoBehaviour
     ///
     /// Takes a StatusEffect, not a Status: an Aura is owned by its totem and rebuilt on every query,
     /// so there is nothing here for one to be added to. The type signature is what says so.
+    ///
+    /// Runs the OnGainStatus pipeline before merging or appending, so a GainMultiplierStatus aura can
+    /// scale what is about to land - the same shape GainShield uses for OnGainShield, run one call
+    /// earlier so it covers every application path (StatusAction, GainBlock/GainParry/Taunt,
+    /// PoisonBladeStatus, SummonAction and GainShield's own tail call into this method), not just
+    /// shield. A shield gain now runs two pipelines in a row - OnGainShield first, then this one - so a
+    /// Shield-subject GainMultiplier would compound with DoubleShieldStatus rather than replace it.
     /// </summary>
     public void AddStatus(StatusEffect incoming)
     {
         if (incoming == null || incoming.type == StatusType.None || incoming.stacks <= 0) { return; }
+
+        StatusGainInfo info = new(this, incoming.type, incoming.stacks);
+        foreach (Status status in ActiveStatuses()) { info = status.OnGainStatus(info); }
+        if (info.stacks <= 0) { return; }
+        incoming.stacks = info.stacks;
 
         foreach (StatusEffect existing in ownStatusEffects)
         {
@@ -771,7 +931,7 @@ public class Character : MonoBehaviour
     {
         if (data == null) { return; }
 
-        Card card = new Card(data);
+        Card card = NewCard(data);
 
         // An Innate card sitting in the draw pile is a contradiction, and quietly a bug: it would be
         // drawn like anything else and then, on Discard, skip the discard pile - Discard routes Innate
@@ -798,7 +958,76 @@ public class Character : MonoBehaviour
     {
         if (data == null) { return; }
 
-        PutInHand(new Card(data));
+        PutInHand(NewCard(data));
+    }
+
+    /// <summary>
+    /// The one place a CardData turns into this character's own Card copy - every construction site
+    /// (AddCard, AddCardToHand, BuildDeck) routes through here so equipped CardTuningModifiers are never
+    /// something a caller has to remember to apply. Mirrors CardTuningModifier.Apply's own filter check
+    /// per modifier, so a card matching nobody's filter is built exactly as new Card(data) always was.
+    /// </summary>
+    private Card NewCard(CardData data)
+    {
+        Card card = new(data);
+        ApplyCardModifiers(card, data);
+        return card;
+    }
+
+    /// <summary>
+    /// Runs every equipped CardTuningModifier's Apply against one card - the half of NewCard that
+    /// RefreshCardModifiers also needs, since re-tuning an existing card is "reset it, then apply" not
+    /// "construct it, then apply".
+    /// </summary>
+    private void ApplyCardModifiers(Card card, CardData data)
+    {
+        foreach (EquipmentData item in equipment)
+        {
+            if (item == null) { continue; }
+
+            foreach (EquipmentModifier modifier in item.modifiers)
+            {
+                if (modifier != null) { modifier.Apply(card, data); }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Re-tunes every card this character currently holds - hand, draw pile, discard pile and the
+    /// innate subset - to account for its current equipment. Reset-then-reapply, not incremental: each
+    /// card is first put back to exactly what its CardData authored (Card.ResetToAuthored), then every
+    /// equipped CardTuningModifier runs again from scratch. That is what makes equipping mid-battle
+    /// safe to call more than once - re-running this after a second item is equipped does not compound
+    /// on top of whatever the first pass already wrote, because there is nothing left of the first pass
+    /// to compound onto by the time modifiers run again.
+    ///
+    /// Called from Equip. BuildDeck needs no call of its own: every card it constructs already routes
+    /// through NewCard, which applies the current equipment at construction time - see SetEquipment's
+    /// ordering note on why SpawnParty calls it before SetDeck specifically so that holds true for a
+    /// freshly spawned party member too.
+    /// </summary>
+    public void RefreshCardModifiers()
+    {
+        RefreshCardModifiers(hand);
+        RefreshCardModifiers(drawPile);
+        RefreshCardModifiers(discardPile);
+
+        // innateCards is a subset of hand (see PutInHand/BuildDeck) sharing the same Card instances, so
+        // walking it again would re-apply modifiers to cards RefreshCardModifiers(hand) already touched
+        // - only worth a separate pass if an innate card ever lived outside hand, which it never does.
+
+        CardsModified?.Invoke(this);
+    }
+
+    private void RefreshCardModifiers(List<Card> cards)
+    {
+        foreach (Card card in cards)
+        {
+            if (card == null) { continue; }
+
+            card.ResetToAuthored();
+            ApplyCardModifiers(card, card.Data);
+        }
     }
 
     /// The bookkeeping both AddCard (for an Innate card) and AddCardToHand share: the innateCards
@@ -833,7 +1062,7 @@ public class Character : MonoBehaviour
                 continue;
             }
 
-            Card card = new Card(data);
+            Card card = NewCard(data);
 
             // Innate cards skip the draw pile entirely - they start in hand and RestoreInnateCards
             // keeps them there for the rest of the battle.
@@ -855,9 +1084,13 @@ public class Character : MonoBehaviour
     {
         if (discardPile.Count == 0) { return; }
 
+        int moved = discardPile.Count;
+
         drawPile.AddRange(discardPile);
         discardPile.Clear();
         Shuffle(drawPile);
+
+        PilesReshuffled?.Invoke(this, moved);
     }
 
     private static void Shuffle(List<Card> cards)
@@ -927,7 +1160,6 @@ public class Character : MonoBehaviour
     {
         while(hand.Count > 0)
         {
-            Debug.Log(hand.Count);
             Discard(hand[0]);
         }
     }

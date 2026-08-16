@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 0200000003000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Applies 1 stack of Dodge.
+  <description>k__BackingField: Gain 1 stack of Dodge.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

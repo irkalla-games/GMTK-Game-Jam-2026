@@ -15,7 +15,7 @@ MonoBehaviour:
   <cardName>k__BackingField: Ice Shard
   <cost>k__BackingField: 2
   <range>k__BackingField:
-    shape: 0
+    shape: 1
     minDistance: 1
     maxDistance: 5
   <requiredClass>k__BackingField: 2

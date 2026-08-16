@@ -25,8 +25,19 @@ public static class CardAreaIconBuilder
     private static readonly Color CoveredColor = new(1f, 0.35f, 0.3f, 0.9f);
     private static readonly Color AnchorColor = new(1f, 0.9f, 0.3f, 0.95f);
 
-    /// Null if every entry is Single or its effect does not SupportsArea - CardViewer draws no glyph
-    /// at all then, which is what a single-target card should look like.
+    /// <summary>
+    /// The marker for a card that spreads to no extra tiles - a lone dot on a 3-cell canvas, so that
+    /// once CardViewer normalises every glyph to the same width it lands visibly smaller than any
+    /// real footprint.
+    ///
+    /// A single-target card draws this rather than nothing, because an absent glyph is
+    /// indistinguishable from one that simply failed to build. "Hits one tile" is an answer worth
+    /// stating, not an answer worth omitting.
+    /// </summary>
+    private const int SingleTargetReach = 1;
+
+    /// Never null - every card gets a marker. See SingleTargetReach for what a card with no area
+    /// draws instead.
     public static Sprite Build(IReadOnlyList<CardEffectEntry> entries)
     {
         HashSet<Vector2Int> covered = new();
@@ -56,7 +67,15 @@ public static class CardAreaIconBuilder
             }
         }
 
-        return covered.Count > 0 ? Render(covered, anchors, reach) : null;
+        // No entry spread anywhere, so the card is single-target. Mark the aim tile alone; Render
+        // already paints an anchor that `covered` never claimed.
+        if (covered.Count == 0)
+        {
+            anchors.Add(VirtualAim);
+            return Render(covered, anchors, SingleTargetReach);
+        }
+
+        return Render(covered, anchors, reach);
     }
 
     private static Sprite Render(HashSet<Vector2Int> covered, HashSet<Vector2Int> anchors, int reach)

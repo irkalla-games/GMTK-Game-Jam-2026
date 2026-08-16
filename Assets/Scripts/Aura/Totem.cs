@@ -146,6 +146,10 @@ public class Totem : MonoBehaviour
 
     public IReadOnlyList<AuraReaction> Reactions => reactions;
 
+    /// Who this aura reaches, alongside Range - the pair Glossary.SummonContent reads to describe a
+    /// totem's footprint in words ("affects allies within 2 tiles").
+    public AuraAudience Affects => affects;
+
     /// <summary>
     /// Whether this totem has a zone worth drawing: alive, standing somewhere, and actually carrying
     /// something to project. Deliberately says nothing about `affects` - who benefits is a question
@@ -187,7 +191,7 @@ public class Totem : MonoBehaviour
 
         foreach (AuraData aura in auras)
         {
-            StatusEffect projectedEffect = StatusEffect.Create(aura.Type, aura.Stacks);
+            StatusEffect projectedEffect = aura.CreateEffect();
 
             if (projectedEffect != null) { into.Add(new Aura(this, projectedEffect)); }
         }

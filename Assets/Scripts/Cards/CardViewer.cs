@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using DG.Tweening;
 
@@ -21,19 +22,71 @@ public class CardViewer : MonoBehaviour
 
     [SerializeField] private SpriteRenderer rangeIndicator;
 
+    [Tooltip("Shown for every card that is aimed at a distance - melee included. A card's reach is " +
+        "the digit beside it, never a change of glyph: a bow with a 1 and a bow with a 5 differ in " +
+        "the one place that actually differs, which a sword-vs-bow swap hid behind two silhouettes.")]
     [SerializeField] private Sprite bowIcon;
 
-    [SerializeField] private Sprite swordIcon;
+    [Tooltip("Shown instead of the bow when the only legal tile is the caster's own. Optional - " +
+        "falls back to the bow, which then carries no digit.")]
+    [SerializeField] private Sprite selfIcon;
+
+    [Tooltip("Shown instead of the bow when the card may be played on any tile at all. Optional - " +
+        "falls back to the bow, which then carries no digit.")]
+    [SerializeField] private Sprite anywhereIcon;
+
+    [Header("Range Digit")]
+    [Tooltip("Where the reach number sits, in the face's own space - the same space RangeIndicator " +
+        "is positioned in, NOT relative to the glyph. The glyph carries a tiny localScale of its " +
+        "own, so a position measured against it would be scaled down with it.")]
+    [SerializeField] private Vector3 rangeDigitLocalPosition = new(1.28f, 2.13f, 0f);
+
+    [Tooltip("Uniform scale of the digit's own transform, matching what the card's other text " +
+        "objects carry so every number on the face is drawn at one size.")]
+    [SerializeField] private float rangeDigitScale = 0.15f;
+
+    [Tooltip("Point size of the reach number, before the scale above.")]
+    [SerializeField] private float rangeDigitFontSize = 30f;
+
+    [SerializeField] private Color rangeDigitColor = Color.white;
 
     [Header("Area Icon")]
-    [Tooltip("Where the area-footprint glyph sits, in the card's local space. Built at runtime rather "
-        + "than placed on the prefab, so there is nothing to drag in the Editor - tune these two "
-        + "fields instead to land it in whichever corner reads best against the card art.")]
-    [SerializeField] private Vector3 areaIconLocalPosition = new(0.75f, 0.95f, 0f);
+    [Tooltip("Where the area-footprint glyph sits, in the face's own space - the same space "
+        + "RangeIndicator and the plates use. Built at runtime rather than placed on the prefab, so "
+        + "there is nothing to drag in the Editor; Tools > Cards > Apply Card Face Layout writes it.")]
+    [SerializeField] private Vector3 areaIconLocalPosition = new(0.62f, 2.13f, 0f);
 
     [Tooltip("How wide the glyph sits on the card, in world units, regardless of how far the shape "
         + "itself actually reaches - a tight radius and a long cone both render at this same size.")]
     [SerializeField] private float areaIconSize = 0.35f;
+
+    [Header("Audience Stripe")]
+    [Tooltip("A bar down the left edge of the description plate saying who the card is for. " +
+        "Deliberately not the card border, which SetPlayable already uses to mean 'playable', and " +
+        "not the card background, which the grey-out desaturates.")]
+    [SerializeField] private Vector2 stripeSize = new(0.06f, 0.62f);
+
+    [Tooltip("Where the bar sits, in the face's own space - the same space RangeIndicator and the " +
+        "plates are positioned in. Written by Tools > Cards > Apply Card Face Layout.")]
+    [SerializeField] private Vector3 stripeLocalPosition = new(-1.2f, -0.75f, 0f);
+
+    [Tooltip("Optional shape for the bar. Give it a 9-sliced sprite whose left corners match the " +
+        "description plate's and the bar reads as the coloured end of that plate; leave it empty " +
+        "and the bar is a plain rectangle, which on a rounded plate reads as a block sitting on top.")]
+    [SerializeField] private Sprite stripeSprite;
+
+    [SerializeField] private Color selfColor = new(0.35f, 0.66f, 0.90f);
+
+    [SerializeField] private Color allyColor = new(0.34f, 0.77f, 0.43f);
+
+    [SerializeField] private Color enemyColor = new(0.88f, 0.34f, 0.29f);
+
+    [SerializeField] private Color anyCharacterColor = new(0.94f, 0.76f, 0.27f);
+
+    [Tooltip("Cards aimed at the ground rather than at anybody - summons, movement, the wall " +
+        "effects. A muted tan rather than a fifth signal colour, because 'nobody' is a different " +
+        "kind of answer from the three sides above.")]
+    [SerializeField] private Color groundColor = new(0.85f, 0.79f, 0.65f);
 
     [SerializeField] private float hoverScale = 1.5f;
 
@@ -115,6 +168,14 @@ public class CardViewer : MonoBehaviour
     /// True once the card has been played and is tweening away - hover must stop touching it.
     private bool isPlaying;
 
+    /// What the compact box says to advertise the expanded one. A held key nobody mentions is
+    /// undiscoverable, and this is the cheapest way to mention it.
+    private const string ExpandHint = "Hold <b>Alt</b> for details";
+
+    /// Whether the expand key is currently down while this card is hovered. Kept so Update only
+    /// rebuilds the box when the answer actually changes rather than every frame of a hold.
+    private bool expandHeld;
+
     /// This card's place in the hand, kept so hover can lift it into CardHover and put it back
     /// afterwards without having to ask the hand where it was.
     private int handOrder;
@@ -161,9 +222,17 @@ public class CardViewer : MonoBehaviour
     /// class strikes.
     private SpriteRenderer outlineRenderer;
 
-    /// The area-footprint glyph - see BuildAreaIconRenderer. Always created, but its sprite stays
-    /// null (drawing nothing) for a card whose entries are all Single.
+    /// The area-footprint glyph - see BuildAreaIconRenderer. Always created, and since
+    /// CardAreaIconBuilder now draws a lone dot for a single-target card, always carrying a sprite.
     private SpriteRenderer areaIconRenderer;
+
+    /// The audience bar down the description plate - see BuildStripeRenderer.
+    private SpriteRenderer stripeRenderer;
+
+    /// The reach number beside the range glyph - see BuildRangeDigit. Null when the prefab has no
+    /// `cost` text to borrow a font from, which is the same bargain every optional reference here
+    /// strikes: you lose the digit, not the card.
+    private TMP_Text rangeDigit;
 
     private void Awake()
     {
@@ -188,6 +257,155 @@ public class CardViewer : MonoBehaviour
 
         BuildOutlineRenderer();
         BuildAreaIconRenderer();
+
+        // After the area glyph, which sizes itself from the highest order the *prefab* authored. Both
+        // of these add themselves to the grey-out lists afterwards, so neither can be caught by
+        // RemoveFromGreyOut above and both dim with the rest of an unaffordable card.
+        BuildStripeRenderer();
+        BuildRangeDigit();
+    }
+
+    /// <summary>
+    /// The audience bar, built here rather than placed on the prefab for the same reason the area
+    /// glyph is: there is then nothing an artist can leave stale, and no prefab edit is needed to
+    /// change where it sits.
+    ///
+    /// Parented to the description text and positioned off its left edge, so it tracks the plate it
+    /// annotates rather than a fixed spot on the card - a longer description grows the plate, and the
+    /// bar grows with it.
+    ///
+    /// Its sprite is a 1x1 white pixel generated here. Reusing outlineSprite would inherit that
+    /// graphic's own silhouette, and a bar wants a plain rectangle it can stretch.
+    /// </summary>
+    private void BuildStripeRenderer()
+    {
+        if (description == null) { return; }
+
+        GameObject stripeObject = new("CardAudienceStripe", typeof(SpriteRenderer));
+        stripeObject.transform.SetParent(FaceRoot, false);
+        stripeObject.transform.localPosition = stripeLocalPosition;
+
+        stripeRenderer = stripeObject.GetComponent<SpriteRenderer>();
+
+        if (stripeSprite != null)
+        {
+            // A shaped bar keeps its corners by being sliced to size rather than stretched to it -
+            // scaling a rounded shape into a tall thin bar flattens the very curve it was given for.
+            stripeRenderer.sprite = stripeSprite;
+            stripeRenderer.drawMode = SpriteDrawMode.Sliced;
+            stripeRenderer.size = stripeSize;
+        }
+        else
+        {
+            // Scaled rather than drawn Sliced: a sliced sprite needs a border to stretch, and a plain
+            // 1x1 pixel has none. At one pixel per unit the sprite is exactly one unit square, so the
+            // scale *is* the size in the face's own units.
+            stripeRenderer.sprite = SolidSprite();
+            stripeObject.transform.localScale = new Vector3(stripeSize.x, stripeSize.y, 1f);
+        }
+
+        // One above the description's own order so it is never hidden by the plate behind the text.
+        Renderer descriptionRenderer = description.GetComponent<Renderer>();
+
+        if (descriptionRenderer != null)
+        {
+            stripeRenderer.sortingLayerID = descriptionRenderer.sortingLayerID;
+            stripeRenderer.sortingOrder = descriptionRenderer.sortingOrder;
+        }
+
+        sprites.Add(stripeRenderer);
+        spriteRestColors.Add(stripeRenderer.color);
+    }
+
+    /// <summary>
+    /// The transform every runtime-built face element is parented to - the card's Wrapper, the same
+    /// parent RangeIndicator and the plates already sit under.
+    ///
+    /// Load-bearing. The obvious parents are all scaled: RangeIndicator carries a localScale near
+    /// 0.08 and the text objects 0.15, so anything parented to one of those has its position *and*
+    /// its size multiplied by that factor. Sharing one unscaled parent is what lets every offset in
+    /// this component be written in the same units the prefab's own children use.
+    /// </summary>
+    private Transform FaceRoot
+    {
+        get
+        {
+            if (rangeIndicator != null && rangeIndicator.transform.parent != null)
+            {
+                return rangeIndicator.transform.parent;
+            }
+
+            if (description != null && description.transform.parent != null)
+            {
+                return description.transform.parent;
+            }
+
+            return transform;
+        }
+    }
+
+    /// <summary>
+    /// The reach number, built beside the range glyph.
+    ///
+    /// Borrows the cost pip's font asset rather than serializing one of its own - a card's numbers
+    /// should match each other, and a second font reference is a second thing to forget to assign.
+    /// </summary>
+    private void BuildRangeDigit()
+    {
+        if (rangeIndicator == null || cost == null) { return; }
+
+        GameObject digitObject = new("CardRangeDigit", typeof(RectTransform), typeof(TextMeshPro));
+        digitObject.transform.SetParent(FaceRoot, false);
+        digitObject.transform.localPosition = rangeDigitLocalPosition;
+        digitObject.transform.localScale = Vector3.one * rangeDigitScale;
+
+        rangeDigit = digitObject.GetComponent<TextMeshPro>();
+        rangeDigit.font = cost.font;
+        rangeDigit.fontSize = rangeDigitFontSize;
+        rangeDigit.color = rangeDigitColor;
+        rangeDigit.alignment = TextAlignmentOptions.Center;
+        rangeDigit.textWrappingMode = TextWrappingModes.NoWrap;
+        rangeDigit.raycastTarget = false;
+
+        // In the digit's own scaled space, so this is a generous box around one or two glyphs
+        // rather than a measurement of the card.
+        rangeDigit.rectTransform.sizeDelta = new Vector2(4f, 4f);
+
+        Renderer digitRenderer = digitObject.GetComponent<Renderer>();
+
+        if (digitRenderer != null)
+        {
+            digitRenderer.sortingLayerID = rangeIndicator.sortingLayerID;
+            digitRenderer.sortingOrder = rangeIndicator.sortingOrder + 1;
+        }
+
+        texts.Add(rangeDigit);
+        textRestColors.Add(rangeDigit.color);
+    }
+
+    /// The one white pixel every card's stripe stretches, tinted per card by the SpriteRenderer. Built
+    /// once for the whole game rather than once per card: the texture is identical every time, and a
+    /// hand of ten cards has no reason to hold ten copies of it.
+    private static Sprite solidSprite;
+
+    private static Sprite SolidSprite()
+    {
+        if (solidSprite != null) { return solidSprite; }
+
+        Texture2D texture = new(1, 1, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Point,
+            wrapMode = TextureWrapMode.Clamp,
+        };
+
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+
+        // One pixel per unit, so the sprite measures exactly one world unit square and the stripe's
+        // transform scale reads directly as its size.
+        solidSprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+
+        return solidSprite;
     }
 
     /// <summary>
@@ -204,7 +422,7 @@ public class CardViewer : MonoBehaviour
     private void BuildAreaIconRenderer()
     {
         GameObject iconObject = new("CardAreaIcon", typeof(SpriteRenderer));
-        iconObject.transform.SetParent(transform, false);
+        iconObject.transform.SetParent(FaceRoot, false);
         iconObject.transform.localPosition = areaIconLocalPosition;
 
         areaIconRenderer = iconObject.GetComponent<SpriteRenderer>();
@@ -279,11 +497,26 @@ public class CardViewer : MonoBehaviour
 
         outlineTransform.SetParent(border.transform.parent, false);
         outlineTransform.SetLocalPositionAndRotation(border.transform.localPosition, border.transform.localRotation);
-        outlineTransform.localScale = border.transform.localScale * outlineScale;
 
         outlineRenderer = outlineObject.GetComponent<SpriteRenderer>();
         outlineRenderer.sprite = outlineSprite;
         outlineRenderer.sortingLayerID = border.sortingLayerID;
+
+        // Grow the ring the same way the border states its own size, which is not the same question
+        // on both card faces. A Simple renderer carries its size in the transform; a 9-sliced one
+        // keeps its transform at 1 and carries the size in SpriteRenderer.size. Scaling the transform
+        // of a sliced border draws the sprite at its native pixel size instead - which on a 412x564
+        // source is a ring several times larger than the card it is meant to outline.
+        if (border.drawMode == SpriteDrawMode.Simple)
+        {
+            outlineTransform.localScale = border.transform.localScale * outlineScale;
+        }
+        else
+        {
+            outlineTransform.localScale = border.transform.localScale;
+            outlineRenderer.drawMode = border.drawMode;
+            outlineRenderer.size = border.size * outlineScale;
+        }
 
         // Below every other renderer on the card (the lowest authored order is CardBackground's 0),
         // so only the margin this scale-up grows past CardBorder's own edge is ever visible - the
@@ -306,15 +539,9 @@ public class CardViewer : MonoBehaviour
 
         cost.text = card.cost.ToString();
         image.sprite = card.image;
-        if (card.range.IsRanged)
-        {
-            rangeIndicator.sprite = bowIcon;
-        } else if (card.range.MaxDistance == 1){
-            rangeIndicator.sprite = swordIcon;
-        } else
-        {
-            rangeIndicator.sprite = null;
-        }
+
+        ApplyRange();
+        ApplyStripe();
 
         if (areaIconRenderer != null)
         {
@@ -322,6 +549,68 @@ public class CardViewer : MonoBehaviour
             areaIconRenderer.sprite = icon;
             ApplyAreaIconScale(icon);
         }
+    }
+
+    /// <summary>
+    /// The range glyph and its reach number.
+    ///
+    /// The bow is shown for every card aimed at a tile, melee included, and the digit carries the
+    /// whole distinction. Swapping the glyph for a sword at reach 1 spent a whole silhouette on one
+    /// bit of information and left the other four reaches looking identical to each other - a card
+    /// reaching 5 and a card reaching 2 both drew the same bow and said nothing else.
+    ///
+    /// Self and anywhere get their own glyph and no digit, because neither has a distance to print.
+    /// Both fall back to the bow when unassigned, which then also drops the digit rather than
+    /// printing a 0.
+    /// </summary>
+    private void ApplyRange()
+    {
+        if (rangeIndicator == null) { return; }
+
+        RangeShape shape = card.range.Shape;
+
+        Sprite glyph = shape switch
+        {
+            RangeShape.SelfTile => selfIcon != null ? selfIcon : bowIcon,
+            RangeShape.Anywhere => anywhereIcon != null ? anywhereIcon : bowIcon,
+            _ => bowIcon,
+        };
+
+        rangeIndicator.sprite = glyph;
+
+        if (rangeDigit == null) { return; }
+
+        int digit = CardRulesText.RangeDigit(card);
+
+        // A dedicated glyph already said "self" or "anywhere"; a 0 beside it would read as a reach.
+        bool showDigit = digit > 0 && glyph == bowIcon;
+
+        rangeDigit.enabled = showDigit;
+        rangeDigit.text = showDigit ? digit.ToString() : string.Empty;
+    }
+
+    /// Paints the audience bar from the card's own effects. See CardRulesText.Band for why "self" is
+    /// a band of its own rather than just the ally colour.
+    private void ApplyStripe()
+    {
+        if (stripeRenderer == null) { return; }
+
+        Color color = CardRulesText.Band(card) switch
+        {
+            CardTargetBand.Self => selfColor,
+            CardTargetBand.Ally => allyColor,
+            CardTargetBand.Enemy => enemyColor,
+            CardTargetBand.AnyCharacter => anyCharacterColor,
+            _ => groundColor,
+        };
+
+        stripeRenderer.color = color;
+
+        // The rest colour is what SetPlayable restores to, so it has to follow the card this viewer
+        // is now showing rather than the one it was built for.
+        int index = sprites.IndexOf(stripeRenderer);
+
+        if (index >= 0) { spriteRestColors[index] = color; }
     }
 
     /// A footprint glyph is built at a fixed pixels-per-cell, so its native size grows with how far
@@ -624,10 +913,31 @@ public class CardViewer : MonoBehaviour
 
         if (TooltipManager.Instance != null)
         {
-            TooltipManager.Instance.Show(this, KeywordTooltip(), anchor, TooltipPriority.Hovered);
+            TooltipManager.Instance.Show(this, CardTooltip(), anchor, TooltipPriority.Hovered);
         }
 
         if (descriptionLinks != null) { descriptionLinks.BeginPolling(glossary, anchor); }
+    }
+
+    /// <summary>
+    /// Watches for the expand key while this card is hovered, and rebuilds the box when it changes.
+    ///
+    /// Polled rather than driven by an input callback for the same reason TooltipLinkText polls: the
+    /// answer only matters while a specific card is under the cursor, and the early return makes the
+    /// other cards in hand free. Nothing here runs for a card nobody is looking at.
+    /// </summary>
+    private void Update()
+    {
+        if (!isHovered || card == null || glossary == null) { return; }
+
+        Keyboard keyboard = Keyboard.current;
+        bool held = keyboard != null && keyboard.altKey.isPressed;
+
+        if (held == expandHeld) { return; }
+
+        expandHeld = held;
+
+        ShowTooltips();
     }
 
     /// <summary>
@@ -639,23 +949,63 @@ public class CardViewer : MonoBehaviour
     /// </summary>
     private void HideTooltips()
     {
+        // Cleared so the next hover opens compact, whatever the key was doing when this one ended -
+        // a card played mid-hold must not leave the next card expanded on arrival.
+        expandHeld = false;
+
         if (TooltipManager.Instance != null) { TooltipManager.Instance.Hide(this); }
 
         if (descriptionLinks != null) { descriptionLinks.EndPolling(); }
     }
 
-    /// What this card's keywords mean. Empty for a card with none, which the manager reads as "nothing
-    /// to show" - so an ordinary card gets no box rather than an empty one.
-    private TooltipContent KeywordTooltip()
+    /// <summary>
+    /// What the hover box says.
+    ///
+    /// Two shapes, chosen by whether the expand key is down. Compact is the card's keywords plus a
+    /// standing hint that there is more; expanded leads with the card's own mechanical readout, then
+    /// its keywords, then every status its description names.
+    ///
+    /// The hint is why this always returns something, where the old keyword-only box was empty for an
+    /// ordinary card. A held-key detail view nobody is told about is a feature that does not exist,
+    /// and the cards that most need explaining are exactly the plain ones with no keywords to trigger
+    /// a box of their own.
+    /// </summary>
+    private TooltipContent CardTooltip()
     {
         TooltipContent content = new();
+
+        if (expandHeld) { content.Add(card.cardName.ToUpperInvariant(), RulesBody()); }
 
         foreach (CardKeyword keyword in card.Keywords)
         {
             glossary.KeywordContent(keyword.type, keyword.magnitude, content);
         }
 
+        if (expandHeld)
+        {
+            // The active character is who the reader is asking about - it is their hand these cards
+            // are in, so their own Block is the number the sentence should quote. Same context
+            // TooltipLinkText passes for a single hovered word.
+            BattleManager battle = BattleManager.Instance;
+
+            glossary.MentionedContent(card.description,
+                battle != null ? battle.ActiveCharacter : null, content);
+        }
+        else
+        {
+            content.Add(null, ExpandHint);
+        }
+
         return content;
+    }
+
+    /// The card's range, audience and footprint in words - see CardRulesText, which owns the wording
+    /// so a totem's aura line and a card's range line cannot describe the same struct two ways.
+    private string RulesBody()
+    {
+        return $"Range: {CardRulesText.RangeLine(card)}\n"
+            + $"Targets: {CardRulesText.TargetsLine(card)}\n"
+            + $"Area: {CardRulesText.AreaLine(card)}";
     }
 
     public void OnMouseDown()

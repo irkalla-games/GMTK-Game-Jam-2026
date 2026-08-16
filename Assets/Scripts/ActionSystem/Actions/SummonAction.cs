@@ -26,6 +26,14 @@ public class SummonAction : GameAction
 
             if (summoned == null) { continue; }
 
+            // Equipment reacting to a summon (a totem-health relic, say) gets first look, before the
+            // Summoned lifetime status below - both are per-summon setup, and there is no ordering
+            // requirement between them since neither reads the other.
+            if (ctx.source != null)
+            {
+                foreach (Status status in ctx.source.ActiveStatuses()) { status.OnSummoned(ctx.source, summoned); }
+            }
+
             // 0 means permanent - the default for every summon authored before this field existed,
             // Shield Totem and the enemy Skeleton Warrior included.
             if (lifetimeTurns > 0) { summoned.AddStatus(StatusEffect.Create(StatusType.Summoned, lifetimeTurns)); }

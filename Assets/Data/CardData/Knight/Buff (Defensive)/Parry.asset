@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Gain 1 Parry
+  <description>k__BackingField: Gain 1 Parry.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 8dec97316b8344c796239e2f86af1374, type: 2}
@@ -36,5 +36,8 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

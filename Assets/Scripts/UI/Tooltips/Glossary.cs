@@ -29,6 +29,10 @@ public class Glossary : ScriptableObject
     private const string StatusLink = "status:";
     private const string KeywordLink = "keyword:";
 
+    /// Summons are keyed by the SummonEffect asset's own name rather than an enum - there is no enum of
+    /// summonable things, and the effect asset is already the one place a summon's numbers live.
+    private const string SummonLink = "summon:";
+
     /// <summary>
     /// The parts every glossary entry has. A base class rather than two independent structs because
     /// Tag, the term matching and the fallback numbers are identical for both - only the key differs.
@@ -68,9 +72,26 @@ public class Glossary : ScriptableObject
         public CardKeywordType type;
     }
 
+    /// <summary>
+    /// What summoning something means - a totem's aura, a skeleton's health, how long either sticks
+    /// around. `title`/`body`/`terms` are inherited the same as the other two entry kinds; `body` here
+    /// is optional flavour shown under the numbers SummonContent generates, and defaultStacks/
+    /// defaultAmount go unused - a summon has nothing live to fill them from.
+    /// </summary>
+    [System.Serializable]
+    public class SummonEntry : Entry
+    {
+        [Tooltip("The card effect asset that summons this - SummonVenomTotem, SummonSkeletonAlly. Its "
+            + "summonedObject and lifetimeTurns are what the tooltip actually reads; this entry only "
+            + "supplies the term to match and optional flavour text.")]
+        public SummonEffect effect;
+    }
+
     [SerializeField] private List<StatusEntry> statuses = new();
 
     [SerializeField] private List<KeywordEntry> keywords = new();
+
+    [SerializeField] private List<SummonEntry> summons = new();
 
     [Tooltip("What a hoverable term looks like inside a card's description. This tint is the only thing " +
         "telling the player the word can be hovered at all, so it has to be visibly different from the " +
@@ -145,9 +166,9 @@ public class Glossary : ScriptableObject
     /// The id carries the *enum name*, never the matched word, so the sentence can say "Poisoned" and
     /// still resolve to StatusType.Poison.
     /// </summary>
-    public TooltipContent ContentForLink(string linkId, Character context)
+    public TooltipContent ContentForLink(string linkId, Character context, TooltipContent into = null)
     {
-        if (string.IsNullOrEmpty(linkId)) { return new TooltipContent(); }
+        if (string.IsNullOrEmpty(linkId)) { return into ?? new TooltipContent(); }
 
         if (linkId.StartsWith(StatusLink) &&
             System.Enum.TryParse(linkId[StatusLink.Length..], out StatusType status))
@@ -156,7 +177,7 @@ public class Glossary : ScriptableObject
             // matches the Block they are actually carrying rather than a generic number.
             Status live = context != null ? context.FindStatus(status) : null;
 
-            return StatusContent(status, live != null ? live.stacks : -1, live);
+            return StatusContent(status, live != null ? live.stacks : -1, live, into);
         }
 
         if (linkId.StartsWith(KeywordLink) &&
@@ -164,10 +185,165 @@ public class Glossary : ScriptableObject
         {
             KeywordEntry entry = FindKeyword(keyword);
 
-            return KeywordContent(keyword, entry != null ? entry.defaultStacks : 0);
+            return KeywordContent(keyword, entry != null ? entry.defaultStacks : 0, into);
         }
 
-        return new TooltipContent();
+        if (linkId.StartsWith(SummonLink))
+        {
+            SummonEntry entry = FindSummon(linkId[SummonLink.Length..]);
+            SummonEffect effect = entry != null ? entry.effect : null;
+
+            return SummonContent(effect != null ? effect.SummonedObject : null,
+                effect != null ? effect.LifetimeTurns : 0, into);
+        }
+
+        return into ?? new TooltipContent();
+    }
+
+    /// <summary>
+    /// Every glossary term a run of prose mentions, explained in the order it mentions them.
+    ///
+    /// The batch counterpart to TooltipLinkText, which explains one word because the cursor is on it.
+    /// This explains all of them at once, for a reader who asked to see everything a card involves
+    /// rather than hunting each keyword with the mouse.
+    ///
+    /// Shares Tag's matcher rather than re-scanning, so the words this explains are exactly the words
+    /// Tag made hoverable - a term the card highlights but this omitted would be a promise the panel
+    /// then broke. De-duplicated by link id, so a description naming Poison twice is explained once.
+    /// </summary>
+    public TooltipContent MentionedContent(string prose, Character context, TooltipContent into = null)
+    {
+        TooltipContent content = into ?? new TooltipContent();
+
+        if (string.IsNullOrEmpty(prose)) { return content; }
+
+        BuildTerms();
+
+        if (termPattern == null) { return content; }
+
+        HashSet<string> seen = new();
+
+        foreach (Match match in termPattern.Matches(prose))
+        {
+            if (!termLinks.TryGetValue(match.Value.ToLowerInvariant(), out string link)) { continue; }
+
+            if (!seen.Add(link)) { continue; }
+
+            ContentForLink(link, context, content);
+        }
+
+        return content;
+    }
+
+    /// <summary>
+    /// What summoning `summon` means, filled in from the prefab itself: its health if it carries a
+    /// Character, how long it lasts, and - if it is a totem - the aura it projects and any reactions it
+    /// carries. Shared by the card-side "Venom Totem" link and TotemTooltip, which passes the totem's
+    /// own remaining lifetime instead of the authored one so a totem already ticking down on the board
+    /// reads correctly; everything else about the two callers is identical.
+    /// </summary>
+    public TooltipContent SummonContent(GameObject summon, int lifetimeTurns, TooltipContent into = null)
+    {
+        TooltipContent content = into ?? new TooltipContent();
+
+        if (summon == null) { return content; }
+
+        Character character = summon.GetComponent<Character>();
+        Totem totem = summon.GetComponent<Totem>();
+        SummonEntry entry = FindSummonByCharacter(character);
+
+        string title = entry != null && !string.IsNullOrWhiteSpace(entry.title) ? entry.title
+            : character != null ? character.DisplayName.ToUpperInvariant() : summon.name.ToUpperInvariant();
+
+        List<string> lines = new();
+
+        if (character != null) { lines.Add($"Health {character.MaxHealth}"); }
+
+        lines.Add(lifetimeTurns > 0 ? $"Lasts {lifetimeTurns} turns" : "Permanent");
+
+        if (totem != null) { lines.Add(SummonRangeLine(totem)); }
+
+        if (entry != null && !string.IsNullOrWhiteSpace(entry.body)) { lines.Add(Tag(entry.body)); }
+
+        content.Add(title, string.Join("\n", lines));
+
+        if (totem != null)
+        {
+            foreach (AuraData aura in totem.Auras) { StatusContent(aura.Type, aura.Stacks, null, content); }
+
+            foreach (AuraReaction reaction in totem.Reactions)
+            {
+                if (string.IsNullOrWhiteSpace(reaction.Description)) { continue; }
+
+                content.Add(null, Tag(reaction.Description));
+            }
+        }
+
+        return content;
+    }
+
+    /// "Affects allies within 2 tiles" - the footprint AuraPulse draws, put into words.
+    private static string SummonRangeLine(Totem totem)
+    {
+        string audience = totem.Affects switch
+        {
+            AuraAudience.Allies => "allies",
+            AuraAudience.Enemies => "enemies",
+            _ => "everyone",
+        };
+
+        string reach = totem.Range.Shape switch
+        {
+            RangeShape.Anywhere => "anywhere on the board",
+            RangeShape.SelfTile => "on its own tile",
+            _ => $"within {totem.Range.MaxDistance} tiles",
+        };
+
+        return $"Affects {audience} {reach}";
+    }
+
+    /// <summary>
+    /// Matches a live summon back to the entry describing it, by DisplayName rather than by object
+    /// reference - a totem hovered on the board is an instantiated clone, never the prefab asset
+    /// SummonEffect.summonedObject actually points to, so reference equality would never hit. DisplayName
+    /// is a serialized field Instantiate carries over unchanged, which is what makes this work for the
+    /// prefab and every clone of it alike.
+    /// </summary>
+    private SummonEntry FindSummonByCharacter(Character character)
+    {
+        if (character == null) { return null; }
+
+        string name = character.DisplayName;
+
+        foreach (SummonEntry entry in summons)
+        {
+            GameObject prefab = entry.effect != null ? entry.effect.SummonedObject : null;
+            Character prefabCharacter = prefab != null ? prefab.GetComponent<Character>() : null;
+
+            if (prefabCharacter != null && prefabCharacter.DisplayName == name) { return entry; }
+        }
+
+        return null;
+    }
+
+    private SummonEntry FindSummon(string key)
+    {
+        foreach (SummonEntry entry in summons)
+        {
+            if (entry.effect != null && entry.effect.name == key) { return entry; }
+        }
+
+        return null;
+    }
+
+    /// The word a summon reads as when its own terms list is empty - the prefab's DisplayName, the
+    /// same name SummonContent titles its box with. Null for a row that has nothing to name yet.
+    private static string SummonDisplayName(SummonEntry entry)
+    {
+        GameObject prefab = entry.effect != null ? entry.effect.SummonedObject : null;
+        Character character = prefab != null ? prefab.GetComponent<Character>() : null;
+
+        return character != null ? character.DisplayName : null;
     }
 
     /// <summary>
@@ -214,6 +390,18 @@ public class Glossary : ScriptableObject
         foreach (KeywordEntry entry in keywords)
         {
             CollectTerms(entry, entry.type.ToString(), KeywordLink + entry.type, all);
+        }
+
+        foreach (SummonEntry entry in summons)
+        {
+            string name = SummonDisplayName(entry);
+
+            // No enum to fall back on here, so an entry missing its effect or the effect's prefab
+            // simply registers no term - the same "half-authored row" outcome CollectTerms already
+            // gives a status left on None.
+            if (name == null) { continue; }
+
+            CollectTerms(entry, name, SummonLink + entry.effect.name, all);
         }
 
         if (all.Count == 0) { return; }

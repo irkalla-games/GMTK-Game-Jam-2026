@@ -435,6 +435,48 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// Characters currently showing a damage preview - tracked so ClearDamagePreview can drop exactly
+    /// those rather than walking every occupied tile on the board on every hover change.
+    private readonly List<Character> damagePreviewed = new();
+
+    /// <summary>
+    /// Shows a projected health loss on every character `card` would actually damage if played on
+    /// `hovered` right now - the numeric sibling of ShowAreaPreview's red footprint. Reads
+    /// Card.PreviewDamage, which has already run the full outgoing/incoming pipeline with nothing
+    /// spent, and forwards each result to that character's own CharacterOverheadViewer - the same
+    /// "push, don't ask" shape ShowPlayableTiles uses to drive TileSelector.
+    /// </summary>
+    public void ShowDamagePreview(Card card, Character source, GridTile hovered)
+    {
+        ClearDamagePreview();
+
+        if (card == null || source == null || hovered == null) { return; }
+
+        foreach (KeyValuePair<Character, int> entry in card.PreviewDamage(source, hovered))
+        {
+            CharacterOverheadViewer viewer = entry.Key.GetComponent<CharacterOverheadViewer>();
+            if (viewer == null) { continue; }
+
+            viewer.SetDamagePreview(entry.Value);
+            damagePreviewed.Add(entry.Key);
+        }
+    }
+
+
+    public void ClearDamagePreview()
+    {
+        foreach (Character character in damagePreviewed)
+        {
+            if (character == null) { continue; }
+
+            CharacterOverheadViewer viewer = character.GetComponent<CharacterOverheadViewer>();
+            if (viewer != null) { viewer.ClearDamagePreview(); }
+        }
+
+        damagePreviewed.Clear();
+    }
+
+
     /// <summary>
     /// Drops the hover tint from every tile, leaving the range highlight alone. Called by
     /// BattleManager when input locks: a tile lit under the cursor gets no OnMouseExit when a modal
@@ -539,8 +581,8 @@ public class GridManager : Singleton<GridManager>
         float tileHeight = 1.5f;
 
         return new Vector3(
-            ((x - y) * tileWidth / 2) + 2.1f,
-            ((x + y) * tileHeight / 2) + 1.7f,
+            ((x - y) * tileWidth / 2) + 1.1f,
+            ((x + y) * tileHeight / 2) + 2.6f,
             0);
     }
     

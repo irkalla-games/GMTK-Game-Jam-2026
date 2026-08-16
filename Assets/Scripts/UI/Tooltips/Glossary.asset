@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Glossary
   statuses:
   - title: STRENGTH
-    body: Adds {stacks} damage to every attack this character makes.
+    body: Adds 3 damage to the next {stacks} attacks.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -28,16 +28,16 @@ MonoBehaviour:
     defaultAmount: 1
     type: 2
   - title: POISON
-    body: Deals {stacks} damage at the end of this character's turn, ignoring every
-      defence, then weakens by 1.
+    body: Deals damage equal to it's stacks ({stacks}) and the end of the turn and
+      then loses a stack.
     terms:
     - Poison
     - Poisoned
-    defaultStacks: 4
+    defaultStacks: 1
     defaultAmount: 1
     type: 3
   - title: FROZEN
-    body: Cannot act for {stacks} more turns - no cards, no attacks, no movement.
+    body: Cannot act for {stacks} more turns.
     terms:
     - Frozen
     - Freeze
@@ -45,26 +45,26 @@ MonoBehaviour:
     defaultAmount: 1
     type: 4
   - title: SHIELD
-    body: Absorbs the next {stacks} damage. Wiped at the start of every turn.
+    body: Absorbs the next {stacks} damage. Only lasts for this turn.
     terms: []
-    defaultStacks: 5
+    defaultStacks: 1
     defaultAmount: 1
     type: 5
   - title: BLOCK
-    body: Reduces each of the next {stacks} hits by {amount}.
+    body: Reduces the damage this character takes by 3 for the next {stacks} hits.
     terms: []
-    defaultStacks: 3
+    defaultStacks: 1
     defaultAmount: 5
     type: 6
   - title: PARRY
     body: Negates the damage for {stacks} hits and reflects the damage back to the
       attacker.
     terms: []
-    defaultStacks: 2
+    defaultStacks: 1
     defaultAmount: 1
     type: 7
   - title: ROOTED
-    body: Cannot move. Attacking and playing cards still work.
+    body: This character is unable to use move actions for {stacks} turns.
     terms:
     - Rooted
     - Root
@@ -78,6 +78,64 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 9
+  - title: DODGE
+    body: Negates the damage for {stacks} hits and moves the character away from
+      the source of damage.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 10
+  - title: WEAKEN
+    body: Subtracts 5 damage from each attack for {stacks} turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 11
+  - title: TAUNT
+    body: This character must move toward or attack the source of the Taunt for {stacks}
+      turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 12
+  - title: POISON BLADE
+    body: For {stacks} more turns, every attack this character lands also applies
+      {amount} Poison.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 14
+  - title: STEALTH
+    body: Enemies cannot target this character for {stacks} more turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 15
+  - title: VULNERABLE
+    body: Adds 3 damage to each of the next {stacks} hits taken.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 3
+    type: 16
+  - title: EMPOWERED
+    body: Doubles the stacks of whatever status this totem empowers, whenever it
+      is applied.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 17
+  - title: POTENT
+    body: Strengthens whatever status this totem empowers, without changing its stacks.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 18
+  - title: STANDING WARD
+    body: Grants a status to whoever stands in range, once every round.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 19
   keywords:
   - title: INNATE
     body: Always in hand. Never enters the draw or discard pile.
@@ -88,13 +146,44 @@ MonoBehaviour:
   - title: COOLDOWN
     body: Unusable for {magnitude} turns after it is played.
     terms: []
-    defaultStacks: 2
+    defaultStacks: 1
     defaultAmount: 1
     type: 2
   - title: DORMANT
     body: Unusable for {magnitude} turns after you gain it.
     terms: []
-    defaultStacks: 3
+    defaultStacks: 1
     defaultAmount: 1
     type: 3
+  summons:
+  - title: 
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    effect: {fileID: 11400000, guid: aaaa1117bbbb2228cccc3339dddd444a, type: 2}
+  - title: 
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    effect: {fileID: 11400000, guid: 129c00adec80a624cb64cb9b8d662c94, type: 2}
+  - title: 
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    effect: {fileID: 11400000, guid: c127bcc2647c0564485c6c0868773cc4, type: 2}
+  - title: 
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    effect: {fileID: 11400000, guid: 545e2b9ae6b7b18478dbae2045f523c0, type: 2}
+  - title: 
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    effect: {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}
   termColor: {r: 1, g: 0.83, b: 0.48, a: 1}

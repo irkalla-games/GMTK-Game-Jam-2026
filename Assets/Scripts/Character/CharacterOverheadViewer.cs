@@ -3,12 +3,14 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Owns the small canvas above a character's head: a health bar with a shield fill layered over it,
-/// and - enemies only - an icon for the category of action they have committed to this turn.
+/// a damage-preview fill layered under it, and - enemies only - an icon for the category of action
+/// they have committed to this turn.
 ///
 /// Character raises StatsChanged and IntentChanged and knows nothing about this class - the same
 /// contract as CardDrawn/CardDiscarded and ActiveHandViewer. This is the thing worth not repeating
 /// from the old design, where Character wrote `healthBar.text` directly from seven places with no
-/// null guard.
+/// null guard. GridManager.ShowDamagePreview is the same kind of push, aimed at SetDamagePreview
+/// instead: this class knows nothing about cards or hovering either.
 ///
 /// Named for the half it owns, not "character UI" generally - SelectedCharacterPanel is the other
 /// half, and it stays a screen-space HUD keyed to whichever character is selected/active.
@@ -38,11 +40,22 @@ public class CharacterOverheadViewer : MonoBehaviour
     /// BattleManager already guards this on its own side, but TurnStart's re-commit does not.
     private IntentKind shownKind;
 
+    /// Built from healthFill in Awake - see DamagePreviewFill.Build. Null when this character has no
+    /// healthFill authored at all (there is none today, but nothing enforces it).
+    private DamagePreviewFill previewFill;
+
+    /// Health a hovered attack would take off this character, or 0 for none. Set by
+    /// GridManager.ShowDamagePreview and cleared by ClearDamagePreview - this class does not decide
+    /// when a preview applies, only how to draw the one it is handed.
+    private int previewLoss;
+
     private void Awake()
     {
         character = GetComponent<Character>();
 
         if (intentIcon != null) { intentRoll.Build(intentIcon); }
+
+        if (healthFill != null) { previewFill = DamagePreviewFill.Build(healthFill); }
     }
 
     private void Start()
@@ -86,11 +99,34 @@ public class CharacterOverheadViewer : MonoBehaviour
 
     private void OnIntentChanged(Character _) => RefreshIntent();
 
+    /// <summary>
+    /// Shows a projected loss of `loss` health on next refresh - GridManager.ShowDamagePreview calls
+    /// this once per previewed character while a card is selected and a tile is hovered.
+    /// Equality-guarded like TileSelector's setters, so re-hovering the same tile every frame costs
+    /// nothing past the first call.
+    /// </summary>
+    public void SetDamagePreview(int loss)
+    {
+        loss = Mathf.Max(0, loss);
+        if (loss == previewLoss) { return; }
+
+        previewLoss = loss;
+        RefreshBar();
+    }
+
+    public void ClearDamagePreview() => SetDamagePreview(0);
+
+    /// <summary>
+    /// Routed through RefreshBar rather than writing fillAmount directly, so a StatsChanged arriving
+    /// mid-hover (poison ticking, say) does not silently wipe the preview - HealthBarFill.Apply
+    /// overwrites healthFill's fillAmount unconditionally on every call.
+    ///
     /// The arithmetic lives in HealthBarFill, shared with SelectedCharacterPanel - the two bars show
     /// the same numbers and must not be able to disagree about what they mean.
+    /// </summary>
     private void RefreshBar()
     {
-        HealthBarFill.Apply(healthFill, shieldFill, character);
+        HealthBarFill.Apply(healthFill, shieldFill, previewFill, character, previewLoss);
     }
 
     private void RefreshIntent()

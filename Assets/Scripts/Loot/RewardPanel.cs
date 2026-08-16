@@ -45,17 +45,35 @@ public class RewardPanel : MonoBehaviour
 
     [SerializeField] private Transform skipButtonParent;
 
+    [Header("Equipment offer")]
+    [Tooltip("Spawned for each equipment choice - the equipment counterpart to cardPrefab. Plain UGUI, "
+             + "unlike cardPrefab's world-space CardViewer, since equipment has no board presence.")]
+    [SerializeField] private EquipmentViewer equipmentPrefab;
+
+    [Tooltip("Where equipment tiles are laid out - a RectTransform, since EquipmentViewer is UGUI and "
+             + "positions with anchoredPosition rather than the world position cardAnchor supplies.")]
+    [SerializeField] private RectTransform equipmentAnchor;
+
+    [SerializeField] private float equipmentSpacing = 340f;
+
     private readonly List<CardViewer> spawnedCards = new();
+
+    private readonly List<EquipmentViewer> spawnedEquipment = new();
 
     private readonly List<Button> spawnedButtons = new();
 
-    /// True once the player has chosen a card or a skip reward. LootManager's WaitUntil polls this.
+    /// True once the player has chosen a card, an item, or a skip reward. LootManager's WaitUntil polls
+    /// this.
     public bool Resolved { get; private set; }
 
-    /// The card chosen, or null if a skip was chosen (or nothing has resolved yet).
+    /// The card chosen, or null if something else was chosen (or nothing has resolved yet).
     public CardData ChosenCard { get; private set; }
 
-    /// The skip reward chosen, or null if a card was chosen instead.
+    /// The equipment chosen, or null if something else was chosen. Show and ShowEquipment are mutually
+    /// exclusive per call - only one of ChosenCard/ChosenEquipment is ever set for a given resolution.
+    public EquipmentData ChosenEquipment { get; private set; }
+
+    /// The skip reward chosen, or null if a card or item was chosen instead.
     public SkipReward ChosenSkip { get; private set; }
 
     /// <summary>
@@ -73,6 +91,7 @@ public class RewardPanel : MonoBehaviour
     {
         Resolved = false;
         ChosenCard = null;
+        ChosenEquipment = null;
         ChosenSkip = null;
 
         Clear();
@@ -82,6 +101,29 @@ public class RewardPanel : MonoBehaviour
         if (titleLabel != null) { titleLabel.text = title ?? string.Empty; }
 
         SpawnCards(candidates);
+        SpawnSkipButtons(skipRewards);
+    }
+
+    /// <summary>
+    /// The equipment counterpart to Show - same lifecycle (Resolved/Hide/skip buttons), a row of
+    /// EquipmentViewers instead of CardViewers. LootManager calls this instead of Show when a loot
+    /// roll comes up equipment, replacing the whole panel's offer rather than mixing the two in one row
+    /// - see LootManager.Drain/OfferLevelClear.
+    /// </summary>
+    public void ShowEquipment(List<EquipmentData> candidates, List<SkipReward> skipRewards, string title = null)
+    {
+        Resolved = false;
+        ChosenCard = null;
+        ChosenEquipment = null;
+        ChosenSkip = null;
+
+        Clear();
+
+        if (root != null) { root.SetActive(true); }
+
+        if (titleLabel != null) { titleLabel.text = title ?? string.Empty; }
+
+        SpawnEquipment(candidates);
         SpawnSkipButtons(skipRewards);
     }
 
@@ -127,6 +169,33 @@ public class RewardPanel : MonoBehaviour
         }
     }
 
+    private void SpawnEquipment(List<EquipmentData> candidates)
+    {
+        if (equipmentPrefab == null || equipmentAnchor == null)
+        {
+            Debug.LogError($"{name}: equipmentPrefab or equipmentAnchor not set - reward panel cannot show equipment");
+            return;
+        }
+
+        float startX = -(candidates.Count - 1) * equipmentSpacing / 2f;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            EquipmentData item = candidates[i];
+
+            if (item == null) { continue; }
+
+            EquipmentViewer viewer = Instantiate(equipmentPrefab, equipmentAnchor);
+            RectTransform rect = viewer.GetComponent<RectTransform>();
+
+            if (rect != null) { rect.anchoredPosition = new Vector2(startX + i * equipmentSpacing, 0f); }
+
+            viewer.Setup(item, ChooseEquipment);
+
+            spawnedEquipment.Add(viewer);
+        }
+    }
+
     private void SpawnSkipButtons(List<SkipReward> skipRewards)
     {
         if (skipButtonPrefab == null || skipButtonParent == null || skipRewards == null) { return; }
@@ -152,6 +221,15 @@ public class RewardPanel : MonoBehaviour
         if (Resolved) { return; }
 
         ChosenCard = data;
+        Resolved = true;
+        Hide();
+    }
+
+    private void ChooseEquipment(EquipmentData item)
+    {
+        if (Resolved) { return; }
+
+        ChosenEquipment = item;
         Resolved = true;
         Hide();
     }
@@ -182,6 +260,13 @@ public class RewardPanel : MonoBehaviour
         }
 
         spawnedCards.Clear();
+
+        foreach (EquipmentViewer viewer in spawnedEquipment)
+        {
+            if (viewer != null) { Destroy(viewer.gameObject); }
+        }
+
+        spawnedEquipment.Clear();
 
         foreach (Button button in spawnedButtons)
         {

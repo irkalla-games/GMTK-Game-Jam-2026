@@ -8,6 +8,11 @@ public class MoveEffect : CardEffect
         ActionManager.Instance.AddAction(new MoveAction(), ctx);
     }
 
+    /// Movement wants bare ground. Declared for the card face's benefit only - the refusal below does
+    /// not route through it, because MoveRefusal already answers occupancy along with everything else
+    /// it knows about standing somewhere (Rooted, the board's own edges).
+    public override TargetAudience Audience => TargetAudience.EmptyTile;
+
     // The same method MoveCharacter itself consults, so the pre-flight check and the last line of
     // defence can never disagree about where a character may stand.
     public override string Refusal(Character source, GridTile target) =>

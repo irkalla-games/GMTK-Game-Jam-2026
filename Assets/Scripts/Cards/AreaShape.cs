@@ -63,6 +63,13 @@ public struct AreaShape
 
     public bool IsSingle => kind == AreaKind.Single;
 
+    /// Meaningful only when Kind is Radius. Read by CardRulesText to say "3x3" or "diamond" rather
+    /// than making the reader infer the metric from MaxReach alone.
+    public TargetRange Radius => radius;
+
+    /// Meaningful only when Kind is Pattern, and null on a half-authored entry.
+    public EffectPattern Pattern => pattern;
+
     /// How far this footprint reaches from its aim tile, in tile steps - what an enemy brain reads as
     /// this entry's threat radius and what the card-face icon sizes itself to. 0 for Single.
     public int MaxReach => kind switch

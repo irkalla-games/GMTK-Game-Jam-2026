@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b038c3d54fa6e1b458a5586895a2e465, type: 3}
   m_Name: Poison
   m_EditorClassIdentifier: Assembly-CSharp::ApplyStatusEffect
-  aimsAt: 0
   status: 3
-  stacks: 4
+  stacks: 1
   alliesOnly: 0

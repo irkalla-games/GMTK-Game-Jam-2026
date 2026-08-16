@@ -9,9 +9,13 @@ public class DamageEffect : CardEffect
              + "wants. On, it will happily burn your own.")]
     [SerializeField] private bool canHitAllies;
 
+    /// The authored base amount before ActionContext.Amount adjusts it - what Card.PreviewDamage reads
+    /// to project a hit without a live ActionContext.
+    public int Damage => damageAmount;
+
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new DamageAction(damageAmount), ctx);
+        ActionManager.Instance.AddAction(new DamageAction(ctx.Amount(damageAmount)), ctx);
     }
 
     /// <summary>
@@ -23,13 +27,6 @@ public class DamageEffect : CardEffect
     /// Note the default is `false`: an effect asset authored before this field existed deserializes to
     /// enemies-only, which is what every damage card wants anyway.
     /// </summary>
-    public override string Refusal(Character source, GridTile target)
-    {
-        if (canHitAllies)
-        {
-            return target != null && target.Occupant != null ? null : "there is nobody there to damage";
-        }
-
-        return RefuseByOccupant(source, target, wantAlly: false);
-    }
+    public override TargetAudience Audience =>
+        canHitAllies ? TargetAudience.AnyCharacter : TargetAudience.Enemy;
 }

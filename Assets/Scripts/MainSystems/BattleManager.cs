@@ -38,7 +38,6 @@ public enum BattlePhase
 public class BattleManager : Singleton<BattleManager>
 {
     [SerializeField] private TextMeshProUGUI turnCounter;
-    [SerializeField] private TextMeshProUGUI manaCounter;
 
     [Tooltip("Plays the giant turn-count roll between the enemy's turn and the next player turn. "
              + "Optional - a scene without one rolls straight into the next turn.")]
@@ -219,8 +218,8 @@ public class BattleManager : Singleton<BattleManager>
     /// Every tile hover starts here, the same centralizing OnTileClicked already does for clicks -
     /// GridTile has no OnMouseEnter/Exit of its own, but TileSelector's do, and TotemTooltip's own
     /// collider steals them the same way it already forwards its OnMouseDown here. Refreshes the
-    /// selected card's area-of-effect preview against the hovered tile; `tile` null means the cursor
-    /// left it, which clears the preview.
+    /// selected card's aiming previews - the area footprint and the per-character damage preview -
+    /// against the hovered tile; `tile` null means the cursor left it, which clears both.
     ///
     /// Not gated on InputLocked here - TileSelector.OnMouseEnter already refuses to report a hover
     /// while a modal is up, and the exit/null path has to stay live regardless so a preview does not
@@ -228,7 +227,7 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     public void OnTileHovered(GridTile tile)
     {
-        if (CardPlayManager.Instance != null) { CardPlayManager.Instance.RefreshAreaPreview(tile); }
+        if (CardPlayManager.Instance != null) { CardPlayManager.Instance.RefreshAimPreviews(tile); }
     }
 
     /// <summary>
@@ -251,7 +250,6 @@ public class BattleManager : Singleton<BattleManager>
         
         ActiveCharacter = character;
         Debug.Log($"active character: {character.name} (energy {character.Energy}, {character.Hand.Count} in hand)");
-        ChangeActiveMana(ActiveCharacter.Energy);
         ActiveCharacterChanged?.Invoke(character);
 
         // The hand on screen is now somebody else's, so every card in it has to be re-asked against
@@ -534,7 +532,11 @@ public class BattleManager : Singleton<BattleManager>
             member.name = record.prefab.name;
 
             // Both after Instantiate, never before: Awake has already run BuildDeck and set Health to
-            // full by the time anything can reach a fresh instance.
+            // full by the time anything can reach a fresh instance. Equipment goes on first, ahead of
+            // SetDeck - BuildDeck constructs every Card through Character.NewCard, which reads the
+            // equipment list as it applies each card's modifiers, so this order is what makes a
+            // returning hero's deck arrive already tuned instead of needing a second full-deck pass.
+            member.SetEquipment(record.equipment);
             member.SetDeck(record.deck);
             member.SetHealth(record.currentHealth);
 
@@ -719,9 +721,10 @@ public class BattleManager : Singleton<BattleManager>
         {
             GridManager.Instance.ClearHoveredTiles();
             // Same staleness this whole method exists to fix, one layer up: a tile lit red by the
-            // area preview when the modal opened gets no OnMouseExit either, since the cursor never
-            // moved.
+            // area preview, or a health bar showing yellow from the damage preview, when the modal
+            // opened gets no OnMouseExit either, since the cursor never moved.
             GridManager.Instance.ClearAreaPreview();
+            GridManager.Instance.ClearDamagePreview();
         }
     }
 
@@ -811,6 +814,21 @@ public class BattleManager : Singleton<BattleManager>
         if (partyRecords.TryGetValue(character, out PartyMember record)) { record.deck.Add(card); }
     }
 
+    /// <summary>
+    /// Writes an equipped item into the run so it survives to the next level - RecordRunCard's
+    /// counterpart. Deliberately does not also call Character.Equip: LootManager already does that for
+    /// the live instance at the moment of pickup, and calling it again here would apply the same item's
+    /// Project/Apply a second time on a character who is about to be torn down anyway. A level-clear
+    /// grant, which has no live Character left to equip, is the one path that reaches this and nothing
+    /// else - see LootManager.OfferLevelClear.
+    /// </summary>
+    public void RecordRunEquipment(Character character, EquipmentData item)
+    {
+        if (character == null || item == null) { return; }
+
+        if (partyRecords.TryGetValue(character, out PartyMember record)) { record.equipment.Add(item); }
+    }
+
     private Character FirstPlayableCharacter()
     {
         foreach (Character character in characters)
@@ -848,6 +866,21 @@ public class BattleManager : Singleton<BattleManager>
             // A pickup queued on the very last action of the turn must resolve before the round rolls
             // over - otherwise EnemyResolve starts underneath a reward panel that is still up.
             yield return new WaitUntil(LootIdle);
+
+            // Heroes' hands clear the moment End Turn is pressed, not at the top of the next round -
+            // the board should read as "your turn is over" while enemies act, not still show the hand
+            // you just played. Enemies are untouched here: EnemyResolve is about to read straight out
+            // of enemy.Hand, so their own discard-and-redraw stays where it always was, in TurnStart.
+            foreach (Character hero in characters)
+            {
+                if (hero == null || hero.IsDead || !hero.IsPlayerControlled) { continue; }
+
+                hero.DiscardHand();
+            }
+
+            // The viewers are still flying to the discard pile - the round must not roll over on top
+            // of that animation, the same bargain the LootIdle wait above already strikes.
+            yield return new WaitUntil(() => ActiveHandViewer.Instance == null || !ActiveHandViewer.Instance.Busy);
 
             TickStatuses(playerControlled: true);
 
@@ -973,11 +1006,6 @@ public class BattleManager : Singleton<BattleManager>
             // started and lets each status decide what that means. See Character.OnTurnStart.
             character.OnTurnStart();
         }
-
-        // ResetEnergy refills the pool but nothing tells the counter, which otherwise keeps showing
-        // last turn's spent value until the next card is played. Refreshed here rather than from
-        // inside ResetEnergy so Character stays unaware of any UI.
-        if (ActiveCharacter != null) { ChangeActiveMana(ActiveCharacter.Energy); }
 
         // Every OnTurnStart hook has run by here - Shield has wiped itself, and none of it went
         // through an action. Anything showing a character's stats needs telling.
@@ -1286,10 +1314,5 @@ public class BattleManager : Singleton<BattleManager>
         if (run != null) { run.EndRun(); }
 
         SceneManager.LoadScene("MainMenu");
-    }
-
-    internal void ChangeActiveMana(int energy)
-    {
-        manaCounter.text = energy.ToString();
     }
 }

@@ -9,6 +9,8 @@ using UnityEngine;
 /// </summary>
 public static class OfferedCard
 {
+    /// Builds a fresh Card from `data` - the offer-screen path, where every candidate is a CardData the
+    /// player has not been dealt a copy of yet.
     public static CardViewer Spawn(
         CardViewer prefab,
         CardData data,
@@ -18,9 +20,24 @@ public static class OfferedCard
         float hoverScale,
         System.Action<CardViewer> onClick)
     {
+        return Spawn(prefab, new Card(data), position, order, restScale, hoverScale, onClick);
+    }
+
+    /// Presents an existing runtime Card instead of building a new one - the browse-a-pile path, where
+    /// the whole point is to show the character's own copies (cooldown/dormant state included) rather
+    /// than a fresh stand-in.
+    public static CardViewer Spawn(
+        CardViewer prefab,
+        Card card,
+        Vector3 position,
+        int order,
+        float restScale,
+        float hoverScale,
+        System.Action<CardViewer> onClick)
+    {
         CardViewer viewer = Object.Instantiate(prefab, position, Quaternion.identity);
 
-        viewer.Setup(new Card(data));
+        viewer.Setup(card);
         viewer.PresentAt(SortingLayers.Overlay, order, restScale, hoverScale);
         viewer.clickOverride = onClick;
 

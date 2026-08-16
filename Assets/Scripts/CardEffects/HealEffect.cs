@@ -10,7 +10,7 @@ public class HealEffect : CardEffect
 
     public override void Resolve(ActionContext ctx)
     {
-        ActionManager.Instance.AddAction(new HealAction(healAmount), ctx);
+        ActionManager.Instance.AddAction(new HealAction(ctx.Amount(healAmount)), ctx);
     }
 
     /// <summary>
@@ -26,15 +26,17 @@ public class HealEffect : CardEffect
     /// what makes the full-health rule do the right thing on both: a single-target heal is refused
     /// outright, while a splash heal stays legal and simply drops the allies who do not need it.
     /// </summary>
+    public override TargetAudience Audience =>
+        canHitEnemies ? TargetAudience.AnyCharacter : TargetAudience.Ally;
+
     public override string Refusal(Character source, GridTile target)
     {
-        string refusal = canHitEnemies
-            ? (target != null && target.Occupant != null ? null : "there is nobody there")
-            : RefuseByOccupant(source, target, wantAlly: true);
+        string refusal = base.Refusal(source, target);
 
         if (refusal != null) { return refusal; }
 
-        // Both branches above have already established there is somebody standing here.
+        // base has already established there is somebody standing here - every audience this effect
+        // can carry requires an occupant.
         Character occupant = target.Occupant;
 
         return occupant.Health >= occupant.MaxHealth

@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Summons
+  <description>k__BackingField: Summon a Skeleton Warrior.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}

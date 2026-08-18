@@ -27,15 +27,20 @@ public class PartySheetColumn : MonoBehaviour
     [SerializeField] private TMP_Text energyText;
 
     [Header("Status rows")]
-    [Tooltip("Rows stack top-down inside this, one per active status - unlike HeroPortrait's chip row " +
-        "this never caps or overflows, since reading everything in full is the point of this screen.")]
+    [Tooltip("Rows stack top-down inside this via its own VerticalLayoutGroup - unlike HeroPortrait's " +
+        "chip row this never caps how many statuses are listed, only how many are visible at once " +
+        "before scrollRoot scrolls, since reading everything in full is the point of this screen.")]
     [SerializeField] private RectTransform statusParent;
 
     [SerializeField] private StatusDetailRow rowPrefab;
 
-    [SerializeField] private float rowHeight = 56f;
+    [Tooltip("The ScrollRect wrapping statusParent - a hero carrying enough statuses to overflow the " +
+        "fixed column height scrolls rather than running off the bottom of the screen.")]
+    [SerializeField] private ScrollRect scrollRoot;
 
-    [SerializeField] private float rowSpacing = 6f;
+    [Tooltip("Shown instead of the row list when a hero is carrying nothing - the empty state used to " +
+        "just end the column, which read the same as a broken panel.")]
+    [SerializeField] private GameObject noneLabel;
 
     /// Cached because Enum.GetValues allocates a fresh array every call - same reasoning as
     /// SelectedCharacterPanel.AllTypes and HeroPortrait.AllTypes.
@@ -117,16 +122,19 @@ public class PartySheetColumn : MonoBehaviour
 
             StatusDetailRow row = RowAt(visible);
             row.Bind(icons != null ? icons.For(type) : null, title, body);
-            Place(row, visible);
 
             visible++;
         }
 
         for (int i = visible; i < rows.Count; i++) { rows[i].gameObject.SetActive(false); }
 
-        statusParent.sizeDelta = new Vector2(
-            statusParent.sizeDelta.x,
-            visible == 0 ? 0f : visible * (rowHeight + rowSpacing) - rowSpacing);
+        // Positioning is statusParent's own VerticalLayoutGroup's job now, not this method's - a row
+        // parented under a controlling layout group is placed and sized by it regardless of what its
+        // own RectTransform says, which is what let Place() (and the rowHeight/rowSpacing fields it
+        // needed) go away entirely.
+        if (noneLabel != null) { noneLabel.SetActive(visible == 0); }
+
+        if (scrollRoot != null) { scrollRoot.gameObject.SetActive(visible > 0); }
     }
 
     private StatusDetailRow RowAt(int index)
@@ -136,16 +144,5 @@ public class PartySheetColumn : MonoBehaviour
         rows[index].gameObject.SetActive(true);
 
         return rows[index];
-    }
-
-    private void Place(StatusDetailRow row, int index)
-    {
-        RectTransform rect = row.Rect;
-
-        rect.anchorMin = new Vector2(0f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = new Vector2(0f, rowHeight);
-        rect.anchoredPosition = new Vector2(0f, -index * (rowHeight + rowSpacing));
     }
 }

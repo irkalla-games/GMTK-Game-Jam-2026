@@ -105,6 +105,10 @@ public class CardViewer : MonoBehaviour
         "part of the card you can actually hit.")]
     [SerializeField] private Collider2D hitbox;
 
+    /// The same collider the tooltip anchors to, exposed so the tutorial spotlight can cut its hole
+    /// around exactly the part of the card the player can click - see TutorialSpotlight.
+    public Collider2D Hitbox => hitbox;
+
     [Header("Playability")]
     [Tooltip("The card's frame - the CardBorder child. Turned green while this card can actually be " +
         "played. Optional: without it a card still greys out, it just gains no outline.")]
@@ -171,6 +175,11 @@ public class CardViewer : MonoBehaviour
     /// What the compact box says to advertise the expanded one. A held key nobody mentions is
     /// undiscoverable, and this is the cheapest way to mention it.
     private const string ExpandHint = "Hold <b>Alt</b> for details";
+
+    /// What Status Effects or Keywords says when the card has neither - a section that is present but
+    /// empty reads as "checked and found nothing," where an absent section is indistinguishable from a
+    /// tooltip that failed to build.
+    private const string NoneBody = "None";
 
     /// Whether the expand key is currently down while this card is hovered. Kept so Update only
     /// rebuilds the box when the answer actually changes rather than every frame of a hold.
@@ -962,50 +971,82 @@ public class CardViewer : MonoBehaviour
     /// What the hover box says.
     ///
     /// Two shapes, chosen by whether the expand key is down. Compact is the card's keywords plus a
-    /// standing hint that there is more; expanded leads with the card's own mechanical readout, then
-    /// its keywords, then every status its description names.
+    /// standing hint that there is more, exactly as before - no header, no forced sections, since the
+    /// card's name is already legible on the card under the cursor. Expanded leads with the card's own
+    /// name and mechanical readout - Range/Targets/Area as their own rows now, not three lines baked
+    /// into one body string, plus an area diagram when the card spreads anywhere - then a Summons
+    /// section built straight from the card's own SummonEffect entries when it has any (no "None" -
+    /// most cards summon nothing), then two sections that are always present: every status its
+    /// description names, and its keywords. Either of those two can read "None"; a card that does not
+    /// spread, mention a status or carry a keyword is not a broken tooltip, it is a plain one, and the
+    /// reader should be told that rather than shown nothing.
     ///
-    /// The hint is why this always returns something, where the old keyword-only box was empty for an
-    /// ordinary card. A held-key detail view nobody is told about is a feature that does not exist,
-    /// and the cards that most need explaining are exactly the plain ones with no keywords to trigger
-    /// a box of their own.
+    /// The compact hint is why this always returns something, where the old keyword-only box was empty
+    /// for an ordinary card. A held-key detail view nobody is told about is a feature that does not
+    /// exist, and the cards that most need explaining are exactly the plain ones with no keywords to
+    /// trigger a box of their own.
     /// </summary>
     private TooltipContent CardTooltip()
     {
         TooltipContent content = new();
 
-        if (expandHeld) { content.Add(card.cardName.ToUpperInvariant(), RulesBody()); }
+        if (!expandHeld)
+        {
+            foreach (CardKeyword keyword in card.Keywords)
+            {
+                glossary.KeywordContent(keyword.type, keyword.magnitude, content);
+            }
 
+            content.Add(null, ExpandHint);
+
+            return content;
+        }
+
+        content.Header(card.cardName);
+        content.Stat("Range", CardRulesText.RangeLine(card));
+        content.Stat("Targets", CardRulesText.TargetsLine(card));
+        content.Stat("Area", CardRulesText.AreaLine(card));
+        content.Figure(CardAreaFigure.Build(card));
+
+        // Structural, not prose-driven: reads the card's own SummonEffect entries directly rather than
+        // hoping its description happens to name the thing it summons, the same reasoning CardRulesText
+        // never hand-types "within 5 tiles". No "None" when absent - most cards summon nothing, and a
+        // padded-empty section here would be noise the way a padded-empty area diagram would be.
+        bool anySummon = false;
+
+        foreach (CardEffectEntry entry in card.EffectEntries)
+        {
+            if (entry.effect is not SummonEffect summon) { continue; }
+
+            if (!anySummon) { content.Section("Summons"); anySummon = true; }
+
+            glossary.SummonContent(summon.SummonedObject, summon.LifetimeTurns, content);
+        }
+
+        // The active character is who the reader is asking about - it is their hand these cards are
+        // in, so their own Block is the number the sentence should quote. Same context
+        // TooltipLinkText passes for a single hovered word.
+        BattleManager battle = BattleManager.Instance;
+
+        content.Section("Status Effects");
+        int before = content.Entries.Count;
+
+        // includeSummons: false - Summons above already explains whatever this card creates straight
+        // from its SummonEffect entries, so a description that also names it (every summon card's does
+        // today) must not explain it a second time here.
+        glossary.MentionedContent(card.description, battle != null ? battle.ActiveCharacter : null, content,
+            includeSummons: false);
+        if (content.Entries.Count == before) { content.Add(null, NoneBody); }
+
+        content.Section("Keywords");
+        before = content.Entries.Count;
         foreach (CardKeyword keyword in card.Keywords)
         {
             glossary.KeywordContent(keyword.type, keyword.magnitude, content);
         }
-
-        if (expandHeld)
-        {
-            // The active character is who the reader is asking about - it is their hand these cards
-            // are in, so their own Block is the number the sentence should quote. Same context
-            // TooltipLinkText passes for a single hovered word.
-            BattleManager battle = BattleManager.Instance;
-
-            glossary.MentionedContent(card.description,
-                battle != null ? battle.ActiveCharacter : null, content);
-        }
-        else
-        {
-            content.Add(null, ExpandHint);
-        }
+        if (content.Entries.Count == before) { content.Add(null, NoneBody); }
 
         return content;
-    }
-
-    /// The card's range, audience and footprint in words - see CardRulesText, which owns the wording
-    /// so a totem's aura line and a card's range line cannot describe the same struct two ways.
-    private string RulesBody()
-    {
-        return $"Range: {CardRulesText.RangeLine(card)}\n"
-            + $"Targets: {CardRulesText.TargetsLine(card)}\n"
-            + $"Area: {CardRulesText.AreaLine(card)}";
     }
 
     public void OnMouseDown()

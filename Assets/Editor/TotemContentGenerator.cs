@@ -576,6 +576,56 @@ public static class TotemContentGenerator
         return false;
     }
 
+    /// <summary>
+    /// One-off wording fix for the three totem-only "meta" statuses - EMPOWERED/POTENT/STANDING WARD
+    /// (GainMultiplier/Potency/TurnTick) - whose bodies were originally authored generic ("Grants a
+    /// status to whoever stands in range") because Glossary.SummonContent did not yet read a totem's
+    /// own subject/magnitude/targets/timing. Now that it does (see Glossary.SummonContent's per-aura
+    /// loop), these three rows need their body text switched to the {status}/{amount}/{targets}/
+    /// {timing} template so each totem reads its own sentence instead of a shared one.
+    ///
+    /// Deliberately separate from AppendGlossaryRows: that method's idempotency is "skip a row that
+    /// already exists," which is exactly wrong here - these three rows already exist and are precisely
+    /// what needs overwriting. This converges to the same three bodies every time it is run, and never
+    /// touches any other row.
+    /// </summary>
+    [MenuItem("Tools/Cards/Update Totem Glossary Bodies")]
+    private static void UpdateMetaAuraGlossaryBodies()
+    {
+        Glossary glossary = AssetDatabase.LoadAssetAtPath<Glossary>(GlossaryPath);
+        if (glossary == null)
+        {
+            Debug.LogWarning($"Card sheet: no Glossary asset at {GlossaryPath} - skipping tooltip rows.");
+            return;
+        }
+
+        Dictionary<StatusType, string> bodies = new()
+        {
+            [StatusType.GainMultiplier] = "Multiplies {status} granted to all {targets} in range by {amount}.",
+            [StatusType.Potency] = "Adds {amount} to the potency of {status} for all {targets} in range.",
+            [StatusType.TurnTick] = "Grants {amount} {status} to all {targets} in range {timing}.",
+        };
+
+        SerializedObject so = new(glossary);
+        SerializedProperty statuses = so.FindProperty("statuses");
+
+        for (int i = 0; i < statuses.arraySize; i++)
+        {
+            SerializedProperty entry = statuses.GetArrayElementAtIndex(i);
+            StatusType type = (StatusType)entry.FindPropertyRelative("type").intValue;
+
+            if (!bodies.TryGetValue(type, out string body)) { continue; }
+
+            entry.FindPropertyRelative("body").stringValue = body;
+        }
+
+        so.ApplyModifiedProperties();
+        EditorUtility.SetDirty(glossary);
+        AssetDatabase.SaveAssets();
+
+        Debug.Log("Card sheet: updated EMPOWERED/POTENT/STANDING WARD glossary bodies.");
+    }
+
     // ------------------------------------------------------------------------------------------
 
     private static void EnsureFolder(string path)

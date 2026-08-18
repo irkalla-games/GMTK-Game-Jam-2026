@@ -1189,23 +1189,14 @@ MonoBehaviour:
   playableCharacter: 2
   characterClass: 4
   displayName: Rogue
+  portrait: {fileID: 0}
   actionPoints: 2
   brain: 0
   targetingPattern: {fileID: 0}
   startCoordinates: {x: 0, y: 0}
   itemDropPrefab: {fileID: 0}
   lootTable: {fileID: 0}
-  deck:
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6002, type: 2}
-  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6002, type: 2}
-  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6002, type: 2}
-  - {fileID: 11400000, guid: db83bbf36eb240f79a3c309c29ac4ea2, type: 2}
-  - {fileID: 11400000, guid: db83bbf36eb240f79a3c309c29ac4ea2, type: 2}
-  - {fileID: 11400000, guid: db83bbf36eb240f79a3c309c29ac4ea2, type: 2}
+  deck: []
   <Health>k__BackingField: 20
 --- !u!210 &8600000000000000001
 SortingGroup:

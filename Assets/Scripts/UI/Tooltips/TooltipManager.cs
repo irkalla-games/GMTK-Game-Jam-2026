@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,6 +20,13 @@ using UnityEngine.UI;
 /// Screen-space uGUI even though half its callers are world-space sprites. One implementation serves
 /// both because TooltipAnchor does the camera projection, and the canvas sits on the Overlay sorting
 /// layer, which is already above CardHover - so the hovered card can never draw over its own tooltip.
+///
+/// **The chrome (header bar, outline, ruled sections) is a fixed scene skeleton plus runtime-pooled
+/// rows**, not a single rich-text string. `panel`/`panelFill`/`headerRoot`/`headerRule`/`body` are
+/// built once by Tools > UI > Wire Tooltip Panel; everything inside `body` - one TooltipSectionView
+/// per TooltipContent.Section - is built and pooled at runtime by Render, since a section's row mix
+/// (three stats and a figure today, a run of terms tomorrow) is exactly the kind of shape a prefab is
+/// bad at matching. See PanelPalette for where every colour and size in that chrome comes from.
 /// </summary>
 public class TooltipManager : Singleton<TooltipManager>
 {
@@ -28,8 +34,8 @@ public class TooltipManager : Singleton<TooltipManager>
         "be a direct child of it.")]
     [SerializeField] private Canvas canvas;
 
-    [Tooltip("The box. Its width is whatever the prefab says; its height is driven by a " +
-        "ContentSizeFitter from the text inside.")]
+    [Tooltip("The outer bordered rect. Its width is fixed by PanelPalette.PanelWidth; its height is " +
+        "driven by a ContentSizeFitter from the content inside.")]
     [SerializeField] private RectTransform panel;
 
     [Tooltip("Fades the box in after showDelay. Alpha rather than SetActive so the layout has already " +
@@ -37,13 +43,15 @@ public class TooltipManager : Singleton<TooltipManager>
         "one frame.")]
     [SerializeField] private CanvasGroup canvasGroup;
 
-    [SerializeField] private TMP_Text text;
+    [Header("Skeleton (built by Tools > UI > Wire Tooltip Panel)")]
+    [SerializeField] private RectTransform panelFill;
+    [SerializeField] private RectTransform headerRoot;
+    [SerializeField] private TMP_Text headerTitle;
+    [SerializeField] private RectTransform headerRule;
+    [SerializeField] private RectTransform body;
+    [SerializeField] private TMP_FontAsset font;
 
-    [Header("Style")]
-    [SerializeField] private Color titleColor = new(1f, 0.83f, 0.48f);
-
-    [SerializeField] private Color bodyColor = new(0.88f, 0.9f, 0.94f);
-
+    [Header("Layout")]
     [Tooltip("Gap between the box and the thing it is explaining.")]
     [SerializeField] private float gap = 12f;
 
@@ -72,7 +80,7 @@ public class TooltipManager : Singleton<TooltipManager>
 
     private int nextSequence;
 
-    /// Who is currently rendered, so the text is only rebuilt when the winning request actually
+    /// Who is currently rendered, so the content is only rebuilt when the winning request actually
     /// changes rather than every frame.
     private object shownOwner;
 
@@ -82,11 +90,22 @@ public class TooltipManager : Singleton<TooltipManager>
 
     private bool faded;
 
+    /// <summary>
+    /// Whether the box is actually on screen right now - a request is live *and* it has outlasted
+    /// showDelay. Deliberately not "requests.Count > 0": during the delay a caller has asked but the
+    /// player has not been shown anything yet, and a tutorial beat waiting for "they hovered a status"
+    /// must not count that as done.
+    /// </summary>
+    public bool IsShowing => faded;
+
     /// Cached because TryResolve asks for it every frame a world-space tooltip is up, and Camera.main
     /// is a scene search.
     private Camera worldCamera;
 
-    private static readonly StringBuilder Builder = new();
+    /// Grown on demand and reused, never destroyed - the same pooling contract PartySheetColumn's rows
+    /// already use. One entry per TooltipContent.Section the box has ever needed to show at once, so a
+    /// card's three-section expanded view costs nothing to render a second time.
+    private readonly List<TooltipSectionView> sections = new();
 
     protected override void Awake()
     {
@@ -94,10 +113,12 @@ public class TooltipManager : Singleton<TooltipManager>
 
         // Log and degrade rather than throw, the same as ActiveHandViewer.Start - a half-wired
         // tooltip should cost you the tooltip, not every hover in the game.
-        if (canvas == null || panel == null || text == null)
+        if (canvas == null || panel == null || canvasGroup == null || panelFill == null
+            || headerRoot == null || headerTitle == null || headerRule == null || body == null
+            || font == null)
         {
-            Debug.LogError($"{name}: TooltipManager is missing its canvas, panel or text - no tooltips " +
-                "will show");
+            Debug.LogError($"{name}: TooltipManager is missing part of its skeleton - run " +
+                "Tools > UI > Wire Tooltip Panel, or no tooltips will show");
             enabled = false;
             return;
         }
@@ -233,114 +254,101 @@ public class TooltipManager : Singleton<TooltipManager>
     }
 
     /// <summary>
-    /// Entries into one rich-text string, rather than one child object per entry.
-    ///
-    /// A tooltip is a paragraph or three of text; giving each entry its own prefab and pooling them
-    /// would be a layout group, a ContentSizeFitter per row and a pool to maintain in exchange for
-    /// nothing TMP cannot already do with a bold line and a blank one.
+    /// Walks the content once, opening a new pooled TooltipSectionView every time a Section entry
+    /// appears and routing every Stat/Term/Figure into whichever section is currently open - the
+    /// implicit unlabelled section 0 if a caller never opens one at all, which is what lets a status
+    /// chip's single Term render as plain chrome with no heading.
     /// </summary>
     private void Render(TooltipContent content)
     {
-        string titleHex = ColorUtility.ToHtmlStringRGB(titleColor);
-        string bodyHex = ColorUtility.ToHtmlStringRGB(bodyColor);
-
-        Builder.Clear();
+        bool hasHeader = false;
+        int sectionIndex = -1;
 
         for (int i = 0; i < content.Entries.Count; i++)
         {
             TooltipEntry entry = content.Entries[i];
 
-            if (i > 0) { Builder.Append("\n\n"); }
-
-            if (!string.IsNullOrWhiteSpace(entry.title))
+            switch (entry.kind)
             {
-                Builder.Append("<b><color=#").Append(titleHex).Append('>')
-                    .Append(entry.title)
-                    .Append("</color></b>\n");
-            }
+                case TooltipEntryKind.Header:
+                    headerTitle.text = entry.title;
+                    hasHeader = true;
+                    break;
 
-            Builder.Append("<color=#").Append(bodyHex).Append('>')
-                .Append(entry.body)
-                .Append("</color>");
+                case TooltipEntryKind.Section:
+                    sectionIndex++;
+                    TooltipSectionView opened = SectionAt(sectionIndex);
+                    opened.SetActive(true);
+                    opened.BeginRender();
+                    opened.SetLabel(entry.title);
+                    break;
+
+                case TooltipEntryKind.Stat:
+                    OpenSection(ref sectionIndex).AddStat(entry.title, entry.body);
+                    break;
+
+                case TooltipEntryKind.Term:
+                    OpenSection(ref sectionIndex).AddTerm(entry.title, entry.body);
+                    break;
+
+                case TooltipEntryKind.Figure:
+                    OpenSection(ref sectionIndex).SetFigure(entry.figure);
+                    break;
+            }
         }
 
-        text.text = Builder.ToString();
+        int visibleSections = sectionIndex + 1;
 
-        // Forced now, not next frame: the box is about to be positioned from its own height, and a
-        // ContentSizeFitter that has not run yet still reports the previous entry's size.
+        for (int i = 0; i < visibleSections; i++) { sections[i].EndRender(showRule: i < visibleSections - 1); }
+
+        for (int i = visibleSections; i < sections.Count; i++) { sections[i].SetActive(false); }
+
+        headerRoot.gameObject.SetActive(hasHeader);
+        headerRule.gameObject.SetActive(hasHeader);
+
+        // Bottom-up: each section's own layout groups have to settle before Body sizes around them, and
+        // Body before the panel's ContentSizeFitter reads a height that is not the previous hover's. A
+        // single top-down ForceRebuildLayoutImmediate over the whole panel does not reliably resolve
+        // that in one pass - a section reactivated by SetActive(true) this frame still reports last
+        // frame's size on the first pass. The second pass is what makes it report the real one, and
+        // Position() reads panel.rect right after this returns.
+        LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
         LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
     }
 
-    /// <summary>
-    /// Places the box beside the anchor, flipping to the opposite side when the preferred one would
-    /// leave the screen and then clamping whatever is left.
-    ///
-    /// Both steps are needed: flipping alone still lets a tall box overhang the top, and clamping alone
-    /// would slide a card's tooltip over the card it is describing instead of moving it to the other
-    /// side.
-    /// </summary>
+    private TooltipSectionView OpenSection(ref int sectionIndex)
+    {
+        if (sectionIndex < 0)
+        {
+            sectionIndex = 0;
+            TooltipSectionView opened = SectionAt(0);
+            opened.SetActive(true);
+            opened.BeginRender();
+        }
+
+        return sections[sectionIndex];
+    }
+
+    private TooltipSectionView SectionAt(int index)
+    {
+        while (sections.Count <= index) { sections.Add(new TooltipSectionView(body, font)); }
+
+        return sections[index];
+    }
+
+    /// Places the box beside the anchor. The flip-and-clamp rule itself lives in AnchoredPlacement,
+    /// shared with the tutorial popup - see that class for why both steps are needed.
     private void Position(Rect anchorScreenRect, TooltipSide side)
     {
         RectTransform canvasRect = (RectTransform)canvas.transform;
-        Camera canvasCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
 
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, anchorScreenRect.min, canvasCamera, out Vector2 min);
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, anchorScreenRect.max, canvasCamera, out Vector2 max);
+        Vector2 position = AnchoredPlacement.Place(
+            anchorScreenRect, side, canvasRect, canvas, panel.rect.size, gap, edgePadding);
 
-        Rect local = Rect.MinMaxRect(
-            Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y),
-            Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y));
-
-        Vector2 size = panel.rect.size;
-        Rect area = canvasRect.rect;
-
-        Vector2 position = Place(local, side, size, gap);
-
-        if (!Fits(position, size, area)) { position = Place(local, Opposite(side), size, gap); }
-
-        position.x = Mathf.Clamp(position.x, area.xMin + size.x * 0.5f + edgePadding,
-            area.xMax - size.x * 0.5f - edgePadding);
-        position.y = Mathf.Clamp(position.y, area.yMin + size.y * 0.5f + edgePadding,
-            area.yMax - size.y * 0.5f - edgePadding);
-
-        // localPosition, not anchoredPosition. Everything above is in the canvas rect's local space,
-        // which is what localPosition takes; anchoredPosition is measured from the panel's own anchors
-        // and would be offset by wherever those happen to sit.
+        // localPosition, not anchoredPosition. AnchoredPlacement answers in the canvas rect's local
+        // space, which is what localPosition takes; anchoredPosition is measured from the panel's own
+        // anchors and would be offset by wherever those happen to sit.
         panel.localPosition = new Vector3(position.x, position.y, panel.localPosition.z);
-    }
-
-    /// The box's centre for this side. Centred on the anchor along the free axis - which for the
-    /// character panel puts it squarely over the panel, and for a card puts it level with the card.
-    private static Vector2 Place(Rect anchor, TooltipSide side, Vector2 size, float gap)
-    {
-        return side switch
-        {
-            TooltipSide.Below => new Vector2(anchor.center.x, anchor.yMin - gap - size.y * 0.5f),
-            TooltipSide.Right => new Vector2(anchor.xMax + gap + size.x * 0.5f, anchor.center.y),
-            TooltipSide.Left => new Vector2(anchor.xMin - gap - size.x * 0.5f, anchor.center.y),
-            _ => new Vector2(anchor.center.x, anchor.yMax + gap + size.y * 0.5f),
-        };
-    }
-
-    private static bool Fits(Vector2 centre, Vector2 size, Rect area)
-    {
-        return centre.x - size.x * 0.5f >= area.xMin
-            && centre.x + size.x * 0.5f <= area.xMax
-            && centre.y - size.y * 0.5f >= area.yMin
-            && centre.y + size.y * 0.5f <= area.yMax;
-    }
-
-    private static TooltipSide Opposite(TooltipSide side)
-    {
-        return side switch
-        {
-            TooltipSide.Above => TooltipSide.Below,
-            TooltipSide.Below => TooltipSide.Above,
-            TooltipSide.Right => TooltipSide.Left,
-            _ => TooltipSide.Right,
-        };
     }
 
     private Camera WorldCamera()

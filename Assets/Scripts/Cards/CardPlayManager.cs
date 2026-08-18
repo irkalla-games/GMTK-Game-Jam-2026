@@ -9,6 +9,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
     public bool HasSelection => selected != null;
 
+    /// Which card is armed, or null. Exposed so the tutorial can tell "they have picked up the card I
+    /// asked for" apart from "they have picked up some other card" - see TutorialDirector.
+    public Card SelectedCard => selected != null ? selected.card : null;
+
     /// Cancels a pending card selection without playing it - the same effect Escape already has.
     /// Exposed for anything that switches the active character out from under a selected card, e.g.
     /// PartyPortraitPanel, where leaving the selection pointing at a hand that just left the screen
@@ -30,6 +34,16 @@ public class CardPlayManager : Singleton<CardPlayManager>
         if (cardViewer == null || !ActiveHandViewer.Instance.Contains(cardViewer))
         {
             Debug.Log($"card clicked: {Name(cardViewer)} - ignored, not in hand (already discarded?)");
+            return;
+        }
+
+        // The tutorial permits one card per step, from the same declaration its spotlight hole came from
+        // - see TutorialDirector. Null whenever no tutorial is driving.
+        string tutorialRefusal = TutorialDirector.RefuseCard(cardViewer.card);
+
+        if (tutorialRefusal != null)
+        {
+            Debug.Log($"card clicked: {Name(cardViewer)} - ignored, {tutorialRefusal}");
             return;
         }
 

@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Move one tile in any direction, diagonals included.
+  <description>k__BackingField: Move one tile in any direction.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: d537771370c9446baed97512da971480, type: 2}
@@ -36,7 +36,10 @@ MonoBehaviour:
         minDistance: 0
         maxDistance: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField:
   - type: 1
     magnitude: 0
+  <upgradedForm>k__BackingField: {fileID: 0}

@@ -24,6 +24,12 @@ public class Glossary : ScriptableObject
     public const string AmountToken = "{amount}";
     public const string MagnitudeToken = "{magnitude}";
 
+    /// Totem-only, filled by SummonContent from AuraData.Subject/Affects/Timing rather than from a
+    /// live Status - GainMultiplier/Potency/TurnTick are aura-only types no character ever carries.
+    public const string SubjectToken = "{status}";
+    public const string TargetsToken = "{targets}";
+    public const string TimingToken = "{timing}";
+
     /// Prefixes on the <link> ids Tag writes, so the two enums cannot collide and TooltipLinkText knows
     /// which table to look the rest up in.
     private const string StatusLink = "status:";
@@ -93,19 +99,12 @@ public class Glossary : ScriptableObject
 
     [SerializeField] private List<SummonEntry> summons = new();
 
-    [Tooltip("What a hoverable term looks like inside a card's description. This tint is the only thing " +
-        "telling the player the word can be hovered at all, so it has to be visibly different from the " +
-        "surrounding text.")]
-    [SerializeField] private Color termColor = new(1f, 0.83f, 0.48f);
-
     /// Built on first use from every entry's terms and thrown away by OnValidate, so editing the asset
     /// mid-play re-tags rather than serving a stale table. Null means "not built yet".
     private Regex termPattern;
 
     /// Lower-cased term -> link id. Matching is case-insensitive, so the key has to be too.
     private Dictionary<string, string> termLinks;
-
-    public Color TermColor => termColor;
 
     private void OnValidate()
     {
@@ -124,8 +123,18 @@ public class Glossary : ScriptableObject
     /// <param name="into">Appends to this content instead of starting a new one, so a caller with
     /// several things to explain - a card carrying two keywords - builds one box rather than fighting
     /// itself for the slot.</param>
+    /// <param name="amount">Totem-only: a meta-aura's own magnitude (GainMultiplier's multiplier,
+    /// Potency's bonus, TurnTick's grant amount), filled into {amount} before `live` gets a chance at
+    /// it - no call site passes both a live status and this today, but if one ever does, this wins.</param>
+    /// <param name="subject">Totem-only: which status a meta-aura names, filled into {status}. Passed
+    /// pre-Tagged by the caller so the word is hoverable, the same as any other glossary term.</param>
+    /// <param name="targets">Totem-only: who a meta-aura reaches, filled into {targets} - "allies",
+    /// "enemies" or "everyone".</param>
+    /// <param name="timing">Totem-only, TurnTick only: which half of the round the grant lands,
+    /// filled into {timing}.</param>
     public TooltipContent StatusContent(StatusType type, int stacks = -1, Status live = null,
-        TooltipContent into = null)
+        TooltipContent into = null, int amount = -1, string subject = null, string targets = null,
+        string timing = null)
     {
         StatusEntry entry = FindStatus(type);
 
@@ -138,6 +147,11 @@ public class Glossary : ScriptableObject
         // The caller's number first, so a live status filling {stacks} afterwards cannot overwrite the
         // total the chip is actually showing.
         if (stacks >= 0) { body = body.Replace(StacksToken, stacks.ToString()); }
+
+        if (amount >= 0) { body = body.Replace(AmountToken, amount.ToString()); }
+        if (subject != null) { body = body.Replace(SubjectToken, subject); }
+        if (targets != null) { body = body.Replace(TargetsToken, targets); }
+        if (timing != null) { body = body.Replace(TimingToken, timing); }
 
         // Then the status itself - Block is the reason this is a virtual on Status rather than a
         // string.Format here, since only it knows it has an amountPerHit to contribute.
@@ -211,7 +225,12 @@ public class Glossary : ScriptableObject
     /// Tag made hoverable - a term the card highlights but this omitted would be a promise the panel
     /// then broke. De-duplicated by link id, so a description naming Poison twice is explained once.
     /// </summary>
-    public TooltipContent MentionedContent(string prose, Character context, TooltipContent into = null)
+    /// <param name="includeSummons">False skips any "summon:" term this prose names - CardViewer's own
+    /// expanded tooltip passes false because it already builds a structural Summons section straight
+    /// from the card's SummonEffect entries, and a description that also happens to name its totem
+    /// (every one does today) would otherwise explain it a second time under Status Effects.</param>
+    public TooltipContent MentionedContent(string prose, Character context, TooltipContent into = null,
+        bool includeSummons = true)
     {
         TooltipContent content = into ?? new TooltipContent();
 
@@ -226,6 +245,8 @@ public class Glossary : ScriptableObject
         foreach (Match match in termPattern.Matches(prose))
         {
             if (!termLinks.TryGetValue(match.Value.ToLowerInvariant(), out string link)) { continue; }
+
+            if (!includeSummons && link.StartsWith(SummonLink)) { continue; }
 
             if (!seen.Add(link)) { continue; }
 
@@ -269,7 +290,19 @@ public class Glossary : ScriptableObject
 
         if (totem != null)
         {
-            foreach (AuraData aura in totem.Auras) { StatusContent(aura.Type, aura.Stacks, null, content); }
+            foreach (AuraData aura in totem.Auras)
+            {
+                if (aura.HasSubject)
+                {
+                    StatusContent(aura.Type, aura.Stacks, null, content, amount: aura.Magnitude,
+                        subject: Tag(aura.Subject.ToString()), targets: AudienceWord(totem.Affects),
+                        timing: aura.Type == StatusType.TurnTick ? TimingPhrase(aura.Timing) : null);
+                }
+                else
+                {
+                    StatusContent(aura.Type, aura.Stacks, null, content);
+                }
+            }
 
             foreach (AuraReaction reaction in totem.Reactions)
             {
@@ -285,13 +318,6 @@ public class Glossary : ScriptableObject
     /// "Affects allies within 2 tiles" - the footprint AuraPulse draws, put into words.
     private static string SummonRangeLine(Totem totem)
     {
-        string audience = totem.Affects switch
-        {
-            AuraAudience.Allies => "allies",
-            AuraAudience.Enemies => "enemies",
-            _ => "everyone",
-        };
-
         string reach = totem.Range.Shape switch
         {
             RangeShape.Anywhere => "anywhere on the board",
@@ -299,8 +325,25 @@ public class Glossary : ScriptableObject
             _ => $"within {totem.Range.MaxDistance} tiles",
         };
 
-        return $"Affects {audience} {reach}";
+        return $"Affects {AudienceWord(totem.Affects)} {reach}";
     }
+
+    /// "allies"/"enemies"/"everyone" - shared by SummonRangeLine's footprint line and SummonContent's
+    /// meta-aura sentences, so a totem's audience reads the same word in both places.
+    private static string AudienceWord(AuraAudience affects) => affects switch
+    {
+        AuraAudience.Allies => "allies",
+        AuraAudience.Enemies => "enemies",
+        _ => "everyone",
+    };
+
+    /// TurnTick's only extra number besides {status}/{amount}: which half of the round AuraData.timing
+    /// says the grant lands.
+    private static string TimingPhrase(TurnTiming timing) => timing switch
+    {
+        TurnTiming.TurnStart => "at the start of every turn",
+        _ => "at the end of every turn",
+    };
 
     /// <summary>
     /// Matches a live summon back to the entry describing it, by DisplayName rather than by object
@@ -364,7 +407,10 @@ public class Glossary : ScriptableObject
 
         if (termPattern == null) { return prose; }
 
-        string hex = ColorUtility.ToHtmlStringRGB(termColor);
+        // PanelPalette.Gold, not a colour of this asset's own - see its doc comment for why the tint a
+        // hoverable word gets and the gold a tooltip's own term names use are one value, not two that
+        // happen to have started out equal.
+        string hex = ColorUtility.ToHtmlStringRGB(PanelPalette.Gold);
 
         return termPattern.Replace(prose, match =>
         {
@@ -463,7 +509,10 @@ public class Glossary : ScriptableObject
         return body
             .Replace(StacksToken, entry.defaultStacks.ToString())
             .Replace(AmountToken, entry.defaultAmount.ToString())
-            .Replace(MagnitudeToken, entry.defaultStacks.ToString());
+            .Replace(MagnitudeToken, entry.defaultStacks.ToString())
+            .Replace(SubjectToken, "a status")
+            .Replace(TargetsToken, "characters")
+            .Replace(TimingToken, "once per round");
     }
 
     private StatusEntry FindStatus(StatusType type)

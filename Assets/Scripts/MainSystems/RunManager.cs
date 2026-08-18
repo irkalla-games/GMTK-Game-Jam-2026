@@ -49,6 +49,18 @@ public class RunManager : PersistantSingleton<RunManager>
 
     private bool tutorialEnabled;
 
+    /// <summary>
+    /// The run queued behind this one, or null. Exists for the tutorial: it is a self-contained prologue
+    /// run with its own fixed party and its own one level, and clearing it should drop the player
+    /// straight into a real run rather than back at the menu.
+    ///
+    /// A field here rather than on RunData because the decision is made once, at the Main Menu, and has
+    /// to survive every scene load in between - which is exactly what this PersistantSingleton already
+    /// does for the party and the level index. Putting it on RunData would also make a campaign asset
+    /// permanently point at another one, which is a property of a session, not of the campaign.
+    /// </summary>
+    private RunData followOnRun;
+
     private readonly List<PartyMember> party = new();
 
     /// The run's roster. Members removed by death do not come back - see RemoveMember.
@@ -85,7 +97,9 @@ public class RunManager : PersistantSingleton<RunManager>
     /// rather than destroying and re-instantiating: Destroy is deferred to the end of the frame, so a
     /// fresh Instantiate in the same call would find Instance still set and destroy itself instead.
     /// </summary>
-    public static void StartRun(RunData campaign, bool showTutorial)
+    /// <param name="followOn">Started automatically when `campaign` is cleared, instead of ending the
+    /// run and returning to the menu. Null is the ordinary case - see the field's own doc comment.</param>
+    public static void StartRun(RunData campaign, bool showTutorial, RunData followOn = null)
     {
         RunManager manager = Instance;
 
@@ -95,6 +109,31 @@ public class RunManager : PersistantSingleton<RunManager>
         }
 
         manager.Begin(campaign, showTutorial);
+
+        // After Begin, which resets it along with everything else about the previous run.
+        manager.followOnRun = followOn;
+    }
+
+    /// Whether clearing the current run leads somewhere other than the menu.
+    public bool HasFollowOn => followOnRun != null;
+
+    /// <summary>
+    /// Starts the queued run and reports whether it has a level to play. Consumes the queue first, so a
+    /// follow-on that is itself cleared ends the way any other run does rather than restarting.
+    ///
+    /// Never with the tutorial: the tutorial is the thing that queued this, and running it again on the
+    /// first level of the real campaign would script a level it knows nothing about.
+    /// </summary>
+    public bool BeginFollowOn()
+    {
+        if (followOnRun == null) { return false; }
+
+        RunData next = followOnRun;
+        followOnRun = null;
+
+        Begin(next, showTutorial: false);
+
+        return CurrentLevel != null;
     }
 
     /// <summary>
@@ -152,6 +191,7 @@ public class RunManager : PersistantSingleton<RunManager>
         campaign = null;
         levelIndex = 0;
         tutorialEnabled = false;
+        followOnRun = null;
         party.Clear();
     }
 
@@ -160,6 +200,7 @@ public class RunManager : PersistantSingleton<RunManager>
         campaign = runData;
         levelIndex = 0;
         tutorialEnabled = showTutorial;
+        followOnRun = null;
         party.Clear();
 
         if (runData == null)
@@ -215,8 +256,13 @@ public class RunManager : PersistantSingleton<RunManager>
 
     private void BeginFromStartingParty(RunData runData)
     {
-        foreach (GameObject prefab in runData.StartingParty)
+        IReadOnlyList<GameObject> startingParty = runData.StartingParty;
+        IReadOnlyList<DeckData> deckOverrides = runData.StartingPartyDecks;
+
+        for (int i = 0; i < startingParty.Count; i++)
         {
+            GameObject prefab = startingParty[i];
+
             if (prefab == null) { continue; }
 
             // The one place a party prefab is a bare GameObject - see RunData.StartingParty for why it
@@ -232,10 +278,16 @@ public class RunManager : PersistantSingleton<RunManager>
                 continue;
             }
 
+            // Null, or the override list running shorter than StartingParty, means no choice was made
+            // for this slot - fall back to the prefab's own authored deck, same fallback
+            // BeginFromHeroes applies for a null PartyEntry.deck.
+            DeckData deckOverride = i < deckOverrides.Count ? deckOverrides[i] : null;
+            IReadOnlyList<CardData> cards = deckOverride != null ? deckOverride.Cards : character.AuthoredDeck;
+
             party.Add(new PartyMember
             {
                 prefab = character,
-                deck = new List<CardData>(character.AuthoredDeck),
+                deck = new List<CardData>(cards),
                 currentHealth = character.MaxHealth,
             });
         }

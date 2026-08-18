@@ -91,6 +91,21 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     public bool Contains(CardViewer cardViewer) => cardsInHand.Contains(cardViewer);
 
     /// <summary>
+    /// The on-screen viewer showing this card, or null if it is not in the hand on screen - it belongs
+    /// to a character who is not active, or it has already been played.
+    ///
+    /// Exposed for the tutorial, which has to point a spotlight and a popup at one specific card and
+    /// only knows the Card. Read-only in the same spirit as Contains: a caller may find a viewer, never
+    /// add or remove one.
+    /// </summary>
+    public CardViewer ViewerFor(Card card)
+    {
+        if (card == null) { return null; }
+
+        return cardsInHand.Find(cv => cv != null && cv.card == card);
+    }
+
+    /// <summary>
     /// Follows the battle rather than being told what to draw. Subscribing *and* reading the current
     /// active character covers both Start orderings: subscribe first and the event arrives, or
     /// subscribe late and ActiveCharacter is already set.

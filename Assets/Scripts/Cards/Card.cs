@@ -38,7 +38,13 @@ public class Card
     {
         if (!areaIconBuilt)
         {
-            areaIcon = CardAreaIconBuilder.Build(effectEntries);
+            // SelfTile's aim tile is the caster's own - Block, Parry and Shield draw their glyph
+            // centred on one cell rather than a cell apart from a caster that was never really there.
+            Vector2Int aim = range.Shape == RangeShape.SelfTile
+                ? CardAreaIconBuilder.VirtualCaster
+                : CardAreaIconBuilder.VirtualAim;
+
+            areaIcon = CardAreaIconBuilder.Build(effectEntries, aim);
             areaIconBuilt = true;
         }
 

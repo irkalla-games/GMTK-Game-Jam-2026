@@ -56,6 +56,15 @@ public class SelectedCharacterPanel : MonoBehaviour
     [Tooltip("Chips are positioned inside this. Its height is driven from the number of rows.")]
     [SerializeField] private RectTransform chipParent;
 
+    /// Which characters this instance describes, so a caller wanting the enemy panel specifically can
+    /// pick it out of the two in the scene rather than guessing from the object's name.
+    public PanelAudience Audience => audience;
+
+    /// The chip row, exposed so the tutorial spotlight can light the statuses it is telling the player
+    /// to hover. Read-only: where a chip sits is still this panel's business - see StatusChip's own doc
+    /// comment for why it owns no layout of its own.
+    public RectTransform StatusRowRect => chipParent;
+
     [Tooltip("How wide a row of chips may get before it wraps. Defaults to roughly the health bar's " +
         "width - set it independently if the row should run longer or shorter than the bar.")]
     [SerializeField] private float rowWidth = 220f;

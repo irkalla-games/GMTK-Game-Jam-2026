@@ -7,20 +7,25 @@ using UnityEngine;
 /// pick it up and hover a tile first.
 ///
 /// Pure geometry, no board: every entry is rendered as if the caster stood at a fixed virtual origin
-/// and a PlayedTile entry were aimed one tile north of it. A Source entry renders centred on that same
-/// origin instead - which is exactly how a real play would place the two relative to each other, so a
-/// card mixing "buff myself in a radius" with "damage a cone at the target" draws both shapes in their
-/// true relative arrangement, not two unrelated icons stitched together.
+/// and a PlayedTile entry were aimed one tile north of it (or, for a SelfTile card, aimed on that same
+/// origin - see Build's aimCell parameter). A Source entry renders centred on the origin regardless -
+/// which is exactly how a real play would place the two relative to each other, so a card mixing "buff
+/// myself in a radius" with "damage a cone at the target" draws both shapes in their true relative
+/// arrangement, not two unrelated icons stitched together.
+///
+/// Footprint below is the same walk, split out so CardAreaFigure can draw the identical geometry into
+/// the Alt-held tooltip's diagram - one area walk, so a card can never show two different shapes for
+/// the same footprint.
 /// </summary>
 public static class CardAreaIconBuilder
 {
     private const int PixelsPerCell = 4;
 
-    private static readonly Vector2Int VirtualCaster = Vector2Int.zero;
+    public static readonly Vector2Int VirtualCaster = Vector2Int.zero;
 
     /// One tile "north" of the caster - not a real compass direction, it only has to be consistent so
     /// every card's icon uses the same relative placement.
-    private static readonly Vector2Int VirtualAim = new(0, 1);
+    public static readonly Vector2Int VirtualAim = new(0, 1);
 
     private static readonly Color CoveredColor = new(1f, 0.35f, 0.3f, 0.9f);
     private static readonly Color AnchorColor = new(1f, 0.9f, 0.3f, 0.95f);
@@ -38,17 +43,44 @@ public static class CardAreaIconBuilder
 
     /// Never null - every card gets a marker. See SingleTargetReach for what a card with no area
     /// draws instead.
-    public static Sprite Build(IReadOnlyList<CardEffectEntry> entries)
+    ///
+    /// `aimCell` is VirtualAim for every card except SelfTile, whose aim tile *is* the caster's own -
+    /// drawing them a cell apart would be a lie about a card like Block or Parry. Card.AreaIcon is the
+    /// only caller and picks the cell from its own range.Shape.
+    public static Sprite Build(IReadOnlyList<CardEffectEntry> entries, Vector2Int aimCell)
     {
         HashSet<Vector2Int> covered = new();
         HashSet<Vector2Int> anchors = new();
+
+        int reach = Footprint(entries, aimCell, covered, anchors);
+
+        // No entry spread anywhere, so the card is single-target. Mark the aim tile alone; Render
+        // already paints an anchor that `covered` never claimed.
+        if (covered.Count == 0)
+        {
+            anchors.Add(aimCell);
+            return Render(covered, anchors, SingleTargetReach);
+        }
+
+        return Render(covered, anchors, reach);
+    }
+
+    /// <summary>
+    /// Fills `covered` and `anchors` with every cell `entries`' spreading effects reach, aimed from
+    /// `aimCell` with the caster fixed at VirtualCaster. Returns the reach a caller should size a
+    /// canvas to - 0 if nothing in `entries` spreads at all, which is the "this card is single-target"
+    /// signal both Build's own fallback and CardAreaFigure's "no diagram" key off.
+    /// </summary>
+    public static int Footprint(IReadOnlyList<CardEffectEntry> entries, Vector2Int aimCell,
+        HashSet<Vector2Int> covered, HashSet<Vector2Int> anchors)
+    {
         int reach = 0;
 
         foreach (CardEffectEntry entry in entries)
         {
             if (entry.effect == null || entry.area.IsSingle || !entry.effect.SupportsArea) { continue; }
 
-            Vector2Int aim = entry.aimsAt == EffectTarget.Source ? VirtualCaster : VirtualAim;
+            Vector2Int aim = entry.aimsAt == EffectTarget.Source ? VirtualCaster : aimCell;
             anchors.Add(aim);
 
             // +1 for the aim tile's own offset from the origin, so a PlayedTile entry's furthest cell
@@ -67,15 +99,7 @@ public static class CardAreaIconBuilder
             }
         }
 
-        // No entry spread anywhere, so the card is single-target. Mark the aim tile alone; Render
-        // already paints an anchor that `covered` never claimed.
-        if (covered.Count == 0)
-        {
-            anchors.Add(VirtualAim);
-            return Render(covered, anchors, SingleTargetReach);
-        }
-
-        return Render(covered, anchors, reach);
+        return reach;
     }
 
     private static Sprite Render(HashSet<Vector2Int> covered, HashSet<Vector2Int> anchors, int reach)

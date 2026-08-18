@@ -37,6 +37,17 @@ public class AuraData
 
     public int Stacks => stacks;
 
+    public StatusType Subject => subject;
+
+    public int Magnitude => magnitude;
+
+    public TurnTiming Timing => timing;
+
+    /// True for GainMultiplier, Potency and TurnTick - the three types CreateEffect below builds from
+    /// subject/magnitude/timing instead of StatusEffect.Create. Exposed so Glossary.SummonContent can
+    /// describe an aura from those same fields without re-deriving this exact three-type list itself.
+    public bool HasSubject => type is StatusType.GainMultiplier or StatusType.Potency or StatusType.TurnTick;
+
     /// <summary>
     /// Builds the StatusEffect this entry describes. Routes GainMultiplier, Potency and TurnTick to
     /// their own constructors - StatusEffect.Create has nowhere to put subject/magnitude/timing, the

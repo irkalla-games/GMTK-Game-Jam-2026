@@ -96,6 +96,25 @@ public class PartyPortraitPanel : MonoBehaviour
         else if (Keyboard.current.digit4Key.wasPressedThisFrame) { ActivateAt(3); }
     }
 
+    /// <summary>
+    /// Where this hero's portrait currently sits, or null if they have none - they are dead, or not
+    /// player-controlled. Looked up live rather than cached by the caller because Rebuild destroys and
+    /// re-creates the whole row whenever the roster changes, so any held reference goes stale.
+    ///
+    /// Exposed for the tutorial spotlight, which lights the portrait the player is being told to press.
+    /// </summary>
+    public RectTransform PortraitRectFor(Character hero)
+    {
+        if (hero == null) { return null; }
+
+        foreach (HeroPortrait portrait in portraits)
+        {
+            if (portrait != null && portrait.Hero == hero) { return (RectTransform)portrait.transform; }
+        }
+
+        return null;
+    }
+
     private void OnRosterChanged(Character _) => Rebuild();
 
     private void OnActiveChanged(Character _) => Layout();
@@ -130,6 +149,16 @@ public class PartyPortraitPanel : MonoBehaviour
         if (battle.InputLocked) { return; }
 
         if (battle.Phase != BattlePhase.PlayerActing && battle.Phase != BattlePhase.NotStarted) { return; }
+
+        // Here rather than in Update so it covers a portrait click too, not just the digit keys - this
+        // method is already the one door every way of switching heroes goes through.
+        string tutorialRefusal = TutorialDirector.RefuseActivate(hero);
+
+        if (tutorialRefusal != null)
+        {
+            Debug.Log($"hero activated: {hero.name} - ignored, {tutorialRefusal}");
+            return;
+        }
 
         // Before the switch: the selected card belongs to a hand that is about to leave the screen, and
         // leaving it selected would keep tiles highlighted for a card nobody can see any more.

@@ -63,10 +63,7 @@ public class BattleManager : Singleton<BattleManager>
     private const string TutorialTitle = "How to Play";
 
     private const string TutorialMessage =
-        "You are a group of adventurers waiting for your friend to open the Door. Survive until the "
-        + "turn counter reaches 0 to make it out alive! Select the Knight or Mage using the Left "
-        + "Mouse Button and then select cards to play. Each Character has their own deck and amount "
-        + "of energy each turn. Good Luck!";
+        "You are a group of adventures trying to survive the countdown. Make it to the end to beat this Level!";
 
     /// <summary>
     /// The level being played. The run answers this wherever there is one; the serialized field is the
@@ -120,6 +117,17 @@ public class BattleManager : Singleton<BattleManager>
     private bool endTurnRequested;
 
     /// <summary>
+    /// Whether End Turn has been taken and the round is winding down. Still true while PlayerActing is
+    /// the phase - RunBattle does not leave that phase until EnemyResolve actually starts, and several
+    /// waits sit in between (loot, the discard animation, the tutorial's hold).
+    ///
+    /// Exposed because "did they press End Turn" and "has the phase changed" are not the same question,
+    /// and anything waiting on the press specifically - see TutorialDirector.EndTurn - deadlocks against
+    /// its own hold if it asks the second one.
+    /// </summary>
+    public bool EndTurnRequested => endTurnRequested;
+
+    /// <summary>
     /// Set whenever something the intent recompute cares about might have changed - an action
     /// resolving, a character's stats changing, or one joining or leaving the board - and drained once
     /// per frame in LateUpdate. Coalescing this way means a card that queues three actions produces one
@@ -161,7 +169,19 @@ public class BattleManager : Singleton<BattleManager>
     /// back is a decision the player is allowed to make.
     public void RequestEndTurn()
     {
-        if (Phase == BattlePhase.PlayerActing && !InputLocked) { endTurnRequested = true; }
+        if (Phase != BattlePhase.PlayerActing || InputLocked) { return; }
+
+        // One door for both the button and the Enter key in Update, so the tutorial only has to be asked
+        // once - see TutorialDirector.
+        string tutorialRefusal = TutorialDirector.RefuseEndTurn();
+
+        if (tutorialRefusal != null)
+        {
+            Debug.Log($"end turn requested - ignored, {tutorialRefusal}");
+            return;
+        }
+
+        endTurnRequested = true;
     }
 
     /// <summary>
@@ -187,6 +207,18 @@ public class BattleManager : Singleton<BattleManager>
         if (Phase != BattlePhase.PlayerActing && Phase != BattlePhase.NotStarted)
         {
             Debug.Log($"tile clicked: {tile.Coordinates} - ignored, not the player's turn ({Phase})");
+            return;
+        }
+
+        // Above the dispatch below, so it covers both meanings a tile click can have - playing the
+        // selected card here, and picking up whoever is standing here. The tutorial permits one specific
+        // tile per step and it is the same declaration the spotlight's hole came from, so a lit tile is
+        // exactly a clickable one.
+        string tutorialRefusal = TutorialDirector.RefuseTile(tile);
+
+        if (tutorialRefusal != null)
+        {
+            Debug.Log($"tile clicked: {tile.Coordinates} - ignored, {tutorialRefusal}");
             return;
         }
 
@@ -440,15 +472,29 @@ public class BattleManager : Singleton<BattleManager>
     /// StartCoroutine(RunBattle): an exception here would leave a battle that looks alive - clicking
     /// a character still works - but never draws a card. See the doc on ActiveCharacterChanged.
     ///
-    /// RunBattle deliberately starts behind the prompt rather than waiting for it. InputLocked is
-    /// true while it is up, so nothing can be played and the turn cannot be ended; the player just
-    /// watches the board deal itself in while they read.
+    /// RunBattle deliberately starts behind the tutorial rather than waiting for it - the director's
+    /// own first step waits for PlayerActing, so the board deals itself in underneath the opening box.
+    ///
+    /// Hands off to TutorialDirector where there is one and falls back to the old single modal where
+    /// there is not, so a scene without the tutorial overlay wired up still explains itself rather than
+    /// silently teaching nothing.
     /// </summary>
     private void ShowTutorialIfWanted()
     {
         RunManager run = RunManager.Instance;
 
         if (run == null || !run.TutorialEnabled || run.LevelNumber != 1) { return; }
+
+        if (TutorialDirector.Instance != null && TutorialDirector.Instance.Begin()) { return; }
+
+        // Loud, not silent. This run explicitly asked for the tutorial, so a missing director is a
+        // half-wired scene, not a preference - and the fallback below looks enough like success (a
+        // "How to Play" box appears) that it otherwise hides the problem completely: no dimming, no
+        // spotlight, and nothing stopping the player doing whatever they like.
+        Debug.LogError($"{name}: this run asked for the tutorial but there is no TutorialDirector in "
+                       + "the scene - run Tools > Tutorial > 2 - Wire Tutorial Overlay and save. "
+                       + "Falling back to the old How to Play prompt.");
+
         if (NotificationManager.Instance == null) { return; }
 
         NotificationManager.Instance.Show(TutorialTitle, TutorialMessage);
@@ -888,6 +934,13 @@ public class BattleManager : Singleton<BattleManager>
             // side like TickStatuses. See GridManager.TickTileEffects.
             if (GridManager.Instance != null) { GridManager.Instance.TickTileEffects(); }
 
+            // The tutorial explains what the discard meant and what the enemy is about to do, and both
+            // beats have to land in this gap - after the hand has cleared, before anything acts on it.
+            // Same shape as the two waits above: the round must not roll over on top of something still
+            // finishing.
+            yield return new WaitUntil(() =>
+                TutorialDirector.Instance == null || !TutorialDirector.Instance.HoldingRound);
+
             yield return StartCoroutine(EnemyResolve());
 
             int turnsBefore = TurnsRemaining;
@@ -945,9 +998,19 @@ public class BattleManager : Singleton<BattleManager>
         // the last level by any useful definition.
         bool finalLevel = run == null || run.IsFinalLevel;
 
+        // A cleared run with another queued behind it is not the end of anything - it is the tutorial
+        // handing over. Checked before the final-level branch, because the tutorial *is* its run's final
+        // level and would otherwise be congratulated for finishing the game.
+        bool handingOver = run != null && run.HasFollowOn;
+
         if (NotificationManager.Instance != null)
         {
-            if (finalLevel)
+            if (handingOver)
+            {
+                NotificationManager.Instance.Show("Ready",
+                    "That is everything you need. The real run starts now - same heroes, full decks.");
+            }
+            else if (finalLevel)
             {
                 NotificationManager.Instance.Show("Victory", "The party made it out!");
             }
@@ -1305,6 +1368,16 @@ public class BattleManager : Singleton<BattleManager>
         if (run != null && run.AdvanceLevel())
         {
             Debug.Log($"battle over: victory - on to level {run.LevelNumber}");
+            SceneManager.LoadScene("Game");
+            return;
+        }
+
+        // A cleared run with something queued behind it rolls straight on rather than ending. The
+        // tutorial is the reason: it is its own prologue run, and finishing it should hand the player a
+        // real party on their starter decks, not drop them back at the menu to press Play again.
+        if (run != null && run.BeginFollowOn())
+        {
+            Debug.Log("battle over: victory - tutorial complete, starting the run proper");
             SceneManager.LoadScene("Game");
             return;
         }

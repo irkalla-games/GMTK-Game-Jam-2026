@@ -313,7 +313,15 @@ public class LootManager : Singleton<LootManager>
 
             if (!card.CanBeUsedBy(picker)) { continue; }
 
-            if (seen.Add(card)) { seeded.Add(card); }
+            // Listed twice means offered twice - LootTable.guaranteedCards' own tooltip already promises
+            // "each one takes a slot out of choiceCount", and a table that wants three of the same card
+            // is the whole reason to say so. Deliberately not gated on seen.Add: that would silently
+            // collapse the repeat into one slot and quietly fill the rest at random.
+            //
+            // Still recorded in `seen`, so the random fill below cannot offer a fourth copy of something
+            // already guaranteed.
+            seen.Add(card);
+            seeded.Add(card);
         }
 
         if (seeded.Count > table.ChoiceCount)

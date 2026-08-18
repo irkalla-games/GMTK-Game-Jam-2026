@@ -97,6 +97,17 @@ public class GridManager : Singleton<GridManager>
         return tiles.GetValueOrDefault(position);
     }
 
+    /// <summary>
+    /// Every tile on the board, in no meaningful order - Dictionary.Values makes no ordering promise, so
+    /// anything that cares must sort by Coordinates itself.
+    ///
+    /// Exposed because `tiles` is private and callers that want to ask a question of the whole board
+    /// otherwise have to walk a coordinate range and GetTile each cell, which quietly assumes the board
+    /// is rectangular and gapless. The tutorial spotlight is the current caller: "every tile this card
+    /// may be aimed at" is exactly that kind of question.
+    /// </summary>
+    public IEnumerable<GridTile> AllTiles => tiles.Values;
+
 
     public bool IsTileAvailable(Vector2Int position)
     {

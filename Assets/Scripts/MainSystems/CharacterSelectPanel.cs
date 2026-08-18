@@ -130,7 +130,11 @@ public class CharacterSelectPanel : MonoBehaviour
 
         RunData run = RunData.CreateRuntime(campaign.Levels, entries, campaign.CarryDamageBetweenLevels);
 
-        RunManager.StartRun(run, GameSettings.TutorialEnabled);
+        // Never with the tutorial. It is its own prologue run now, with its own fixed party and its own
+        // scripted level - see MainMenu.TryStartTutorial, which is the only path that ever reaches it.
+        // Passing the setting through here would point the director at whatever level 1 of the real
+        // campaign happens to be, and it would script a board it knows nothing about.
+        RunManager.StartRun(run, showTutorial: false);
 
         SceneManager.LoadScene("Game");
     }

@@ -1035,24 +1035,14 @@ MonoBehaviour:
   playableCharacter: 2
   characterClass: 2
   displayName: Mage
+  portrait: {fileID: 0}
   actionPoints: 2
   brain: 0
   targetingPattern: {fileID: 0}
   startCoordinates: {x: 4, y: 0}
   itemDropPrefab: {fileID: 0}
   lootTable: {fileID: 0}
-  deck:
-  - {fileID: 11400000, guid: aaf80d8da0ea4c228b87cbad0b9af242, type: 2}
-  - {fileID: 11400000, guid: aaf80d8da0ea4c228b87cbad0b9af242, type: 2}
-  - {fileID: 11400000, guid: aaf80d8da0ea4c228b87cbad0b9af242, type: 2}
-  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6004, type: 2}
-  - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6004, type: 2}
-  - {fileID: 11400000, guid: b0de35f4e0b135845b19e60120fd3205, type: 2}
-  - {fileID: 11400000, guid: b0de35f4e0b135845b19e60120fd3205, type: 2}
-  - {fileID: 11400000, guid: b0de35f4e0b135845b19e60120fd3205, type: 2}
-  - {fileID: 11400000, guid: 576ab6616f9067d458e6811318815c6c, type: 2}
-  - {fileID: 11400000, guid: 93cab38da2c31ed409077c18f3807992, type: 2}
-  - {fileID: 11400000, guid: 52e101b3e4c5baa4cb2771825ac229a6, type: 2}
+  deck: []
   <Health>k__BackingField: 10
 --- !u!210 &8600000000000000001
 SortingGroup:

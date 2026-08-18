@@ -118,20 +118,19 @@ MonoBehaviour:
     defaultAmount: 3
     type: 16
   - title: EMPOWERED
-    body: Doubles the stacks of whatever status this totem empowers, whenever it
-      is applied.
+    body: Multiplies {status} granted to all {targets} in range by {amount}.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 17
   - title: POTENT
-    body: Strengthens whatever status this totem empowers, without changing its stacks.
+    body: Adds {amount} to the potency of {status} for all {targets} in range.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 18
   - title: STANDING WARD
-    body: Grants a status to whoever stands in range, once every round.
+    body: Grants {amount} {status} to all {targets} in range {timing}.
     terms: []
     defaultStacks: 1
     defaultAmount: 1

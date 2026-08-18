@@ -40,6 +40,13 @@ public class RunData : ScriptableObject
              + "opening Game.unity directly and pressing Play (EnsureRun) still needs no menu.")]
     [SerializeField] private List<GameObject> startingParty = new();
 
+    [Tooltip("Starting-deck override for StartingParty, index for index - the standalone-play "
+             + "counterpart to PartyEntry.deck. A shorter list, or a null/empty entry, falls back to "
+             + "that index's prefab's own authored deck, same meaning PartyEntry.deck == null already "
+             + "carries into StartingHeroes. Lets Game.unity be played directly with a chosen starter "
+             + "deck instead of always the prefab's own.")]
+    [SerializeField] private List<DeckData> startingPartyDecks = new();
+
     [Tooltip("The party as chosen at the character-select screen: who, and which starting deck each "
              + "took. RunManager.Begin prefers this over StartingParty whenever it is non-empty - see "
              + "that method for the exact fallback order.")]
@@ -65,6 +72,10 @@ public class RunData : ScriptableObject
     /// GetComponent at the start of a run and nothing downstream ever sees a GameObject.
     /// </summary>
     public IReadOnlyList<GameObject> StartingParty => startingParty;
+
+    /// Deck override for StartingParty, index for index - see RunManager.BeginFromStartingParty for how
+    /// a missing or null entry falls back to that prefab's own authored deck.
+    public IReadOnlyList<DeckData> StartingPartyDecks => startingPartyDecks;
 
     /// The party chosen at character select, or empty for an asset authored the old way (StartingParty
     /// only) - see RunManager.Begin for how the two are reconciled.

@@ -226,6 +226,30 @@ MonoBehaviour loses the link. Rename or edit in place instead.
 longer be instantiated. `Assets/Data/New Card.asset` is currently in this state; delete it and
 recreate via **Assets → Create → Card Data → Bash**.
 
+**Never `??` or `?.` a `UnityEngine.Object`.** Both test *reference* null, which bypasses Unity's
+overloaded `==` — and that overload is the only thing reporting a missing or destroyed object as null.
+`GetComponent<T>()` on an object without that component returns a **fake-null**: null by `==`, a real
+reference to `??`. So `GetComponent<Canvas>() ?? AddComponent<Canvas>()` never adds anything and throws
+`MissingComponentException` on the next property set. Write the two-line form, as `TooltipPanelWiring`,
+`CharacterSelectWiring` and `PartyPortraitWiring` all do, or reuse `TutorialWiring.Ensure<T>`. `?.` is
+only safe guarding an expression that returns a *literal* null after an explicit `!= null` test — see
+`TutorialDirector.Active`. (The `Tweener?.Kill()` calls in `TurnTransitionViewer` are fine for the
+opposite reason: `Tweener` is a plain C# class, not a `UnityEngine.Object`.)
+
+**Never wrap asset generation in `AssetDatabase.StartAssetEditing()`.** It defers every import in the
+block, so `LoadAssetAtPath` returns null for anything created in that same block — and the failure is
+silent. Every file appears, so the Project window looks right, while every cross-reference is written
+as `{fileID: 0}` and every `SerializedObject` edit to a just-created asset is dropped. Create in
+dependency order and pass each new asset *down as a live object* instead of re-loading it by path; see
+`TutorialContentGenerator`. In-game this surfaces as a **default-size board with nothing on it** —
+`RunManager.CurrentLevel` null means `BuildGrid(Vector2Int.zero)` falls back to `GridManager`'s own
+width/height and both `SpawnParty` and `SpawnEnemies` early-return.
+
+**A content generator should repair, not skip.** Reuse an existing asset rather than recreating it, but
+re-write every field it owns on every run. A bare `if (Exists(path)) return;` guard makes a half-built
+set permanently unfixable except by deleting files by hand — which is exactly the state the bug above
+leaves behind. Tune numbers in the Inspector *after* the last run, or lift them into constants.
+
 ## Not implemented yet
 
 Marked with TODOs in the code: enemy behaviour (non-player characters just stand there), and win/loss

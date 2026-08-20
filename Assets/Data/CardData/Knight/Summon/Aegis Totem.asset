@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Aegis Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Aegis Totem
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 3
   <range>k__BackingField:
     shape: 1
     minDistance: 1

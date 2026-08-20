@@ -29,8 +29,8 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Totem Anchor
   <description>k__BackingField: Totems you summon have +7 max health.
   <icon>k__BackingField: {fileID: 0}
-  <rarity>k__BackingField: 1
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 2
+  <requiredClass>k__BackingField: 1
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
   - {fileID: -8637072470363726039}

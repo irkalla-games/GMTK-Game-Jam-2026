@@ -17,7 +17,7 @@ MonoBehaviour:
   <range>k__BackingField:
     shape: 1
     minDistance: 1
-    maxDistance: 5
+    maxDistance: 4
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
@@ -38,6 +38,6 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
-  <animation>k__BackingField: {fileID: 0}
+  <animation>k__BackingField: {fileID: 11400000, guid: 98a9f2184e7b4244a8c65086abc78ef7, type: 2}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}

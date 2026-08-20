@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Flame Cone
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Flame Cone
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
     minDistance: 1

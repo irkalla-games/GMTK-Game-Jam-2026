@@ -135,6 +135,12 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 19
+  - title: SUMMONED
+    body: 
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 13
   keywords:
   - title: INNATE
     body: Always in hand. Never enters the draw or discard pile.
@@ -185,4 +191,3 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     effect: {fileID: 11400000, guid: 135d0d26bd99e5048a638aa4fb759c76, type: 2}
-  termColor: {r: 1, g: 0.83, b: 0.48, a: 1}

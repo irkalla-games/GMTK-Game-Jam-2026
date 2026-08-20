@@ -450,11 +450,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 15
+  maxHealth: 10
   maxEnergy: 3
   playableCharacter: 0
   characterClass: 0
   displayName: Ranger
+  portrait: {fileID: 0}
   actionPoints: 1
   brain: 2
   targetingPattern: {fileID: 11400000, guid: e524a064f223458cabbccbce2e1506cf, type: 2}
@@ -465,9 +466,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
-  - {fileID: 11400000, guid: e0f2734ed1017c7419f5d21d3fb737f4, type: 2}
+  - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
-  <Health>k__BackingField: 15
+  <Health>k__BackingField: 10
 --- !u!95 &4795317427983224773
 Animator:
   serializedVersion: 7

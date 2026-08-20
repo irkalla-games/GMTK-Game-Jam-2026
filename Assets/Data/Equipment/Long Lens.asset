@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
   m_Name: Long Lens
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
-  <equipmentName>k__BackingField: Long Lens
+  <equipmentName>k__BackingField: Longsword
   <description>k__BackingField: Attack cards gain +1 range.
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 2
-  <requiredClass>k__BackingField: 0
+  <requiredClass>k__BackingField: 1
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
   - {fileID: 9050544749300768188}

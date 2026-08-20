@@ -10,9 +10,66 @@ public class GridManager : Singleton<GridManager>
     [SerializeField] private int width = 5;
     [SerializeField] private int height = 6;
 
+    [Tooltip("World size of one cell's top face - the pitch the board is laid out on, not the size of "
+             + "the sprite that draws it. x must be twice y for a 2:1 isometric board, which is the "
+             + "shape every block in the art pack is drawn at. 2.0 x 1.0 is one 64px block at 32 "
+             + "pixels per unit, so blocks render at scale 1.")]
+    [SerializeField] private Vector2 cellSize = new(2f, 1f);
+
+    [Tooltip("Outline drawn around every tile. The tiles meet edge to edge now, so without it the "
+             + "board reads as one continuous wash with no visible cell boundaries. Alpha 0 turns it "
+             + "off.")]
+    [SerializeField] private Color tileBorderColor = new(0f, 0f, 0f, 0.45f);
+
+    [Tooltip("Border thickness as a fraction of a cell's half-width, measured horizontally. 0.05 is "
+             + "about 6 pixels of the source diamond's 128.")]
+    [Range(0.005f, 0.3f)]
+    [SerializeField] private float tileBorderThickness = 0.05f;
+
     [Header("Tile Setup")]
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Transform tileParent;
+
+    [Tooltip("Builds the block floor and the wall along the two far edges. Lives on the same object "
+             + "the tiles are parented to, so the whole board tears down together.")]
+    [SerializeField] private BoardVisuals boardVisuals;
+
+    public Vector2 CellSize => cellSize;
+
+    /// <summary>
+    /// The board this level actually built, as opposed to the serialized fallback above.
+    ///
+    /// BuildGrid used to throw its argument away, which was fine while nothing needed it. The wall
+    /// ring, the depth sort and the camera fit all do: every one of them is a question about the
+    /// board as a whole rather than about any one tile, and deriving the extent by walking the
+    /// dictionary would answer it differently the moment the board stops being a full rectangle.
+    /// </summary>
+    public Vector2Int BoardSize { get; private set; }
+
+    /// <summary>
+    /// Sorting orders reserved per cell. A cell needs more than one: its tile sits above the floor
+    /// block, its aura and tile-effect overlays sit just below the tile, and a stacked wall needs one
+    /// order per block. Four is enough for all of that with room to spare, and keeps consecutive
+    /// cells from ever colliding.
+    /// </summary>
+    public const int DepthStride = 4;
+
+    /// <summary>
+    /// How far forward a cell is - 0 at the very back, rising toward the camera.
+    ///
+    /// `+x` runs up-right and `+y` up-left, so `x + y` grows *away* from the camera and this is its
+    /// complement. Anything drawn on the board sorts by it: a cube overlaps what is behind it, so
+    /// back-to-front is the only order that does not have a tile painting over the one in front.
+    ///
+    /// Accepts the phantom wall cells at `x == BoardSize.x` and `y == BoardSize.y` too - it is plain
+    /// arithmetic on the board extent, not a dictionary lookup, precisely so the wall ring can share
+    /// one depth rule with the floor instead of inventing a second one.
+    /// </summary>
+    public int CellDepth(Vector2Int cell) => (BoardSize.x + BoardSize.y) - (cell.x + cell.y);
+
+    /// The base sorting order for everything drawn on `cell`. Sub-layers offset from here - see the
+    /// stride above.
+    public int CellSortingOrder(Vector2Int cell) => CellDepth(cell) * DepthStride;
 
     [Tooltip("How long a step's tween takes. MoveAction waits this exact number rather than the "
              + "unrelated ActionManager pacing delay, which used to only coincidentally match it, and "
@@ -42,11 +99,49 @@ public class GridManager : Singleton<GridManager>
     /// A size of zero or less on either axis falls back to the serialized width/height, which keeps a
     /// LevelData authored before boardSize existed - Level1 is one - building the board it always did.
     /// </summary>
-    public void BuildGrid(Vector2Int size)
+    public void BuildGrid(Vector2Int size, TileSetData tileSet = null, int seed = 0)
     {
         ClearGrid();
 
-        CreateGrid(size.x > 0 ? size.x : width, size.y > 0 ? size.y : height);
+        BoardSize = new Vector2Int(size.x > 0 ? size.x : width, size.y > 0 ? size.y : height);
+
+        // Before the tiles, and before the visuals: both ask CellSortingOrder, which is derived from
+        // BoardSize. Setting it after would sort the whole board against the *previous* level's size.
+        CreateGrid(BoardSize.x, BoardSize.y);
+
+        if (boardVisuals != null) { boardVisuals.Build(BoardSize, tileSet, seed); }
+    }
+
+
+    /// <summary>
+    /// The footprint the camera has to fit: every floor block, the skirt hanging below the front
+    /// edge, and the wall standing above the back two.
+    ///
+    /// Measured from the built visuals wherever they exist, because the cube skirt and the wall
+    /// height are properties of the art rather than of the cell grid - a taller wall has to move the
+    /// camera and nothing but the renderers knows how tall it ended up. Falls back to the flat ring
+    /// of tile centres when there is no floor art, so a board with an unauthored tileset still frames
+    /// sensibly instead of collapsing to a point.
+    /// </summary>
+    public Bounds BoardBounds
+    {
+        get
+        {
+            if (boardVisuals != null && boardVisuals.HasBuilt) { return boardVisuals.Bounds; }
+
+            Bounds flat = new(IsoToWorld(0, 0), Vector3.zero);
+
+            foreach (GridTile tile in tiles.Values)
+            {
+                flat.Encapsulate(tile.transform.position);
+            }
+
+            // The tile centres alone describe a diamond one cell too small on every side, since a
+            // centre is half a cell in from the edge it sits on.
+            flat.Expand(new Vector3(cellSize.x, cellSize.y, 0f));
+
+            return flat;
+        }
     }
 
 
@@ -81,14 +176,58 @@ public class GridManager : Singleton<GridManager>
                 // GridTile is a MonoBehaviour, so it must live on an instance - never `new`'d.
                 GameObject go = Instantiate(tilePrefab, tileParent);
                 go.transform.position = IsoToWorld(position.x, position.y);
+                go.transform.localScale = TileScale(go);
 
                 GridTile tile = go.GetComponent<GridTile>();
                 if (tile == null) { tile = go.AddComponent<GridTile>(); }
                 tile.Init(position);
 
+                // Back to front, same rule the floor blocks under it use. Without this every tile
+                // sits at order 0 and Unity falls back to distance, which for a flat 2D board is a
+                // coin toss - and a tile drawn over the one in front of it shows through the cube
+                // standing on it.
+                SpriteRenderer renderer = go.GetComponent<SpriteRenderer>();
+                if (renderer != null) { renderer.sortingOrder = CellSortingOrder(position); }
+
+                // After the sorting order is set, not before: the border takes its own order from the
+                // tile's, so it would otherwise stack itself against a stale 0.
+                if (tileBorderColor.a > 0f)
+                {
+                    TileBorder.AttachTo(tile, tileBorderColor, tileBorderThickness);
+                }
+
                 tiles.Add(position, tile);
             }
         }
+    }
+
+
+    /// <summary>
+    /// Scales a tile so its diamond is exactly one cell, rather than trusting the scale authored on
+    /// the prefab.
+    ///
+    /// The prefab carries 2.5, which was right when a cell was 3.0 x 1.5 and wrong the moment the
+    /// pitch changed - the diamonds came out 25% oversized and overlapped their neighbours. Deriving
+    /// it means cellSize is the single number that decides how big a cell is, and the highlight can
+    /// never disagree with the floor block underneath it again.
+    ///
+    /// Derived from the sprite the same way BoardVisuals.ScaleFor derives the block scale. Scaling the
+    /// transform also scales the PolygonCollider2D, so what you can click stays exactly what you can
+    /// see. Falls back to the authored scale if there is no sprite to measure.
+    /// </summary>
+    private Vector3 TileScale(GameObject tile)
+    {
+        SpriteRenderer renderer = tile.GetComponent<SpriteRenderer>();
+
+        if (renderer == null || renderer.sprite == null) { return tile.transform.localScale; }
+
+        Sprite sprite = renderer.sprite;
+
+        if (sprite.pixelsPerUnit <= 0f || sprite.rect.width <= 0f) { return tile.transform.localScale; }
+
+        float scale = cellSize.x / (sprite.rect.width / sprite.pixelsPerUnit);
+
+        return new Vector3(scale, scale, 1f);
     }
 
 
@@ -586,15 +725,25 @@ public class GridManager : Singleton<GridManager>
     }
 
     
+    /// <summary>
+    /// Where a cell sits in world space.
+    ///
+    /// The 2:1 isometric mapping: `+x` runs up-right and `+y` up-left, which is what puts the party
+    /// on the right of the screen and the enemies on the left given how the levels are authored. That
+    /// orientation is load-bearing - every level's spawn cells were placed against it - so the signs
+    /// here are not free to change.
+    ///
+    /// Cell (0,0) sits at the world origin. There is deliberately no origin offset any more: the old
+    /// `+1.1 / +2.6` was tuned to centre one particular 5x6 board under a camera that could not move,
+    /// so every other size drifted - the 3x6 tutorial board visibly sat left of centre. Framing is
+    /// BoardCamera's job now, and it can only do it if the board is somewhere predictable.
+    /// </summary>
     public Vector3 IsoToWorld(int x, int y)
     {
-        float tileWidth = 3f;
-        float tileHeight = 1.5f;
-
         return new Vector3(
-            ((x - y) * tileWidth / 2) + 1.1f,
-            ((x + y) * tileHeight / 2) + 2.6f,
-            0);
+            (x - y) * cellSize.x / 2f,
+            (x + y) * cellSize.y / 2f,
+            0f);
     }
-    
+
 }

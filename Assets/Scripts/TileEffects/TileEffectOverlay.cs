@@ -9,9 +9,10 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class TileEffectOverlay : MonoBehaviour
 {
-    /// One order below TileAuraOverlay's Depth (-1), still above the isometric floor art at
-    /// Background/10 and below the tile's own sprite at Grid/0.
-    private const int Depth = -2;
+    /// One order below TileAuraOverlay, and like it measured *relative to the tile* rather than
+    /// absolutely - tiles now carry a per-cell sorting order so the board draws back to front. See
+    /// TileAuraOverlay.DepthBelowTile and GridManager.DepthStride.
+    private const int DepthBelowTile = -2;
 
     private SpriteRenderer spriteRenderer;
 
@@ -31,11 +32,16 @@ public class TileEffectOverlay : MonoBehaviour
 
         go.transform.SetParent(tile.transform, false);
 
+        // SetParent does not carry the layer across, and a fresh GameObject starts on Default - which
+        // the board camera culls and the fixed UI camera happily draws, putting the overlay somewhere
+        // else on screen entirely. See GameLayers.
+        go.layer = tile.gameObject.layer;
+
         SpriteRenderer overlayRenderer = go.AddComponent<SpriteRenderer>();
         overlayRenderer.sprite = tileRenderer.sprite;
         overlayRenderer.sharedMaterial = tileRenderer.sharedMaterial;
         overlayRenderer.sortingLayerName = SortingLayers.Grid;
-        overlayRenderer.sortingOrder = Depth;
+        overlayRenderer.sortingOrder = tileRenderer.sortingOrder + DepthBelowTile;
         overlayRenderer.color = Color.clear;
 
         return go.AddComponent<TileEffectOverlay>();

@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4980562923415645347}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -54,7 +54,7 @@ GameObject:
   - component: {fileID: 7674222811225578017}
   - component: {fileID: 6507324568961498961}
   - component: {fileID: 3742653463941995251}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AegisTotem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -256,7 +256,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4726119901187650945}
   - component: {fileID: 3358397233621751379}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -349,7 +349,7 @@ GameObject:
   - component: {fileID: 5569249437301965157}
   - component: {fileID: 3833106429276201511}
   - component: {fileID: 2133532212689541185}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -424,7 +424,7 @@ GameObject:
   - component: {fileID: 95314016830028652}
   - component: {fileID: 1848533351428546815}
   - component: {fileID: 1326285507314646815}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -499,7 +499,7 @@ GameObject:
   - component: {fileID: 4357807753000902535}
   - component: {fileID: 7572099034832451438}
   - component: {fileID: 8866070464943523612}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -575,7 +575,7 @@ GameObject:
   - component: {fileID: 4258820693649924842}
   - component: {fileID: 2670144468635507858}
   - component: {fileID: 3385367922120874103}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6625068454592218486}
   - component: {fileID: 1448999324311068533}
   - component: {fileID: 665997074078931627}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 3923148402686246664}
   - component: {fileID: 3972141982540474408}
   - component: {fileID: 4783360993540319041}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 7360414402487780940}
   - component: {fileID: 1445149284873421533}
   - component: {fileID: 7038471952900030700}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -237,7 +237,7 @@ GameObject:
   - component: {fileID: 5103383016206025802}
   - component: {fileID: 2640885331632465311}
   - component: {fileID: 4909592764687546049}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -338,7 +338,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6147044982489675072}
   - component: {fileID: 6966691179229838821}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -429,7 +429,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6847807511949056248}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +474,7 @@ GameObject:
   - component: {fileID: 7965105339561769164}
   - component: {fileID: 4214019353582046402}
   - component: {fileID: 6134762961628098329}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: WarcryTotem
   m_TagString: Untagged
   m_Icon: {fileID: 0}

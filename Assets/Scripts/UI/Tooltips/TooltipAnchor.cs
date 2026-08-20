@@ -67,13 +67,13 @@ public readonly struct TooltipAnchor
     /// False rather than a zero rect on purpose: a zero rect would park the tooltip in the corner of
     /// the screen, which reads as a bug rather than as nothing to show.
     /// </summary>
-    public bool TryResolve(Camera worldCamera, out Rect screenRect)
+    public bool TryResolve(out Rect screenRect)
     {
         screenRect = default;
 
         if (rect != null) { return TryResolveRect(out screenRect); }
 
-        if (collider != null) { return TryResolveBounds(worldCamera, out screenRect); }
+        if (collider != null) { return TryResolveBounds(out screenRect); }
 
         return false;
     }
@@ -100,9 +100,20 @@ public readonly struct TooltipAnchor
         return true;
     }
 
-    private bool TryResolveBounds(Camera worldCamera, out Rect screenRect)
+    /// <summary>
+    /// Projects the collider's world bounds onto the screen.
+    ///
+    /// The camera is resolved here, from the anchored object itself, rather than passed in by the
+    /// caller. There are two cameras now - one for the board, one fixed for the cards and HUD (see
+    /// SceneCameras) - and this same method is used for both a card in hand and a totem on the board.
+    /// Every caller passing its own guess meant three places that each had to be right about
+    /// something only the anchored object knows; asking the object removes the question.
+    /// </summary>
+    private bool TryResolveBounds(out Rect screenRect)
     {
         screenRect = default;
+
+        Camera worldCamera = SceneCameras.For(collider.gameObject);
 
         if (worldCamera == null) { return false; }
 

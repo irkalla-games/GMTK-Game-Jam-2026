@@ -54,10 +54,6 @@ public class TutorialSpotlight : Singleton<TutorialSpotlight>
     /// and SelectedCharacterPanel's status chips both use.
     private readonly List<Image> quads = new();
 
-    /// Cached because the rebuild asks for it every frame a world-space hole is up, and Camera.main is a
-    /// scene search.
-    private Camera worldCamera;
-
     private static readonly List<float> Xs = new();
     private static readonly List<float> Ys = new();
     private static readonly List<Rect> Resolved = new();
@@ -137,7 +133,7 @@ public class TutorialSpotlight : Singleton<TutorialSpotlight>
             // False means the thing being lit has been destroyed - a card played out from under the
             // spotlight. Dropping the hole rather than keeping a stale one is the same call
             // TooltipManager makes when an anchor stops resolving.
-            if (!anchor.TryResolve(WorldCamera(), out Rect screenRect)) { continue; }
+            if (!anchor.TryResolve(out Rect screenRect)) { continue; }
 
             screenRect = Pad(screenRect, holePadding);
 
@@ -269,10 +265,4 @@ public class TutorialSpotlight : Singleton<TutorialSpotlight>
         rect.localPosition = new Vector3(cell.center.x, cell.center.y, 0f);
     }
 
-    private Camera WorldCamera()
-    {
-        if (worldCamera == null) { worldCamera = Camera.main; }
-
-        return worldCamera;
-    }
 }

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dfccbe74e78188e4b9e85b8cf6133eae
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 391858
+  packageName: Free 2D Pixel Art Black Knight Pack
+  packageVersion: 1.0
+  assetPath: Assets/2D Pixel Art Black Knight/Animations/Black_Knight/BK_unarmed_midair.controller
+  uploadId: 962360

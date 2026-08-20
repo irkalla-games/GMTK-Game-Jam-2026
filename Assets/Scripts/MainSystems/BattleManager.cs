@@ -78,6 +78,11 @@ public class BattleManager : Singleton<BattleManager>
     [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
     [SerializeField] private Transform enemyParent;
 
+    [Tooltip("Frames the board once it is built, so the whole thing is on screen whatever size the "
+             + "level asked for. Optional: leave it unassigned and the camera simply stays where it "
+             + "is, which is what a scene that has not been through Tools/Board/2 - Wire Cameras does.")]
+    [SerializeField] private BoardCamera boardCamera;
+
     [Tooltip("Turn limit used when no Level Data is assigned.")]
     [SerializeField] private int turnsToSurvive = 10;
 
@@ -424,7 +429,22 @@ public class BattleManager : Singleton<BattleManager>
 
         // The board first: every placement below needs tiles to exist, and the size is this level's to
         // decide, which is why GridManager no longer builds one in its own Awake.
-        GridManager.Instance.BuildGrid(CurrentLevel != null ? CurrentLevel.BoardSize : Vector2Int.zero);
+        //
+        // The seed is rolled once here rather than inside BoardVisuals so a rebuild of the same battle
+        // lays down the identical floor. BuildGrid runs again on every level load, and a floor that
+        // reshuffled its blocks underneath the player each time would read as the board flickering.
+        // Fully qualified: System.Random is used two lines down, so a bare `Random` here is ambiguous.
+        int floorSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        TileSetData tileSet = CurrentLevel != null
+            ? CurrentLevel.PickTileSet(new System.Random(floorSeed))
+            : null;
+
+        GridManager.Instance.BuildGrid(
+            CurrentLevel != null ? CurrentLevel.BoardSize : Vector2Int.zero, tileSet, floorSeed);
+
+        // Immediately after, and before anything is placed on it: the board's extent is the only input
+        // the framing needs, and it is final the moment BuildGrid returns.
+        if (boardCamera != null) { boardCamera.Frame(GridManager.Instance.BoardBounds); }
 
         // Characters placed directly in the scene (see the tooltip on `characters`) never pass through
         // AddCharacter, so they are wired up here instead. SpawnParty/SpawnEnemies route through

@@ -200,12 +200,27 @@ public class CardPlayManager : Singleton<CardPlayManager>
         }
     }
 
+    /// <summary>
+    /// Whether the click landed on nothing at all - no card, no tile.
+    ///
+    /// Both cameras have to be asked, not just one. The board and the UI are rendered by two
+    /// different cameras at two different zooms (see SceneCameras), so one screen position maps to
+    /// two *different* world points: the one a tile would be at, and the one a card would be at.
+    /// Testing only one of them would read a click on a card as empty space the moment the board
+    /// camera zoomed to anything but the UI camera's fixed size, and silently deselect.
+    /// </summary>
     private bool ClickedEmptySpace()
     {
-        Camera cam = Camera.main;
+        Vector2 screen = Mouse.current.position.ReadValue();
+
+        return !HitsSomething(SceneCameras.Board, screen)
+               && !HitsSomething(SceneCameras.Ui, screen);
+    }
+
+    private static bool HitsSomething(Camera cam, Vector2 screen)
+    {
         if (cam == null) { return false; }
 
-        Vector3 world = cam.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-        return Physics2D.OverlapPoint(world) == null;
+        return Physics2D.OverlapPoint(cam.ScreenToWorldPoint(screen)) != null;
     }
 }

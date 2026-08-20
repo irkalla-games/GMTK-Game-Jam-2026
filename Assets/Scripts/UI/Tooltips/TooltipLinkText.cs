@@ -122,7 +122,7 @@ public class TooltipLinkText : MonoBehaviour
     {
         if (textCanvas == null)
         {
-            if (textCamera == null) { textCamera = Camera.main; }
+            if (textCamera == null) { textCamera = SceneCameras.For(gameObject); }
 
             return textCamera;
         }

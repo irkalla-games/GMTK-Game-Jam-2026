@@ -150,7 +150,7 @@ public class TutorialPopup : Singleton<TutorialPopup>
 
         // No anchor is a beat about the game as a whole rather than about one object - centre screen,
         // which is also where the box lands if its anchor has just been destroyed.
-        if (anchor == null || !anchor.Value.TryResolve(WorldCamera(), out Rect screenRect))
+        if (anchor == null || !anchor.Value.TryResolve(out Rect screenRect))
         {
             panel.localPosition = new Vector3(0f, 0f, panel.localPosition.z);
             return;
@@ -170,12 +170,4 @@ public class TutorialPopup : Singleton<TutorialPopup>
         canvasGroup.blocksRaycasts = visible;
     }
 
-    private Camera worldCamera;
-
-    private Camera WorldCamera()
-    {
-        if (worldCamera == null) { worldCamera = Camera.main; }
-
-        return worldCamera;
-    }
 }

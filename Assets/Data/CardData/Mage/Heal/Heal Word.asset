@@ -16,10 +16,10 @@ MonoBehaviour:
   <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
-    minDistance: 0
-    maxDistance: 5
+    minDistance: 1
+    maxDistance: 4
   <requiredClass>k__BackingField: 2
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 0
   <tags>k__BackingField: 07000000
   <excludeFromRewards>k__BackingField: 0
   <description>k__BackingField: Heal 5.

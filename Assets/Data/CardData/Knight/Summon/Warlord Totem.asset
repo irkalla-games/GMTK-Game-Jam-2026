@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Warlord Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Warlord Totem
-  <cost>k__BackingField: 1
+  <cost>k__BackingField: 2
   <range>k__BackingField:
     shape: 1
     minDistance: 1

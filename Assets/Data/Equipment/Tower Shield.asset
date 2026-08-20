@@ -26,8 +26,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
   m_Name: Tower Shield
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
-  <equipmentName>k__BackingField: Tower Shield
-  <description>k__BackingField: +2 Shield whenever you gain Shield.
+  <equipmentName>k__BackingField: Buckler
+  <description>k__BackingField: When gaining Shield, gain an additional 2 stacks.
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 0
   <requiredClass>k__BackingField: 0

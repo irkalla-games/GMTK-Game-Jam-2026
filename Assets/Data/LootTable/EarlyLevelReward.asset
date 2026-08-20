@@ -13,15 +13,13 @@ MonoBehaviour:
   m_Name: EarlyLevelReward
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
-  - rarity: 1
-    weight: 60
   - rarity: 2
-    weight: 35
+    weight: 80
   - rarity: 3
-    weight: 5
+    weight: 20
   tagWeights: []
   cardWeights: []
   excludedCards: []
   guaranteedCards: []
   choiceCount: 5
-  equipmentChance: 0.25
+  equipmentChance: 0

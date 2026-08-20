@@ -17,7 +17,7 @@ MonoBehaviour:
   <range>k__BackingField:
     shape: 1
     minDistance: 0
-    maxDistance: 5
+    maxDistance: 4
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 02000000

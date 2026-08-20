@@ -1,6 +1,34 @@
 ﻿{
-    "writtenUtc":  "2026-08-16T23:53:52.8475853Z",
+    "writtenUtc":  "2026-08-19T06:37:51.9099291Z",
     "cards":  [
+                  {
+                      "guid":  "0614839401c15d54aba05fe204ab3ebe",
+                      "columns":  {
+                                      "Card Name":  "Call Reinforcements",
+                                      "Cost":  "0",
+                                      "Rarity":  "NotOffered",
+                                      "Effect 1":  "SummonTutorialSkeleton",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Skeleton Warrior four tiles away.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "3",
+                                      "Range Max":  "3",
+                                      "Key":  "CallReinforcements",
+                                      "Class":  "Any",
+                                      "Folder":  "",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "Cooldown 4",
+                                      "No Reward":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
                   {
                       "guid":  "bbde0f0e0cc14d529a5088cf2502a322",
                       "columns":  {
@@ -512,7 +540,7 @@
                                       "Cost":  "1",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "Damage 5",
-                                      "Effect 2":  "Vulnerable 2",
+                                      "Effect 2":  "Vulnerable",
                                       "Effect 3":  "",
                                       "Description":  "Deal 5 damage and apply 2 Vulnerable.",
                                       "Range Shape":  "Chebyshev",
@@ -565,7 +593,7 @@
                       "guid":  "01e630d4f30206f499a5038a0e474c92",
                       "columns":  {
                                       "Card Name":  "Aegis Totem",
-                                      "Cost":  "2",
+                                      "Cost":  "3",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "SummonAegisTotem",
                                       "Effect 2":  "",
@@ -593,7 +621,7 @@
                       "guid":  "b5992955f6f71d249bd207dc483e4566",
                       "columns":  {
                                       "Card Name":  "Bastion Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonBastionTotem",
                                       "Effect 2":  "",
@@ -621,7 +649,7 @@
                       "guid":  "30dc9807bee5a3a47a453cded652caa6",
                       "columns":  {
                                       "Card Name":  "Bulwark Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonBulwarkTotem",
                                       "Effect 2":  "",
@@ -649,7 +677,7 @@
                       "guid":  "ffeb8d4fdf2a22347bff2bd9386b9ad2",
                       "columns":  {
                                       "Card Name":  "Rampart Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonRampartTotem",
                                       "Effect 2":  "",
@@ -677,7 +705,7 @@
                       "guid":  "aaaa1118bbbb2229cccc333adddd444b",
                       "columns":  {
                                       "Card Name":  "Shield Totem",
-                                      "Cost":  "2",
+                                      "Cost":  "3",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "SummonTotem",
                                       "Effect 2":  "",
@@ -705,7 +733,7 @@
                       "guid":  "51382dd5fb68f1c42b8c120d2112eb72",
                       "columns":  {
                                       "Card Name":  "Warcry Totem",
-                                      "Cost":  "2",
+                                      "Cost":  "3",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "SummonWarcryTotem",
                                       "Effect 2":  "",
@@ -733,7 +761,7 @@
                       "guid":  "363d14991cd36564ca3dc5e550c81bc5",
                       "columns":  {
                                       "Card Name":  "Warlord Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonWarlordTotem",
                                       "Effect 2":  "",
@@ -842,6 +870,34 @@
                                   }
                   },
                   {
+                      "guid":  "5838b385efe02534993ebe2518d61ef3",
+                      "columns":  {
+                                      "Card Name":  "Dull Blade",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Weaken",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Apply Weaken.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Dull Blade",
+                                      "Class":  "Mage",
+                                      "Folder":  "Debuff",
+                                      "Tags":  "Defence",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Animation":  "Status"
+                                  }
+                  },
+                  {
                       "guid":  "d628843c186f4896abd388b0e0fb081d",
                       "columns":  {
                                       "Card Name":  "Entangle",
@@ -853,7 +909,7 @@
                                       "Description":  "Root an Enemy.",
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
-                                      "Range Max":  "5",
+                                      "Range Max":  "4",
                                       "Key":  "Entangle",
                                       "Class":  "Mage",
                                       "Folder":  "Debuff",
@@ -866,7 +922,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
+                                      "Animation":  "Status"
                                   }
                   },
                   {
@@ -881,8 +937,36 @@
                                       "Description":  "Freeze an Enemy.",
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
-                                      "Range Max":  "5",
+                                      "Range Max":  "4",
                                       "Key":  "Freeze",
+                                      "Class":  "Mage",
+                                      "Folder":  "Debuff",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Animation":  "Freeze"
+                                  }
+                  },
+                  {
+                      "guid":  "d87d584eefa48da429cd46687b4066b4",
+                      "columns":  {
+                                      "Card Name":  "Rust Armor",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Vulnerable",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Rust Armor",
                                       "Class":  "Mage",
                                       "Folder":  "Debuff",
                                       "Tags":  "",
@@ -908,8 +992,8 @@
                                       "Effect 3":  "",
                                       "Description":  "Heal 10.",
                                       "Range Shape":  "Chebyshev",
-                                      "Range Min":  "0",
-                                      "Range Max":  "1",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
                                       "Key":  "Cure Wounds",
                                       "Class":  "Mage",
                                       "Folder":  "Heal",
@@ -936,8 +1020,8 @@
                                       "Effect 3":  "",
                                       "Description":  "Heal 5.",
                                       "Range Shape":  "Chebyshev",
-                                      "Range Min":  "0",
-                                      "Range Max":  "5",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
                                       "Key":  "Heal Word",
                                       "Class":  "Mage",
                                       "Folder":  "Heal",
@@ -984,8 +1068,8 @@
                   {
                       "guid":  "576ab6616f9067d458e6811318815c6c",
                       "columns":  {
-                                      "Card Name":  "Fireball Storm",
-                                      "Cost":  "2",
+                                      "Card Name":  "Fireball",
+                                      "Cost":  "1",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "Damage 5",
                                       "Effect 2":  "",
@@ -994,7 +1078,7 @@
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
                                       "Range Max":  "4",
-                                      "Key":  "Fireball Storm",
+                                      "Key":  "Fireball",
                                       "Class":  "Mage",
                                       "Folder":  "RangedAttack",
                                       "Tags":  "",
@@ -1012,7 +1096,7 @@
                   {
                       "guid":  "000c1f73e085eb64b8d858c64dfdfcda",
                       "columns":  {
-                                      "Card Name":  "Fireball",
+                                      "Card Name":  "Firebolt",
                                       "Cost":  "1",
                                       "Rarity":  "Common",
                                       "Effect 1":  "Damage 5",
@@ -1022,7 +1106,7 @@
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
                                       "Range Max":  "5",
-                                      "Key":  "Fireball",
+                                      "Key":  "Firebolt",
                                       "Class":  "Mage",
                                       "Folder":  "RangedAttack",
                                       "Tags":  "",
@@ -1041,7 +1125,7 @@
                       "guid":  "93cab38da2c31ed409077c18f3807992",
                       "columns":  {
                                       "Card Name":  "Flame Cone",
-                                      "Cost":  "2",
+                                      "Cost":  "1",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "Damage 4",
                                       "Effect 2":  "",
@@ -1069,12 +1153,12 @@
                       "guid":  "36d01c973ac698e428120b185d709229",
                       "columns":  {
                                       "Card Name":  "Ice Shard",
-                                      "Cost":  "2",
+                                      "Cost":  "1",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "Damage 5",
                                       "Effect 2":  "Freeze",
                                       "Effect 3":  "",
-                                      "Description":  "Deals 5 damage and Freezes.",
+                                      "Description":  "Deals 3 damage and Freezes.",
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
                                       "Range Max":  "5",
@@ -1105,7 +1189,7 @@
                                       "Description":  "Deal 5 damage.",
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
-                                      "Range Max":  "5",
+                                      "Range Max":  "4",
                                       "Key":  "X-Burner",
                                       "Class":  "Mage",
                                       "Folder":  "RangedAttack",
@@ -1125,7 +1209,7 @@
                       "guid":  "f00124f8df6b1c5469473a59ffe0b357",
                       "columns":  {
                                       "Card Name":  "Curse Totem",
-                                      "Cost":  "2",
+                                      "Cost":  "3",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "SummonCurseTotem",
                                       "Effect 2":  "",
@@ -1153,7 +1237,7 @@
                       "guid":  "a34ba9577dc8af24bb92fb81ee235a5d",
                       "columns":  {
                                       "Card Name":  "Enfeeble Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonEnfeebleTotem",
                                       "Effect 2":  "",
@@ -1181,7 +1265,7 @@
                       "guid":  "234fcf8ff9522344d9d5ee1022be130f",
                       "columns":  {
                                       "Card Name":  "Fracture Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonFractureTotem",
                                       "Effect 2":  "",
@@ -1209,7 +1293,7 @@
                       "guid":  "e5cd6de7d5df0fc44a67a6d1554ac7f4",
                       "columns":  {
                                       "Card Name":  "Hex Totem",
-                                      "Cost":  "2",
+                                      "Cost":  "3",
                                       "Rarity":  "Rare",
                                       "Effect 1":  "SummonHexTotem",
                                       "Effect 2":  "",
@@ -1237,7 +1321,7 @@
                       "guid":  "e76eca70192ea0342abb35761afe55cf",
                       "columns":  {
                                       "Card Name":  "Ruin Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonRuinTotem",
                                       "Effect 2":  "",
@@ -1265,7 +1349,7 @@
                       "guid":  "8b23e21878068f84ca903b21df587219",
                       "columns":  {
                                       "Card Name":  "Sap Totem",
-                                      "Cost":  "1",
+                                      "Cost":  "2",
                                       "Rarity":  "Uncommon",
                                       "Effect 1":  "SummonSapTotem",
                                       "Effect 2":  "",
@@ -1575,7 +1659,7 @@
                                       "Card Name":  "Panache",
                                       "Cost":  "1",
                                       "Rarity":  "Uncommon",
-                                      "Effect 1":  "Weaken 3",
+                                      "Effect 1":  "Weaken 2",
                                       "Effect 2":  "",
                                       "Effect 3":  "",
                                       "Description":  "Apply 3 stacks of Weaken.",
@@ -1878,7 +1962,7 @@
                          "kind":  "Status",
                          "type":  "Unknown(17)",
                          "title":  "EMPOWERED",
-                         "body":  "Doubles the stacks of whatever status this totem empowers, whenever it is applied.",
+                         "body":  "Multiplies {status} granted to all {targets} in range by {amount}.",
                          "terms":  "",
                          "defaultStacks":  1,
                          "defaultAmount":  1
@@ -1887,7 +1971,7 @@
                          "kind":  "Status",
                          "type":  "Unknown(18)",
                          "title":  "POTENT",
-                         "body":  "Strengthens whatever status this totem empowers, without changing its stacks.",
+                         "body":  "Adds {amount} to the potency of {status} for all {targets} in range.",
                          "terms":  "",
                          "defaultStacks":  1,
                          "defaultAmount":  1
@@ -1896,7 +1980,7 @@
                          "kind":  "Status",
                          "type":  "Unknown(19)",
                          "title":  "STANDING WARD",
-                         "body":  "Grants a status to whoever stands in range, once every round.",
+                         "body":  "Grants {amount} {status} to all {targets} in range {timing}.",
                          "terms":  "",
                          "defaultStacks":  1,
                          "defaultAmount":  1
@@ -1904,7 +1988,7 @@
                      {
                          "kind":  "Status",
                          "type":  "Summoned",
-                         "title":  "",
+                         "title":  "SUMMONED",
                          "body":  "",
                          "terms":  "",
                          "defaultStacks":  1,

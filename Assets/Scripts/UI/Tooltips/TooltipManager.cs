@@ -98,10 +98,6 @@ public class TooltipManager : Singleton<TooltipManager>
     /// </summary>
     public bool IsShowing => faded;
 
-    /// Cached because TryResolve asks for it every frame a world-space tooltip is up, and Camera.main
-    /// is a scene search.
-    private Camera worldCamera;
-
     /// Grown on demand and reused, never destroyed - the same pooling contract PartySheetColumn's rows
     /// already use. One entry per TooltipContent.Section the box has ever needed to show at once, so a
     /// card's three-section expanded view costs nothing to render a second time.
@@ -204,7 +200,7 @@ public class TooltipManager : Singleton<TooltipManager>
             contentDirty = false;
         }
 
-        if (!top.anchor.TryResolve(WorldCamera(), out Rect anchorRect))
+        if (!top.anchor.TryResolve(out Rect anchorRect))
         {
             // The anchored thing has been destroyed - a card played out from under the cursor. Drop the
             // request rather than leaving a box pointing at nothing.
@@ -349,13 +345,6 @@ public class TooltipManager : Singleton<TooltipManager>
         // space, which is what localPosition takes; anchoredPosition is measured from the panel's own
         // anchors and would be offset by wherever those happen to sit.
         panel.localPosition = new Vector3(position.x, position.y, panel.localPosition.z);
-    }
-
-    private Camera WorldCamera()
-    {
-        if (worldCamera == null) { worldCamera = Camera.main; }
-
-        return worldCamera;
     }
 
     private void SetAlpha(float alpha)

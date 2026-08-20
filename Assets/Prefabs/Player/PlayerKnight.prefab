@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5000000000000002}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -49,7 +49,7 @@ GameObject:
   - component: {fileID: 5000000000000012}
   - component: {fileID: 5000000000000013}
   - component: {fileID: 5000000000000014}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -124,7 +124,7 @@ GameObject:
   - component: {fileID: 5000000000000022}
   - component: {fileID: 5000000000000023}
   - component: {fileID: 5000000000000024}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -199,7 +199,7 @@ GameObject:
   - component: {fileID: 5000000000000032}
   - component: {fileID: 5000000000000033}
   - component: {fileID: 5000000000000034}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -273,7 +273,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8473311731034939916}
   - component: {fileID: 2087062152924681970}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Back arm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -366,7 +366,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6906740275161165280}
   - component: {fileID: 6799128031685572632}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: shield
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -458,7 +458,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4185047801370475922}
   - component: {fileID: 4400320595135198785}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: sword
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -552,7 +552,7 @@ GameObject:
   - component: {fileID: 4415521173082214095}
   - component: {fileID: 6638194252595598246}
   - component: {fileID: 1002640594740166987}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -653,7 +653,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3770173147890797621}
   - component: {fileID: 8986270909291073428}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Back leg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -745,7 +745,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9162586233243888563}
   - component: {fileID: 2231187558053395014}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Body
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -842,7 +842,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5337862396613955827}
   - component: {fileID: 7672194943777154424}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Front arm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -940,7 +940,7 @@ GameObject:
   - component: {fileID: 5000000000000051}
   - component: {fileID: 8896166220084701597}
   - component: {fileID: 3353378967306889411}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PlayerKnight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -957,7 +957,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 3.12, y: 1.89, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9162586233243888563}
@@ -1106,7 +1106,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7193215361180272771}
   - component: {fileID: 4858923009344569402}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Front leg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1198,7 +1198,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8765434662519883802}
   - component: {fileID: 1564806552437771531}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}

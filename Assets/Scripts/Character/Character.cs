@@ -208,6 +208,11 @@ public class Character : MonoBehaviour
     /// The tile this character is standing on.
     public GridTile Tile { get; private set; }
 
+    /// This body's root SortingGroup, or null on a prefab without one. Written on every MoveTo so a
+    /// character standing further back never draws over one standing in front of it - see
+    /// GridManager.CellDepth.
+    private UnityEngine.Rendering.SortingGroup sortingGroup;
+
     /// This character's own animation vocabulary, or null on a body with no CharacterAnimator - the
     /// Totem, or any prefab nobody has wired up yet. GameAction.Perform already no-ops on null, so
     /// nothing downstream needs its own guard for this.
@@ -817,7 +822,28 @@ public class Character : MonoBehaviour
         {
             moveTo.SetOccupant(this);
 
+            RefreshSortingDepth();
         }
+    }
+
+
+    /// <summary>
+    /// Re-sorts this body against the board it is standing on.
+    ///
+    /// Here rather than in GridManager.MoveCharacter because MoveTo is the one place occupancy
+    /// actually changes - PlaceCharacter, MoveCharacter and SwapCharacters all route through it, and
+    /// a summon arriving mid-turn does too. Anywhere else and one of those four would be the path
+    /// that forgot.
+    ///
+    /// Note this deliberately runs at the *start* of a move rather than when its tween lands: a
+    /// character walking toward the camera should pass in front of what it is passing, and the tween
+    /// is where that reads.
+    /// </summary>
+    private void RefreshSortingDepth()
+    {
+        if (sortingGroup == null || Tile == null || GridManager.Instance == null) { return; }
+
+        sortingGroup.sortingOrder = GridManager.Instance.CellDepth(Tile.Coordinates);
     }
 
     public void DrawCards(int amount)
@@ -1120,6 +1146,12 @@ public class Character : MonoBehaviour
         // Cached rather than looked up on every play - null on a body with no CharacterAnimator
         // component, e.g. Totem, which is a legal answer GameAction.Perform already handles.
         Animation = GetComponent<CharacterAnimator>();
+
+        // Cached for the same reason, and null-tolerant for the same reason: not every body has one.
+        // Heroes and totems carry a SortingGroup so their several renderers sort as a unit; the
+        // single-sprite enemies have one added by Tools/Board/2 - Wire Cameras so they can be depth
+        // sorted the same way.
+        sortingGroup = GetComponent<UnityEngine.Rendering.SortingGroup>();
     }
 
     private void Start()

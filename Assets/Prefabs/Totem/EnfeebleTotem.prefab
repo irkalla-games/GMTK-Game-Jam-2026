@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5831024338123458214}
   - component: {fileID: 5172066229779292892}
   - component: {fileID: 4828053298159725205}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -113,7 +113,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7951059715022758270}
   - component: {fileID: 4937581319801278515}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -206,7 +206,7 @@ GameObject:
   - component: {fileID: 45948828779109705}
   - component: {fileID: 642609520233454003}
   - component: {fileID: 3424789447839811703}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -286,7 +286,7 @@ GameObject:
   - component: {fileID: 3837476130883736384}
   - component: {fileID: 5870067634334775373}
   - component: {fileID: 2798028006741825452}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: EnfeebleTotem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -489,7 +489,7 @@ GameObject:
   - component: {fileID: 1392910865729065760}
   - component: {fileID: 7042519149961560604}
   - component: {fileID: 1608664470076327734}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -562,7 +562,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3830925837377210610}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -602,7 +602,7 @@ GameObject:
   - component: {fileID: 1290910166179845704}
   - component: {fileID: 587010990905355289}
   - component: {fileID: 1791405103386044790}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}

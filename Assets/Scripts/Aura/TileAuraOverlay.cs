@@ -12,8 +12,14 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class TileAuraOverlay : MonoBehaviour
 {
-    /// Below the tile's own sprite at Grid/0, still above the isometric floor art at Background/10.
-    private const int Depth = -1;
+    /// How far below the tile's own sprite this sits, *relative to that tile* rather than absolutely.
+    ///
+    /// It used to be the flat order -1, which worked only while every tile in the game sat at Grid/0.
+    /// Tiles now carry a per-cell order so the board sorts back to front - see
+    /// GridManager.CellSortingOrder - so a fixed -1 would put every aura in the game behind every
+    /// tile, including the ones in front of it. GridManager.DepthStride reserves the room this and
+    /// TileEffectOverlay borrow from each cell.
+    private const int DepthBelowTile = -1;
 
     private SpriteRenderer spriteRenderer;
 
@@ -41,11 +47,16 @@ public class TileAuraOverlay : MonoBehaviour
         // about how the grid is laid out.
         go.transform.SetParent(tile.transform, false);
 
+        // SetParent does not carry the layer across, and a fresh GameObject starts on Default - which
+        // the board camera culls and the fixed UI camera happily draws, putting the overlay somewhere
+        // else on screen entirely. See GameLayers.
+        go.layer = tile.gameObject.layer;
+
         SpriteRenderer overlayRenderer = go.AddComponent<SpriteRenderer>();
         overlayRenderer.sprite = tileRenderer.sprite;
         overlayRenderer.sharedMaterial = tileRenderer.sharedMaterial;
         overlayRenderer.sortingLayerName = SortingLayers.Grid;
-        overlayRenderer.sortingOrder = Depth;
+        overlayRenderer.sortingOrder = tileRenderer.sortingOrder + DepthBelowTile;
         overlayRenderer.color = Color.clear;
 
         return go.AddComponent<TileAuraOverlay>();

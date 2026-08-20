@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e7ce86f9dc549eb46a9d29e8d13a721c
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 391858
+  packageName: Free 2D Pixel Art Black Knight Pack
+  packageVersion: 1.0
+  assetPath: Assets/2D Pixel Art Black Knight/Animations/Demo/Parry.controller
+  uploadId: 962360

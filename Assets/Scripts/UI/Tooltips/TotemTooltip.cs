@@ -43,7 +43,7 @@ public class TotemTooltip : MonoBehaviour
         // coordinates rather than screen ones - the tooltip would park in the corner of the screen.
         if (overheadCanvas != null && overheadCanvas.worldCamera == null)
         {
-            overheadCanvas.worldCamera = Camera.main;
+            overheadCanvas.worldCamera = SceneCameras.Board;
         }
     }
 

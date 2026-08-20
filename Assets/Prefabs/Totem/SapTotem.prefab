@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1175582203486746802}
   - component: {fileID: 276865292849731038}
   - component: {fileID: 4772628132726678621}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 1980264473088288825}
   - component: {fileID: 3313156154182198181}
   - component: {fileID: 2798719211819415944}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -162,7 +162,7 @@ GameObject:
   - component: {fileID: 3246887343432330911}
   - component: {fileID: 5391981153842694203}
   - component: {fileID: 5308601377849369967}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -262,7 +262,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9194142921064500679}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -301,7 +301,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5869097439376549936}
   - component: {fileID: 1875312487136113678}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -394,7 +394,7 @@ GameObject:
   - component: {fileID: 4005786178794019982}
   - component: {fileID: 222020468522270438}
   - component: {fileID: 2014068175802407945}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +474,7 @@ GameObject:
   - component: {fileID: 4194457150096081037}
   - component: {fileID: 5194987115908864549}
   - component: {fileID: 8069553745198494330}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SapTotem
   m_TagString: Untagged
   m_Icon: {fileID: 0}

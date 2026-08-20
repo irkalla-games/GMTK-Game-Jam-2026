@@ -80,6 +80,11 @@ public class LevelData : ScriptableObject
              + "Unassigned falls back to LootManager's fallbackTable.")]
     [SerializeField] private LootTable clearRewardTable;
 
+    [Tooltip("Floor and wall art this level may use. One is picked at random when the battle starts, "
+             + "so the same encounter can read as a different place each run. Leave empty and the "
+             + "board builds with no floor art at all - playable, but invisible under the tiles.")]
+    [SerializeField] private List<TileSetData> tileSets = new();
+
     public IReadOnlyList<EnemyPlacement> Enemies => enemies;
 
     public IReadOnlyList<EnemyWave> Waves => waves;
@@ -100,4 +105,31 @@ public class LevelData : ScriptableObject
     public LootTable LootTable => lootTable;
 
     public LootTable ClearRewardTable => clearRewardTable;
+
+    public IReadOnlyList<TileSetData> TileSets => tileSets;
+
+    /// <summary>
+    /// One of this level's tilesets, chosen with `roll`, or null when none is authored or usable.
+    ///
+    /// Here rather than in BattleManager because "which of my tilesets" is a question about the
+    /// level, and here rather than in BoardVisuals because the list is the level's to own - the same
+    /// split that keeps BoardSize on LevelData while the board that gets built is GridManager's.
+    ///
+    /// Unusable sets are filtered rather than rolled and rejected, so a level with one finished set
+    /// and one half-authored one always draws the finished one instead of a blank board half the time.
+    /// </summary>
+    public TileSetData PickTileSet(System.Random roll)
+    {
+        List<TileSetData> usable = new();
+
+        foreach (TileSetData set in tileSets)
+        {
+            // `!=` not `??`: a deleted asset is a Unity fake-null. See CLAUDE.md.
+            if (set != null && set.IsUsable) { usable.Add(set); }
+        }
+
+        if (usable.Count == 0) { return null; }
+
+        return usable[roll.Next(usable.Count)];
+    }
 }

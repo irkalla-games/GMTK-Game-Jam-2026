@@ -46,6 +46,12 @@ public static class Projectile
         if (scale <= 0f) { scale = 1f; }
 
         GameObject go = new GameObject("Projectile");
+
+        // Board-side art with no board parent to inherit a layer from, so it says so outright.
+        // Otherwise it stays on Default, the board camera culls it, and the fixed UI camera draws the
+        // shot flying across a different part of the screen. See GameLayers.
+        GameLayers.PutOnBoard(go);
+
         SpriteRenderer renderer = go.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
         renderer.sortingLayerName = SortingLayers.Characters;

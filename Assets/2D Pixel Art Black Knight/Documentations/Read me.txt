@@ -1,0 +1,61 @@
+===========================================
+ Black Knight - Asset Pack – Pixel Art
+===========================================
+
+🎨 Created by: [Fellor]
+📦 Version: 1.0
+📅 Release Date: [2025-09-22] in Unity [2026-07-08]
+🌐 Made By: FELLOR
+
+-------------------------------------------
+📁 CONTENTS
+-------------------------------------------
+
+This pack includes the following:
+
+✅ 34 animation for a knight
+✅ Provided in formats:
+   - Sprite Sheets (PNG)
+✅ Looping and non-looping animations
+
+List of effects:
+- Idle (2) 
+- Run (2)
+- Jump (2)
+- Mid air (2)
+- Fall light (2)
+- Fall heavy (2)
+- Land (2)
+- Roll (2)
+- Weapon on
+- Weapon off
+- Attack (4)
+- Heavy Attack (3)
+- Weapon Art
+- Buff (2)
+- Parry (parry_start, parry, miss)
+- Hurt (2)
+- Death
+
+Preview GIFs are included to demonstrate each animation.
+
+-------------------------------------------
+📜 LICENSE
+-------------------------------------------
+
+This asset pack is licensed under the following terms:
+
+✅ Free to use in personal and commercial projects  
+✅ No credit required (but always appreciated!)  
+❌ You may NOT redistribute or resell the assets as-is or as part of another asset pack
+
+See `license.txt` for full details.
+
+-------------------------------------------
+💌 CONTACT
+-------------------------------------------
+
+If you use the Pack in your project, I'd love to see it!  
+Feel free to message me at: [Instagram or Discord]
+
+Thank you for downloading, and have fun creating!

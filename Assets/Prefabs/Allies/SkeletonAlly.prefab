@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5000000000000002}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -50,7 +50,7 @@ GameObject:
   - component: {fileID: 5000000000000012}
   - component: {fileID: 5000000000000013}
   - component: {fileID: 5000000000000014}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,7 +125,7 @@ GameObject:
   - component: {fileID: 5000000000000022}
   - component: {fileID: 5000000000000023}
   - component: {fileID: 5000000000000024}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -200,7 +200,7 @@ GameObject:
   - component: {fileID: 5000000000000032}
   - component: {fileID: 5000000000000033}
   - component: {fileID: 5000000000000034}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -275,7 +275,7 @@ GameObject:
   - component: {fileID: 5000000000000042}
   - component: {fileID: 5000000000000043}
   - component: {fileID: 5000000000000044}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: IntentIcon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -351,7 +351,7 @@ GameObject:
   - component: {fileID: 2783861935974209352}
   - component: {fileID: 4928243159735216689}
   - component: {fileID: 4814269339024974962}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -456,7 +456,8 @@ GameObject:
   - component: {fileID: 7130099151914716108}
   - component: {fileID: 5000000000000051}
   - component: {fileID: 4822728729336696265}
-  m_Layer: 0
+  - component: {fileID: 1522506984742409594}
+  m_Layer: 8
   m_Name: SkeletonAlly
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -473,7 +474,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 7.71, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 1}
+  m_LocalScale: {x: 2.4, y: 2.4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7627141365252465588}
@@ -557,6 +558,7 @@ MonoBehaviour:
   playableCharacter: 3
   characterClass: 0
   displayName: Skeleton
+  portrait: {fileID: 0}
   actionPoints: 1
   brain: 1
   targetingPattern: {fileID: 0}
@@ -641,3 +643,16 @@ MonoBehaviour:
   counterFlip: {fileID: 0}
   muzzle: {fileID: 0}
   facesRightByDefault: 1
+--- !u!210 &1522506984742409594
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9030803548844171682}
+  m_Enabled: 1
+  m_SortingLayerID: -1753656691
+  m_SortingLayer: 3
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0

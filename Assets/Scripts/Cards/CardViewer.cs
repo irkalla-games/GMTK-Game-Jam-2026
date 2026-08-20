@@ -292,6 +292,7 @@ public class CardViewer : MonoBehaviour
 
         GameObject stripeObject = new("CardAudienceStripe", typeof(SpriteRenderer));
         stripeObject.transform.SetParent(FaceRoot, false);
+        stripeObject.layer = FaceRoot.gameObject.layer;
         stripeObject.transform.localPosition = stripeLocalPosition;
 
         stripeRenderer = stripeObject.GetComponent<SpriteRenderer>();
@@ -365,6 +366,7 @@ public class CardViewer : MonoBehaviour
 
         GameObject digitObject = new("CardRangeDigit", typeof(RectTransform), typeof(TextMeshPro));
         digitObject.transform.SetParent(FaceRoot, false);
+        digitObject.layer = FaceRoot.gameObject.layer;
         digitObject.transform.localPosition = rangeDigitLocalPosition;
         digitObject.transform.localScale = Vector3.one * rangeDigitScale;
 
@@ -432,6 +434,7 @@ public class CardViewer : MonoBehaviour
     {
         GameObject iconObject = new("CardAreaIcon", typeof(SpriteRenderer));
         iconObject.transform.SetParent(FaceRoot, false);
+        iconObject.layer = FaceRoot.gameObject.layer;
         iconObject.transform.localPosition = areaIconLocalPosition;
 
         areaIconRenderer = iconObject.GetComponent<SpriteRenderer>();
@@ -505,6 +508,7 @@ public class CardViewer : MonoBehaviour
         Transform outlineTransform = outlineObject.transform;
 
         outlineTransform.SetParent(border.transform.parent, false);
+        outlineObject.layer = border.gameObject.layer;
         outlineTransform.SetLocalPositionAndRotation(border.transform.localPosition, border.transform.localRotation);
 
         outlineRenderer = outlineObject.GetComponent<SpriteRenderer>();

@@ -25,3 +25,5 @@ MonoBehaviour:
   handSize: 3
   lootTable: {fileID: 11400000, guid: c55a878fd7ae2354cbc186db23a61ce3, type: 2}
   clearRewardTable: {fileID: 0}
+  tileSets:
+  - {fileID: 11400000, guid: b5d318c6538aecd47a73001dcc0608b4, type: 2}

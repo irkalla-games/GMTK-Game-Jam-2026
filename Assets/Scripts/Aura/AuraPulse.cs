@@ -19,10 +19,11 @@ using UnityEngine;
 public class AuraPulse : Singleton<AuraPulse>
 {
     [Tooltip("Alpha between crests. Holds the region faintly visible rather than letting it blink out.")]
-    [SerializeField, Range(0f, 1f)] private float restAlpha = 0.06f;
+    [SerializeField, Range(0f, 1f)] private float restAlpha = 0.05f;
 
-    [Tooltip("Alpha at the crest of the wave.")]
-    [SerializeField, Range(0f, 1f)] private float peakAlpha = 1.2f;
+    [Tooltip("Alpha at the crest of the wave. Kept well under 1 so the aura reads as a wash laid over "
+             + "the board rather than as a coloured tile replacing it.")]
+    [SerializeField, Range(0f, 1f)] private float peakAlpha = 0.65f;
 
     [Tooltip("Seconds for one full cycle, after which the wave restarts at the totem.")]
     [SerializeField] private float period = 4f;

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4881561421714075410}
   - component: {fileID: 8344013462869005962}
   - component: {fileID: 196062078748544529}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ItemDrop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -120,7 +120,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3646442967129313035}
   - component: {fileID: 2633215624283405637}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Badge
   m_TagString: Untagged
   m_Icon: {fileID: 0}

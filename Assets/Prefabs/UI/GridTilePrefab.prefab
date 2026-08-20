@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1315722343972705636}
   - component: {fileID: 6478779665273333604}
   - component: {fileID: 9185129640257608174}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: GridTilePrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -85,7 +85,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 3625043607559282579, guid: 19fb86013d8c24d6cb8410c0aadf30fa, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.08627451}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.045}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -158,8 +158,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a09f77237d865542a62cac655046cc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  idleColor: {r: 1, g: 1, b: 1, a: 0.08627451}
+  idleColor: {r: 1, g: 1, b: 1, a: 0.045}
   inRangeColor: {r: 0.3, g: 1, b: 0.5, a: 0.35}
+  areaColor: {r: 1, g: 0.25, b: 0.2, a: 0.45}
   hoverColor: {r: 1, g: 1, b: 0, a: 0.5}
 --- !u!114 &9185129640257608174
 MonoBehaviour:

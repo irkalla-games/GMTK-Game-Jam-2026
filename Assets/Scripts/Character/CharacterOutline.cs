@@ -100,6 +100,11 @@ public class CharacterOutline : MonoBehaviour
         outlineRect.SetParent(barRect.parent, false);
         outlineRect.SetSiblingIndex(barRect.GetSiblingIndex());
 
+        // Inherited explicitly - SetParent does not carry it, and a fresh GameObject starts on
+        // Default, which the board camera culls and the UI camera would draw somewhere else entirely.
+        // IntentRoll already does this for its own runtime children. See GameLayers.
+        outlineObject.layer = barRect.parent.gameObject.layer;
+
         outlineRect.anchorMin = barRect.anchorMin;
         outlineRect.anchorMax = barRect.anchorMax;
         outlineRect.pivot = barRect.pivot;

@@ -164,6 +164,11 @@ public class FloatingTextManager : Singleton<FloatingTextManager>
         if (height <= 0f) { height = defaultHeight; }
 
         FloatingText label = Instantiate(prefab);
+
+        // Same reason as Projectile: positioned in board space but parented to nothing, so the layer
+        // has to be stated or the UI camera draws the number somewhere else. See GameLayers.
+        GameLayers.PutOnBoard(label.gameObject);
+
         label.Play(body, color, tileWorldPosition + tileOffset, height);
     }
 }

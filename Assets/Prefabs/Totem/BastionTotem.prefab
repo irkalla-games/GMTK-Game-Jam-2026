@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7853797302399174747}
   - component: {fileID: 3272504485007504714}
   - component: {fileID: 325951422158306700}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: HealthFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 3321359906565657270}
   - component: {fileID: 4845597676518581742}
   - component: {fileID: 8748138708192627702}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: BarBack
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 5703885653886073532}
   - component: {fileID: 5157709878038491367}
   - component: {fileID: 2453026702952558253}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: ShieldFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -237,7 +237,7 @@ GameObject:
   - component: {fileID: 1812793075524592395}
   - component: {fileID: 3840465548376105858}
   - component: {fileID: 6074003599797253550}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -338,7 +338,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4141447260266195993}
   - component: {fileID: 6750763853904158736}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -436,7 +436,7 @@ GameObject:
   - component: {fileID: 2268843417572458188}
   - component: {fileID: 4458404965760918587}
   - component: {fileID: 2516225829602599232}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BastionTotem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -637,7 +637,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5665954418348718457}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Overhead
   m_TagString: Untagged
   m_Icon: {fileID: 0}

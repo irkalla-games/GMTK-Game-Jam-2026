@@ -56,7 +56,17 @@ public class LootManager : Singleton<LootManager>
 
     /// True when nothing is queued and no panel is being shown - what BattleManager's turn loop waits
     /// on before letting the round roll over. See LootManager-idle waits in EnemyResolve/RunBattle.
+    ///
+    /// Flips false the moment a pickup is queued, not when the panel actually opens - Drain below still
+    /// has to wait out ActionManager.IsIdle first. A caller that needs to know the panel itself is up
+    /// (the tutorial's own explanation of it) wants Panel.IsShowing instead.
     public bool IsIdle => !resolving && pending.Count == 0;
+
+    /// Exposed for the tutorial, which needs the panel itself - not just IsIdle - to anchor its
+    /// explanation and to know when it is actually on screen. Read-only, same contract as every other
+    /// tutorial exposure in this codebase (PartyPortraitPanel.PortraitRectFor, SelectedCharacterPanel.
+    /// StatusRowRect): a caller may read it, never drive the panel through it.
+    public RewardPanel Panel => panel;
 
     /// Queues a reward offer for `picker`. Safe to call from inside GridTile.TryPickUpItem, itself
     /// called synchronously from GridManager.MoveCharacter - this only enqueues; Drain is what waits

@@ -15,6 +15,5 @@ MonoBehaviour:
   characters:
   - {fileID: 11400000, guid: 60c9573f421cff441852d43faecde60c, type: 2}
   - {fileID: 11400000, guid: 868f9f141320d4e4388aed05e432965a, type: 2}
-  - {fileID: 11400000, guid: 960a63c3011f7d94ba670b5bb8a21ec4, type: 2}
   minPartySize: 2
-  maxPartySize: 4
+  maxPartySize: 2

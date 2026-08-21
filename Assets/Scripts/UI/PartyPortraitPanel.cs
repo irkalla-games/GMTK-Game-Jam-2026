@@ -23,15 +23,19 @@ public class PartyPortraitPanel : MonoBehaviour
 
     [Header("Layout")]
     [Tooltip("Width of a portrait's slot when it is not the active one.")]
-    [SerializeField] private float restWidth = 96f;
+    [SerializeField] private float restWidth = 72f;
 
     [Tooltip("Width of the active hero's slot - wider, so the row spreads to make room for it rather " +
         "than just scaling a portrait up in place.")]
-    [SerializeField] private float activeWidth = 140f;
+    [SerializeField] private float activeWidth = 210f;
 
-    [SerializeField] private float spacing = 12f;
+    [SerializeField] private float spacing = 18f;
 
     [SerializeField] private float activeScale = 1.25f;
+
+    [Tooltip("Shrinks every non-active portrait so the pop to activeScale reads as a much bigger jump, "
+             + "rather than the two states looking close in size.")]
+    [SerializeField] private float restScale = 0.5f;
 
     [SerializeField] private float layoutDuration = 0.15f;
 
@@ -272,7 +276,7 @@ public class PartyPortraitPanel : MonoBehaviour
             x += width + spacing;
 
             portrait.SetHighlighted(isActive);
-            portrait.SetLayoutTarget(new Vector2(target, 0f), isActive ? activeScale : 1f, layoutDuration);
+            portrait.SetLayoutTarget(new Vector2(target, 0f), isActive ? activeScale : restScale, layoutDuration);
         }
     }
 }

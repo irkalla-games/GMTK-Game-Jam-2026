@@ -36,9 +36,13 @@ $script:ShapeNames   = @('Anywhere', 'Chebyshev', 'Manhattan', 'SelfTile')
 $script:AreaKindNames= @('Single', 'Radius', 'Pattern')
 $script:AimNames     = @('Tile', 'Self')
 $script:KeywordNames = @('None', 'Innate', 'Cooldown', 'Dormant')
+# Index = the enum's int value, so this list must stay in StatusType.cs's declaration order and must
+# be APPENDED to whenever a status is added. A missing tail entry is not cosmetic: Get-EnumName falls
+# back to "Unknown(16)", that string goes into the Glossary tab's Type column, and Unity's
+# Enum.TryParse then rejects it - so the tooltip silently cannot be edited from the sheet at all.
 $script:StatusNames  = @('None', 'Strength', 'DoubleNextAttack', 'Poison', 'Frozen', 'Shield', 'Block',
                          'Parry', 'Rooted', 'DoubleShield', 'Dodge', 'Weaken', 'Taunt', 'Summoned',
-                         'PoisonBlade', 'Stealth')
+                         'PoisonBlade', 'Stealth', 'Vulnerable', 'GainMultiplier', 'Potency', 'TurnTick')
 
 # Assets/Scripts/TileEffects/TileEffectType.cs
 $script:TileEffectNames = @('None', 'WallOfForce', 'WallOfFlames')
@@ -1143,7 +1147,12 @@ function Read-Baseline {
 
     if ($json.PSObject.Properties.Name -contains 'glossary') {
         foreach ($entry in @($json.glossary)) {
-            $key = "$($entry.kind)/$($entry.type)"
+            # Through the same resolver the sheet's Type column goes through. A baseline written while
+            # the name table was short keys these as "Status/Unknown(16)"; leaving that alone would
+            # make the now-properly-named entry look like it had never been synced, which reports every
+            # renamed term as a conflict and blocks the sync instead of merging it.
+            $kind = [string]$entry.kind
+            $key = "$kind/$(Resolve-GlossaryType -Kind $kind -Name ([string]$entry.type))"
             $result.Glossary[$key] = @{
                 Title           = ConvertTo-Comparable $entry.title
                 Body            = ConvertTo-Comparable $entry.body
@@ -1232,6 +1241,34 @@ function Get-GlossaryPath {
     param([string]$RepoRoot)
 
     return (Join-Path $RepoRoot 'Assets\Scripts\UI\Tooltips\Glossary.asset')
+}
+
+function Resolve-GlossaryType {
+    <#
+        .SYNOPSIS
+            Maps a Glossary Type cell back to a canonical enum name.
+
+        .DESCRIPTION
+            A sheet exported while the name table was missing an enum value carries "Unknown(16)" in
+            that column, and the workbook is committed to git - so those rows outlive the table fix.
+            The asset side names the value properly once the table is current, and the two no longer
+            match: the row reads as a brand new term, gets planned as a create, is rejected by Unity's
+            Enum.TryParse, and the export pass then rewrites it from the unchanged asset - eating
+            whatever wording had been typed into it.
+
+            Resolving by index rather than by name is what lets one such row still merge, so a fixed
+            table repairs the sheet without also costing an edit. A value the table STILL cannot name
+            is returned unchanged, for the caller to skip and report.
+    #>
+    param([string]$Kind, [string]$Name)
+
+    if ($Name -notmatch '^Unknown\((\d+)\)$') { return $Name }
+
+    $table = if ($Kind -eq 'Status') { $script:StatusNames } else { $script:KeywordNames }
+    $index = [int]$Matches[1]
+
+    if ($index -ge 0 -and $index -lt $table.Count) { return $table[$index] }
+    return $Name
 }
 
 function Read-GlossaryRows {

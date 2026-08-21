@@ -29,12 +29,16 @@ public class BlockStatus : StatusEffect
 
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {
-        if (stacks <= 0) { return info; }
+        // blockApplied gates a second Block source (a carried charge and a totem's Block aura are two
+        // separate Status entries) from also taking 5 off the same hit - see DamageInfo.blockApplied.
+        // A charge behind that gate is left unspent: standing in a Block aura is what covered this hit,
+        // so there is nothing for the carried charge to have done.
+        if (stacks <= 0 || info.blockApplied) { return info; }
 
         // Looking is free. Only an actual hit spends the charge - see DamageInfo.consumeCharges.
         if (info.consumeCharges) { stacks--; }
 
-        return info.Reduced(AmountPerHit);
+        return info.ReducedOnce(AmountPerHit);
     }
 
     public override string Describe() => $"Block {AmountPerHit} x{stacks}";

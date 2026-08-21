@@ -77,6 +77,25 @@ public class RewardPanel : MonoBehaviour
     public SkipReward ChosenSkip { get; private set; }
 
     /// <summary>
+    /// Whether the panel is actually on screen right now - not the same question LootManager.IsIdle
+    /// answers. IsIdle flips false as soon as a pickup is queued (GridTile.TryPickUpItem, called
+    /// synchronously from GridManager.MoveCharacter), well before LootManager.Drain finishes waiting on
+    /// ActionManager.IsIdle and actually calls Show below. A caller that needs to know the panel itself
+    /// is up - the tutorial's own explanation of it - has to ask this, not IsIdle.
+    /// </summary>
+    public bool IsShowing => root != null && root.activeSelf;
+
+    /// <summary>
+    /// Exposed for the tutorial, which anchors its own explanation above the whole panel rather than
+    /// above the title specifically - see TutorialDirector. `root` stretches the full screen, so
+    /// AnchoredPlacement can never fit a box strictly "above" or "below" it; the clamp it falls back to
+    /// then pins the box against the top edge, which is what actually keeps it clear of the offered
+    /// cards. Anchoring to titleLabel instead would only line the box up beside a fixed-size rect the
+    /// cards sit close beneath, and a small change to either one could push it back over them.
+    /// </summary>
+    public RectTransform Rect => root != null ? (RectTransform)root.transform : null;
+
+    /// <summary>
     /// Starts hidden regardless of how the scene left `root`'s active checkbox - same reasoning as
     /// NotificationManager.Awake forcing its panel inactive. Authoring `root` as active by default (the
     /// natural state while building the hierarchy in the Editor) would otherwise dim the whole battle

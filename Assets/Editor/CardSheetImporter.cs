@@ -156,26 +156,19 @@ public static class CardSheetImporter
     /// Runs as three steps because neither tool can do the other's job: PowerShell owns the .xlsx (no
     /// Excel interop in Unity), Unity owns the asset writes (GUIDs, serialization), and Unity's own
     /// batch mode cannot run while the Editor holds Temp/UnityLockfile.
+    ///
+    /// Reads Docs/CardDesign.xlsx, and keeps reading it even while Excel has the workbook open - Excel
+    /// marks ownership with a ~$ file rather than holding the .xlsx exclusively, so a saved edit is
+    /// picked up without closing anything. Only a workbook that genuinely cannot be read falls back to
+    /// the Docs/CardDesign/*.csv mirror, and Import-CardSheet.ps1 says so in the console when it does.
+    /// The export step at the end is the part that does need Excel closed, since it rewrites the file
+    /// wholesale; it fails with a plain-language message rather than half-writing it.
     /// </summary>
     /// Top level and first in the menu on purpose - this is the one you press constantly, and burying
     /// the everyday action a submenu deep costs a click every time. The large negative priority floats
     /// it above everything else in Tools; the gap to the next item also gives it its own separator.
     [MenuItem("Tools/Sync With Sheet", priority = -1000)]
-    public static void SyncWithSheet() => Sync(string.Empty);
-
-    /// <summary>
-    /// Same everyday sync, reading Docs/CardDesign/*.csv instead of the .xlsx. For when the workbook is
-    /// open in Excel and therefore locked - Import-CardSheet.ps1's own -FromCsv switch existed for this
-    /// already, it just had no button. The export step at the end still rewrites both the workbook and
-    /// the CSV mirror from the finished assets, so the workbook stays the source of truth once it is
-    /// closed again.
-    /// </summary>
-    [MenuItem("Tools/Cards/Sync With Sheet (From CSV)")]
-    public static void SyncWithSheetFromCsv() => Sync("-FromCsv");
-
-    /// The everyday action: reconcile the workbook (or its CSV mirror) and the assets in both
-    /// directions. See SyncWithSheet's own doc for why this runs as three steps.
-    private static void Sync(string importArgs)
+    public static void SyncWithSheet()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -186,19 +179,24 @@ public static class CardSheetImporter
         try
         {
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Reading the workbook...", 0.1f);
-            if (!RunPowerShell(ImportScript, importArgs)) { return; }
+            if (!RunPowerShell(ImportScript, string.Empty)) { return; }
 
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Applying changes to assets...", 0.45f);
-            if (!Apply(out int conflicts)) { return; }
+            if (!Apply(out int conflicts, out int failures)) { return; }
 
-            if (conflicts > 0)
+            if (conflicts > 0 || failures > 0)
             {
-                // Deliberately do not refresh the workbook. The conflicting rows still hold the wording
-                // you typed, and rebuilding the sheet from the assets now would overwrite it with the
-                // Unity side - silently resolving the conflict in Unity's favour, which is the one thing
-                // this whole design exists to prevent.
-                Debug.LogWarning($"Card sheet sync: stopped after applying everything else - {conflicts} card(s) "
-                                 + "changed on both sides. Your sheet edits are untouched. Resolve them and sync again.");
+                // Deliberately do not refresh the workbook. The affected rows still hold the wording you
+                // typed, and rebuilding the sheet from the assets now would overwrite it with the Unity
+                // side - silently reverting your edit, which is the one thing this whole design exists to
+                // prevent. A row that FAILED to apply needs this exactly as much as one that conflicted:
+                // either way the asset does not carry your change, so exporting from it would eat it.
+                List<string> reasons = new();
+                if (conflicts > 0) { reasons.Add($"{conflicts} row(s) changed on both sides"); }
+                if (failures > 0) { reasons.Add($"{failures} row(s) could not be applied - see the errors above"); }
+
+                Debug.LogWarning($"Card sheet sync: stopped after applying everything else - {string.Join(", ", reasons)}. "
+                                 + "The sheet was NOT refreshed, so your edits are still there. Fix the cause and sync again.");
                 return;
             }
 
@@ -318,9 +316,10 @@ public static class CardSheetImporter
     // Applying the plan
     // ------------------------------------------------------------------------------------------
 
-    private static bool Apply(out int conflictCount)
+    private static bool Apply(out int conflictCount, out int failureCount)
     {
         conflictCount = 0;
+        failureCount = 0;
 
         string full = Path.Combine(Directory.GetCurrentDirectory(), JsonPath);
         if (!File.Exists(full))
@@ -408,7 +407,13 @@ public static class CardSheetImporter
                 else { createdCards++; }
             }
 
-            int glossaryWritten = WriteGlossary(payload.glossary);
+            int glossaryWritten = WriteGlossary(payload.glossary, out int glossaryFailed);
+            failed += glossaryFailed;
+
+            // Reported to the caller, not just logged: a row that failed to apply leaves the asset
+            // WITHOUT the change, so letting the export pass run would rebuild the sheet from that
+            // asset and throw the typed wording away - the same damage a conflict does.
+            failureCount = failed;
 
             Debug.Log($"Card sheet sync: {createdCards} created, {updated} updated, {moved} moved, "
                       + $"{madeEffects} new effect assets, {glossaryWritten} tooltip(s) reworded"
@@ -512,20 +517,28 @@ public static class CardSheetImporter
     /// Nothing is ever removed: a row cleared in the sheet is skipped upstream rather than deleting the
     /// tooltip, on the same "the importer never deletes" rule the card path follows.
     /// </summary>
-    private static int WriteGlossary(List<GlossarySpec> specs)
+    private static int WriteGlossary(List<GlossarySpec> specs, out int failed)
     {
+        failed = 0;
+
         if (specs == null || specs.Count == 0) { return 0; }
 
         string[] guids = AssetDatabase.FindAssets("t:Glossary");
         if (guids.Length == 0)
         {
             Debug.LogError("Card sheet: no Glossary asset found - tooltip changes skipped.");
+            failed = specs.Count;
             return 0;
         }
 
         string path = AssetDatabase.GUIDToAssetPath(guids[0]);
         Glossary glossary = AssetDatabase.LoadAssetAtPath<Glossary>(path);
-        if (glossary == null) { return 0; }
+        if (glossary == null)
+        {
+            Debug.LogError($"Card sheet: the Glossary asset at {path} could not be loaded - tooltip changes skipped.");
+            failed = specs.Count;
+            return 0;
+        }
 
         SerializedObject so = new(glossary);
         SerializedProperty statuses = so.FindProperty("statuses");
@@ -543,7 +556,10 @@ public static class CardSheetImporter
             {
                 if (!Enum.TryParse(spec.type, out StatusType status))
                 {
-                    Debug.LogError($"Card sheet: '{spec.type}' is not a StatusType - tooltip skipped.");
+                    Debug.LogError($"Card sheet: '{spec.type}' is not a StatusType - tooltip skipped. If this "
+                                   + "reads Unknown(N), the name table in Tools/CardSheet/CardSheet.Common.psm1 "
+                                   + "is missing that value - append it to match StatusType.cs.");
+                    failed++;
                     continue;
                 }
                 typeValue = (int)status;
@@ -552,7 +568,10 @@ public static class CardSheetImporter
             {
                 if (!Enum.TryParse(spec.type, out CardKeywordType keyword))
                 {
-                    Debug.LogError($"Card sheet: '{spec.type}' is not a CardKeywordType - tooltip skipped.");
+                    Debug.LogError($"Card sheet: '{spec.type}' is not a CardKeywordType - tooltip skipped. If this "
+                                   + "reads Unknown(N), the name table in Tools/CardSheet/CardSheet.Common.psm1 "
+                                   + "is missing that value - append it to match CardKeywordType.cs.");
+                    failed++;
                     continue;
                 }
                 typeValue = (int)keyword;

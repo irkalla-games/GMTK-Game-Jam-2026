@@ -11,7 +11,7 @@
 "Root","ApplyStatusEffect","Status:Rooted","1","turns=-1","No","1","Assets/Data/EffectData/Status/Root.asset","a4d4e3e61e8148469881f4b9e148b125"
 "Stealth 2","ApplyStatusEffect","Status:Stealth","2","turns=-1","Yes","1","Assets/Data/EffectData/Status/Stealth 2.asset","40ef0a96df6ebad43984a2f59181911f"
 "Strength 3","ApplyStatusEffect","Status:Strength","3","turns=-1","Yes","1","Assets/Data/EffectData/Status/Strength 3.asset","a1c05e11d2f34b0a9e5c17d40b1e5007"
-"Vulnerable","ApplyStatusEffect","Status:Unknown(16)","1","turns=-1","Yes","2","Assets/Data/EffectData/Status/Vulnerable.asset","d96f92b498b41174c8c02c1ba9bf1642"
+"Vulnerable","ApplyStatusEffect","Status:Vulnerable","1","turns=-1","Yes","2","Assets/Data/EffectData/Status/Vulnerable.asset","d96f92b498b41174c8c02c1ba9bf1642"
 "Weaken","ApplyStatusEffect","Status:Weaken","1","turns=-1","Yes","1","Assets/Data/EffectData/Status/Weaken.asset","fdf8e59b34a6463478b37ed552bf8e09"
 "Weaken 2","ApplyStatusEffect","Status:Weaken","2","turns=-1","Yes","1","Assets/Data/EffectData/Status/Weaken 2.asset","d6e9f9dd9e2d53542b483894b2f681d7"
 "Block 1","BlockEffect","Block","1","legacy blockAmount=0","Yes","0","Assets/Data/EffectData/Block/Block 1.asset","6ed490ccaf25d284f841904809cfffd9"

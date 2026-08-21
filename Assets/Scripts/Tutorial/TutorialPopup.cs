@@ -42,6 +42,11 @@ public class TutorialPopup : Singleton<TutorialPopup>
     [Tooltip("Advances a read step. Hidden on action steps, where doing the thing is what advances.")]
     [SerializeField] private Button continueButton;
 
+    [Tooltip("Skip Tutorial's own root, a bit below the End Turn button - built by Wire Tutorial Overlay. "
+             + "Standalone rather than a child of panel: it is shown for the whole tutorial, not toggled "
+             + "per step, so it needs a visibility of its own separate from panel's canvasGroup.")]
+    [SerializeField] private GameObject skipRoot;
+
     [Tooltip("Abandons the tutorial. Always available - a step that fails to advance must never be able "
              + "to trap someone in it.")]
     [SerializeField] private Button skipButton;
@@ -73,7 +78,7 @@ public class TutorialPopup : Singleton<TutorialPopup>
 
         // Log and degrade rather than throw, the same as TooltipManager.Awake.
         if (canvas == null || panel == null || canvasGroup == null || titleText == null
-            || bodyText == null || continueButton == null || skipButton == null)
+            || bodyText == null || continueButton == null || skipRoot == null || skipButton == null)
         {
             Debug.LogError($"{name}: TutorialPopup is missing part of its skeleton - run "
                            + "Tools > Tutorial > Wire Tutorial Overlay, or no tutorial copy will show");
@@ -85,13 +90,25 @@ public class TutorialPopup : Singleton<TutorialPopup>
         skipButton.onClick.AddListener(() => SkipRequested = true);
 
         SetVisible(false);
+        skipRoot.SetActive(false);
     }
 
-    /// Clears the latch so a second run of the tutorial in one session does not start already skipped.
+    /// Clears the latch so a second run of the tutorial in one session does not start already skipped,
+    /// and raises Skip Tutorial - it stays up for every step from here until EndTutorial takes it down.
     public void BeginTutorial()
     {
         SkipRequested = false;
         continuePressed = false;
+
+        skipRoot.SetActive(true);
+    }
+
+    /// Takes Skip Tutorial back down. Separate from Hide(), which runs once per step - this runs once,
+    /// when the whole tutorial ends (walked or skipped), the same lifecycle TutorialDirector.End() drives
+    /// TutorialSpotlight.Clear() and Hide() itself through.
+    public void EndTutorial()
+    {
+        skipRoot.SetActive(false);
     }
 
     public void Show(string title, string body, TooltipAnchor? pointsAt, bool showContinue)

@@ -101,15 +101,23 @@ public static class EquipmentExampleContent
         FinishEquipment(item, bonus);
     }
 
+    /// <summary>
+    /// The potency ring. Uses AppliedPotencyModifier rather than the GrantBonusModifier it was first
+    /// authored with: that one rides OnGainStatus, which Character.AddStatus runs over the *receiver's*
+    /// statuses, so it deepened Weaken applied *to* the wearer - the opposite of what the description
+    /// always claimed. It also moved the stack count, which for Weaken is the duration now, so "+1" read
+    /// as one turn longer instead of one point deeper.
+    /// </summary>
     private static void AuthorHexbindersCord()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Hexbinder's Cord.asset", "Hexbinder's Cord", "+1 Weaken whenever you apply Weaken.",
+            Folder + "/Hexbinder's Cord.asset", "Hexbinder's Cord",
+            "The Weaken you apply cuts 1 deeper - your totems included.",
             Rarity.Uncommon, CharacterClass.Any);
 
         if (item == null) { return; }
 
-        GrantBonusModifier bonus = AddModifier<GrantBonusModifier>(item, so =>
+        AppliedPotencyModifier bonus = AddModifier<AppliedPotencyModifier>(item, so =>
         {
             so.FindProperty("subject").intValue = (int)StatusType.Weaken;
             so.FindProperty("bonus").intValue = 1;

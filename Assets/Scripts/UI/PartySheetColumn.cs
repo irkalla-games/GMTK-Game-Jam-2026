@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -42,10 +41,6 @@ public class PartySheetColumn : MonoBehaviour
         "just end the column, which read the same as a broken panel.")]
     [SerializeField] private GameObject noneLabel;
 
-    /// Cached because Enum.GetValues allocates a fresh array every call - same reasoning as
-    /// SelectedCharacterPanel.AllTypes and HeroPortrait.AllTypes.
-    private static readonly StatusType[] AllTypes = (StatusType[])Enum.GetValues(typeof(StatusType));
-
     /// Grown on demand and reused, never destroyed - the same pooling contract StatusChip's other
     /// callers use.
     private readonly List<StatusDetailRow> rows = new();
@@ -85,8 +80,7 @@ public class PartySheetColumn : MonoBehaviour
 
     /// <summary>
     /// Unlike HeroPortrait's row, this includes StatusType.Shield - there is no bar competing with it
-    /// for space here, and its glossary entry is worth reading like any other. Still skips None, the
-    /// "never set" sentinel.
+    /// for space here, and its glossary entry is worth reading like any other.
     ///
     /// Falls back to the status's own Describe() and the bare enum name when the glossary has no entry
     /// authored yet, the same degrade StatusIcons.For and Glossary.Title already use elsewhere - a
@@ -98,10 +92,8 @@ public class PartySheetColumn : MonoBehaviour
 
         int visible = 0;
 
-        foreach (StatusType type in AllTypes)
+        foreach (StatusType type in StatusTypes.Displayable)
         {
-            if (type == StatusType.None) { continue; }
-
             int stacks = hero.StatusStacks(type);
 
             if (stacks <= 0) { continue; }

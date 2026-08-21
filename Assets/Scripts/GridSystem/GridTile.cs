@@ -126,9 +126,12 @@ public class GridTile : MonoBehaviour
         if (Occupant != null) { Occupant.DrawCards(drawAmount); }
     }
 
-    public void ApplyStatus(StatusType status, int stacks)
+    /// `amountBonus` is what the applier's equipment adds to the size of the status - see
+    /// Character.AppliedPotency. Defaults to none, so every caller that has no applier to ask (a tile
+    /// effect, a status a status grants) keeps building exactly what it did before.
+    public void ApplyStatus(StatusType status, int stacks, int amountBonus = 0)
     {
-        if (Occupant != null) { Occupant.AddStatus(status, stacks); }
+        if (Occupant != null) { Occupant.AddStatus(StatusEffect.Create(status, stacks, amountBonus)); }
     }
 
     /// Taunt is the one that cannot go through the type/stacks form - it carries a reference to the

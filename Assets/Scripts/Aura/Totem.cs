@@ -191,7 +191,16 @@ public class Totem : MonoBehaviour
 
         foreach (AuraData aura in auras)
         {
-            StatusEffect projectedEffect = aura.CreateEffect();
+            // Asked of the totem itself, which inherited its summoner's potency at summon time - see
+            // AppliedPotencyStatus.OnSummoned. That is what makes a mage's Weaken ring deepen the Weaken
+            // this totem projects rather than only the Weaken the mage plays from hand.
+            //
+            // The carried-only form, deliberately: the full one walks ActiveStatuses, which calls
+            // CollectAuras, which calls this - and a totem inside its own aura (Rampart affects allies
+            // at range 0) would recurse forever. See Character.CarriedAppliedPotency.
+            int amountBonus = owner != null ? owner.CarriedAppliedPotency(aura.Type) : 0;
+
+            StatusEffect projectedEffect = aura.CreateEffect(amountBonus);
 
             if (projectedEffect != null) { into.Add(new Aura(this, projectedEffect)); }
         }

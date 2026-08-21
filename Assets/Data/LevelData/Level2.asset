@@ -14,24 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   enemies:
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 3, y: 3}
+    cell: {x: 4, y: 4}
     deckOverride: []
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 1, y: 3}
+    cell: {x: 1, y: 4}
     deckOverride: []
   - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-    cell: {x: 1, y: 5}
+    cell: {x: 5, y: 5}
     deckOverride: []
   - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-    cell: {x: 3, y: 5}
+    cell: {x: 0, y: 5}
     deckOverride: []
   waves: []
   partySpawnCells:
-  - {x: 1, y: 0}
-  - {x: 3, y: 0}
-  - {x: 4, y: 0}
-  - {x: 5, y: 0}
-  boardSize: {x: 8, y: 8}
+  - {x: 2, y: 3}
+  - {x: 2, y: 2}
+  - {x: 3, y: 3}
+  - {x: 3, y: 2}
+  boardSize: {x: 6, y: 6}
   turnsToSurvive: 10
   handSize: 5
   lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}

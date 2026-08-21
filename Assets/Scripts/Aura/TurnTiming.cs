@@ -15,8 +15,7 @@
 /// timing that lands *before* the granted status's own tick: TurnEnd for a status that resets at
 /// TurnStart (Shield - ShieldStatus.OnTurnStart wipes it; Block has no turn hook at all, so either
 /// timing is safe and TurnEnd keeps it live through EnemyResolve), TurnStart for one that resets at
-/// TurnEnd (Weaken; Vulnerable has no turn hook either - its charges are spent by hits, not a tick -
-/// but TurnStart keeps it live for the enemy's own action point same as Weaken).
+/// TurnEnd (Weaken - TurnStart keeps it live for the enemy's own action point).
 /// </summary>
 public enum TurnTiming
 {

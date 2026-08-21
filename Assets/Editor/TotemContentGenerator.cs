@@ -16,8 +16,11 @@ using UnityEngine;
 ///
 /// Idempotent: every Create step checks whether its target path already has an asset before building
 /// anything, so running this twice - or after hand-editing one of its outputs - never clobbers work.
-/// It does not, however, re-sync an existing asset's fields to match this script if they have drifted;
-/// delete the asset and re-run to rebuild it from scratch.
+/// Totem prefabs are the one exception: CreateTotemPrefab repairs rather than skips, rewriting every
+/// field a spec owns on every run, so a spec change (Sap/Fracture/Rampart's TurnTick -> plain-aura
+/// conversion, say) reaches the prefab on disk instead of being silently ignored - see its own doc
+/// comment. Everything else does not re-sync an existing asset's fields to match this script if they
+/// have drifted; delete the asset and re-run to rebuild it from scratch.
 ///
 /// Editor-only, and not covered by Tools/compile-check.ps1 without -IncludeEditor - see
 /// CardSheetImporter's identical note.
@@ -35,6 +38,13 @@ public static class TotemContentGenerator
         public string displayName;
         public AuraAudience affects;
         public StatusType auraType;
+
+        /// The base counter written onto the AuraData entry. Inert for the three parameterised statuses
+        /// (GainMultiplier, Potency, TurnTick), which read magnitude instead - see AuraData.CreateEffect
+        /// - so those specs leave this at its default of 1. A plain aura (Weaken, Vulnerable, Block, ...)
+        /// reads this as the real magnitude, same as Status.stacks everywhere else.
+        public int stacks = 1;
+
         public StatusType subject;
         public int magnitude;
         public TurnTiming timing;
@@ -124,9 +134,9 @@ public static class TotemContentGenerator
             new() { fileName = "BastionTotem", displayName = "Bastion Totem", affects = AuraAudience.Allies,
                 auraType = StatusType.TurnTick, subject = StatusType.Shield, magnitude = 5,
                 timing = TurnTiming.TurnEnd, color = new Color(0.4f, 0.65f, 0.95f, 1f) },
+            // A plain Block aura, not TurnTick - see the class doc on Sap/Fracture/Rampart below for why.
             new() { fileName = "RampartTotem", displayName = "Rampart Totem", affects = AuraAudience.Allies,
-                auraType = StatusType.TurnTick, subject = StatusType.Block, magnitude = 2,
-                timing = TurnTiming.TurnEnd, color = new Color(0.55f, 0.55f, 0.6f, 1f) },
+                auraType = StatusType.Block, stacks = 1, color = new Color(0.55f, 0.55f, 0.6f, 1f) },
 
             new() { fileName = "HexTotem", displayName = "Hex Totem", affects = AuraAudience.Enemies,
                 auraType = StatusType.GainMultiplier, subject = StatusType.Weaken, magnitude = 2,
@@ -140,27 +150,33 @@ public static class TotemContentGenerator
             new() { fileName = "RuinTotem", displayName = "Ruin Totem", affects = AuraAudience.Enemies,
                 auraType = StatusType.Potency, subject = StatusType.Vulnerable, magnitude = 3,
                 color = new Color(0.65f, 0.2f, 0.15f, 1f) },
+            // Plain Weaken/Vulnerable auras, not TurnTick: a TurnTick totem only grants at OnTurnStart/
+            // OnTurnEnd, so one summoned mid-PlayerActing would do nothing until the round after next -
+            // BattleManager.TurnStart has already run by the time it hits the board. A maintained aura is
+            // live the instant Totem.OnEnable registers it, which happens inside SummonAction itself, and
+            // it is gone the instant its carrier steps out of range rather than lingering as a carried
+            // status - see Totem's own "auras are pulled, not pushed" doc.
             new() { fileName = "SapTotem", displayName = "Sap Totem", affects = AuraAudience.Enemies,
-                auraType = StatusType.TurnTick, subject = StatusType.Weaken, magnitude = 2,
-                timing = TurnTiming.TurnStart, color = new Color(0.4f, 0.3f, 0.5f, 1f) },
+                auraType = StatusType.Weaken, stacks = 2, color = new Color(0.4f, 0.3f, 0.5f, 1f) },
             new() { fileName = "FractureTotem", displayName = "Fracture Totem", affects = AuraAudience.Enemies,
-                auraType = StatusType.TurnTick, subject = StatusType.Vulnerable, magnitude = 2,
-                timing = TurnTiming.TurnStart, color = new Color(0.6f, 0.25f, 0.2f, 1f) },
+                auraType = StatusType.Vulnerable, stacks = 2, color = new Color(0.6f, 0.25f, 0.2f, 1f) },
         };
     }
 
+    /// <summary>
+    /// Repairs the prefab at `path` if it already exists, rather than skipping it - the "a content
+    /// generator should repair, not skip" rule (CLAUDE.md). Loading from the existing prefab rather
+    /// than always from TotemPrefabSource means a re-run reaches whatever this totem's fields have
+    /// drifted to, not just a fresh one; every field below is then rewritten unconditionally, including
+    /// subject/magnitude/timing even when the spec does not use them, so converting a spec away from
+    /// TurnTick actually clears what a previous run left in those three rather than leaving them stale.
+    /// </summary>
     private static GameObject CreateTotemPrefab(TotemSpec spec)
     {
         string path = $"{TotemFolder}/{spec.fileName}.prefab";
 
-        GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        if (existing != null)
-        {
-            Debug.Log($"Card sheet: {path} already exists - skipping.");
-            return existing;
-        }
-
-        GameObject root = PrefabUtility.LoadPrefabContents(TotemPrefabSource);
+        bool exists = AssetDatabase.LoadAssetAtPath<GameObject>(path) != null;
+        GameObject root = PrefabUtility.LoadPrefabContents(exists ? path : TotemPrefabSource);
 
         SerializedObject characterSO = new(root.GetComponent<Character>());
         characterSO.FindProperty("displayName").stringValue = spec.displayName;
@@ -183,9 +199,7 @@ public static class TotemContentGenerator
         auras.arraySize = 1;
         SerializedProperty aura = auras.GetArrayElementAtIndex(0);
         aura.FindPropertyRelative("type").intValue = (int)spec.auraType;
-        // The base counter is inert for all three parameterised statuses - magnitude carries the real
-        // number. See AuraData.CreateEffect.
-        aura.FindPropertyRelative("stacks").intValue = 1;
+        aura.FindPropertyRelative("stacks").intValue = spec.stacks;
         aura.FindPropertyRelative("subject").intValue = (int)spec.subject;
         aura.FindPropertyRelative("magnitude").intValue = spec.magnitude;
         aura.FindPropertyRelative("timing").intValue = (int)spec.timing;
@@ -197,8 +211,27 @@ public static class TotemContentGenerator
         GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
         PrefabUtility.UnloadPrefabContents(root);
 
-        Debug.Log($"Card sheet: created {path}");
+        Debug.Log($"Card sheet: {(exists ? "updated" : "created")} {path}");
         return saved;
+    }
+
+    /// <summary>
+    /// Rewrites just the 12 totem prefabs from BuildTotemSpecs, without touching any card or effect
+    /// asset - the narrow half of Generate() above. Generate() also regenerates effects and cards, which
+    /// would be far more churn than intended for a totem-only tuning pass (the Sap/Fracture/Rampart
+    /// TurnTick -> plain-aura conversion, say); this is what running just that pass again should call.
+    /// </summary>
+    [MenuItem("Tools/Cards/Regenerate Totem Prefabs")]
+    public static void RegenerateTotemPrefabs()
+    {
+        foreach (TotemSpec spec in BuildTotemSpecs())
+        {
+            CreateTotemPrefab(spec);
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Card sheet: totem prefab regeneration complete.");
     }
 
     // ------------------------------------------------------------------------------------------

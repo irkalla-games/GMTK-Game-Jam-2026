@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 50d292ed76048464a9c919df44e226ed, type: 3}
-  m_Name: GrantBonusModifier
-  m_EditorClassIdentifier: Assembly-CSharp::GrantBonusModifier
+  m_Script: {fileID: 11500000, guid: 34d3e7f2e7e3131408facf4348a4db83, type: 3}
+  m_Name: AppliedPotencyModifier
+  m_EditorClassIdentifier: Assembly-CSharp::AppliedPotencyModifier
   subject: 11
   bonus: 1
 --- !u!114 &11400000
@@ -27,7 +27,7 @@ MonoBehaviour:
   m_Name: Weaken Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Weaken Ring
-  <description>k__BackingField: When applying Weaken, add an additional stack.
+  <description>k__BackingField: The Weaken you apply cuts 1 deeper - your totems included.
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 1
   <requiredClass>k__BackingField: 2

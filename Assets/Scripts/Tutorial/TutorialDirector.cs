@@ -143,6 +143,9 @@ public class TutorialDirector : Singleton<TutorialDirector>
     private const string LootBody =
         "Beaten enemies leave something behind. Step a hero onto it to claim it.";
 
+    private const string RewardTitle = "Claim Your Reward";
+    private const string RewardBody = "Take any reward to add it to your hand.";
+
     private const string BackToMageTitle = "Back to the Mage";
     private const string BackToMageBody = "Press 2 to take control of the Mage.";
 
@@ -226,7 +229,12 @@ public class TutorialDirector : Singleton<TutorialDirector>
         if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced -= OnTurnAdvanced; }
 
         if (TutorialSpotlight.Instance != null) { TutorialSpotlight.Instance.Clear(); }
-        if (TutorialPopup.Instance != null) { TutorialPopup.Instance.Hide(); }
+
+        if (TutorialPopup.Instance != null)
+        {
+            TutorialPopup.Instance.Hide();
+            TutorialPopup.Instance.EndTutorial();
+        }
 
         // Whether it was walked or skipped, they have seen it. Persisted in PlayerPrefs, so the next
         // Play goes straight to character select.
@@ -298,13 +306,31 @@ public class TutorialDirector : Singleton<TutorialDirector>
         yield return Activate(SwitchHeroTitle, SwitchHeroBody, knight);
 
         yield return SelectCard(ShieldTitle, ShieldBody, knight, shield, OnTile(knight));
-        yield return AimCard(ShieldAimTitle, ShieldAimBody, knight, shield, OnTile(knight));
+
+        // Anchored to the Knight rather than the card (AimCard's default): Shield targets the caster's
+        // own tile, which for every other card in this script sits well clear of the box, but here it
+        // does not - a box above the card would sit right over the very tile it is asking the player to
+        // click. See AimCard's boxAnchor parameter.
+        yield return AimCard(ShieldAimTitle, ShieldAimBody, knight, shield, OnTile(knight),
+            boxAnchor: WorldAnchor(knight, TooltipSide.Right));
 
         yield return EndTurn(EndTurnTitle, EndTurnBody, holdRound: true);
 
         // Both of these land in the gap RunBattle now leaves before EnemyResolve - see HoldingRound.
         yield return Read(DiscardTitle, DiscardBody, UiAnchor(discardPileAnchor, TooltipSide.Above));
-        yield return Read(IntentTitle, IntentBody, WorldAnchor(ranger, TooltipSide.Right));
+
+        // The health bar and intent icon live on the overhead canvas above the enemy's head, not on the
+        // tile beneath it - lighting the tile taught nothing a player couldn't already see. The enemy's
+        // own SelectedCharacterPanel is not an option here: it only shows once something is selected, and
+        // nothing has been yet - see Select(InspectTitle...) further down.
+        CharacterOverheadViewer rangerOverhead = ranger.GetComponent<CharacterOverheadViewer>();
+        TooltipAnchor? healthBarAt = UiAnchor(
+            rangerOverhead != null ? rangerOverhead.HealthBarRect : null, TooltipSide.Right);
+        TooltipAnchor? intentIconAt = UiAnchor(
+            rangerOverhead != null ? rangerOverhead.IntentIconRect : null, TooltipSide.Right);
+
+        yield return Read(IntentTitle, IntentBody, intentIconAt ?? healthBarAt,
+            holes: Holes(healthBarAt, intentIconAt));
 
         // Releases the round. The enemy acts, the counter rolls, and the next turn begins.
         int heldOnTurn = battle.TurnsElapsed;
@@ -317,6 +343,14 @@ public class TutorialDirector : Singleton<TutorialDirector>
         // TurnStart, which is on the far side of the enemy's whole turn.
         yield return new WaitUntil(() =>
             Skipped || (battle.TurnsElapsed > heldOnTurn && battle.Phase == BattlePhase.PlayerActing));
+
+        if (Skipped) { End(); yield break; }
+
+        // Turn 2's hand is still being dealt one card at a time - see ActiveHandViewer.dealQueue. Without
+        // this, SelectCard's CardAnchor can miss the still-arriving Slash card and fall back to a
+        // centre-screen box pointing at nothing.
+        yield return new WaitUntil(() =>
+            Skipped || ActiveHandViewer.Instance == null || !ActiveHandViewer.Instance.Busy);
 
         if (Skipped) { End(); yield break; }
 
@@ -340,8 +374,17 @@ public class TutorialDirector : Singleton<TutorialDirector>
         yield return SelectCard(TeleportTitle, TeleportBody, mage, teleport, HasDrop);
         yield return AimCard(TeleportAimTitle, TeleportAimBody, mage, teleport, HasDrop);
 
-        // Picking the card up opens a reward panel, which owns the screen until it is resolved. Nothing
-        // the tutorial shows may sit on top of it.
+        // LootManager.IsIdle flips false as soon as the pickup is queued - well before the panel actually
+        // opens, since Drain still has to wait out ActionManager.IsIdle first - so it is no good as a
+        // "the panel is up" signal; RewardPanel.IsShowing is the real one. No dim: the panel already owns
+        // the screen and lays its offered cards out itself, and a full-screen dim behind it would darken
+        // cards this beat has no way to carve holes around - the box's own anchor (above the title) is
+        // what keeps it clear of them instead.
+        yield return new WaitUntil(() => Skipped || RewardPanelShowing());
+        if (Skipped) { End(); yield break; }
+
+        yield return Read(RewardTitle, RewardBody, RewardPanelAnchor(), dim: false);
+
         yield return new WaitUntil(() => Skipped || LootManager.Instance == null || LootManager.Instance.IsIdle);
         if (Skipped) { End(); yield break; }
 
@@ -361,12 +404,21 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
     // ---- Primitives -----------------------------------------------------------------------------
 
-    /// Nothing on the board to do - Continue is the only way on. `at` null puts the box centre screen.
-    private IEnumerator Read(string title, string body, TooltipAnchor? at = null)
+    /// <summary>
+    /// Nothing on the board to do - Continue is the only way on, unless `done` supplies another. `at`
+    /// null puts the box centre screen; `holes` defaults to just `at` but can be widened - see the
+    /// "Read the Intent" beat, which lights both the health bar and the intent icon. `dim` false skips
+    /// the spotlight entirely rather than dimming with no holes - see the reward beat, which explains a
+    /// panel that already owns the screen and lays itself out; a full dim behind it would darken content
+    /// this beat has no anchor to carve a hole around.
+    /// </summary>
+    private IEnumerator Read(
+        string title, string body, TooltipAnchor? at = null, TooltipAnchor[] holes = null, Func<bool> done = null,
+        bool dim = true)
     {
         gate.PermitNothing();
 
-        yield return Beat(title, body, at, showContinue: true, holes: Holes(at), done: null);
+        yield return Beat(title, body, at, showContinue: true, holes: holes ?? Holes(at), done: done, dim: dim);
     }
 
     /// <summary>
@@ -393,10 +445,18 @@ public class TutorialDirector : Singleton<TutorialDirector>
             done: () => CardPlayManager.Instance != null && CardPlayManager.Instance.SelectedCard == card);
     }
 
+    /// <summary>
     /// The second half of a play: same permit, different copy, and it ends when the card actually
     /// leaves the hand. The tile permit is what guarantees it left onto the right tile.
+    ///
+    /// `boxAnchor` overrides where the box itself sits - the card by default, which is where the player
+    /// is looking. The lit holes always include the card regardless, so overriding this never costs the
+    /// card its own highlight; it only moves the box clear of a target that would otherwise sit under it -
+    /// see the Shield beat, whose target is the caster's own tile.
+    /// </summary>
     private IEnumerator AimCard(
-        string title, string body, Character actor, CardData data, Predicate<GridTile> targets)
+        string title, string body, Character actor, CardData data, Predicate<GridTile> targets,
+        TooltipAnchor? boxAnchor = null)
     {
         Card card = InHand(actor, data);
 
@@ -406,11 +466,11 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         gate.Permit(allowedCard: card, allowedTiles: legal);
 
-        // Anchored to the card, which is where the player is looking - the lit tiles are the board's
-        // own in-range highlight, which the spotlight also leaves visible.
-        TooltipAnchor? at = CardAnchor(card);
+        // The lit tiles are the board's own in-range highlight, which the spotlight also leaves visible.
+        TooltipAnchor? cardAt = CardAnchor(card);
+        TooltipAnchor? at = boxAnchor ?? cardAt;
 
-        yield return Beat(title, body, at, showContinue: false, holes: TargetHoles(at, legal),
+        yield return Beat(title, body, at, showContinue: false, holes: TargetHoles(cardAt, legal),
             done: () => !HandHolds(actor, card));
     }
 
@@ -472,16 +532,18 @@ public class TutorialDirector : Singleton<TutorialDirector>
     }
 
     /// <summary>
-    /// Waits for the cursor to rest on something rather than for a click. Continue is offered as well,
-    /// so a player who cannot find the hover is never stuck on it - the one beat where the lesson is
-    /// worth teaching but not worth trapping anyone over.
+    /// Waits for the cursor to rest on something rather than for a click - Continue is the only way on,
+    /// same as Read, so a player who cannot find the hover is never stuck on it.
+    ///
+    /// Not ended by TooltipManager.IsShowing turning true: that fires the instant the hover starts, before
+    /// the tooltip has even faded in, so the beat would tear itself down before there was anything to
+    /// read. The whole point of this beat is to let the player read it, so Continue is what ends it.
     /// </summary>
     private IEnumerator Hover(string title, string body, TooltipAnchor? at)
     {
         gate.PermitNothing();
 
-        yield return Beat(title, body, at, showContinue: true, holes: Holes(at),
-            done: () => TooltipManager.Instance != null && TooltipManager.Instance.IsShowing);
+        yield return Beat(title, body, at, showContinue: true, holes: Holes(at), done: null);
     }
 
     /// <summary>
@@ -490,11 +552,18 @@ public class TutorialDirector : Singleton<TutorialDirector>
     ///
     /// Every exit path goes through here, which is what makes "the tutorial can always be escaped" true
     /// by construction rather than by remembering to check Skip in twenty places.
+    ///
+    /// `dim` false leaves TutorialSpotlight untouched instead of calling Show with no effect - the reward
+    /// beat is the one caller that passes it, since Show(holes) with holes it cannot supply would dim
+    /// content it has no way to protect. Untouched, not forced clear, because the beat before this one
+    /// already tore its own spotlight down through this same method.
     /// </summary>
     private IEnumerator Beat(
-        string title, string body, TooltipAnchor? at, bool showContinue, TooltipAnchor[] holes, Func<bool> done)
+        string title, string body, TooltipAnchor? at, bool showContinue, TooltipAnchor[] holes, Func<bool> done,
+        bool dim = true)
     {
-        TutorialSpotlight.Instance.Show(holes);
+        if (dim) { TutorialSpotlight.Instance.Show(holes); }
+
         TutorialPopup.Instance.Show(title, body, at, showContinue);
 
         yield return new WaitUntil(() =>
@@ -503,7 +572,8 @@ public class TutorialDirector : Singleton<TutorialDirector>
             || (showContinue && TutorialPopup.Instance.ConsumeContinue()));
 
         TutorialPopup.Instance.Hide();
-        TutorialSpotlight.Instance.Clear();
+
+        if (dim) { TutorialSpotlight.Instance.Clear(); }
     }
 
     private bool Skipped => TutorialPopup.Instance != null && TutorialPopup.Instance.SkipRequested;
@@ -512,6 +582,18 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
     private static TooltipAnchor[] Holes(TooltipAnchor? at) =>
         at.HasValue ? new[] { at.Value } : Array.Empty<TooltipAnchor>();
+
+    /// Two independent holes rather than one - see the "Read the Intent" beat, which lights the health
+    /// bar and the intent icon at once rather than picking only one to point the box at.
+    private static TooltipAnchor[] Holes(TooltipAnchor? a, TooltipAnchor? b)
+    {
+        List<TooltipAnchor> holes = new();
+
+        if (a.HasValue) { holes.Add(a.Value); }
+        if (b.HasValue) { holes.Add(b.Value); }
+
+        return holes.ToArray();
+    }
 
     /// The card plus every tile it may legally be aimed at, so the board's own in-range highlight stays
     /// readable through the dim instead of being blacked out with everything else.
@@ -570,6 +652,20 @@ public class TutorialDirector : Singleton<TutorialDirector>
     }
 
     private RectTransform StatusRow() => enemyPanel != null ? enemyPanel.StatusRowRect : null;
+
+    private static bool RewardPanelShowing() =>
+        LootManager.Instance != null && LootManager.Instance.Panel != null
+        && LootManager.Instance.Panel.IsShowing;
+
+    /// The panel's own root, not its title - see RewardPanel.Rect for why a full-screen anchor is what
+    /// actually pins the box against the top edge instead of risking a fit beside the title that reaches
+    /// down over the offered cards.
+    private static TooltipAnchor? RewardPanelAnchor()
+    {
+        RewardPanel panel = LootManager.Instance != null ? LootManager.Instance.Panel : null;
+
+        return UiAnchor(panel != null ? panel.Rect : null, TooltipSide.Above);
+    }
 
     private static TooltipAnchor? DropAnchor()
     {

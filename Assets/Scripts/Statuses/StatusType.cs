@@ -50,6 +50,9 @@ public enum StatusType
     /// stacks is the charge count - see DodgeStatus and GridManager.StepAwayFrom.
     Dodge = 10,
 
+    /// Curse. Takes its own Amount off every attack the carrier makes for the next few of its own turns,
+    /// then expires. Vulnerable's mirror on the outgoing side, and the other of the two statuses
+    /// carrying a size as well as a clock - see Status.Amount and DamageInfo.weakenAmount.
     Weaken = 11,
 
     /// Curse. The carrier goes after whoever applied it - both the victim it attacks and the direction
@@ -77,9 +80,10 @@ public enum StatusType
     /// toward - for as long as this lasts. stacks is remaining turns. See TargetSelector.TryPick.
     Stealth = 15,
 
-    /// Curse. Adds VulnerableStatus.AmountPerHit to each of the next few hits taken, then spends a
-    /// charge. The incoming-damage mirror of Strength - same charge-spent shape, opposite side of the
-    /// swing.
+    /// Curse. Adds its own Amount to every hit taken for the next few of the carrier's own turns, then
+    /// expires. Self-ticking - Frozen and Rooted's shape, not Strength's or Block's. One of the two
+    /// statuses carrying a size as well as a clock, so several coexist unmerged and only the biggest
+    /// applies; see Status.Amount, StatusEffect.MergesWith and DamageInfo.vulnerableAmount.
     Vulnerable = 16,
 
     /// Aura-only: StatusEffect.Create returns null for this, same as Taunt. Doubles (or otherwise

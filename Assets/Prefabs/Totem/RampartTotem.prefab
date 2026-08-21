@@ -284,12 +284,48 @@ RectTransform:
   - {fileID: 8098931528593452641}
   - {fileID: 6921394705370379270}
   - {fileID: 8447024132365233319}
+  - {fileID: 874381093803370415}
   m_Father: {fileID: 8796731457981347330}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0.087, y: 1.036}
   m_SizeDelta: {x: 160, y: 8}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &2651596970403405723
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 874381093803370415}
+  m_Layer: 8
+  m_Name: StatusIconRow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &874381093803370415
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2651596970403405723}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2802203348608029335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -80, y: -20}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &3497882312754006102
 GameObject:
@@ -565,10 +601,10 @@ MonoBehaviour:
     maxDistance: 2
   affects: 0
   auras:
-  - type: 19
+  - type: 6
     stacks: 1
-    subject: 6
-    magnitude: 2
+    subject: 0
+    magnitude: 0
     timing: 0
   reactions: []
   auraColor: {r: 0.55, g: 0.55, b: 0.6, a: 1}
@@ -604,6 +640,11 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  statusIconParent: {fileID: 874381093803370415}
+  statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
+  statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}
+  statusIconSize: 22
+  statusIconSpacing: 4
 --- !u!61 &5879389127945005379
 BoxCollider2D:
   m_ObjectHideFlags: 0

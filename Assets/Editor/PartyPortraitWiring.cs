@@ -54,7 +54,20 @@ public static class PartyPortraitWiring
     // CardPileWiring for the neighbouring HUD elements this has to stay clear of (DeckPileButton sits
     // at x=520 bottom-left anchored). Tunable afterward in the Inspector like every other HUD position
     // this project wires up.
-    private static readonly Vector2 RowAnchoredPosition = new(200f, 105f);
+    //
+    // Y keeps the active hero's full scaled height - root height x activeScale, currently
+    // 285 x 1.25 = ~356, half ~178 - clear of the screen's own bottom edge (y=0), since Row sits at the
+    // canvas's bottom-left corner and everything here hangs off that point. Kept close to that ~178
+    // floor rather than given generous headroom, so the row still hugs the bottom of the screen.
+    private static readonly Vector2 RowAnchoredPosition = new(200f, 190f);
+
+    // Matches PartyPortraitPanel.cs's own field defaults (kept in step by hand, same as this file's own
+    // HeroPortraitPrefabPath/HeroPortrait.prefab pairing) - pushed unconditionally below since the
+    // scene's already-serialized instance would otherwise never see a .cs default change.
+    private const float RestWidth = 72f;
+    private const float ActiveWidth = 210f;
+    private const float RowSpacing = 18f;
+    private const float RestScale = 0.5f;
 
     [MenuItem("Tools/Battle HUD/Wire Party Portraits")]
     public static void Wire()
@@ -274,10 +287,12 @@ public static class PartyPortraitWiring
         PartyPortraitPanel panel;
         RectTransform row;
 
+        GameObject rowGo;
+
         if (existing != null)
         {
             panel = existing.GetComponent<PartyPortraitPanel>();
-            row = (RectTransform)existing.Find(RowName);
+            rowGo = existing.Find(RowName).gameObject;
         }
         else
         {
@@ -294,19 +309,22 @@ public static class PartyPortraitWiring
 
             panel = host.AddComponent<PartyPortraitPanel>();
 
-            GameObject rowGo = new(RowName, typeof(RectTransform));
+            rowGo = new GameObject(RowName, typeof(RectTransform));
             rowGo.transform.SetParent(host.transform, false);
             rowGo.layer = host.layer;
 
-            row = rowGo.GetComponent<RectTransform>();
-            row.anchorMin = Vector2.zero;
-            row.anchorMax = Vector2.zero;
-            row.pivot = new Vector2(0.5f, 0.5f);
-            row.anchoredPosition = RowAnchoredPosition;
-            row.sizeDelta = Vector2.zero;
-
             Debug.Log($"Party portrait wiring: created {PortraitPanelName}.");
         }
+
+        // Re-applied every run, existing row or not - a prior run's position is exactly what a re-run
+        // after tuning RowAnchoredPosition is meant to fix (see HeroPortrait.prefab's resize, which is
+        // what pushed this off the bottom of the screen at the old value).
+        row = rowGo.GetComponent<RectTransform>();
+        row.anchorMin = Vector2.zero;
+        row.anchorMax = Vector2.zero;
+        row.pivot = new Vector2(0.5f, 0.5f);
+        row.anchoredPosition = RowAnchoredPosition;
+        row.sizeDelta = Vector2.zero;
 
         SerializedObject so = new(panel);
         so.FindProperty("portraitPrefab").objectReferenceValue = portraitPrefab;
@@ -314,6 +332,15 @@ public static class PartyPortraitWiring
 
         if (icons != null) { so.FindProperty("icons").objectReferenceValue = icons; }
         if (glossary != null) { so.FindProperty("glossary").objectReferenceValue = glossary; }
+
+        // Unconditional, like icons/glossary above - a scene object's already-serialized float does not
+        // pick up a new .cs default just because PartyPortraitPanel.cs changed, so re-running this is
+        // the only way a resize of HeroPortrait.prefab (HeroPortraitResizeWiring) actually reaches the
+        // row layout that has to match it.
+        so.FindProperty("restWidth").floatValue = RestWidth;
+        so.FindProperty("activeWidth").floatValue = ActiveWidth;
+        so.FindProperty("spacing").floatValue = RowSpacing;
+        so.FindProperty("restScale").floatValue = RestScale;
 
         so.ApplyModifiedProperties();
 

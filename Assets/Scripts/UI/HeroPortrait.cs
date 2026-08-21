@@ -40,9 +40,11 @@ public class HeroPortrait : MonoBehaviour
 
     [SerializeField] private Image pipPrefab;
 
-    [SerializeField] private Color pipFilledColor = Color.white;
+    [Tooltip("Matches the blue CardFaceV2's own mana pip uses, so the two never disagree about what "
+             + "the game's mana colour is.")]
+    [SerializeField] private Color pipFilledColor = new(0.22f, 0.514f, 0.863f, 1f);
 
-    [SerializeField] private Color pipEmptyColor = new(1f, 1f, 1f, 0.25f);
+    [SerializeField] private Color pipEmptyColor = new(0.22f, 0.514f, 0.863f, 0.25f);
 
     [SerializeField] private float pipSize = 14f;
 
@@ -67,17 +69,15 @@ public class HeroPortrait : MonoBehaviour
 
     [SerializeField] private Color restFrameColor = new(1f, 1f, 1f, 0f);
 
-    /// Cached because Enum.GetValues allocates a fresh array every call, and every portrait would
-    /// otherwise pay that on its own Refresh - same reasoning as SelectedCharacterPanel.AllTypes.
-    private static readonly StatusType[] AllTypes = (StatusType[])Enum.GetValues(typeof(StatusType));
-
     /// Grown on demand and reused, one per visible chip plus one more for the overflow badge - never
     /// destroyed, same pooling contract StatusChip's other caller uses.
     private readonly List<StatusChip> chips = new();
 
     /// Reused across refreshes so cataloguing which statuses are active does not allocate a new list
-    /// every time - this runs once per portrait per TurnAdvanced/StatsChanged, which adds up.
-    private readonly List<(StatusType type, int stacks)> activeStatuses = new();
+    /// every time - this runs once per portrait per TurnAdvanced/StatsChanged, which adds up. `live` is
+    /// the status actually in force, `carried` is every carried turn of that type added up (the badge),
+    /// and `stacks` (auras and equipment summed) is what the tooltip sentence quotes.
+    private readonly List<(StatusType type, int stacks, Status live, int carried)> activeStatuses = new();
 
     private readonly List<Image> pips = new();
 
@@ -194,9 +194,9 @@ public class HeroPortrait : MonoBehaviour
     }
 
     /// <summary>
-    /// The enum walk SelectedCharacterPanel.LayOutStatuses uses, capped rather than wrapped: a portrait
-    /// has no room to grow, so past maxChips - 1 the remaining statuses collapse into one more chip
-    /// showing "+N", its tooltip built by folding every hidden status into a single TooltipContent.
+    /// The walk SelectedCharacterPanel.LayOutStatuses uses, capped rather than wrapped: a portrait has
+    /// no room to grow, so past maxChips - 1 the remaining statuses collapse into one more chip showing
+    /// "+N", its tooltip built by folding every hidden status into a single TooltipContent.
     /// </summary>
     private void RefreshStatuses(StatusIcons icons, Glossary glossary, int maxChips, Canvas canvas)
     {
@@ -204,15 +204,15 @@ public class HeroPortrait : MonoBehaviour
 
         activeStatuses.Clear();
 
-        foreach (StatusType type in AllTypes)
+        foreach (StatusType type in StatusTypes.Displayable)
         {
-            // None is the "never set" sentinel, and Shield is drawn on the bar - showing it here too
-            // would be the same number in two places, same reasoning as the enemy/hero info panel.
-            if (type is StatusType.None or StatusType.Shield) { continue; }
+            // Shield is drawn on the bar - showing it here too would be the same number in two places,
+            // same reasoning as the enemy/hero info panel.
+            if (type == StatusType.Shield) { continue; }
 
             int stacks = Hero.StatusStacks(type);
 
-            if (stacks > 0) { activeStatuses.Add((type, stacks)); }
+            if (stacks > 0) { activeStatuses.Add((type, stacks, Hero.FindStatus(type), Hero.CarriedStatusStacks(type))); }
         }
 
         int cap = Mathf.Max(1, maxChips);
@@ -221,11 +221,15 @@ public class HeroPortrait : MonoBehaviour
 
         for (int i = 0; i < shown; i++)
         {
-            (StatusType type, int stacks) = activeStatuses[i];
+            (StatusType type, int stacks, Status live, int carried) = activeStatuses[i];
+
+            // Every carried turn of this type added up, blank when a totem's aura is the one in force -
+            // see SelectedCharacterPanel.LayOutStatuses, which this mirrors.
+            string badge = live == null || live.IsProjected ? string.Empty : carried.ToString();
 
             StatusChip chip = ChipAt(i);
-            chip.Show(icons != null ? icons.For(type) : null, stacks);
-            chip.Bind(TooltipFor(glossary, type, stacks), TooltipAnchor.Of(Rect, canvas));
+            chip.Show(icons != null ? icons.For(type) : null, badge);
+            chip.Bind(TooltipFor(glossary, type, stacks, live), TooltipAnchor.Of(Rect, canvas));
             Place(chip, i);
         }
 
@@ -236,8 +240,8 @@ public class HeroPortrait : MonoBehaviour
 
             for (int i = shown; i < activeStatuses.Count; i++)
             {
-                (StatusType type, int stacks) = activeStatuses[i];
-                glossary?.StatusContent(type, stacks, Hero.FindStatus(type), content);
+                (StatusType type, int stacks, Status live, _) = activeStatuses[i];
+                glossary?.StatusContent(type, stacks, live, content);
             }
 
             overflow.Show(null, $"+{hidden}");
@@ -250,8 +254,8 @@ public class HeroPortrait : MonoBehaviour
         for (int i = shown; i < chips.Count; i++) { chips[i].Hide(); }
     }
 
-    private TooltipContent TooltipFor(Glossary glossary, StatusType type, int stacks) =>
-        glossary == null ? null : glossary.StatusContent(type, stacks, Hero.FindStatus(type));
+    private TooltipContent TooltipFor(Glossary glossary, StatusType type, int stacks, Status live) =>
+        glossary == null ? null : glossary.StatusContent(type, stacks, live);
 
     private StatusChip ChipAt(int index)
     {

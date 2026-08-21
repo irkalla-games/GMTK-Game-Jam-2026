@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -33,7 +34,33 @@ public class CharacterOverheadViewer : MonoBehaviour
              + "if intentIcon is empty.")]
     [SerializeField] private IntentRoll intentRoll = new();
 
+    [Header("Status icons")]
+    [Tooltip("Small glyph row pooled under this - a point anchor to the left of the bar and clear of "
+             + "it vertically, growing further left as more stack up. Leave empty to skip this "
+             + "character entirely.")]
+    [SerializeField] private RectTransform statusIconParent;
+
+    [SerializeField] private OverheadStatusIcon statusIconPrefab;
+
+    [SerializeField] private StatusIcons statusIcons;
+
+    [SerializeField] private float statusIconSize = 22f;
+
+    [SerializeField] private float statusIconSpacing = 4f;
+
+    /// Grown on demand and reused, never destroyed - same pooling contract HeroPortrait's own chips
+    /// and pips use.
+    private readonly List<OverheadStatusIcon> statusIconPool = new();
+
     private Character character;
+
+    /// Exposed for the tutorial spotlight, which lights the health bar it is telling the player to
+    /// read - the same read-only-rect contract SelectedCharacterPanel.StatusRowRect and
+    /// PartyPortraitPanel.PortraitRectFor already use.
+    public RectTransform HealthBarRect => healthFill != null ? (RectTransform)healthFill.transform : null;
+
+    /// Null on a hero, same as intentIcon itself - see the field's own tooltip.
+    public RectTransform IntentIconRect => intentIcon != null ? (RectTransform)intentIcon.transform : null;
 
     /// What the icon is currently showing, kept separately from character.CommittedIntent.kind so
     /// RefreshIntent can tell a real change from a re-assignment of the same kind - the refresh pass in
@@ -56,6 +83,21 @@ public class CharacterOverheadViewer : MonoBehaviour
         if (intentIcon != null) { intentRoll.Build(intentIcon); }
 
         if (healthFill != null) { previewFill = DamagePreviewFill.Build(healthFill); }
+
+        // The overhead canvas is authored World Space with no camera assigned. TooltipAnchor's rect path
+        // (what the tutorial spotlight uses to light HealthBarRect/IntentIconRect) projects through
+        // canvas.worldCamera for anything but an Overlay canvas, and a null camera there answers world
+        // coordinates rather than screen ones - the highlight lands nowhere visible. Same fix as
+        // TotemTooltip.Awake for its own overhead canvas.
+        if (healthFill != null)
+        {
+            Canvas overheadCanvas = healthFill.GetComponentInParent<Canvas>();
+
+            if (overheadCanvas != null && overheadCanvas.worldCamera == null)
+            {
+                overheadCanvas.worldCamera = SceneCameras.Board;
+            }
+        }
     }
 
     private void Start()
@@ -63,7 +105,14 @@ public class CharacterOverheadViewer : MonoBehaviour
         character.StatsChanged += OnStatsChanged;
         character.IntentChanged += OnIntentChanged;
 
-        if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced += RefreshBar; }
+        if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced += OnTurnAdvanced; }
+
+        // Auras are pulled, not pushed (see Totem) - summoning a totem or a character stepping into or
+        // out of its range never touches this character's own StatsChanged, since nothing writes to it.
+        // ActionResolved is what SelectedCharacterPanel already listens to for exactly this reason: it
+        // fires for every action on the board, not just this character's own, so the totem's own summon
+        // is enough to refresh this row without anything happening to the character it now covers.
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += OnActionResolved; }
 
         // A pull, not just a tidy default. SpawnParty calls SetHealth on the frame it instantiates a
         // hero - before that hero's own Start runs - so the StatsChanged raise from it fires into an
@@ -71,6 +120,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         // pull, a hero arriving hurt from the previous level would show a full bar until the next
         // stat change, and a freshly spawned enemy would wear no icon until its second turn.
         RefreshBar();
+        RefreshStatusIcons();
 
         // Set directly rather than through RefreshIntent/intentRoll.Play - a freshly spawned enemy's
         // first icon should not fall in while its own spawn scale-in is still playing.
@@ -90,14 +140,28 @@ public class CharacterOverheadViewer : MonoBehaviour
             character.IntentChanged -= OnIntentChanged;
         }
 
-        if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced -= RefreshBar; }
+        if (BattleManager.Instance != null) { BattleManager.Instance.TurnAdvanced -= OnTurnAdvanced; }
+
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
 
         intentRoll.Kill();
     }
 
-    private void OnStatsChanged(Character _) => RefreshBar();
+    private void OnStatsChanged(Character _)
+    {
+        RefreshBar();
+        RefreshStatusIcons();
+    }
+
+    private void OnTurnAdvanced()
+    {
+        RefreshBar();
+        RefreshStatusIcons();
+    }
 
     private void OnIntentChanged(Character _) => RefreshIntent();
+
+    private void OnActionResolved(GameAction action, ActionContext ctx) => RefreshStatusIcons();
 
     /// <summary>
     /// Shows a projected loss of `loss` health on next refresh - GridManager.ShowDamagePreview calls
@@ -145,5 +209,57 @@ public class CharacterOverheadViewer : MonoBehaviour
 
         shownKind = next;
         intentRoll.Play(from, to);
+    }
+
+    /// <summary>
+    /// The same walk HeroPortrait/SelectedCharacterPanel's own status rows use, with no count badge and
+    /// no tooltip - this is a glance-only glyph row for a canvas too small to carry either, not a third
+    /// answer to what a status means. Shield is skipped for the same reason both of those skip it: it is
+    /// drawn on the bar this row sits right next to.
+    /// </summary>
+    private void RefreshStatusIcons()
+    {
+        if (statusIconPrefab == null || statusIconParent == null) { return; }
+
+        int visible = 0;
+
+        foreach (StatusType type in StatusTypes.Displayable)
+        {
+            if (type == StatusType.Shield) { continue; }
+
+            int stacks = character.StatusStacks(type);
+
+            if (stacks <= 0) { continue; }
+
+            OverheadStatusIcon icon = IconAt(visible);
+            icon.Show(statusIcons != null ? statusIcons.For(type) : null);
+            PlaceIcon(icon.Rect, visible);
+
+            visible++;
+        }
+
+        for (int i = visible; i < statusIconPool.Count; i++) { statusIconPool[i].gameObject.SetActive(false); }
+    }
+
+    private OverheadStatusIcon IconAt(int index)
+    {
+        while (statusIconPool.Count <= index) { statusIconPool.Add(Instantiate(statusIconPrefab, statusIconParent)); }
+
+        statusIconPool[index].gameObject.SetActive(true);
+
+        return statusIconPool[index];
+    }
+
+    /// Pivoted on its own left edge and grown rightward (positive x per index), so the first icon's
+    /// left edge lands exactly on statusIconParent's anchor - which OverheadStatusIconWiring places at
+    /// the health bar's own left edge, so the row reads as flush with the bar rather than floating to
+    /// one side of it.
+    private void PlaceIcon(RectTransform rect, int index)
+    {
+        rect.anchorMin = new Vector2(0f, 0.5f);
+        rect.anchorMax = new Vector2(0f, 0.5f);
+        rect.pivot = new Vector2(0f, 0.5f);
+        rect.sizeDelta = new Vector2(statusIconSize, statusIconSize);
+        rect.anchoredPosition = new Vector2(index * (statusIconSize + statusIconSpacing), 0f);
     }
 }

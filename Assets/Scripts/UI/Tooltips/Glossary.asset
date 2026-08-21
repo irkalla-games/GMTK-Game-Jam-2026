@@ -86,7 +86,7 @@ MonoBehaviour:
     defaultAmount: 1
     type: 10
   - title: WEAKEN
-    body: Subtracts 5 damage from each attack for {stacks} turns.
+    body: Subtracts {amount} damage from each attack made.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -112,7 +112,7 @@ MonoBehaviour:
     defaultAmount: 1
     type: 15
   - title: VULNERABLE
-    body: Adds 3 damage to each of the next {stacks} hits taken.
+    body: Adds {amount} damage to each attack taken.
     terms: []
     defaultStacks: 1
     defaultAmount: 3
@@ -124,7 +124,7 @@ MonoBehaviour:
     defaultAmount: 1
     type: 17
   - title: POTENT
-    body: Adds {amount} to the potency of {status} for all {targets} in range.
+    body: Test {amount} to the potency of {status} for all {targets} in range.
     terms: []
     defaultStacks: 1
     defaultAmount: 1

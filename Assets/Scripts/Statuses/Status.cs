@@ -43,7 +43,7 @@
 ///   charge-spent  the event the status reacts to spends one.
 ///                            Block, Parry, Dodge, Double Attack, Double Shield, Shield, Strength.
 ///   self-ticking  its own OnTurnStart/OnTurnEnd spends it, by decrementing (Poison, Frozen, Rooted,
-///                 Taunt) or by zeroing outright (Weaken, Shield).
+///                 Taunt, Vulnerable) or by zeroing outright (Weaken, Shield).
 ///
 /// Shield is deliberately in two of those: its pool is drained by damage *and* wiped at turn start.
 /// Poison is what proves the merge works - its counter is damage and duration at once, so it deals
@@ -69,6 +69,46 @@ public abstract class Status
 
     /// Nothing left to hold: a status is done when its counter runs out, whatever the counter meant.
     public bool IsExpired => stacks <= 0;
+
+    /// <summary>
+    /// How hard this particular application hits, for the statuses whose effect has a size as well as a
+    /// clock - Weaken's damage reduction, Vulnerable's damage increase. 0 for everything else, whose
+    /// effect is either binary (Frozen) or read straight off `stacks` (Poison, Shield).
+    ///
+    /// The second number the one-counter design deliberately did without, and it is here now for one
+    /// reason: equipment retunes it. A Weaken the mage applies wearing a potency ring is a *stronger*
+    /// Weaken, not a longer one, so the size has to travel with the application rather than being a
+    /// constant every carrier agrees on. Statuses carrying this merge only with one of matching size -
+    /// see StatusEffect.MergesWith - because folding a long weak one into a short strong one would have
+    /// to pick a single number for something that is genuinely two applications.
+    ///
+    /// Ranked, not summed: Character.FindStatus hands back the biggest, the damage pipeline applies only
+    /// that one (see DamageInfo.weakenAmount), and only that one spends a turn, so the rest queue behind
+    /// it intact - see WeakenStatus.OnTurnEnd.
+    /// </summary>
+    public virtual int Amount => 0;
+
+    /// <summary>
+    /// Whether something else is holding this status up rather than the character carrying it - a
+    /// Totem's aura. A projected status has no clock of its own worth showing (it lasts exactly as long
+    /// as you stand in range), which is what the status row reads to leave its badge blank.
+    ///
+    /// On Status rather than a `is Aura` test at each call site so the question has one answer. Note an
+    /// equipment modifier's projection answers false: those are plain StatusEffects appended by
+    /// EquipmentModifier.Project, and equipment already has its own UI rather than a status chip.
+    /// </summary>
+    public virtual bool IsProjected => false;
+
+    /// <summary>
+    /// How much this status adds to the *size* of a `type` its carrier is about to apply to somebody
+    /// else. The applier-side counterpart to PotencyStatus, which boosts a status the carrier already
+    /// holds: this one is asked of whoever is swinging, before the status they grant is even built.
+    ///
+    /// Asked by Character.AppliedPotency, which StatusAction consults for a card and Totem.Project for
+    /// an aura - so a mage's Weaken ring deepens both the Weaken they play and the Weaken their Sap
+    /// Totem projects, the totem having inherited the bonus at summon time.
+    /// </summary>
+    public virtual int AppliedPotency(StatusType type) => 0;
 
     /// <summary>
     /// Why this status stops its carrier doing anything at all, or null if it does not object. Frozen.

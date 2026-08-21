@@ -46,7 +46,9 @@ public class AuraData
     /// True for GainMultiplier, Potency and TurnTick - the three types CreateEffect below builds from
     /// subject/magnitude/timing instead of StatusEffect.Create. Exposed so Glossary.SummonContent can
     /// describe an aura from those same fields without re-deriving this exact three-type list itself.
-    public bool HasSubject => type is StatusType.GainMultiplier or StatusType.Potency or StatusType.TurnTick;
+    /// See StatusTypes.IsTotemOnly, which this is now built on - the same three types also decide
+    /// whether a status shows up on a character at all.
+    public bool HasSubject => type.IsTotemOnly();
 
     /// <summary>
     /// Builds the StatusEffect this entry describes. Routes GainMultiplier, Potency and TurnTick to
@@ -55,13 +57,18 @@ public class AuraData
     /// type, so an existing totem authored before these fields existed (subject None, magnitude 0,
     /// timing TurnEnd, none of which its type reads) builds exactly as it did before.
     ///
+    /// `amountBonus` is what the totem's own equipment-style potency adds to the size of the projected
+    /// status - Totem.Project asks its owner, which inherited the summoner's bonus at summon time, so a
+    /// mage's Weaken ring deepens the Weaken their Sap Totem casts. The three parameterised types ignore
+    /// it: their magnitude is authored outright rather than being a status size.
+    ///
     /// Totem.Project is the only caller.
     /// </summary>
-    public StatusEffect CreateEffect() => type switch
+    public StatusEffect CreateEffect(int amountBonus = 0) => type switch
     {
         StatusType.GainMultiplier => new GainMultiplierStatus(subject, magnitude, stacks),
         StatusType.Potency => new PotencyStatus(subject, magnitude, stacks),
         StatusType.TurnTick => new TurnTickStatus(subject, magnitude, timing, stacks),
-        _ => StatusEffect.Create(type, stacks),
+        _ => StatusEffect.Create(type, stacks, amountBonus),
     };
 }

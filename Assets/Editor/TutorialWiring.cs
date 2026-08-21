@@ -222,10 +222,23 @@ public static class TutorialWiring
         RectTransform footer = EnsureChild(bodyRoot, "Footer");
         ConfigureHorizontalLayout(footer.gameObject, PanelPalette.RowSpacing);
 
-        Button skip = EnsureButton(footer, "SkipButton", "Skip Tutorial", font,
-            PanelPalette.HeaderFill, PanelPalette.LabelGrey);
         Button cont = EnsureButton(footer, "ContinueButton", "Continue", font,
             PanelPalette.HeaderFill, PanelPalette.Gold);
+
+        // A scene wired before Skip Tutorial moved out of the footer still has the old child sitting
+        // here, wired to nothing now that TutorialPopup's skipButton field points at the standalone one
+        // below - dead, but still visible next to Continue. FindOrCreateRoot's own by-name recovery
+        // covers a *missing* piece; this is the opposite case, a piece that must not be there any more.
+        Transform staleFooterSkip = footer.Find("SkipButton");
+        if (staleFooterSkip != null) { Object.DestroyImmediate(staleFooterSkip.gameObject); }
+
+        // Standalone, not part of Panel: present for the whole tutorial rather than toggled per step,
+        // so it needs its own visibility separate from Panel's canvasGroup - see TutorialPopup.
+        // EndTurnButton anchor: exit early rather than parking Skip Tutorial at a stale default; the
+        // Wiring is otherwise idempotent and re-derives this every run.
+        EndTurnButton endTurn = Object.FindAnyObjectByType<EndTurnButton>(FindObjectsInactive.Include);
+        RectTransform endTurnRect = endTurn != null ? (RectTransform)endTurn.transform : null;
+        (GameObject skipRoot, Button skip) = BuildSkipButton((RectTransform)canvas.transform, font, endTurnRect);
 
         SerializedObject so = new(popup);
         so.FindProperty("canvas").objectReferenceValue = canvas;
@@ -234,10 +247,58 @@ public static class TutorialWiring
         so.FindProperty("titleText").objectReferenceValue = title;
         so.FindProperty("bodyText").objectReferenceValue = body;
         so.FindProperty("continueButton").objectReferenceValue = cont;
+        so.FindProperty("skipRoot").objectReferenceValue = skipRoot;
         so.FindProperty("skipButton").objectReferenceValue = skip;
         so.ApplyModifiedProperties();
 
         return popup;
+    }
+
+    /// <summary>
+    /// Skip Tutorial, standalone rather than inside Panel's footer - present for the whole tutorial, not
+    /// toggled per step, so it needs its own object to show/hide independently of Panel's own cycle.
+    ///
+    /// Anchored a fixed offset below `belowRect` (EndTurnButton) rather than following it every frame
+    /// through TooltipAnchor/AnchoredPlacement the way Panel follows a step's changing target - both
+    /// EndTurnButton and this sit still for the whole battle, so there is nothing to recompute after the
+    /// numbers below are derived once. Read off `belowRect`'s own anchor/position/width rather than
+    /// duplicating EndTurnButton's authored numbers, so a re-run of this command re-derives the position
+    /// if EndTurnButton ever moves, the same "repair, not skip" contract every content generator in this
+    /// project follows.
+    /// </summary>
+    private static (GameObject root, Button button) BuildSkipButton(
+        RectTransform canvasParent, TMP_FontAsset font, RectTransform belowRect)
+    {
+        const float Gap = 16f;
+        const float Height = 44f;
+
+        RectTransform rect = EnsureChild(canvasParent, "SkipButton");
+        rect.anchorMin = belowRect != null ? belowRect.anchorMin : new Vector2(1f, 1f);
+        rect.anchorMax = belowRect != null ? belowRect.anchorMax : new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+
+        float width = belowRect != null ? belowRect.sizeDelta.x : PanelPalette.PanelWidth * 0.5f;
+        float x = belowRect != null ? belowRect.anchoredPosition.x : 0f;
+        float y = belowRect != null
+            ? belowRect.anchoredPosition.y - belowRect.sizeDelta.y * 0.5f - Gap - Height * 0.5f
+            : 0f;
+
+        rect.sizeDelta = new Vector2(width, Height);
+        rect.anchoredPosition = new Vector2(x, y);
+
+        ConfigureImage(rect.gameObject, null, PanelPalette.HeaderFill, raycast: true);
+
+        Button button = Ensure<Button>(rect.gameObject);
+        button.targetGraphic = rect.GetComponent<Image>();
+
+        TMP_Text text = EnsureLabel(rect, "Label");
+        Style(text, font, PanelPalette.TermNameSize, PanelPalette.TermNameSpacing, PanelPalette.LabelGrey,
+            FontStyles.Bold | FontStyles.UpperCase, wrap: false);
+        text.alignment = TextAlignmentOptions.Center;
+        text.text = "Skip Tutorial";
+        Stretch((RectTransform)text.transform);
+
+        return (rect.gameObject, button);
     }
 
     // ---- Director ---------------------------------------------------------------------------------

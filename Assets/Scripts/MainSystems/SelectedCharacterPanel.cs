@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -92,14 +91,9 @@ public class SelectedCharacterPanel : MonoBehaviour
     /// chips each time would churn garbage to arrive back where it started.
     private readonly List<StatusChip> chips = new();
 
-    /// <summary>
-    /// Cached because Enum.GetValues allocates a fresh array every call and this runs on every action.
-    ///
-    /// Walking the enum rather than a hand-written list is what makes the row scale: a new StatusType
-    /// shows up here the moment it exists, and giving it art is one row in the icon asset. Nothing in
-    /// this class and nothing in the scene has to change.
-    /// </summary>
-    private static readonly StatusType[] AllTypes = (StatusType[])Enum.GetValues(typeof(StatusType));
+    /// Walking StatusTypes.Displayable rather than a hand-written list is what makes the row scale: a
+    /// new StatusType shows up here the moment it exists, and giving it art is one row in the icon
+    /// asset. Nothing in this class and nothing in the scene has to change.
 
     /// The canvas the panel lives on, needed to project panelRect into screen space for the tooltip.
     /// Found rather than serialized - the panel is already a child of it, so a second reference in the
@@ -264,11 +258,10 @@ public class SelectedCharacterPanel : MonoBehaviour
 
         int visible = 0;
 
-        foreach (StatusType type in AllTypes)
+        foreach (StatusType type in StatusTypes.Displayable)
         {
-            // None is the "never set" sentinel, and Shield is drawn on the bar - showing it here too
-            // would be the same number in two places.
-            if (type is StatusType.None or StatusType.Shield) { continue; }
+            // Shield is drawn on the bar - showing it here too would be the same number in two places.
+            if (type == StatusType.Shield) { continue; }
 
             // Sums the character's own statuses and any aura projecting the same type onto its tile,
             // so a totem's Strength and a carried Strength read as one total rather than two chips.
@@ -276,9 +269,19 @@ public class SelectedCharacterPanel : MonoBehaviour
 
             if (stacks <= 0) { continue; }
 
+            // The status in force decides whether a number shows at all; the number itself is every
+            // carried turn of this type added up. Those differ for Weaken and Vulnerable, where several
+            // instances queue behind one another - the badge counts the whole queue, since each waits
+            // rather than burning down under the one above it. A totem's aura in force badges nothing:
+            // it lasts as long as you stand there, so no number would ever move.
+            Status live = character.FindStatus(type);
+            string badge = live == null || live.IsProjected
+                ? string.Empty
+                : character.CarriedStatusStacks(type).ToString();
+
             StatusChip chip = ChipAt(visible);
-            chip.Show(icons != null ? icons.For(type) : null, stacks);
-            chip.Bind(TooltipFor(character, type, stacks), TooltipAnchor.Of(panelRect, canvas));
+            chip.Show(icons != null ? icons.For(type) : null, badge);
+            chip.Bind(TooltipFor(character, type, stacks, live), TooltipAnchor.Of(panelRect, canvas));
             Place(chip, visible);
 
             visible++;
@@ -311,11 +314,11 @@ public class SelectedCharacterPanel : MonoBehaviour
     /// The anchor is panelRect, not the chip, so the box sits above the whole panel and stays put as
     /// the cursor slides along the row.
     /// </summary>
-    private TooltipContent TooltipFor(Character character, StatusType type, int stacks)
+    private TooltipContent TooltipFor(Character character, StatusType type, int stacks, Status live)
     {
         if (glossary == null) { return null; }
 
-        return glossary.StatusContent(type, stacks, character.FindStatus(type));
+        return glossary.StatusContent(type, stacks, live);
     }
 
     /// The pool. Grows to whatever the busiest character needs and never shrinks.

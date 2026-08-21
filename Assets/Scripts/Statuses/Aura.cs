@@ -42,6 +42,17 @@ public class Aura : Status
         set => projectedEffect.stacks = value;
     }
 
+    /// Forwarded like every other member, so a totem's Weaken is ranked against a carried one by the
+    /// same number - see Status.Amount and Character.FindStatus.
+    public override int Amount => projectedEffect.Amount;
+
+    /// The one member that does *not* forward: being projected is the whole difference between this and
+    /// the StatusEffect it wraps. A status row reads this to leave the badge blank, since an aura's
+    /// clock is "as long as you stand there" rather than a number of turns.
+    public override bool IsProjected => true;
+
+    public override int AppliedPotency(StatusType statusType) => projectedEffect.AppliedPotency(statusType);
+
     public override string ActRefusal(Character carrier) => projectedEffect.ActRefusal(carrier);
 
     public override string MoveRefusal(Character carrier, GridTile destination) =>

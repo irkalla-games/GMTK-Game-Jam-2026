@@ -661,16 +661,100 @@ public class Character : MonoBehaviour
         return total;
     }
 
-    /// The status object of this type, or null. For anything that needs more than a stack count - a UI
-    /// asking Block for both of its numbers, say.
-    public Status FindStatus(StatusType type)
+    /// <summary>
+    /// How many turns of `type` this character is carrying in total - every instance's counter added up,
+    /// skipping anything projected onto it.
+    ///
+    /// What a status chip badges. For Weaken and Vulnerable that is a real sum over several statuses: a
+    /// Vulnerable 4 for three turns under a Vulnerable 3 for three turns reads 6, because only the one
+    /// in force ticks (see WeakenStatus.OnTurnEnd) and the other is waiting its turn rather than being
+    /// spent. For every other type there is at most one carried instance, so this is just its counter -
+    /// exactly what the badge showed before any of this existed.
+    ///
+    /// Auras are left out because they have no clock to contribute; a character whose only source is a
+    /// totem badges nothing at all. StatusStacks, which does include them, stays what the rules and the
+    /// tooltip sentence read.
+    /// </summary>
+    public int CarriedStatusStacks(StatusType type)
     {
-        foreach (Status status in ActiveStatuses())
+        int total = 0;
+
+        foreach (StatusEffect status in ownStatusEffects)
         {
-            if (status.type == type) { return status; }
+            if (status.type == type) { total += status.stacks; }
         }
 
-        return null;
+        return total;
+    }
+
+    /// <summary>
+    /// The status of this type that is actually in force, or null. For anything that needs more than a
+    /// stack count - a UI asking Block for both of its numbers, or asking a Weaken how deep it cuts.
+    ///
+    /// The *strongest*, not the first, because a character can carry several Weakens or Vulnerables at
+    /// once (same-size ones merge, different-size ones do not - see StatusEffect.MergesWith) plus
+    /// whatever a totem projects, and
+    /// only the biggest applies. Ties go to a carried status over a projected one, so an enemy standing
+    /// in a Sap Totem's aura who is also carrying an equally deep Weaken shows the carried one's clock
+    /// rather than the aura's blank. Types with no size at all (Poison, Frozen, Shield) all tie at
+    /// Amount 0, so that same tie-break hands back the carried one there too - which is exactly the
+    /// first-match behaviour this replaced, since a merging type has at most one carried instance.
+    /// </summary>
+    public Status FindStatus(StatusType type)
+    {
+        Status best = null;
+
+        foreach (Status status in ActiveStatuses())
+        {
+            if (status.type != type) { continue; }
+
+            if (best == null
+                || status.Amount > best.Amount
+                || (status.Amount == best.Amount && best.IsProjected && !status.IsProjected))
+            {
+                best = status;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// How much this character's own statuses and equipment add to the size of a `type` it is about to
+    /// apply to somebody else - what StatusAction hands to StatusEffect.Create as its amountBonus, and
+    /// what Totem.Project asks its owner before building an aura.
+    ///
+    /// Summed rather than ranked, unlike FindStatus: two rings that each deepen Weaken should both
+    /// count, the same way two damage relics both raise a swing.
+    /// </summary>
+    public int AppliedPotency(StatusType type)
+    {
+        int total = 0;
+
+        foreach (Status status in ActiveStatuses()) { total += status.AppliedPotency(type); }
+
+        return total;
+    }
+
+    /// <summary>
+    /// The same question asked of this character's own carried statuses only, skipping equipment and
+    /// auras - what Totem.Project uses.
+    ///
+    /// It cannot use AppliedPotency above, and the reason is a cycle rather than a preference:
+    /// ActiveStatuses calls Totem.CollectAuras, so a totem asking its owner a question that walks
+    /// ActiveStatuses re-enters Project and never comes back. A totem covering itself makes that
+    /// immediate - Rampart affects allies at range 0, so it is inside its own aura. Reading the carried
+    /// list directly is also exactly right rather than merely safe: a totem inherits its summoner's
+    /// potency as a real carried status at summon time (see AppliedPotencyStatus.OnSummoned), so there
+    /// is nothing projected onto a totem for this to miss.
+    /// </summary>
+    public int CarriedAppliedPotency(StatusType type)
+    {
+        int total = 0;
+
+        foreach (StatusEffect status in ownStatusEffects) { total += status.AppliedPotency(type); }
+
+        return total;
     }
 
     /// Applies a status by type, stacking onto one already present. The convenience form for every
@@ -706,9 +790,12 @@ public class Character : MonoBehaviour
         if (info.stacks <= 0) { return; }
         incoming.stacks = info.stacks;
 
+        // Same type is not enough on its own: Weaken and Vulnerable carry a size as well as a clock, and
+        // only fold into a neighbour of the *same* size - so this keeps looking rather than stopping at
+        // the first same-type entry, and appends when nothing matched. See StatusEffect.MergesWith.
         foreach (StatusEffect existing in ownStatusEffects)
         {
-            if (existing.type != incoming.type) { continue; }
+            if (existing.type != incoming.type || !existing.MergesWith(incoming)) { continue; }
 
             existing.Merge(incoming);
             RaiseStatsChanged();

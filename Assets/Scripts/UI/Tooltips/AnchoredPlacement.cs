@@ -53,7 +53,19 @@ public static class AnchoredPlacement
 
         Vector2 position = Beside(local, side, boxSize, gap);
 
-        if (!Fits(position, boxSize, area)) { position = Beside(local, Opposite(side), boxSize, gap); }
+        // Flip only when the opposite side actually fits - not merely because the preferred one does
+        // not. An anchor sitting near a screen *corner* (EndTurnButton, PartyPortraitPanel) fails Fits()
+        // on one axis it does not control - e.g. Above/Below fail on X, not the Y they are choosing
+        // between - and the opposite side fails that exact same axis check for the exact same reason.
+        // Flipping there swaps the box onto the far side of the anchor for no benefit, and the clamp
+        // below then drags it right back across the anchor it was trying to avoid. Keeping the preferred
+        // side and letting the clamp make the smaller correction is what actually avoids the anchor.
+        if (!Fits(position, boxSize, area))
+        {
+            Vector2 opposite = Beside(local, Opposite(side), boxSize, gap);
+
+            if (Fits(opposite, boxSize, area)) { position = opposite; }
+        }
 
         position.x = Mathf.Clamp(position.x, area.xMin + boxSize.x * 0.5f + edgePadding,
             area.xMax - boxSize.x * 0.5f - edgePadding);

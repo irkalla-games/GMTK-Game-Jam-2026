@@ -31,6 +31,7 @@ RectTransform:
   - {fileID: 5000000000000012}
   - {fileID: 5000000000000022}
   - {fileID: 5000000000000032}
+  - {fileID: 7474094421603904440}
   m_Father: {fileID: 5898507049535473238}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -674,6 +675,41 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
+--- !u!1 &3839205476400649268
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7474094421603904440}
+  m_Layer: 8
+  m_Name: StatusIconRow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &7474094421603904440
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3839205476400649268}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5000000000000002}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -80, y: -20}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &3936649264985490445
 GameObject:
   m_ObjectHideFlags: 0
@@ -1035,7 +1071,7 @@ MonoBehaviour:
   playableCharacter: 2
   characterClass: 2
   displayName: Mage
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: 31caf4d1eeee1a14fa0241c13fd335e0, type: 3}
   actionPoints: 2
   brain: 0
   targetingPattern: {fileID: 0}
@@ -1076,6 +1112,11 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  statusIconParent: {fileID: 7474094421603904440}
+  statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
+  statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}
+  statusIconSize: 22
+  statusIconSpacing: 4
 --- !u!114 &366519917190104807
 MonoBehaviour:
   m_ObjectHideFlags: 0

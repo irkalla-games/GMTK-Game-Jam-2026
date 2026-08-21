@@ -32,8 +32,10 @@
     Defaults to Tools/CardSheet/cards.json.
 
 .PARAMETER FromCsv
-    Read the Docs/CardDesign/*.csv mirror instead of the workbook. Useful when the workbook is open in
-    Excel, which locks it.
+    Force reading the Docs/CardDesign/*.csv mirror even though the workbook is readable. Normally
+    unnecessary: the script already detects a workbook locked open in Excel and falls back to the CSV
+    mirror on its own, with a console message saying so. This switch is for a deliberate CSV-only run
+    - for example, editing Docs/CardDesign/Glossary.csv directly and syncing without touching Excel.
 
 .PARAMETER OnlyTab
     Only consider these tabs. Without it every tab is read, which on a full Ideas backlog means a
@@ -73,7 +75,31 @@ if (-not $WorkbookPath) { $WorkbookPath = Join-Path $repoRoot 'Docs\CardDesign.x
 if (-not $OutputPath)   { $OutputPath   = Join-Path $scriptDir 'cards.json' }
 $csvDir = Join-Path $repoRoot 'Docs\CardDesign'
 
-if (-not $FromCsv) {
+$effectiveFromCsv = [bool]$FromCsv
+
+# Can the workbook actually be READ? Without this, Read-Tab's try/catch around Import-Excel would
+# swallow an unreadable file exactly like a missing worksheet - every tab silently comes back with 0
+# rows, nothing is applied, and a description just typed in Excel looks like it "reverted".
+#
+# Deliberately Read/ReadWrite-sharing, NOT the exclusive ReadWrite/None probe Export-CardSheet.ps1
+# uses. The export rewrites the file wholesale and genuinely needs it to itself; reading only needs
+# what Import-Excel needs, and Excel does not hold an .xlsx exclusively just for having it open - it
+# marks ownership with a ~$ file and takes the real handle only while saving. Probing for exclusive
+# access here would divert to the CSV mirror on a workbook that was perfectly readable, and that
+# mirror is only as fresh as the last export - so a real edit in the .xlsx would be silently ignored
+# in favour of stale text. Fall back only when a read is genuinely impossible.
+if (-not $effectiveFromCsv -and (Test-Path -LiteralPath $WorkbookPath)) {
+    try {
+        $probe = [IO.File]::Open($WorkbookPath, 'Open', 'Read', 'ReadWrite')
+        $probe.Close()
+    }
+    catch {
+        Write-Host "$WorkbookPath cannot be read ($($_.Exception.Message.Trim())) - falling back to Docs/CardDesign/*.csv for this sync. That mirror is only as fresh as the last export, so close whatever is holding the workbook and sync again if you just edited it." -ForegroundColor Yellow
+        $effectiveFromCsv = $true
+    }
+}
+
+if (-not $effectiveFromCsv) {
     if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
         throw "The ImportExcel module is required. Install with: Install-Module ImportExcel -Scope CurrentUser"
     }
@@ -97,7 +123,7 @@ $tabRoot = @{
 function Read-Tab {
     param([string]$SheetName)
 
-    if ($FromCsv) {
+    if ($effectiveFromCsv) {
         $path = Join-Path $csvDir "$SheetName.csv"
         if (-not (Test-Path -LiteralPath $path)) { return @() }
         return @(Import-Csv -LiteralPath $path)
@@ -460,8 +486,23 @@ if (-not $OnlyTab -and -not $OnlyKey) {
 
     foreach ($row in (Read-Tab -SheetName 'Glossary')) {
         $kind = Get-Cell $row 'Kind'
-        $type = Get-Cell $row 'Type'
-        if ($kind -notin @('Status', 'Keyword') -or $type -eq '') { continue }
+        if ($kind -notin @('Status', 'Keyword')) { continue }
+
+        # Rows exported while the name table was short carry "Unknown(16)" here; resolve those back to
+        # a real name by index so a sheet written by the older tool still merges instead of reading as
+        # a new term. See Resolve-GlossaryType.
+        $type = Resolve-GlossaryType -Kind $kind -Name (Get-Cell $row 'Type')
+        if ($type -eq '') { continue }
+
+        # Still unnamed after that, so the table in CardSheet.Common.psm1 is genuinely behind the C#
+        # enum. Unity matches this column by NAME, so the row can never be applied - it would be
+        # planned as a change, rejected by Enum.TryParse, and then the export pass would rewrite the
+        # sheet from the unchanged asset, silently eating the wording that was typed. Skip it and say
+        # exactly what to fix rather than shipping a work order that cannot land.
+        if ($type -match '^Unknown\(') {
+            $problems += "Glossary row '$kind $type' cannot be synced - the StatusNames/KeywordNames table in Tools/CardSheet/CardSheet.Common.psm1 is missing this enum value. Update it to match Assets/Scripts/Statuses/StatusType.cs, then sync again."
+            continue
+        }
 
         $title = Get-Cell $row 'Title'
         $body  = Get-Cell $row 'Body'
@@ -586,7 +627,7 @@ foreach ($name in ($pendingEffects.Keys | Sort-Object)) {
 
 $payload = [ordered]@{
     generatedUtc = (Get-Date).ToUniversalTime().ToString('o')
-    source       = if ($FromCsv) { 'csv' } else { 'xlsx' }
+    source       = if ($effectiveFromCsv) { 'csv' } else { 'xlsx' }
     cards        = @($actions)
     newEffects   = @($newEffects)
     glossary     = @($glossary)

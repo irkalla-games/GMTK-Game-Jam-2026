@@ -19,6 +19,7 @@ public enum TargetPriority
     Furthest = 2,
     Random = 3,
     Strongest = 4,
+    Totem = 5,
 }
 
 /// <summary>
@@ -36,6 +37,19 @@ public class TargetingPattern : ScriptableObject
         + "enemy walks toward - without spending it.")]
     [SerializeField] private List<TargetPriority> sequence = new();
 
+    [Tooltip("On, a Character carrying this pattern never targets a totem at all - TargetSelector "
+        + "drops totems from its candidate list outright rather than merely ranking them last, so an "
+        + "enemy with nothing but a totem in reach takes no attack that turn instead of hitting it. "
+        + "Off by default: a pattern authored before this field existed keeps totems targetable, the "
+        + "same load-bearing-zero reasoning as RangeShape.Anywhere.")]
+    [SerializeField] private bool ignoreTotems;
+
+    [Tooltip("Chance, once per turn, that a Character carrying this pattern hunts the nearest totem "
+        + "instead of following the sequence below - see Character.RollTotemHunt. 0 by default, so an "
+        + "existing pattern never starts hunting totems just because this field was added.")]
+    [Range(0, 100)]
+    [SerializeField] private int totemChancePercent;
+
     /// Wraps. An empty sequence answers Weakest, which is the behaviour every enemy already had.
     public TargetPriority At(int cursor)
     {
@@ -45,4 +59,8 @@ public class TargetingPattern : ScriptableObject
 
         return sequence[index < 0 ? index + sequence.Count : index];
     }
+
+    public bool IgnoreTotems => ignoreTotems;
+
+    public int TotemChancePercent => totemChancePercent;
 }

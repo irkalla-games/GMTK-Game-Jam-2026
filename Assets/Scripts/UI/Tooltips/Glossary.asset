@@ -28,8 +28,7 @@ MonoBehaviour:
     defaultAmount: 1
     type: 2
   - title: POISON
-    body: Deals damage equal to it's stacks ({stacks}) and the end of the turn and
-      then loses a stack.
+    body: Deals damage equal to {stacks} at the end of the turn.
     terms:
     - Poison
     - Poisoned
@@ -37,7 +36,7 @@ MonoBehaviour:
     defaultAmount: 1
     type: 3
   - title: FROZEN
-    body: Cannot act for {stacks} more turns.
+    body: Cannot act for {stacks} turns.
     terms:
     - Frozen
     - Freeze
@@ -51,14 +50,13 @@ MonoBehaviour:
     defaultAmount: 1
     type: 5
   - title: BLOCK
-    body: Reduces the damage this character takes by 3 for the next {stacks} hits.
+    body: Reduces damage taken by 3 for {stacks} turns
     terms: []
     defaultStacks: 1
     defaultAmount: 5
     type: 6
   - title: PARRY
-    body: Negates the damage for {stacks} hits and reflects the damage back to the
-      attacker.
+    body: Negates all damage and reflects the damage back for the next {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -72,21 +70,19 @@ MonoBehaviour:
     defaultAmount: 1
     type: 8
   - title: DOUBLE SHIELD
-    body: The next {stacks} Shield this character gains is doubled.
-    terms:
-    - Double Shield
+    body: The next {stacks} Shields this character gains is doubled.
+    terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 9
   - title: DODGE
-    body: Negates the damage for {stacks} hits and moves the character away from
-      the source of damage.
+    body: Dodges the next attack and moves away. Lasts for the next {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 10
   - title: WEAKEN
-    body: Subtracts {amount} damage from each attack made.
+    body: Reduces the damage dealt by this character for the next {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -106,37 +102,38 @@ MonoBehaviour:
     defaultAmount: 1
     type: 14
   - title: STEALTH
-    body: Enemies cannot target this character for {stacks} more turns.
+    body: Enemies cannot target this character for {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 15
   - title: VULNERABLE
-    body: Adds {amount} damage to each attack taken.
+    body: Increase the damage taken by 3 for the next {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 3
     type: 16
   - title: EMPOWERED
-    body: Multiplies {status} granted to all {targets} in range by {amount}.
+    body: Increases that amount of stacks whenver {status} is applied to {targets}
+      by {amount}.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 17
   - title: POTENT
-    body: Test {amount} to the potency of {status} for all {targets} in range.
+    body: Increases the effect of {status} by {stacks}. (Does not effects stack amount)
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 18
   - title: STANDING WARD
-    body: Grants {amount} {status} to all {targets} in range {timing}.
+    body: Applies {amount} {status} to all {targets} {timing}.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
     type: 19
   - title: SUMMONED
-    body: 
+    body: Will die in {stacks} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1

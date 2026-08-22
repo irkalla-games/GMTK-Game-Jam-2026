@@ -69,8 +69,12 @@ public class BattleManager : Singleton<BattleManager>
     /// The level being played. The run answers this wherever there is one; the serialized field is the
     /// last-resort fallback that keeps a Game scene with no campaign assigned playable, the same
     /// fallback story as turnsToSurvive and handSize below.
+    ///
+    /// Public so a HUD element (NextWavePanel) can read the wave schedule directly - reading
+    /// RunManager.Instance.CurrentLevel instead would show nothing when this scene is played
+    /// stand-alone, which is exactly the case the serialized-field fallback exists for.
     /// </summary>
-    private LevelData CurrentLevel =>
+    public LevelData CurrentLevel =>
         RunManager.Instance != null && RunManager.Instance.CurrentLevel != null
             ? RunManager.Instance.CurrentLevel
             : levelData;
@@ -791,6 +795,9 @@ public class BattleManager : Singleton<BattleManager>
             // opened gets no OnMouseExit either, since the cursor never moved.
             GridManager.Instance.ClearAreaPreview();
             GridManager.Instance.ClearDamagePreview();
+            // A wave circle's hover pulse is the same story: WaveCircle.OnPointerExit never fires if a
+            // reward panel opens over the HUD while the cursor rests on one.
+            GridManager.Instance.ClearSpawnWarning();
         }
     }
 
@@ -1105,6 +1112,12 @@ public class BattleManager : Singleton<BattleManager>
 
         foreach (Character enemy in LivingEnemies())
         {
+            // Once per turn, not once per Decide - Decide runs again every frame the board changes
+            // (LateUpdate below) and again per action point in EnemyResolve, and a totem hunt rerolled
+            // that often would flicker the intent icon and make TryFindMove's tile scan incoherent.
+            // Same reasoning TargetSelector.TryPick documents for resolving Random once per pick.
+            enemy.RollTotemHunt();
+
             // The setter raises IntentChanged, which is what puts the icon up - see
             // CharacterOverheadViewer.
             enemy.CommittedIntent = Decide(enemy, board);

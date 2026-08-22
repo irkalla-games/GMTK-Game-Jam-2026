@@ -8,6 +8,10 @@ public enum BrainType
     None = 0,
     Warrior = 1,
     Ranger = 2,
+
+    /// Reinforces first, then swings. Written into every enemy prefab as an int - append, never
+    /// reorder, for the same reason RangeShape.Anywhere is 0.
+    Summoner = 3,
 }
 
 /// <summary>
@@ -27,11 +31,13 @@ public abstract class EnemyBrain
 {
     private static readonly WarriorBrain warrior = new();
     private static readonly RangerBrain ranger = new();
+    private static readonly SummonerBrain summoner = new();
 
     public static EnemyBrain For(BrainType type) => type switch
     {
         BrainType.Warrior => warrior,
         BrainType.Ranger => ranger,
+        BrainType.Summoner => summoner,
         _ => null,
     };
 
@@ -258,8 +264,8 @@ public class WarriorBrain : EnemyBrain
         // Attack first. Cheapest to check and always better than repositioning.
         if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
 
-        // Opportunistic: reinforce only when there is nothing to swing at. No Warrior deck holds a
-        // Summon card yet, so this is inert today, not dead code for a kit that will exist later.
+        // Opportunistic: reinforce only when there is nothing to swing at. A body whose summoning is
+        // the point of it wants SummonerBrain instead, which asks this first.
         if (TryFindSummon(self, out Intent summon)) { return summon; }
 
         // Otherwise get closer to whoever the current priority names.
@@ -328,5 +334,45 @@ public class RangerBrain : EnemyBrain
             // Adjacent is far worse than merely badly spaced, so it will give up a shot to step away.
             return gap <= 1 ? penalty + 10 : penalty;
         };
+    }
+}
+
+/// <summary>
+/// Reinforces first, then fights like a warrior.
+///
+/// The whole difference from WarriorBrain is the order of the first two questions, and that order is
+/// the entire point of the type: TryFindSummon is the *last* thing a warrior asks and the first thing
+/// this asks. A boss holding both an attack and a summon would otherwise never summon at all - a card
+/// it can always play, against a hero it can almost always reach, wins every round.
+///
+/// Nothing here re-derives legality or pacing. An on-cooldown or Dormant summon simply fails
+/// card.Refusal and TryFindSummon returns false, so a boss that summoned last round falls straight
+/// through to attacking without this needing to know a cooldown exists. That is what keeps the
+/// summon-first ordering from turning into a boss that does nothing else.
+/// </summary>
+public class SummonerBrain : EnemyBrain
+{
+    public override Intent Decide(Character self, Board board)
+    {
+        TargetPriority priority = self.CurrentPriority;
+
+        if (TryFindSummon(self, out Intent summon)) { return summon; }
+
+        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
+
+        System.Func<Vector2Int, int> score = MoveScore(self, priority);
+
+        return score != null && TryFindMove(self, score, out Intent move) ? move : Intent.Wait();
+    }
+
+    /// Identical to a warrior's: close on the quarry. A summoner that could not reach anyone would
+    /// otherwise stand still while its adds did all the walking.
+    protected override System.Func<Vector2Int, int> MoveScore(Character self, TargetPriority priority)
+    {
+        if (!TryQuarry(self, priority, out Character quarry)) { return null; }
+
+        Vector2Int mark = quarry.Tile.Coordinates;
+
+        return cell => Board.ChebyshevDistance(cell, mark);
     }
 }

@@ -76,6 +76,15 @@ public class CardPileHud : Singleton<CardPileHud>
         if (BattleManager.Instance != null) { BattleManager.Instance.ActiveCharacterChanged -= ShowFor; }
     }
 
+    /// Same per-frame interactable sync EndTurnButton already uses - the discard pile has to be inert
+    /// for the whole tutorial run, not just refused post-click, so free play in turn 3 cannot walk the
+    /// player into an unexpected state. Self-restores the instant TutorialDirector.End() flips
+    /// TutorialRunning false, so no separate skip/teardown handling is needed.
+    private void Update()
+    {
+        if (discardButton != null) { discardButton.interactable = !TutorialDirector.TutorialRunning; }
+    }
+
     private void ShowFor(Character character)
     {
         if (shown != null)

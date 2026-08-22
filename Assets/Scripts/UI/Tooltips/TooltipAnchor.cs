@@ -21,8 +21,9 @@ public enum TooltipSide
 /// It also means a source that has been destroyed answers false instead of a stale rectangle, which is
 /// how the manager drops a tooltip whose card has been played out from under it.
 ///
-/// The two builders cover the project's two worlds - uGUI for the HUD, world-space colliders for cards
-/// and characters - so no caller has to do camera maths itself.
+/// Three builders cover the project's worlds - uGUI for the HUD, world-space colliders for cards and
+/// characters, and world-space renderers with no collider of their own - so no caller has to do camera
+/// maths itself.
 /// </summary>
 public readonly struct TooltipAnchor
 {
@@ -35,30 +36,42 @@ public readonly struct TooltipAnchor
     /// decides what the mouse is actually over, so the tooltip lines up with the thing you can hit.
     private readonly Collider2D collider;
 
+    /// Set for a world-space source with no collider of its own - a card's cost pip, a piece of its
+    /// text. Projects what is actually drawn rather than what a click would hit, since nothing here is
+    /// a click target.
+    private readonly Renderer renderer;
+
     public readonly TooltipSide side;
 
     /// Reused by GetWorldCorners, which fills a caller-supplied array specifically so it need not
     /// allocate one per call - and this resolves every frame a tooltip is up.
     private static readonly Vector3[] Corners = new Vector3[4];
 
-    private TooltipAnchor(RectTransform rect, Canvas canvas, Collider2D collider, TooltipSide side)
+    private TooltipAnchor(RectTransform rect, Canvas canvas, Collider2D collider, Renderer renderer, TooltipSide side)
     {
         this.rect = rect;
         this.canvas = canvas;
         this.collider = collider;
+        this.renderer = renderer;
         this.side = side;
     }
 
     /// A uGUI element - the status panel's backing plate, a HUD button, anything on a canvas.
     public static TooltipAnchor Of(RectTransform rect, Canvas canvas, TooltipSide side = TooltipSide.Above)
     {
-        return new TooltipAnchor(rect, canvas, null, side);
+        return new TooltipAnchor(rect, canvas, null, null, side);
     }
 
     /// A world-space object with a collider - a card in hand, a character on the board.
     public static TooltipAnchor Of(Collider2D collider, TooltipSide side = TooltipSide.Right)
     {
-        return new TooltipAnchor(null, null, collider, side);
+        return new TooltipAnchor(null, null, collider, null, side);
+    }
+
+    /// A world-space object with no collider of its own - a card's cost pip, its name, its description.
+    public static TooltipAnchor Of(Renderer renderer, TooltipSide side = TooltipSide.Right)
+    {
+        return new TooltipAnchor(null, null, null, renderer, side);
     }
 
     /// <summary>
@@ -73,7 +86,9 @@ public readonly struct TooltipAnchor
 
         if (rect != null) { return TryResolveRect(out screenRect); }
 
-        if (collider != null) { return TryResolveBounds(out screenRect); }
+        if (collider != null) { return ResolveWorldBounds(collider.gameObject, collider.bounds, out screenRect); }
+
+        if (renderer != null) { return ResolveWorldBounds(renderer.gameObject, renderer.bounds, out screenRect); }
 
         return false;
     }
@@ -101,23 +116,23 @@ public readonly struct TooltipAnchor
     }
 
     /// <summary>
-    /// Projects the collider's world bounds onto the screen.
+    /// Projects a world-space bounds onto the screen - shared by the collider and renderer sources,
+    /// since a card's hitbox and its cost pip's renderer resolve exactly the same way.
     ///
     /// The camera is resolved here, from the anchored object itself, rather than passed in by the
     /// caller. There are two cameras now - one for the board, one fixed for the cards and HUD (see
-    /// SceneCameras) - and this same method is used for both a card in hand and a totem on the board.
-    /// Every caller passing its own guess meant three places that each had to be right about
-    /// something only the anchored object knows; asking the object removes the question.
+    /// SceneCameras) - and this same method is used for a card in hand, a totem on the board, and now a
+    /// piece of a card's own face. Every caller passing its own guess meant three places that each had
+    /// to be right about something only the anchored object knows; asking the object removes the
+    /// question.
     /// </summary>
-    private bool TryResolveBounds(out Rect screenRect)
+    private static bool ResolveWorldBounds(GameObject subject, Bounds bounds, out Rect screenRect)
     {
         screenRect = default;
 
-        Camera worldCamera = SceneCameras.For(collider.gameObject);
+        Camera worldCamera = SceneCameras.For(subject);
 
         if (worldCamera == null) { return false; }
-
-        Bounds bounds = collider.bounds;
 
         Vector2 min = worldCamera.WorldToScreenPoint(bounds.min);
         Vector2 max = worldCamera.WorldToScreenPoint(bounds.max);

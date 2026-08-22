@@ -34,6 +34,8 @@ public class GridTile : MonoBehaviour
 
     private TileEffectOverlay effectOverlay;
 
+    private TileWarningOverlay warningOverlay;
+
     private void Awake()
     {
         selector = GetComponent<TileSelector>();
@@ -67,6 +69,21 @@ public class GridTile : MonoBehaviour
     public void SetHovered(bool value)
     {
         if (selector != null) { selector.SetHovered(value); }
+    }
+
+    /// Starts or stops this tile's red spawn-warning pulse - see GridManager.ShowSpawnWarning. Lazily
+    /// attaches TileWarningOverlay on first use, the same as RefreshEffectOverlay does below for
+    /// TileEffectOverlay; a tile that never warns never pays for the extra renderer.
+    public void SetSpawnWarning(bool value)
+    {
+        if (!value)
+        {
+            if (warningOverlay != null) { warningOverlay.SetActive(false); }
+            return;
+        }
+
+        if (warningOverlay == null) { warningOverlay = TileWarningOverlay.AttachTo(this); }
+        if (warningOverlay != null) { warningOverlay.SetActive(true); }
     }
 
     public void DealDamage(int amount, Character attacker = null)

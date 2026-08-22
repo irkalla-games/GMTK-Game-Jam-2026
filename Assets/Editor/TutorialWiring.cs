@@ -332,6 +332,8 @@ public static class TutorialWiring
 
         SetIfEmpty(so, "discardPileAnchor", FindDiscardPileRect());
 
+        SetIfEmpty(so, "spawnPreviewAnchor", FindSpawnPreviewRect());
+
         SetIfEmpty(so, "portraitPanel",
             Object.FindAnyObjectByType<PartyPortraitPanel>(FindObjectsInactive.Include));
 
@@ -397,6 +399,24 @@ public static class TutorialWiring
 
         Debug.LogWarning("Tutorial wiring: no CardPileHud with a discardButton assigned - set "
                          + "discardPileAnchor by hand, or that beat will show its box centre screen.");
+        return null;
+    }
+
+    /// <summary>
+    /// The next-wave preview strip's row, read off the single NextWavePanel via the public accessor
+    /// added for this - see NextWavePanel.Row.
+    ///
+    /// A miss only costs the spawn-preview beat its spotlight (the box falls back to centre screen), so
+    /// this warns rather than failing the whole command.
+    /// </summary>
+    private static RectTransform FindSpawnPreviewRect()
+    {
+        NextWavePanel panel = Object.FindAnyObjectByType<NextWavePanel>(FindObjectsInactive.Include);
+
+        if (panel != null && panel.Row != null) { return panel.Row; }
+
+        Debug.LogWarning("Tutorial wiring: no NextWavePanel with a row assigned - set spawnPreviewAnchor "
+                         + "by hand, or that beat will show its box centre screen.");
         return null;
     }
 

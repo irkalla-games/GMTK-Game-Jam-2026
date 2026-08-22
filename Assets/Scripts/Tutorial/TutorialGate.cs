@@ -35,6 +35,10 @@ public sealed class TutorialGate
 
     private bool endTurn;
 
+    /// Every door open at once - the free-play tail of turn 3, where nothing further is scripted and
+    /// the player survives the round however they like. Checked first by all four Refusal methods below.
+    private bool allowAll;
+
     /// <summary>
     /// Replaces the whole permit. Every step calls this exactly once, so what is allowed can never be
     /// the union of this step's intent and some leftover of the last one's.
@@ -43,12 +47,14 @@ public sealed class TutorialGate
         Card allowedCard = null,
         Predicate<GridTile> allowedTiles = null,
         Character allowedActivate = null,
-        bool allowEndTurn = false)
+        bool allowEndTurn = false,
+        bool allowAll = false)
     {
         card = allowedCard;
         tiles = allowedTiles;
         activate = allowedActivate;
         endTurn = allowEndTurn;
+        this.allowAll = allowAll;
     }
 
     /// Nothing on the board may be touched - a read beat, where Continue is the only way on.
@@ -56,6 +62,7 @@ public sealed class TutorialGate
 
     public string CardRefusal(Card clicked)
     {
+        if (allowAll) { return null; }
         if (card == null) { return "the tutorial is not asking for a card right now"; }
 
         return clicked == card ? null : $"the tutorial is asking for {card.cardName}";
@@ -63,6 +70,7 @@ public sealed class TutorialGate
 
     public string TileRefusal(GridTile clicked)
     {
+        if (allowAll) { return null; }
         if (tiles == null) { return "the tutorial is not asking for a tile right now"; }
 
         return clicked != null && tiles(clicked) ? null : "that is not the tile the tutorial is asking for";
@@ -70,10 +78,12 @@ public sealed class TutorialGate
 
     public string ActivateRefusal(Character hero)
     {
+        if (allowAll) { return null; }
         if (activate == null) { return "the tutorial is not asking you to switch hero right now"; }
 
         return hero == activate ? null : $"the tutorial is asking for {activate.name}";
     }
 
-    public string EndTurnRefusal() => endTurn ? null : "the tutorial is not ready for you to end the turn";
+    public string EndTurnRefusal() =>
+        allowAll || endTurn ? null : "the tutorial is not ready for you to end the turn";
 }

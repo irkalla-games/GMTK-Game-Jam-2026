@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: SeismicSlam
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Seismic Slam
+  <cost>k__BackingField: 1
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 1
+    maxDistance: 1
+  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 4
+  <tags>k__BackingField: 01000000
+  <excludeFromRewards>k__BackingField: 0
+  <description>k__BackingField: Deal 7 damage to everything within 1 tile.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 5e680a6c51d3ffd428265490d6a1e1d8, type: 2}
+    aimsAt: 0
+    area:
+      kind: 1
+      radius:
+        shape: 1
+        minDistance: 0
+        maxDistance: 1
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

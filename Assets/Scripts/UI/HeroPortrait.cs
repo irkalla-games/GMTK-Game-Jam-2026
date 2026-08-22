@@ -93,6 +93,10 @@ public class HeroPortrait : MonoBehaviour
 
     public RectTransform Rect { get; private set; }
 
+    /// Exposed for the tutorial spotlight, which lights one hero's own pip row while explaining mana -
+    /// the same read-only-rect contract CharacterOverheadViewer.HealthBarRect already uses.
+    public RectTransform PipRowRect => pipParent;
+
     /// Raised on click; the panel decides what that means (activate, or refuse while a card is being
     /// played from a different hero's hand), the same way CharacterSelectSlot's arrow events do.
     public event Action<HeroPortrait> Clicked;

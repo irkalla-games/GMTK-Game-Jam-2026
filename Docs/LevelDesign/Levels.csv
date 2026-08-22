@@ -1,0 +1,8 @@
+﻿"Level","BoardWidth","BoardHeight","TurnsToSurvive","HandSize","LootTable","ClearRewardTable","TileSets","Notes","GUID"
+"DebugParade1","8","8","2","5","EarlyGame","EarlyLevelReward","StoneDungeon","","8c8f2f598a8bc824984510549a779d78"
+"DebugParade2","8","8","2","5","EarlyGame","EarlyLevelReward","StoneDungeon","","a5dbc86ebb323174589025bc4980f329"
+"Level1","5","6","10","5","EarlyGame","EarlyLevelReward","StoneDungeon","","6abf9bedd410a2942ada5d2fc57f7438"
+"Level2","6","6","10","5","EarlyGame","EarlyLevelReward","StoneDungeon","","3ef6a1a71a140c449b08228f24791993"
+"Level3Menagerie","6","7","10","5","EarlyGame","EarlyLevelReward","StoneDungeon","","ca9f9ed091b6a0049a1165cd7701db6f"
+"Level4BlackKnight","7","7","12","5","EarlyGame","EarlyLevelReward","StoneDungeon","","35d56f4d97e16ae46a11bc1a4f583f23"
+"Tutorial","3","6","2","3","TutorialSapDrop","","StoneDungeon","","09a7258cd7dc67749b468fcf0531c772"

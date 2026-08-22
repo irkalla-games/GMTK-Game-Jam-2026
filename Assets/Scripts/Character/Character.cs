@@ -149,16 +149,42 @@ public class Character : MonoBehaviour
     /// writing a cursor into it would persist into the .asset on disk when Play Mode exits.
     private int targetingCursor;
 
+    /// Whether this character rolled a totem hunt for the turn currently in progress. Per-copy runtime
+    /// state alongside targetingCursor, and rolled once - see RollTotemHunt - rather than inside
+    /// CurrentPriority itself: BattleManager.LateUpdate re-asks CurrentPriority every frame the board
+    /// changes and EnemyResolve asks it again per action point, so rolling it there would flicker the
+    /// intent icon and make TryFindMove's tile scan incoherent, exactly the failure TargetSelector.TryPick
+    /// documents for Random.
+    private bool huntingTotemThisTurn;
+
     /// Who this character is going after right now. Named by the pattern; the whole point is that it
     /// names the attack's victim *and* the direction a move heads in, so a Move in the sequence walks
     /// toward whoever the next attack means to hit. See TargetSelector.
+    ///
+    /// A totem hunt rolled for this turn overrides the sequence outright rather than being spliced
+    /// into it - TargetPriority.Totem only ever reorders (see TargetSelector.Rank), so a hunt with no
+    /// totem in reach still falls back to the nearest legal candidate instead of a wasted turn.
     public TargetPriority CurrentPriority =>
-        targetingPattern != null ? targetingPattern.At(targetingCursor) : TargetPriority.Weakest;
+        huntingTotemThisTurn ? TargetPriority.Totem
+        : targetingPattern != null ? targetingPattern.At(targetingCursor) : TargetPriority.Weakest;
 
     /// Spent by attacks only, and only once one has actually resolved - see BattleManager.Execute. A
     /// refused or fizzled swing leaves the sequence exactly where it was, so an owed "Attack: Closest"
     /// stays owed.
     public void AdvanceTargetingCursor() => targetingCursor++;
+
+    /// Whether TargetSelector should drop totems from this character's candidate list outright,
+    /// rather than merely ranking them - see TargetingPattern.IgnoreTotems.
+    public bool IgnoresTotems => targetingPattern != null && targetingPattern.IgnoreTotems;
+
+    /// Rolls whether this character hunts a totem for the round about to be resolved. Called once,
+    /// from BattleManager.TurnStart, before any Decide for this round - see huntingTotemThisTurn.
+    public void RollTotemHunt()
+    {
+        int chance = targetingPattern != null ? targetingPattern.TotemChancePercent : 0;
+
+        huntingTotemThisTurn = chance > 0 && UnityEngine.Random.Range(0, 100) < chance;
+    }
 
     private Intent committedIntent;
 

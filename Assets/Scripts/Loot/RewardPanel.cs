@@ -228,6 +228,11 @@ public class RewardPanel : MonoBehaviour
 
             if (label != null) { label.text = reward.Label; }
 
+            // One-time, not per-frame like CardPileHud's discard button: this button is freshly
+            // instantiated every time an offer opens, never reused across one, so there is nothing to
+            // keep in sync after spawn.
+            if (reward is HealSkipReward && TutorialDirector.TutorialRunning) { button.interactable = false; }
+
             SkipReward chosen = reward;
             button.onClick.AddListener(() => ChooseSkip(chosen));
 

@@ -101,22 +101,32 @@ public class PartyPortraitPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Where this hero's portrait currently sits, or null if they have none - they are dead, or not
+    /// The live HeroPortrait for this hero, or null if they have none - they are dead, or not
     /// player-controlled. Looked up live rather than cached by the caller because Rebuild destroys and
     /// re-creates the whole row whenever the roster changes, so any held reference goes stale.
     ///
-    /// Exposed for the tutorial spotlight, which lights the portrait the player is being told to press.
+    /// Exposed on its own, rather than only through PortraitRectFor below, so a caller wanting more than
+    /// the rect - the tutorial's pip-row anchor - does not have to walk `portraits` a second time.
     /// </summary>
-    public RectTransform PortraitRectFor(Character hero)
+    public HeroPortrait PortraitFor(Character hero)
     {
         if (hero == null) { return null; }
 
         foreach (HeroPortrait portrait in portraits)
         {
-            if (portrait != null && portrait.Hero == hero) { return (RectTransform)portrait.transform; }
+            if (portrait != null && portrait.Hero == hero) { return portrait; }
         }
 
         return null;
+    }
+
+    /// Where this hero's portrait currently sits, or null if they have none - see PortraitFor.
+    /// Exposed for the tutorial spotlight, which lights the portrait the player is being told to press.
+    public RectTransform PortraitRectFor(Character hero)
+    {
+        HeroPortrait portrait = PortraitFor(hero);
+
+        return portrait != null ? (RectTransform)portrait.transform : null;
     }
 
     private void OnRosterChanged(Character _) => Rebuild();

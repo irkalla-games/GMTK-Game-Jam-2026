@@ -1,0 +1,4 @@
+# The work order handed from Import-EnemySheet.ps1 to the Unity importer. Regenerated on every sync and
+# meaningless once applied, so it is noise in a diff. baseline.json is NOT ignored - it is the record
+# of where the sheet and the assets last agreed, and a sync cannot detect conflicts without it.
+enemies.json

@@ -641,6 +641,72 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// Tiles currently pulsing as a wave's spawn warning - tracked so ClearSpawnWarning turns off
+    /// exactly those rather than walking the whole board, the same shape damagePreviewed uses for
+    /// ClearDamagePreview.
+    private readonly List<GridTile> spawnWarned = new();
+
+    /// <summary>
+    /// Pulses red every tile an enemy arriving at `cell` would threaten: the corner it lands in plus
+    /// its two orthogonal neighbours for a corner spawn, the whole row or column for a plain edge
+    /// spawn, or just the tile itself anywhere else. Driven by WaveCircle hovering a wave preview
+    /// circle - see NextWavePanel.
+    ///
+    /// Corner and edge come from BoardSize rather than IsBorderCell: IsBorderCell only answers "missing
+    /// a neighbour", which cannot tell a corner from a plain edge the way this needs to.
+    /// </summary>
+    public void ShowSpawnWarning(Vector2Int cell)
+    {
+        ClearSpawnWarning();
+
+        bool onXEdge = cell.x == 0 || cell.x == BoardSize.x - 1;
+        bool onYEdge = cell.y == 0 || cell.y == BoardSize.y - 1;
+
+        if (onXEdge && onYEdge)
+        {
+            AddWarned(cell);
+            AddWarned(cell + Vector2Int.up);
+            AddWarned(cell + Vector2Int.down);
+            AddWarned(cell + Vector2Int.left);
+            AddWarned(cell + Vector2Int.right);
+        }
+        else if (onXEdge)
+        {
+            for (int y = 0; y < BoardSize.y; y++) { AddWarned(new Vector2Int(cell.x, y)); }
+        }
+        else if (onYEdge)
+        {
+            for (int x = 0; x < BoardSize.x; x++) { AddWarned(new Vector2Int(x, cell.y)); }
+        }
+        else
+        {
+            AddWarned(cell);
+        }
+    }
+
+
+    public void ClearSpawnWarning()
+    {
+        foreach (GridTile tile in spawnWarned)
+        {
+            if (tile != null) { tile.SetSpawnWarning(false); }
+        }
+
+        spawnWarned.Clear();
+    }
+
+
+    private void AddWarned(Vector2Int at)
+    {
+        GridTile tile = GetTile(at);
+
+        if (tile == null) { return; }
+
+        tile.SetSpawnWarning(true);
+        spawnWarned.Add(tile);
+    }
+
+
     /// <summary>
     /// A coordinates-only snapshot of the board for the enemy brains.
     ///

@@ -1,0 +1,119 @@
+﻿{
+    "writtenUtc":  "2026-08-22T07:03:02.8166699Z",
+    "levels":  [
+                   {
+                       "guid":  "8c8f2f598a8bc824984510549a779d78",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "2",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,2,5,BlackKnight,;0,5,5,ReinforcedGolem,;0,8,5,Reaper,;0,1,6,SpikedSlime,;0,4,6,Golem,;0,7,6,LightBandit,;0,2,7,Crab,;0,5,7,Bat,;0,8,7,VampireBat,;0,1,8,Pebble,;0,4,8,Rat,;0,7,8,Skull,|S:2,1;4,1;6,1"
+                                   }
+                   },
+                   {
+                       "guid":  "a5dbc86ebb323174589025bc4980f329",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "2",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,4,4,EvilKing,;0,2,5,EvilWizard2,;0,5,5,EvilWizard3,;0,8,5,EvilKnight,;0,1,6,FlyingEye,;0,4,6,HeavyBandit,;0,7,6,EvilWizard,;0,2,7,Mimic,;0,5,7,PlagueRat,;0,8,7,Slime,;0,1,8,Goblin,;0,4,8,Mushroom,;0,7,8,Skeleton,|S:2,1;4,1;6,1"
+                                   }
+                   },
+                   {
+                       "guid":  "6abf9bedd410a2942ada5d2fc57f7438",
+                       "columns":  {
+                                       "BoardWidth":  "5",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,3,5,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;0,1,6,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;0,5,6,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash;2,1,6,EnemyRanger,;2,5,6,EnemyRanger,;3,2,6,SkeletonWarrior,;5,2,6,SkeletonWarrior,;5,5,6,SkeletonWarrior,;6,2,6,SkeletonWarrior,;6,5,6,SkeletonWarrior,;8,2,6,SkeletonWarrior,;8,5,6,SkeletonWarrior,;9,2,6,SkeletonWarrior,;9,5,6,SkeletonWarrior,|S:3,4;3,3;4,1;5,1"
+                                   }
+                   },
+                   {
+                       "guid":  "3ef6a1a71a140c449b08228f24791993",
+                       "columns":  {
+                                       "BoardWidth":  "6",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,2,5,SkeletonWarrior,;0,5,5,SkeletonWarrior,;0,1,6,EnemyRanger,;0,6,6,EnemyRanger,|S:3,4;3,3;4,4;4,3"
+                                   }
+                   },
+                   {
+                       "guid":  "ca9f9ed091b6a0049a1165cd7701db6f",
+                       "columns":  {
+                                       "BoardWidth":  "6",
+                                       "BoardHeight":  "7",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,2,6,Goblin,;0,5,6,Crab,;0,4,7,Rat,;3,1,7,Bat,;3,6,7,VampireBat,;5,3,7,SpikedSlime,;7,2,7,Skeleton,;7,5,7,Mushroom,|S:2,1;4,1;3,2"
+                                   }
+                   },
+                   {
+                       "guid":  "35d56f4d97e16ae46a11bc1a4f583f23",
+                       "columns":  {
+                                       "BoardWidth":  "7",
+                                       "BoardHeight":  "7",
+                                       "TurnsToSurvive":  "12",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,2,6,HeavyBandit,;0,6,6,LightBandit,;0,4,7,BlackKnight,;4,1,7,Skull,;8,7,7,Skull,|S:3,1;5,1;4,2"
+                                   }
+                   },
+                   {
+                       "guid":  "09a7258cd7dc67749b468fcf0531c772",
+                       "columns":  {
+                                       "BoardWidth":  "3",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "2",
+                                       "HandSize":  "3",
+                                       "LootTable":  "TutorialSapDrop",
+                                       "ClearRewardTable":  "",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,|S:2,2;3,2"
+                                   }
+                   }
+               ],
+    "runs":  [
+                 {
+                     "guid":  "c2ddf5dab567a5e4da56551a025fe317",
+                     "columns":  {
+                                     "Levels":  "DebugParade1|DebugParade2|Level3Menagerie|Level4BlackKnight",
+                                     "CarryDamageBetweenLevels":  "FALSE"
+                                 }
+                 },
+                 {
+                     "guid":  "1b9e3eb6bcdac0b41acc43559eb5fc29",
+                     "columns":  {
+                                     "Levels":  "Level1|Level2",
+                                     "CarryDamageBetweenLevels":  "FALSE"
+                                 }
+                 },
+                 {
+                     "guid":  "5e3814a1c23dafa459764e0c691cbbce",
+                     "columns":  {
+                                     "Levels":  "Tutorial",
+                                     "CarryDamageBetweenLevels":  "FALSE"
+                                 }
+                 }
+             ]
+}

@@ -39,11 +39,19 @@ public static class TargetSelector
         // above ForcedQuarry on purpose. A hidden taunter must make its taunter stop being chased, not
         // survive as an unreachable forced quarry that then refuses every substitute the way an
         // out-of-reach one legitimately does.
+        //
+        // A totem is dropped here too when self.IgnoresTotems - a hard exclusion, not a rank, so a
+        // Skeleton Warrior with nothing but a totem in reach gets no attack this action point rather
+        // than hitting it anyway. TargetPriority.Totem (see Rank below) is the opposite knob: it only
+        // ever reorders, so a Ranger whose totem hunt whiffs still falls back to its usual target.
         List<Character> visible = new();
 
         foreach (Character candidate in candidates)
         {
-            if (candidate != null && !IsHidden(candidate)) { visible.Add(candidate); }
+            if (candidate == null || IsHidden(candidate)) { continue; }
+            if (self.IgnoresTotems && candidate.TryGetComponent(out Totem _)) { continue; }
+
+            visible.Add(candidate);
         }
 
         if (visible.Count == 0) { return false; }
@@ -160,6 +168,11 @@ public static class TargetSelector
         return false;
     }
 
+    /// Added to a non-totem candidate's Totem-priority rank, so every totem within reach beats every
+    /// non-totem no matter how close - and a totem hunt with no totem in reach still falls back to the
+    /// nearest legal candidate instead of returning nothing.
+    private const int TotemMiss = 1000;
+
     /// Lower is better, so every caller keeps the `value >= best -> continue` shape the Try* helpers
     /// already use. Random is not scored here; see TryPick.
     private static int Rank(TargetPriority priority, Vector2Int from, Character candidate)
@@ -169,6 +182,9 @@ public static class TargetSelector
             TargetPriority.Closest => Board.ChebyshevDistance(candidate.Tile.Coordinates, from),
             TargetPriority.Furthest => -Board.ChebyshevDistance(candidate.Tile.Coordinates, from),
             TargetPriority.Strongest => -candidate.Health,
+            TargetPriority.Totem =>
+                (candidate.TryGetComponent(out Totem _) ? 0 : TotemMiss)
+                + Board.ChebyshevDistance(candidate.Tile.Coordinates, from),
             _ => candidate.Health, // Weakest, and the fallback for anything unhandled.
         };
     }

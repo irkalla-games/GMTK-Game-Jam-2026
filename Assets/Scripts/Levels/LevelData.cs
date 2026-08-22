@@ -132,4 +132,33 @@ public class LevelData : ScriptableObject
 
         return usable[roll.Next(usable.Count)];
     }
+
+    /// <summary>
+    /// The soonest wave after `turnsElapsed`, or false when none remain - see NextWavePanel, which
+    /// drives the HUD strip previewing it. `waves` is neither sorted nor deduplicated (SpawnDueWaves
+    /// itself does not assume either), so this scans the whole list and collects every wave sharing the
+    /// lowest qualifying turn rather than just the first match.
+    /// </summary>
+    public bool TryNextWave(int turnsElapsed, out int turn, out List<EnemyPlacement> enemies)
+    {
+        turn = int.MaxValue;
+        enemies = null;
+
+        foreach (EnemyWave wave in waves)
+        {
+            if (wave.turn <= turnsElapsed || wave.enemies == null || wave.enemies.Count == 0) { continue; }
+
+            if (wave.turn > turn) { continue; }
+
+            if (wave.turn < turn)
+            {
+                turn = wave.turn;
+                enemies = new List<EnemyPlacement>();
+            }
+
+            enemies.AddRange(wave.enemies);
+        }
+
+        return enemies != null;
+    }
 }

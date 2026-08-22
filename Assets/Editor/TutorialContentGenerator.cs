@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Creates every asset the tutorial level needs: the two prefab variants for the heroes, the two for
-/// the enemies, the reinforcement card and its summon effect, the two tutorial decks, the loot table
-/// that drops Sap Totems, the level itself and the prologue run that plays it.
+/// the enemies, the two tutorial decks, the loot table that drops Sap Totems, the level itself (with its
+/// two reinforcement waves) and the prologue run that plays it.
 ///
 /// Same shape as TotemContentGenerator and EquipmentExampleContent: idempotent and re-runnable. An
 /// asset that already exists is reused rather than recreated, but **every field this generator owns is
@@ -20,42 +20,32 @@ using UnityEngine;
 /// one is passed down as a live object rather than re-loaded by path, so the reference never depends on
 /// the import having caught up.
 ///
-/// Cards and prefabs are *copied* from existing ones rather than built field by field
-/// (AssetDatabase.CopyAsset, PrefabUtility variants), for the reason CardChoicePanelWiring gives for
-/// cloning the removal panel: the nested shape - a card's effectEntries with its area and pattern, a
-/// character's whole component stack - comes along correct for free, and only the handful of values
-/// that actually differ have to be written.
+/// Prefabs are *copied* from existing ones rather than built field by field (PrefabUtility variants -
+/// see MakeVariant), for the reason CardChoicePanelWiring gives for cloning the removal panel: the
+/// nested shape - a character's whole component stack - comes along correct for free, and only the
+/// handful of values that actually differ have to be written.
 ///
 /// ## The board, and why it is 3 wide
 ///
-/// The skeleton has to land somewhere the Knight can reach with Slash, which is melee - and EnemyBrain's
-/// TryFindSummon picks the closest legal empty tile to the *Ranger*, not to the Knight, so where it
-/// lands is not something the tutorial gets to state directly. The board is shaped to make every answer
-/// a right one instead.
-///
-/// Call Reinforcements is authored as a **ring**, minDistance == maxDistance == 3, so its legal tiles
-/// are exactly the cells at Chebyshev 3 from the Ranger at (2,6) - which on a 3-wide board is the whole
-/// row y=3. The Knight stands at (2,2), directly below the middle of that row. Chebyshev adjacency is
-/// the eight surrounding tiles, diagonals included, so (1,3), (2,3) and (3,3) are *all* distance 1 from
-/// him: wherever on the ring the skeleton lands, Slash reaches it.
+/// Reinforcements arrive as directly-authored LevelData.EnemyWave entries now, not a card an enemy AI
+/// casts - so unlike an AI-picked summon tile (EnemyBrain.TryFindSummon, "closest legal tile to the
+/// Ranger"), each wave's landing cell is just stated outright (SkeletonCell, SecondWaveCell) and needs
+/// no geometry to steer it. The board keeps its original 3x6 shape and hero/Ranger cells anyway, for
+/// continuity with every other authored range already tuned against them:
 ///
 ///     x:   1     2     3
 ///     y=6  .    RNG    .
 ///     y=5  .     .     .     <- Sap Totem lands on one of these
-///     y=4  .     .     .
-///     y=3 SKL   SKL   SKL    <- the summon ring: the whole row, and every
-///     y=2 MAG   KNI    .        cell of it is adjacent to the Knight below
+///     y=4  .    SKL    .     <- SecondWaveCell (turn 3)
+///     y=3  .    SKL    .     <- SkeletonCell (turn 2), adjacent to the Knight below
+///     y=2 MAG   KNI    .
 ///     y=1  .     .     .
 ///
-/// That is deliberately stronger than blocking the ring down to a single free cell, which is what an
-/// earlier distance-4 version did: it needed two specific cells occupied to work, so moving either hero
-/// silently broke it, and the survivor was chosen by however GetTilesInRange happened to order two
-/// equidistant tiles. Here nothing needs to be occupied and no tie-break matters.
-///
-/// Every other range in the script was checked against this layout: Fireball (1-5) reaches the Ranger
-/// from the Mage at (1,2) at distance 4; Slash (melee) reaches every ring cell from (2,2); Teleport is
-/// Anywhere; Sap Totem (1-3) reaches every free tile beside the Ranger from any row-3 drop, the row-5
-/// ones at distance 2 and the row-6 ones at 3; EnemyArrow (1-6) can shoot back from (2,6).
+/// Fireball (1-5) reaches the Ranger from the Mage at (1,2) at distance 4; Slash (melee) reaches
+/// SkeletonCell from (2,2); Teleport is Anywhere; Sap Totem (1-3) reaches every free tile beside the
+/// Ranger from any row-3 drop, the row-5 ones at distance 2 and the row-6 ones at 3; EnemyArrow (1-6)
+/// can shoot back from (2,6). Resizing the board or moving RangerCell/KnightCell/MageCell means
+/// re-checking every one of these.
 /// </summary>
 public static class TutorialContentGenerator
 {
@@ -69,18 +59,12 @@ public static class TutorialContentGenerator
     private const string Move = "Assets/Data/CardData/Generic/Move.asset";
     private const string EnemyArrow = "Assets/Data/CardData/Enemy/EnemyArrow.asset";
 
-    private const string SummonCardSource = "Assets/Data/CardData/Enemy/SummonSkeletonWarrior.asset";
-    private const string SummonEffectSource = "Assets/Data/EffectData/Summon/SummonSkeletonWarrior.asset";
-
     private const string KnightPrefab = "Assets/Prefabs/Player/PlayerKnight.prefab";
     private const string MagePrefab = "Assets/Prefabs/Player/PlayerMage.prefab";
     private const string RangerPrefab = "Assets/Prefabs/Enemies/EnemyRanger.prefab";
     private const string SkeletonPrefab = "Assets/Prefabs/Enemies/SkeletonWarrior.prefab";
 
     // ---- Where things go --------------------------------------------------------------------------
-
-    private const string SummonEffectOut = "Assets/Data/EffectData/Summon/SummonTutorialSkeleton.asset";
-    private const string SummonCardOut = "Assets/Data/CardData/Enemy/CallReinforcements.asset";
 
     private const string KnightOut = "Assets/Prefabs/Player/PlayerKnightTutorial.prefab";
     private const string MageOut = "Assets/Prefabs/Player/PlayerMageTutorial.prefab";
@@ -95,25 +79,26 @@ public static class TutorialContentGenerator
 
     // ---- The numbers ------------------------------------------------------------------------------
 
+    /// Resizing this or moving RangerCell/KnightCell/MageCell means re-checking every authored range
+    /// against them - see the class doc's closing paragraph.
     private static readonly Vector2Int BoardSize = new(3, 6);
     private static readonly Vector2Int RangerCell = new(2, 6);
     private static readonly Vector2Int KnightCell = new(2, 2);
     private static readonly Vector2Int MageCell = new(1, 2);
 
-    private const int TurnsToSurvive = 2;
+    /// Chebyshev-adjacent to the Knight at (2,2), so Slash always reaches it - the turn-2 wave. See the
+    /// class doc.
+    private static readonly Vector2Int SkeletonCell = new(2, 3);
+
+    /// The turn-3 wave - what the spawn-preview beat shows during turn 2, and what turn 3's free play
+    /// is spent surviving.
+    private static readonly Vector2Int SecondWaveCell = new(2, 4);
+
+    private const int TurnsToSurvive = 3;
 
     /// Big enough that every tutorial hand is that character's entire deck, so no shuffle can reorder
     /// what the script points at. The determinism the whole sequence rests on.
     private const int HandSize = 3;
-
-    /// <summary>
-    /// Chebyshev, minDistance == maxDistance - a ring, not a disc. 3 puts the ring on row y=3, one row
-    /// above the Knight, which is what makes every cell of it adjacent to him. See the class doc.
-    /// </summary>
-    private const int SummonRing = 3;
-
-    /// Longer than the level, so the Ranger summons on turn 1 and shoots on turn 2.
-    private const int SummonCooldown = 4;
 
     private const int SkeletonHealth = 1;
 
@@ -137,9 +122,7 @@ public static class TutorialContentGenerator
         LootTable loot = MakeLootTable(made);
 
         GameObject skeleton = MakeSkeleton(loot, made);
-        CardEffect summonEffect = MakeSummonEffect(skeleton, made);
-        CardData summonCard = MakeSummonCard(summonEffect, made);
-        GameObject ranger = MakeRanger(summonCard, made);
+        GameObject ranger = MakeRanger(made);
 
         GameObject knight = MakeVariant(KnightPrefab, KnightOut, made);
         GameObject mage = MakeVariant(MagePrefab, MageOut, made);
@@ -149,7 +132,7 @@ public static class TutorialContentGenerator
         DeckData mageDeck = MakeDeck(MageDeckOut, "Mage (Tutorial)",
             new[] { Fireball, Teleport }, made);
 
-        LevelData level = MakeLevel(ranger, loot, made);
+        LevelData level = MakeLevel(ranger, skeleton, loot, made);
         MakeRun(level, knight, mage, knightDeck, mageDeck, made);
 
         AssetDatabase.SaveAssets();
@@ -184,76 +167,10 @@ public static class TutorialContentGenerator
         return prefab;
     }
 
-    private static CardEffect MakeSummonEffect(GameObject skeleton, List<string> made)
-    {
-        CardEffect effect = CopyAsset<CardEffect>(SummonEffectSource, SummonEffectOut, made);
-
-        if (effect == null || skeleton == null) { return effect; }
-
-        SerializedObject so = new(effect);
-        so.FindProperty("summonedObject").objectReferenceValue = skeleton;
-        so.ApplyModifiedPropertiesWithoutUndo();
-        EditorUtility.SetDirty(effect);
-
-        return effect;
-    }
-
-    /// <summary>
-    /// Call Reinforcements: the ring-ranged summon the whole board layout is built around.
-    ///
-    /// Copied from SummonSkeletonWarrior rather than built from scratch so its effectEntries shape comes
-    /// along intact, then the four values that differ are overwritten - notably dropping that card's
-    /// Dormant 3, which would make it unplayable for the first three turns of a two-turn level.
-    /// </summary>
-    private static CardData MakeSummonCard(CardEffect effect, List<string> made)
-    {
-        CardData card = CopyAsset<CardData>(SummonCardSource, SummonCardOut, made);
-
-        if (card == null) { return null; }
-
-        SerializedObject so = new(card);
-
-        so.FindProperty("<cardName>k__BackingField").stringValue = "Call Reinforcements";
-        so.FindProperty("<cost>k__BackingField").intValue = 0;
-        so.FindProperty("<description>k__BackingField").stringValue =
-            "Summon a Skeleton Warrior four tiles away.";
-
-        SerializedProperty range = so.FindProperty("<range>k__BackingField");
-        range.FindPropertyRelative("shape").enumValueIndex = (int)RangeShape.Chebyshev;
-        range.FindPropertyRelative("minDistance").intValue = SummonRing;
-        range.FindPropertyRelative("maxDistance").intValue = SummonRing;
-
-        // Cooldown only - Dormant is deliberately dropped, see the doc comment.
-        SerializedProperty keywords = so.FindProperty("<keywords>k__BackingField");
-        keywords.arraySize = 1;
-        SerializedProperty cooldown = keywords.GetArrayElementAtIndex(0);
-        cooldown.FindPropertyRelative("type").enumValueIndex = (int)CardKeywordType.Cooldown;
-        cooldown.FindPropertyRelative("magnitude").intValue = SummonCooldown;
-
-        if (effect != null)
-        {
-            SerializedProperty entries = so.FindProperty("<effectEntries>k__BackingField");
-
-            if (entries.arraySize > 0)
-            {
-                entries.GetArrayElementAtIndex(0).FindPropertyRelative("effect").objectReferenceValue = effect;
-            }
-
-            SerializedProperty legacy = so.FindProperty("<effects>k__BackingField");
-
-            if (legacy.arraySize > 0) { legacy.GetArrayElementAtIndex(0).objectReferenceValue = effect; }
-        }
-
-        so.ApplyModifiedPropertiesWithoutUndo();
-        EditorUtility.SetDirty(card);
-
-        return card;
-    }
-
-    /// The Ranger, holding only the reinforcement card and two arrows - no Move, so RangerBrain can
-    /// never walk it out of the Sap totem's aura between the totem landing and the shot that proves it
-    /// works.
-    private static GameObject MakeRanger(CardData summonCard, List<string> made)
+    /// The Ranger, holding only two arrows - no summon card any more (waves are authored directly on
+    /// the level, see MakeLevel) and no Move, so RangerBrain can never walk it out of the Sap totem's
+    /// aura between the totem landing and the shot that proves it works.
+    private static GameObject MakeRanger(List<string> made)
     {
         GameObject prefab = MakeVariant(RangerPrefab, RangerOut, made);
 
@@ -265,7 +182,6 @@ public static class TutorialContentGenerator
 
         SetCards(so.FindProperty("deck"), new List<Object>
         {
-            summonCard,
             Load<CardData>(EnemyArrow),
             Load<CardData>(EnemyArrow),
         });
@@ -347,7 +263,8 @@ public static class TutorialContentGenerator
         return table;
     }
 
-    private static LevelData MakeLevel(GameObject rangerPrefab, LootTable loot, List<string> made)
+    private static LevelData MakeLevel(GameObject rangerPrefab, GameObject skeletonPrefab, LootTable loot,
+        List<string> made)
     {
         LevelData level = Load<LevelData>(LevelOut);
 
@@ -367,7 +284,29 @@ public static class TutorialContentGenerator
         SetCell(ranger.FindPropertyRelative("cell"), RangerCell);
         ranger.FindPropertyRelative("deckOverride").arraySize = 0;
 
-        so.FindProperty("waves").arraySize = 0;
+        // Reinforcements, not a card an enemy AI plays - see the class doc. Turn 2's wave is what the
+        // Slash beat kills; turn 3's is what the spawn-preview beat shows during turn 2 and what free
+        // play is spent surviving.
+        SerializedProperty waves = so.FindProperty("waves");
+        waves.arraySize = 2;
+
+        SerializedProperty wave0 = waves.GetArrayElementAtIndex(0);
+        wave0.FindPropertyRelative("turn").intValue = 2;
+        SerializedProperty wave0Enemies = wave0.FindPropertyRelative("enemies");
+        wave0Enemies.arraySize = 1;
+        SerializedProperty wave0Enemy = wave0Enemies.GetArrayElementAtIndex(0);
+        wave0Enemy.FindPropertyRelative("prefab").objectReferenceValue = skeletonPrefab;
+        SetCell(wave0Enemy.FindPropertyRelative("cell"), SkeletonCell);
+        wave0Enemy.FindPropertyRelative("deckOverride").arraySize = 0;
+
+        SerializedProperty wave1 = waves.GetArrayElementAtIndex(1);
+        wave1.FindPropertyRelative("turn").intValue = 3;
+        SerializedProperty wave1Enemies = wave1.FindPropertyRelative("enemies");
+        wave1Enemies.arraySize = 1;
+        SerializedProperty wave1Enemy = wave1Enemies.GetArrayElementAtIndex(0);
+        wave1Enemy.FindPropertyRelative("prefab").objectReferenceValue = skeletonPrefab;
+        SetCell(wave1Enemy.FindPropertyRelative("cell"), SecondWaveCell);
+        wave1Enemy.FindPropertyRelative("deckOverride").arraySize = 0;
 
         // Index for index against the run's roster: slot 0 is the Knight, so pressing 1 selects him.
         SerializedProperty spawns = so.FindProperty("partySpawnCells");
@@ -460,29 +399,6 @@ public static class TutorialContentGenerator
         return variant;
     }
 
-    private static T CopyAsset<T>(string sourcePath, string outPath, List<string> made) where T : Object
-    {
-        T existing = Load<T>(outPath);
-
-        if (existing != null) { return existing; }
-
-        if (Load<T>(sourcePath) == null)
-        {
-            Debug.LogError($"Tutorial content: no asset at {sourcePath} - skipped {outPath}.");
-            return null;
-        }
-
-        if (!AssetDatabase.CopyAsset(sourcePath, outPath))
-        {
-            Debug.LogError($"Tutorial content: could not copy {sourcePath} to {outPath}.");
-            return null;
-        }
-
-        made.Add(outPath);
-
-        return Load<T>(outPath);
-    }
-
     private static SerializedObject CharacterOf(GameObject prefab)
     {
         Character character = prefab != null ? prefab.GetComponent<Character>() : null;
@@ -532,7 +448,6 @@ public static class TutorialContentGenerator
         string[] required =
         {
             Fireball, Teleport, SapTotem, Slash, Shield, Move, EnemyArrow,
-            SummonCardSource, SummonEffectSource,
             KnightPrefab, MagePrefab, RangerPrefab, SkeletonPrefab,
         };
 

@@ -109,6 +109,11 @@ public class CardViewer : MonoBehaviour
     /// around exactly the part of the card the player can click - see TutorialSpotlight.
     public Collider2D Hitbox => hitbox;
 
+    /// The cost pip's own renderer, for the tutorial's mana-cost beat. Unlike Hitbox this is not a click
+    /// target - the pip has no collider of its own - so it anchors through TooltipAnchor's Renderer
+    /// overload instead of the Collider2D one Hitbox feeds.
+    public Renderer CostRenderer => cost != null ? cost.GetComponent<Renderer>() : null;
+
     [Header("Playability")]
     [Tooltip("The card's frame - the CardBorder child. Turned green while this card can actually be " +
         "played. Optional: without it a card still greys out, it just gains no outline.")]

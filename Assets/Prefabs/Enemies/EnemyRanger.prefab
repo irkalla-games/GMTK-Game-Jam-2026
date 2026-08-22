@@ -568,10 +568,10 @@ MonoBehaviour:
   playableCharacter: 0
   characterClass: 0
   displayName: Ranger
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: 9031ddff7d13d6c4fad61bb77e53414f, type: 3}
   actionPoints: 1
   brain: 2
-  targetingPattern: {fileID: 11400000, guid: e524a064f223458cabbccbce2e1506cf, type: 2}
+  targetingPattern: {fileID: 11400000, guid: 1341e29f77de4fdfa8b2bb9219d0231b, type: 2}
   startCoordinates: {x: 2, y: 5}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   lootTable: {fileID: 0}

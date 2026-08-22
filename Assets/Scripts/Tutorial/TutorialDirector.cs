@@ -49,6 +49,10 @@ public class TutorialDirector : Singleton<TutorialDirector>
     [Tooltip("The discard pile counter, lit while explaining that the hand clears each turn.")]
     [SerializeField] private RectTransform discardPileAnchor;
 
+    [Tooltip("The next-wave preview strip's row - lit while explaining what it shows. Populated off "
+             + "LevelData.Waves with no push from the tutorial; see NextWavePanel.")]
+    [SerializeField] private RectTransform spawnPreviewAnchor;
+
     [Tooltip("The row of hero portraits. Which portrait is whose is asked live - the row is rebuilt "
              + "whenever the roster changes.")]
     [SerializeField] private PartyPortraitPanel portraitPanel;
@@ -92,6 +96,12 @@ public class TutorialDirector : Singleton<TutorialDirector>
     private static TutorialDirector Active() =>
         Instance != null && Instance.IsRunning ? Instance : null;
 
+    /// Whether the tutorial is currently driving - the same check Active() makes, exposed for anything
+    /// outside this class that needs to gate on the tutorial's presence rather than go through one of
+    /// the four door methods above. CardPileHud's discard button and RewardPanel's Heal skip button are
+    /// the two current readers.
+    public static bool TutorialRunning => Active() != null;
+
     // ---- Copy -----------------------------------------------------------------------------------
 
     private const string WelcomeTitle = "Survive the Countdown";
@@ -130,7 +140,7 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
     private const string IntentTitle = "Read the Intent";
     private const string IntentBody =
-        "The icon above an enemy shows what it is about to do. The Ranger is calling for reinforcements.";
+        "The icon above an enemy shows what it is about to do. Check it before committing to a plan.";
 
     private const string SlashTitle = "Finish It";
     private const string SlashBody =
@@ -178,9 +188,21 @@ public class TutorialDirector : Singleton<TutorialDirector>
         "The Sap totem is cutting the damage off the Ranger's arrows for as long as he stands near it. "
         + "Survive one more turn.";
 
+    private const string SpawnPreviewTitle = "Reinforcements Incoming";
+    private const string SpawnPreviewBody =
+        "This shows who's about to join the fight, and when. Keep an eye on it.";
+
     private const string RideOutTitle = "Ride It Out";
     private const string RideOutBody =
-        "Click End Turn. The counter reaches 0 and the level is yours.";
+        "Click End Turn. One more wave is coming - you'll need everything you just learned.";
+
+    private const string ManaCostTitle = "Cards Cost Mana";
+    private const string ManaCostBody =
+        "The number in the corner is what a card costs to cast. It refills every turn.";
+
+    private const string ManaPipTitle = "Your Mana Pool";
+    private const string ManaPipBody =
+        "These pips are this hero's mana. An empty pip is that much less to spend until your next turn.";
 
     // ---- Lifecycle ------------------------------------------------------------------------------
 
@@ -383,10 +405,13 @@ public class TutorialDirector : Singleton<TutorialDirector>
         yield return new WaitUntil(() => Skipped || RewardPanelShowing());
         if (Skipped) { End(); yield break; }
 
-        yield return Read(RewardTitle, RewardBody, RewardPanelAnchor(), dim: false);
-
-        yield return new WaitUntil(() => Skipped || LootManager.Instance == null || LootManager.Instance.IsIdle);
-        if (Skipped) { End(); yield break; }
+        // done folds in what used to be a separate LootIdle WaitUntil right after this call, and
+        // showContinue: false removes the only other way this beat ended - RewardPanel's own buttons
+        // are not gated by TutorialGate, so a reward chosen by clicking it directly used to leave the
+        // coroutine parked on a Continue click that was never coming, PermitNothing() still in force and
+        // the Sap Totem never reachable.
+        yield return Read(RewardTitle, RewardBody, RewardPanelAnchor(), dim: false,
+            done: () => LootManager.Instance == null || LootManager.Instance.IsIdle, showContinue: false);
 
         yield return SelectCard(TotemTitle, TotemBody, mage, sapTotem, FreeTileBeside(ranger));
         yield return AimCard(TotemAimTitle, TotemAimBody, mage, sapTotem, FreeTileBeside(ranger));
@@ -397,7 +422,38 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         yield return Read(SapTitle, SapBody);
 
+        // NextWavePanel has already populated itself off LevelData.Waves by now, with no push from here
+        // - see TutorialContentGenerator for the turn-3 wave this is previewing.
+        yield return Read(SpawnPreviewTitle, SpawnPreviewBody, UiAnchor(spawnPreviewAnchor, TooltipSide.Below));
+
+        int turnTwo = battle.TurnsElapsed;
+
         yield return EndTurn(RideOutTitle, RideOutBody, holdRound: false);
+
+        // Same idiom as the turn 1 -> 2 transition above, minus a HoldingRound release - this EndTurn
+        // was called with holdRound: false, so there is nothing held to let go of here.
+        yield return new WaitUntil(() =>
+            Skipped || (battle.TurnsElapsed > turnTwo && battle.Phase == BattlePhase.PlayerActing));
+
+        if (Skipped) { End(); yield break; }
+
+        // Turn 3's hand is still being dealt one card at a time - see the identical wait after turn 1.
+        yield return new WaitUntil(() =>
+            Skipped || ActiveHandViewer.Instance == null || !ActiveHandViewer.Instance.Busy);
+
+        if (Skipped) { End(); yield break; }
+
+        // Whoever ended turn 2 active carries into turn 3 - Mage, per the script above - but asked live
+        // rather than assumed, so a re-ordering of turn 2 cannot silently point this at nobody.
+        Character turnThreeHero = battle.ActiveCharacter != null ? battle.ActiveCharacter : mage;
+        Card representative = FirstCardInHand(turnThreeHero);
+
+        yield return Read(ManaCostTitle, ManaCostBody, CardCostAnchor(representative));
+
+        yield return Read(ManaPipTitle, ManaPipBody, PipRowAnchor(turnThreeHero));
+
+        // Every door open until the round itself ends - see FreePlay's own doc comment.
+        yield return FreePlay();
 
         End();
     }
@@ -414,11 +470,11 @@ public class TutorialDirector : Singleton<TutorialDirector>
     /// </summary>
     private IEnumerator Read(
         string title, string body, TooltipAnchor? at = null, TooltipAnchor[] holes = null, Func<bool> done = null,
-        bool dim = true)
+        bool dim = true, bool showContinue = true)
     {
         gate.PermitNothing();
 
-        yield return Beat(title, body, at, showContinue: true, holes: holes ?? Holes(at), done: done, dim: dim);
+        yield return Beat(title, body, at, showContinue: showContinue, holes: holes ?? Holes(at), done: done, dim: dim);
     }
 
     /// <summary>
@@ -547,6 +603,22 @@ public class TutorialDirector : Singleton<TutorialDirector>
     }
 
     /// <summary>
+    /// The free-play tail of turn 3: every door stays open until the round itself ends - End Turn
+    /// pressed, or the phase leaves PlayerActing - see TutorialGate's allowAll. No Beat() call and so no
+    /// popup: unlike every primitive above, this one has nothing left to say, which is the point of it.
+    /// </summary>
+    private IEnumerator FreePlay()
+    {
+        gate.Permit(allowAll: true);
+
+        yield return new WaitUntil(() =>
+            Skipped
+            || (BattleManager.Instance != null
+                && (BattleManager.Instance.EndTurnRequested
+                 || BattleManager.Instance.Phase != BattlePhase.PlayerActing)));
+    }
+
+    /// <summary>
     /// The one place a step actually runs: light the holes, put the box up, and wait for whichever of
     /// `done`, Continue or Skip arrives first.
     ///
@@ -631,6 +703,22 @@ public class TutorialDirector : Singleton<TutorialDirector>
         return TooltipAnchor.Of(viewer.Hitbox, TooltipSide.Above);
     }
 
+    /// Mirrors CardAnchor, but anchors the cost pip specifically - see the mana-cost beat. The pip has
+    /// no collider of its own (only the card's root Hitbox does), so this goes through TooltipAnchor's
+    /// Renderer overload instead of the Collider2D one CardAnchor uses.
+    private static TooltipAnchor? CardCostAnchor(Card card)
+    {
+        ActiveHandViewer hand = ActiveHandViewer.Instance;
+
+        if (hand == null) { return null; }
+
+        CardViewer viewer = hand.ViewerFor(card);
+
+        if (viewer == null || viewer.CostRenderer == null) { return null; }
+
+        return TooltipAnchor.Of(viewer.CostRenderer, TooltipSide.Above);
+    }
+
     /// Characters have no colliders of their own - the tile under one is what you click, so the tile is
     /// what gets lit.
     private static TooltipAnchor? WorldAnchor(Character who, TooltipSide side)
@@ -652,6 +740,17 @@ public class TutorialDirector : Singleton<TutorialDirector>
     }
 
     private RectTransform StatusRow() => enemyPanel != null ? enemyPanel.StatusRowRect : null;
+
+    /// See CardCostAnchor - same "one representative example, not everyone" shape, for the mana-pip
+    /// beat. No `?.` on portraitPanel.PortraitFor's result - it is a UnityEngine.Object, and this
+    /// codebase's convention is the two-line null-check form, not `?.`, for exactly that type.
+    private TooltipAnchor? PipRowAnchor(Character hero)
+    {
+        HeroPortrait portrait = portraitPanel != null ? portraitPanel.PortraitFor(hero) : null;
+        RectTransform pipRect = portrait != null ? portrait.PipRowRect : null;
+
+        return UiAnchor(pipRect, TooltipSide.Above);
+    }
 
     private static bool RewardPanelShowing() =>
         LootManager.Instance != null && LootManager.Instance.Panel != null
@@ -767,5 +866,17 @@ public class TutorialDirector : Singleton<TutorialDirector>
         }
 
         return false;
+    }
+
+    /// One card from this hero's hand - "a representative example" for the mana-cost and mana-pip
+    /// beats, which point at one card rather than walking the whole hand. Null only if the hand is
+    /// empty, which the anchor helpers above already handle by falling back to a centre-screen box.
+    private static Card FirstCardInHand(Character who)
+    {
+        if (who == null) { return null; }
+
+        foreach (Card card in who.Hand) { if (card != null) { return card; } }
+
+        return null;
     }
 }

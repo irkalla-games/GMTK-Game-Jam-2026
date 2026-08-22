@@ -18,7 +18,7 @@ static class EnemyIdleAnimationSetup
         var skeletonController = BuildIdleController("SkeletonWarrior", SkeletonWarriorSprites, 4, 8f);
         var rangerController = BuildIdleController("EnemyRanger", EnemyRangerSprites, 2, 6f);
 
-        ApplyToPrefab("Assets/Prefabs/SkeletonWarrior.prefab", skeletonController);
+        ApplyToPrefab("Assets/Prefabs/Enemies/SkeletonWarrior.prefab", skeletonController);
         ApplyToSceneObject("SkeletonWarrior (1)", skeletonController, null);
         ApplyToSceneObject("EnemyRanger", rangerController, EnemyRangerSprites + "/idle-1.png");
         ApplyToSceneObject("EnemyRanger (1)", rangerController, EnemyRangerSprites + "/idle-1.png");
@@ -219,7 +219,7 @@ static class EnemyIdleAnimationSetup
             new ClipSpec("Move", EnemyRangerSprites, "run-", 12, 14f, true),
         });
 
-        ApplyCharacterAnimator("Assets/Prefabs/SkeletonWarrior.prefab", skeletonController, "Idle",
+        ApplyCharacterAnimator("Assets/Prefabs/Enemies/SkeletonWarrior.prefab", skeletonController, "Idle",
             new[]
             {
                 new CueBinding { cue = AnimationCue.MeleeAttack, stateName = "MeleeAttack" },
@@ -228,7 +228,7 @@ static class EnemyIdleAnimationSetup
                 new CueBinding { cue = AnimationCue.Move, stateName = "Move" },
             }, useFlipRenderer: true);
 
-        ApplyCharacterAnimator("Assets/Prefabs/EnemyRanger.prefab", rangerController, "Idle",
+        ApplyCharacterAnimator("Assets/Prefabs/Enemies/EnemyRanger.prefab", rangerController, "Idle",
             new[]
             {
                 new CueBinding { cue = AnimationCue.RangedAttack, stateName = "RangedAttack" },
@@ -244,7 +244,7 @@ static class EnemyIdleAnimationSetup
         // Knight's swings a sword in reach, the Priest's is a staff cast thrown at range. So they bind
         // to different cues, which is exactly the indirection the cue table exists for - one clip name,
         // two meanings, and neither hero needs the card to know which.
-        ApplyCharacterAnimator("Assets/Prefabs/PlayerKnight.prefab", null, "idle",
+        ApplyCharacterAnimator("Assets/Prefabs/Player/PlayerKnight.prefab", null, "idle",
             new[]
             {
                 new CueBinding { cue = AnimationCue.MeleeAttack, stateName = "attack" },
@@ -254,7 +254,7 @@ static class EnemyIdleAnimationSetup
                 new CueBinding { cue = AnimationCue.Move, stateName = "walk" },
             }, useFlipRenderer: false);
 
-        ApplyCharacterAnimator("Assets/Prefabs/PlayerMage.prefab", null, "idle",
+        ApplyCharacterAnimator("Assets/Prefabs/Player/PlayerMage.prefab", null, "idle",
             new[]
             {
                 // Fireball and every other ranged card land here. "casting" stays on Cast for heals

@@ -53,18 +53,24 @@ public static class BoardCameraWiring
     {
         "Assets/Prefabs/Player",
         "Assets/Prefabs/Enemies",
+        "Assets/Prefabs/Bosses",
         "Assets/Prefabs/Allies",
         "Assets/Prefabs/Totem",
         "Assets/Prefabs/ItemDrops",
     };
 
-    /// Single-sprite bodies that never had a SortingGroup, unlike the heroes and totems. They need one
-    /// to be depth-sorted against the rest of the board - see Character.RefreshSortingDepth.
+    /// Folders whose prefabs are single-sprite bodies that never had a SortingGroup, unlike the
+    /// heroes and totems. They need one to be depth-sorted against the rest of the board - see
+    /// Character.RefreshSortingDepth.
+    ///
+    /// Folders rather than the three prefab paths this used to name: the enemy and boss rosters are
+    /// generated (EnemyRosterGenerator), so a fixed list silently skips every body added after it was
+    /// written - and a body with no SortingGroup draws through whatever stands in front of it.
     private static readonly string[] NeedSortingGroup =
     {
-        "Assets/Prefabs/Enemies/EnemyRanger.prefab",
-        "Assets/Prefabs/Enemies/SkeletonWarrior.prefab",
-        "Assets/Prefabs/Allies/SkeletonAlly.prefab",
+        "Assets/Prefabs/Enemies",
+        "Assets/Prefabs/Bosses",
+        "Assets/Prefabs/Allies",
     };
 
     // ---------------------------------------------------------------------------------------------
@@ -449,7 +455,7 @@ public static class BoardCameraWiring
 
             foreach (string needs in NeedSortingGroup)
             {
-                if (needs != path) { continue; }
+                if (!path.StartsWith(needs + "/")) { continue; }
 
                 SortingGroup group = Ensure<SortingGroup>(contents);
                 group.sortingLayerName = SortingLayers.Characters;

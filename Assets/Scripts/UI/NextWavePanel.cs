@@ -19,9 +19,26 @@ public class NextWavePanel : MonoBehaviour
              + "a wave-less level, or the last wave already spawned.")]
     [SerializeField] private RectTransform row;
 
-    /// Exposed for the tutorial spotlight, which lights this row while explaining what it shows - the
-    /// same read-only-rect contract CharacterOverheadViewer.HealthBarRect already uses.
-    public RectTransform Row => row;
+    /// <summary>
+    /// Exposed for the tutorial spotlight, which lights the circles themselves while explaining what
+    /// this strip shows.
+    ///
+    /// An array of the circles rather than row's own rect: BuildCircle positions each circle by
+    /// anchoredPosition, not a Layout Group, so row's rect is whatever size it happened to be authored
+    /// at and is never grown to bound its children - anchoring to it lit a small, wrongly placed square
+    /// instead of the circles actually on screen. See TooltipAnchor.Of(RectTransform[], ...).
+    /// </summary>
+    public RectTransform[] ActiveCircleRects()
+    {
+        List<RectTransform> active = new();
+
+        foreach (WaveCircle circle in circles)
+        {
+            if (circle != null && circle.gameObject.activeSelf) { active.Add((RectTransform)circle.transform); }
+        }
+
+        return active.ToArray();
+    }
 
     [SerializeField] private float spacing = 84f;
 

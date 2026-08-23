@@ -214,42 +214,28 @@ function Get-RunColumns {
 }
 
 # ---------------------------------------------------------------------------------------------------
-# Board tab tokens
+# Waves table coordinates
 #
-# One cell holds zero or more ';'-separated tokens: a bare prefab name (opening roster), "Prefab@N" (a
-# wave arriving turn N), or "Pk" (party spawn slot k). Multiple tokens on one cell cover the one case
-# the real levels actually need it for - Level1 reuses a couple of cells across several waves.
+# A placement's cell is written as "Col,Row" text in the row directly under its enemy name - one column
+# per enemy in that wave, so a multi-enemy wave is just a wider pair of rows rather than several tokens
+# jammed into one cell.
 # ---------------------------------------------------------------------------------------------------
 
-function ConvertTo-BoardToken {
-    param([string]$Prefab, [int]$Turn)
-    if ($Turn -le 0) { return $Prefab }
-    return "$Prefab@$Turn"
+function Format-Coord {
+    param([int]$Col, [int]$Row)
+    return "$Col,$Row"
 }
 
-function ConvertFrom-BoardToken {
-    <#
-        .SYNOPSIS
-            Parses one token out of a board cell.
+function ConvertFrom-Coord {
+    <# Parses "3,5" (also tolerating "(3,5)" or "3, 5") into {Col;Row}, or $null if it does not parse -
+       the caller reports that as a problem rather than guessing at a placement's location. #>
+    param([string]$Text)
 
-        .OUTPUTS
-            A pscustomobject with Kind = 'Party' (Index set) or 'Enemy' (Prefab/Turn set), or $null for
-            a token that parses as neither - the caller reports that as a problem rather than guessing.
-    #>
-    param([string]$Token)
-
-    $t = $Token.Trim()
-    if ($t -eq '') { return $null }
-
-    if ($t -match '^[Pp](\d+)$') {
-        return [pscustomobject]@{ Kind = 'Party'; Index = [int]$Matches[1]; Prefab = ''; Turn = 0 }
+    $t = $Text.Trim().Trim('(', ')').Trim()
+    if ($t -match '^(\d+)\s*,\s*(\d+)$') {
+        return [pscustomobject]@{ Col = [int]$Matches[1]; Row = [int]$Matches[2] }
     }
-
-    if ($t -match '^(.+)@(\d+)$') {
-        return [pscustomobject]@{ Kind = 'Enemy'; Index = 0; Prefab = $Matches[1].Trim(); Turn = [int]$Matches[2] }
-    }
-
-    return [pscustomobject]@{ Kind = 'Enemy'; Index = 0; Prefab = $t; Turn = 0 }
+    return $null
 }
 
 function Read-LevelSheetTab {
@@ -260,11 +246,11 @@ function Read-LevelSheetTab {
             reordered block in Write-LevelWorkbook.ps1 cannot silently break this reader.
 
         .DESCRIPTION
-            The board itself is the exception: its own extent is read from what is actually drawn (the
-            column-number header row under the "Board" label, and rows until the first blank one) rather
-            than from the Board Width/Height scalar cells above it. That keeps a board-size edit a plain
-            synced-field change instead of something that also has to explain what happens to cells
-            outside the new size.
+            Enemies and waves are authored as row PAIRS under the "Waves" label: a name row (column A
+            holds "Start" or a turn number, one prefab per column from B onward) immediately followed by
+            a "Coords" row (the same columns hold "Col,Row" text). Party spawn cells are one row headed
+            "Party" the same way. The Board section underneath is pure output (formulas reading the rows
+            above) and is never read here - editing happens in the rows, not the grid.
     #>
     param($Worksheet)
 
@@ -273,13 +259,17 @@ function Read-LevelSheetTab {
     $lastCol = $Worksheet.Dimension.End.Column
 
     $values = @{}
-    $boardLabelRow = -1
+    $wavesLabelRow = -1
+    $partyRow = -1
     $deckLabelRow = -1
     for ($r = 1; $r -le $last; $r++) {
         $label = ([string]$Worksheet.Cells[$r, 1].Text).Trim()
         if ($label -eq '') { continue }
-        if ($label -eq 'Board') { $boardLabelRow = $r; continue }
-        if ($label -eq 'Deck Overrides') { $deckLabelRow = $r; continue }
+        switch ($label) {
+            'Waves'          { $wavesLabelRow = $r; continue }
+            'Party'          { $partyRow = $r; continue }
+            'Deck Overrides' { $deckLabelRow = $r; continue }
+        }
         $values[$label] = [string]$Worksheet.Cells[$r, 2].Text
     }
 
@@ -289,38 +279,71 @@ function Read-LevelSheetTab {
     $partySpawn = @()
     $problems = @()
 
-    if ($boardLabelRow -gt 0) {
-        $headerRow = $boardLabelRow + 1
-        $cols = @()
-        for ($c = 2; $c -le $lastCol; $c++) {
-            $h = ([string]$Worksheet.Cells[$headerRow, $c].Text).Trim()
-            if ($h -eq '') { break }
-            $cols += [int]$h
-        }
+    if ($wavesLabelRow -gt 0) {
+        $r = $wavesLabelRow + 2   # +1 is the "Turn / Enemy 1 / Enemy 2 ..." column-header row
 
-        $r = $headerRow + 1
         while ($r -le $last) {
-            $rowLabel = ([string]$Worksheet.Cells[$r, 1].Text).Trim()
-            if ($rowLabel -eq '') { break }
-            $rowNum = [int]$rowLabel
+            $turnLabel = ([string]$Worksheet.Cells[$r, 1].Text).Trim()
+            if ($turnLabel -eq 'Party' -or $turnLabel -eq 'Deck Overrides') { break }
 
-            for ($i = 0; $i -lt $cols.Count; $i++) {
-                $cellText = ([string]$Worksheet.Cells[$r, ($i + 2)].Text).Trim()
-                if ($cellText -eq '') { continue }
+            # A structural mismatch - the row after this one is not labelled "Coords" - means we have
+            # left the Waves table (its blank separator row before Party/Deck Overrides included, since
+            # a spare pair's OWN "Coords" label lives one row lower than a blank separator's would).
+            $coordRowLabel = ([string]$Worksheet.Cells[($r + 1), 1].Text).Trim()
+            if ($coordRowLabel -ne 'Coords') { break }
 
-                foreach ($tokenText in ($cellText -split ';')) {
-                    $token = ConvertFrom-BoardToken -Token $tokenText
-                    if ($null -eq $token) { continue }
+            if ($turnLabel -ne '') {
+                $turn = 0
+                $validTurn = $true
+                if ($turnLabel -eq 'Start') { $turn = 0 }
+                elseif ($turnLabel -match '^\d+$') { $turn = [int]$turnLabel }
+                else {
+                    $validTurn = $false
+                    $problems += "'$($Worksheet.Name)' row $r`: '$turnLabel' is not 'Start' or a whole number - that wave was skipped."
+                }
 
-                    if ($token.Kind -eq 'Party') {
-                        $partySpawn += [pscustomobject]@{ Index = $token.Index; Col = $cols[$i]; Row = $rowNum }
-                    }
-                    else {
-                        $placements += [pscustomobject]@{ Turn = $token.Turn; Col = $cols[$i]; Row = $rowNum; Prefab = $token.Prefab; Deck = @() }
+                if ($validTurn) {
+                    for ($c = 2; $c -le $lastCol; $c++) {
+                        $name = ([string]$Worksheet.Cells[$r, $c].Text).Trim()
+                        $coordText = ([string]$Worksheet.Cells[($r + 1), $c].Text).Trim()
+                        if ($name -eq '' -and $coordText -eq '') { continue }
+
+                        if ($name -eq '') {
+                            $problems += "'$($Worksheet.Name)' row $($r + 1) has a coordinate with no enemy chosen above it (column $c) - skipped."
+                            continue
+                        }
+
+                        $coord = ConvertFrom-Coord -Text $coordText
+                        if ($null -eq $coord) {
+                            $problems += "'$($Worksheet.Name)' row $($r + 1), column $c`: '$coordText' is not a valid coordinate (expected 'Col,Row') - '$name' skipped."
+                            continue
+                        }
+
+                        $placements += [pscustomobject]@{ Turn = $turn; Col = $coord.Col; Row = $coord.Row; Prefab = $name; Deck = @() }
                     }
                 }
             }
-            $r++
+            # A blank Turn label with a valid "Coords" row below it is an unused spare pair - nothing to
+            # read, just move on to the next one.
+
+            $r += 2
+        }
+    }
+
+    if ($partyRow -gt 0) {
+        for ($c = 2; $c -le $lastCol; $c++) {
+            $coordText = ([string]$Worksheet.Cells[$partyRow, $c].Text).Trim()
+            if ($coordText -eq '') { continue }
+
+            $coord = ConvertFrom-Coord -Text $coordText
+            if ($null -eq $coord) {
+                $problems += "'$($Worksheet.Name)' Party row, column $c`: '$coordText' is not a valid coordinate (expected 'Col,Row') - skipped."
+                continue
+            }
+
+            # Index is authoring ORDER (left to right), not tied to the "Pk" header label above it - a
+            # renumbered header would be purely cosmetic.
+            $partySpawn += [pscustomobject]@{ Index = ($c - 1); Col = $coord.Col; Row = $coord.Row }
         }
     }
 

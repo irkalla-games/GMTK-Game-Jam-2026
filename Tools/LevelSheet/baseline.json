@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-08-22T07:03:02.8166699Z",
+    "writtenUtc":  "2026-08-23T01:24:39.2413582Z",
     "levels":  [
                    {
                        "guid":  "8c8f2f598a8bc824984510549a779d78",
@@ -84,12 +84,12 @@
                        "columns":  {
                                        "BoardWidth":  "3",
                                        "BoardHeight":  "6",
-                                       "TurnsToSurvive":  "2",
+                                       "TurnsToSurvive":  "3",
                                        "HandSize":  "3",
                                        "LootTable":  "TutorialSapDrop",
                                        "ClearRewardTable":  "",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,|S:2,2;3,2"
+                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,;2,3,4,SkeletonWarriorTutorial,;3,3,5,SkeletonWarriorTutorial,|S:3,3;2,3"
                                    }
                    }
                ],

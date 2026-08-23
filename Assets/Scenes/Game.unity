@@ -3966,7 +3966,7 @@ MonoBehaviour:
   sapTotem: {fileID: 11400000, guid: 8b23e21878068f84ca903b21df587219, type: 2}
   endTurnAnchor: {fileID: 893445275}
   discardPileAnchor: {fileID: 684321805}
-  spawnPreviewAnchor: {fileID: 334823080}
+  nextWavePanel: {fileID: 1658982287}
   portraitPanel: {fileID: 1630536323}
   enemyPanel: {fileID: 698419608}
 --- !u!4 &840767514

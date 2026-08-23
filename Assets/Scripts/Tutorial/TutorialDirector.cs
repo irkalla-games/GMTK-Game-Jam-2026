@@ -49,9 +49,9 @@ public class TutorialDirector : Singleton<TutorialDirector>
     [Tooltip("The discard pile counter, lit while explaining that the hand clears each turn.")]
     [SerializeField] private RectTransform discardPileAnchor;
 
-    [Tooltip("The next-wave preview strip's row - lit while explaining what it shows. Populated off "
-             + "LevelData.Waves with no push from the tutorial; see NextWavePanel.")]
-    [SerializeField] private RectTransform spawnPreviewAnchor;
+    [Tooltip("The next-wave preview strip - its circles are lit while explaining what it shows. "
+             + "Populated off LevelData.Waves with no push from the tutorial; see NextWavePanel.")]
+    [SerializeField] private NextWavePanel nextWavePanel;
 
     [Tooltip("The row of hero portraits. Which portrait is whose is asked live - the row is rebuilt "
              + "whenever the roster changes.")]
@@ -424,7 +424,9 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         // NextWavePanel has already populated itself off LevelData.Waves by now, with no push from here
         // - see TutorialContentGenerator for the turn-3 wave this is previewing.
-        yield return Read(SpawnPreviewTitle, SpawnPreviewBody, UiAnchor(spawnPreviewAnchor, TooltipSide.Below));
+        RectTransform[] waveRects = nextWavePanel != null ? nextWavePanel.ActiveCircleRects() : null;
+
+        yield return Read(SpawnPreviewTitle, SpawnPreviewBody, RectsAnchor(waveRects, TooltipSide.Below));
 
         int turnTwo = battle.TurnsElapsed;
 
@@ -739,17 +741,39 @@ public class TutorialDirector : Singleton<TutorialDirector>
         return canvas != null ? TooltipAnchor.Of(rect, canvas, side) : null;
     }
 
+    /// UiAnchor's plural - a group of manually-positioned siblings lit as one, used by PipRowAnchor and
+    /// the spawn-preview beat. See TooltipAnchor.Of(RectTransform[], ...) for why the group has to be
+    /// resolved as a whole rather than through any single member's parent.
+    private static TooltipAnchor? RectsAnchor(RectTransform[] rects, TooltipSide side)
+    {
+        if (rects == null || rects.Length == 0) { return null; }
+
+        RectTransform first = null;
+
+        foreach (RectTransform rect in rects)
+        {
+            if (rect != null) { first = rect; break; }
+        }
+
+        if (first == null) { return null; }
+
+        Canvas canvas = first.GetComponentInParent<Canvas>();
+
+        return canvas != null ? TooltipAnchor.Of(rects, canvas, side) : null;
+    }
+
     private RectTransform StatusRow() => enemyPanel != null ? enemyPanel.StatusRowRect : null;
 
-    /// See CardCostAnchor - same "one representative example, not everyone" shape, for the mana-pip
-    /// beat. No `?.` on portraitPanel.PortraitFor's result - it is a UnityEngine.Object, and this
+    /// Highlights this hero's whole mana-pip row for the mana-pip beat - every pip, not the single
+    /// representative card CardCostAnchor points at, since "how much mana you have" is the row as a
+    /// whole. No `?.` on portraitPanel.PortraitFor's result - it is a UnityEngine.Object, and this
     /// codebase's convention is the two-line null-check form, not `?.`, for exactly that type.
     private TooltipAnchor? PipRowAnchor(Character hero)
     {
         HeroPortrait portrait = portraitPanel != null ? portraitPanel.PortraitFor(hero) : null;
-        RectTransform pipRect = portrait != null ? portrait.PipRowRect : null;
+        RectTransform[] pipRects = portrait != null ? portrait.ActivePipRects() : null;
 
-        return UiAnchor(pipRect, TooltipSide.Above);
+        return RectsAnchor(pipRects, TooltipSide.Above);
     }
 
     private static bool RewardPanelShowing() =>

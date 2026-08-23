@@ -93,9 +93,25 @@ public class HeroPortrait : MonoBehaviour
 
     public RectTransform Rect { get; private set; }
 
-    /// Exposed for the tutorial spotlight, which lights one hero's own pip row while explaining mana -
-    /// the same read-only-rect contract CharacterOverheadViewer.HealthBarRect already uses.
-    public RectTransform PipRowRect => pipParent;
+    /// <summary>
+    /// Exposed for the tutorial spotlight, which lights one hero's own pips while explaining mana.
+    ///
+    /// An array of the pips themselves rather than pipParent's own rect: PlacePip positions each pip by
+    /// anchoredPosition, not a Layout Group, so pipParent's rect is whatever size it happened to be
+    /// authored at and is never grown to bound its children - anchoring to it lit a small, wrongly
+    /// placed square instead of the pips actually on screen. See TooltipAnchor.Of(RectTransform[], ...).
+    /// </summary>
+    public RectTransform[] ActivePipRects()
+    {
+        List<RectTransform> active = new();
+
+        foreach (Image pip in pips)
+        {
+            if (pip != null && pip.gameObject.activeSelf) { active.Add((RectTransform)pip.transform); }
+        }
+
+        return active.ToArray();
+    }
 
     /// Raised on click; the panel decides what that means (activate, or refuse while a card is being
     /// played from a different hero's hand), the same way CharacterSelectSlot's arrow events do.

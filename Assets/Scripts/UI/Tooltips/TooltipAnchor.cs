@@ -29,7 +29,13 @@ public readonly struct TooltipAnchor
 {
     /// Set for uGUI sources. Its canvas is needed too: a Screen Space - Camera canvas has to project
     /// through canvas.worldCamera, and an Overlay one through no camera at all.
-    private readonly RectTransform rect;
+    ///
+    /// An array rather than a single rect so a group of manually-positioned siblings - the pips in a
+    /// hero's mana row, the circles in the next-wave strip - can be lit as one anchor. Each sibling is
+    /// placed by its owner via anchoredPosition rather than grown by a Layout Group, so their shared
+    /// parent's own rect is never resized to bound them and cannot be used as a stand-in; this unions
+    /// whichever of them are actually active on screen instead.
+    private readonly RectTransform[] rects;
     private readonly Canvas canvas;
 
     /// Set for world-space sources. A Collider2D rather than a Renderer because it is the collider that
@@ -47,9 +53,9 @@ public readonly struct TooltipAnchor
     /// allocate one per call - and this resolves every frame a tooltip is up.
     private static readonly Vector3[] Corners = new Vector3[4];
 
-    private TooltipAnchor(RectTransform rect, Canvas canvas, Collider2D collider, Renderer renderer, TooltipSide side)
+    private TooltipAnchor(RectTransform[] rects, Canvas canvas, Collider2D collider, Renderer renderer, TooltipSide side)
     {
-        this.rect = rect;
+        this.rects = rects;
         this.canvas = canvas;
         this.collider = collider;
         this.renderer = renderer;
@@ -59,7 +65,13 @@ public readonly struct TooltipAnchor
     /// A uGUI element - the status panel's backing plate, a HUD button, anything on a canvas.
     public static TooltipAnchor Of(RectTransform rect, Canvas canvas, TooltipSide side = TooltipSide.Above)
     {
-        return new TooltipAnchor(rect, canvas, null, null, side);
+        return new TooltipAnchor(rect != null ? new[] { rect } : null, canvas, null, null, side);
+    }
+
+    /// A group of uGUI elements treated as one - see the rects field's own doc.
+    public static TooltipAnchor Of(RectTransform[] rects, Canvas canvas, TooltipSide side = TooltipSide.Above)
+    {
+        return new TooltipAnchor(rects, canvas, null, null, side);
     }
 
     /// A world-space object with a collider - a card in hand, a character on the board.
@@ -84,7 +96,7 @@ public readonly struct TooltipAnchor
     {
         screenRect = default;
 
-        if (rect != null) { return TryResolveRect(out screenRect); }
+        if (rects != null) { return TryResolveRects(out screenRect); }
 
         if (collider != null) { return ResolveWorldBounds(collider.gameObject, collider.bounds, out screenRect); }
 
@@ -93,7 +105,9 @@ public readonly struct TooltipAnchor
         return false;
     }
 
-    private bool TryResolveRect(out Rect screenRect)
+    /// Unions every active rect in the group rather than trusting a single one - see the rects field's
+    /// own doc for why the group shape exists at all.
+    private bool TryResolveRects(out Rect screenRect)
     {
         screenRect = default;
 
@@ -103,12 +117,35 @@ public readonly struct TooltipAnchor
         // real camera there produces coordinates off by the whole viewport.
         Camera canvasCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
 
-        rect.GetWorldCorners(Corners);
+        bool any = false;
+        Vector2 min = default;
+        Vector2 max = default;
 
-        // Corners are bottom-left, top-left, top-right, bottom-right. Taking index 0 and 2 is enough
-        // for an unrotated rect, which every rect on these canvases is.
-        Vector2 min = RectTransformUtility.WorldToScreenPoint(canvasCamera, Corners[0]);
-        Vector2 max = RectTransformUtility.WorldToScreenPoint(canvasCamera, Corners[2]);
+        foreach (RectTransform member in rects)
+        {
+            if (member == null || !member.gameObject.activeInHierarchy) { continue; }
+
+            member.GetWorldCorners(Corners);
+
+            // Corners are bottom-left, top-left, top-right, bottom-right. Taking index 0 and 2 is enough
+            // for an unrotated rect, which every rect on these canvases is.
+            Vector2 memberMin = RectTransformUtility.WorldToScreenPoint(canvasCamera, Corners[0]);
+            Vector2 memberMax = RectTransformUtility.WorldToScreenPoint(canvasCamera, Corners[2]);
+
+            if (!any)
+            {
+                min = memberMin;
+                max = memberMax;
+                any = true;
+            }
+            else
+            {
+                min = Vector2.Min(min, memberMin);
+                max = Vector2.Max(max, memberMax);
+            }
+        }
+
+        if (!any) { return false; }
 
         screenRect = FromCorners(min, max);
 

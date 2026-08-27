@@ -404,7 +404,7 @@ RectTransform:
   m_GameObject: {fileID: 4119137545581316138}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.93090904, y: 0.93090904, z: 1}
+  m_LocalScale: {x: 0.2763636, y: 0.2763636, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5000000000000002}
@@ -586,7 +586,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.85937506, y: 0.85937506, z: 1}
+  m_LocalScale: {x: 2.894737, y: 2.894737, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7627141365252465588}
@@ -668,6 +668,9 @@ MonoBehaviour:
   maxHealth: 15
   maxEnergy: 3
   playableCharacter: 0
+  battleRole: -1
+  powerLevel: 2
+  isBoss: 0
   characterClass: 0
   displayName: Bat
   portrait: {fileID: 0}
@@ -681,7 +684,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ee373f925ba104f43bcc820881e5a445, type: 2}
   - {fileID: 11400000, guid: ee373f925ba104f43bcc820881e5a445, type: 2}
   - {fileID: 11400000, guid: ee373f925ba104f43bcc820881e5a445, type: 2}
-  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
+  - {fileID: 11400000, guid: ee373f925ba104f43bcc820881e5a445, type: 2}
   - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
   <Health>k__BackingField: 15
 --- !u!95 &7130099151914716108
@@ -744,7 +747,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimator
   animator: {fileID: 7130099151914716108}
   idleStateName: Idle
-  cues: []
+  cues:
+  - cue: 5
+    stateName: Move
+    duration: 0.33333334
+  - cue: 1
+    stateName: MeleeAttack
+    duration: 0.5833333
+  - cue: 6
+    stateName: Hurt
+    duration: 0.4166667
+  - cue: 7
+    stateName: Die
+    duration: 0.9166666
   flipRenderer: {fileID: 1046345344289980744}
   counterFlip: {fileID: 0}
   muzzle: {fileID: 0}

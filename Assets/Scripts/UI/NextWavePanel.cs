@@ -74,9 +74,10 @@ public class NextWavePanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Rebuilds the strip from LevelData.TryNextWave. Called once at Start and again on every
-    /// TurnAdvanced - which fires after BattleManager.TurnStart has already called SpawnDueWaves, so
-    /// "next" is always genuinely the next wave rather than the one that just landed.
+    /// Rebuilds the strip from BattleManager.TryNextWave, which merges LevelData's hand-authored waves
+    /// with whatever RollEncounter generated - see its own doc comment. Called once at Start and again
+    /// on every TurnAdvanced - which fires after BattleManager.TurnStart has already called
+    /// SpawnDueWaves, so "next" is always genuinely the next wave rather than the one that just landed.
     /// </summary>
     private void Refresh()
     {
@@ -84,12 +85,10 @@ public class NextWavePanel : MonoBehaviour
 
         if (battle == null || row == null) { return; }
 
-        LevelData level = battle.CurrentLevel;
-
         // The out variable's definite assignment has to stay tied to this one condition for the
         // compiler to trust it below - splitting "is there a wave" into its own bool first loses that,
         // since a later unrelated `if` can't see back into how it was computed.
-        if (level == null || !level.TryNextWave(battle.TurnsElapsed, out _, out List<EnemyPlacement> enemies))
+        if (!battle.TryNextWave(battle.TurnsElapsed, out _, out List<EnemyPlacement> enemies))
         {
             row.gameObject.SetActive(false);
             foreach (WaveCircle circle in circles) { circle.Hide(); }

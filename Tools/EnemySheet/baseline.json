@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-08-22T06:51:42.5555470Z",
+    "writtenUtc":  "2026-08-27T08:14:50.4242319Z",
     "bodies":  [
                    {
                        "guid":  "eaade4b777fd45447af03588cf3692e5",
@@ -10,7 +10,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "",
                                        "LootTable":  "",
-                                       "Deck":  "EnemySlash|EnemySlash|MoveInnate|MoveInnate"
+                                       "Deck":  "EnemySlash|EnemySlash|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -22,7 +23,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "BlackKnightDrop",
-                                       "Deck":  "DreadCleave|DreadCleave|BlackGuard|CallTheDamned|MoveInnate"
+                                       "Deck":  "DreadCleave|DreadCleave|BlackGuard|CallTheDamned|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -34,7 +36,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "EvilKingDrop",
-                                       "Deck":  "ExecutionersBlow|ExecutionersBlow|RoyalGuard|RoyalGuard|RoyalCommand|MoveInnate|MoveInnate"
+                                       "Deck":  "ExecutionersBlow|ExecutionersBlow|RoyalGuard|RoyalGuard|RoyalCommand|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -46,7 +49,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Closest",
                                        "LootTable":  "EvilKnightDrop",
-                                       "Deck":  "Riposte|Riposte|ShieldBash|ShieldBash|Rally|MoveInnate|MoveInnate"
+                                       "Deck":  "Riposte|Riposte|ShieldBash|ShieldBash|Rally|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -58,7 +62,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "EvilWizardDrop",
-                                       "Deck":  "DarkBolt|DarkBolt|ShadowWard|ShadowWard|SummonImp|MoveInnate|MoveInnate"
+                                       "Deck":  "DarkBolt|DarkBolt|ShadowWard|ShadowWard|SummonImp|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -70,7 +75,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Furthest",
                                        "LootTable":  "EvilWizard2Drop",
-                                       "Deck":  "ArcaneLance|ArcaneLance|VoidBarrier|VoidBarrier|CallTheSwarm|MoveInnate|MoveInnate"
+                                       "Deck":  "ArcaneLance|ArcaneLance|VoidBarrier|VoidBarrier|CallTheSwarm|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -82,7 +88,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "EvilWizard3Drop",
-                                       "Deck":  "MeteorFall|MeteorFall|EmberShroud|EmberShroud|ConjureOoze|MoveInnate|MoveInnate"
+                                       "Deck":  "MeteorFall|MeteorFall|EmberShroud|EmberShroud|ConjureOoze|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -94,7 +101,8 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "ReaperDrop",
-                                       "Deck":  "SoulReap|SoulReap|DeathsToll|DeathsToll|RaiseDead|MoveInnate|MoveInnate"
+                                       "Deck":  "SoulReap|SoulReap|DeathsToll|DeathsToll|RaiseDead|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
@@ -106,19 +114,21 @@
                                        "Brain":  "Summoner",
                                        "Targeting":  "Closest",
                                        "LootTable":  "ReinforcedGolemDrop",
-                                       "Deck":  "SeismicSlam|SeismicSlam|StoneSkin|StoneSkin|SplinterOff|MoveInnate|MoveInnate"
+                                       "Deck":  "SeismicSlam|SeismicSlam|StoneSkin|StoneSkin|SplinterOff|MoveInnate|MoveInnate",
+                                       "Role":  "None"
                                    }
                    },
                    {
                        "guid":  "51cc0c0b40e7b264ebdf1dc4594559a6",
                        "columns":  {
                                        "DisplayName":  "Bat",
-                                       "Health":  "8",
+                                       "Health":  "15",
                                        "ActionsPerTurn":  "2",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "DrainBite|DrainBite|DrainBite|MoveInnate|MoveInnate"
+                                       "Deck":  "DrainBite|DrainBite|DrainBite|DrainBite|MoveInnate",
+                                       "Role":  "Both"
                                    }
                    },
                    {
@@ -130,7 +140,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "PincerGrip|PincerGrip|PincerGrip|MoveInnate|MoveInnate"
+                                       "Deck":  "PincerGrip|PincerGrip|PincerGrip|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -142,7 +153,8 @@
                                        "Brain":  "Ranger",
                                        "Targeting":  "RangerTargeting",
                                        "LootTable":  "",
-                                       "Deck":  "EnemyArrow|EnemyArrow|EnemyArrow|EnemyArrow|MoveInnate"
+                                       "Deck":  "EnemyArrow|EnemyArrow|EnemyArrow|EnemyArrow|MoveInnate",
+                                       "Role":  "Backline"
                                    }
                    },
                    {
@@ -154,7 +166,8 @@
                                        "Brain":  "Ranger",
                                        "Targeting":  "Furthest",
                                        "LootTable":  "",
-                                       "Deck":  "WitheringGaze|WitheringGaze|WitheringGaze|MoveInnate|MoveInnate"
+                                       "Deck":  "WitheringGaze|WitheringGaze|WitheringGaze|MoveInnate|MoveInnate",
+                                       "Role":  "Backline"
                                    }
                    },
                    {
@@ -166,7 +179,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "Backstab|Backstab|Backstab|MoveInnate|MoveInnate"
+                                       "Deck":  "Backstab|Backstab|Backstab|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -178,7 +192,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|MoveInnate|MoveInnate"
+                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -190,7 +205,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "",
-                                       "Deck":  "HeavySwing|HeavySwing|HeavySwing|MoveInnate|MoveInnate"
+                                       "Deck":  "HeavySwing|HeavySwing|HeavySwing|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -202,7 +218,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "QuickCut|QuickCut|QuickCut|MoveInnate|MoveInnate"
+                                       "Deck":  "QuickCut|QuickCut|QuickCut|MoveInnate|MoveInnate",
+                                       "Role":  "Backline"
                                    }
                    },
                    {
@@ -214,7 +231,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Chomp|Chomp|Chomp|MoveInnate|MoveInnate"
+                                       "Deck":  "Chomp|Chomp|Chomp|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -226,7 +244,8 @@
                                        "Brain":  "Ranger",
                                        "Targeting":  "Closest",
                                        "LootTable":  "PoisonSkeleton",
-                                       "Deck":  "SporeCloud|SporeCloud|SporeCloud|MoveInnate|MoveInnate"
+                                       "Deck":  "SporeCloud|SporeCloud|SporeCloud|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -238,7 +257,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Roll|Roll|Roll|MoveInnate|MoveInnate"
+                                       "Deck":  "Roll|Roll|Roll|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -250,7 +270,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "PoisonSkeleton",
-                                       "Deck":  "PlagueBite|PlagueBite|PlagueBite|MoveInnate|MoveInnate"
+                                       "Deck":  "PlagueBite|PlagueBite|PlagueBite|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -262,7 +283,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "Gnaw|Gnaw|Gnaw|MoveInnate|MoveInnate"
+                                       "Deck":  "Gnaw|Gnaw|Gnaw|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -274,7 +296,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate|MoveInnate"
+                                       "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -286,7 +309,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "WarriorTargeting",
                                        "LootTable":  "EarlyGame",
-                                       "Deck":  "EnemySlash|MoveInnate|EnemySlash|EnemySlash|EnemySlash"
+                                       "Deck":  "EnemySlash|MoveInnate|EnemySlash|EnemySlash|EnemySlash",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -298,7 +322,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Random",
                                        "LootTable":  "",
-                                       "Deck":  "BoneChill|BoneChill|BoneChill|MoveInnate|MoveInnate"
+                                       "Deck":  "BoneChill|BoneChill|BoneChill|MoveInnate|MoveInnate",
+                                       "Role":  "Backline"
                                    }
                    },
                    {
@@ -310,7 +335,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Engulf|Engulf|Engulf|MoveInnate|MoveInnate"
+                                       "Deck":  "Engulf|Engulf|Engulf|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -322,7 +348,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "SpikeBurst|SpikeBurst|SpikeBurst|MoveInnate|MoveInnate"
+                                       "Deck":  "SpikeBurst|SpikeBurst|SpikeBurst|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    },
                    {
@@ -334,7 +361,8 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|MoveInnate|MoveInnate"
+                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|MoveInnate|MoveInnate",
+                                       "Role":  "Backline"
                                    }
                    }
                ]

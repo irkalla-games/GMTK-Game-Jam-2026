@@ -404,7 +404,7 @@ RectTransform:
   m_GameObject: {fileID: 4119137545581316138}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.0185184, y: 1.0185184, z: 1}
+  m_LocalScale: {x: 0.7407407, y: 0.7407407, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5000000000000002}
@@ -586,7 +586,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.7854546, y: 0.7854546, z: 1}
+  m_LocalScale: {x: 1.08, y: 1.08, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7627141365252465588}
@@ -668,6 +668,9 @@ MonoBehaviour:
   maxHealth: 130
   maxEnergy: 3
   playableCharacter: 0
+  battleRole: 0
+  powerLevel: 2
+  isBoss: 1
   characterClass: 0
   displayName: Evil Knight
   portrait: {fileID: 0}
@@ -746,7 +749,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimator
   animator: {fileID: 7130099151914716108}
   idleStateName: Idle
-  cues: []
+  cues:
+  - cue: 5
+    stateName: Move
+    duration: 0.8333333
+  - cue: 1
+    stateName: MeleeAttack
+    duration: 0.42857143
+  - cue: 3
+    stateName: Cast
+    duration: 0.4166667
+  - cue: 4
+    stateName: Summon
+    duration: 0.5714286
+  - cue: 6
+    stateName: Hurt
+    duration: 0.27272728
+  - cue: 7
+    stateName: Die
+    duration: 1
   flipRenderer: {fileID: 1046345344289980744}
   counterFlip: {fileID: 0}
   muzzle: {fileID: 0}

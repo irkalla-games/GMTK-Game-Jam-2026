@@ -130,11 +130,17 @@ foreach ($name in $bodyAssets.Keys) {
         }
     }
 
+    # Every field Get-EnemyMergeRow, Write-EnemyWorkbook or the CSV mirror reads has to be re-listed
+    # here: this is a fresh object, not the Get-CharacterBody one, so a field added there and forgotten
+    # here is a StrictMode PropertyNotFound at the far end rather than a blank cell. Role is the reason
+    # this comment exists. PowerOnAsset/BossOnAsset deliberately stay off - only Import-EnemySheet.ps1
+    # reads those, and it calls Get-CharacterBody directly.
     $bodies += [pscustomobject]@{
         Prefab = $charBody.Prefab; Guid = $charBody.Guid; Boss = $charBody.Boss
         DisplayName = $charBody.DisplayName; MaxHealth = $charBody.MaxHealth
         ActionPoints = $charBody.ActionPoints; Brain = $charBody.Brain
         Targeting = $charBody.Targeting; LootTable = $charBody.LootTable
+        Role = $charBody.Role
         Deck = $deckDetail
     }
 }
@@ -148,11 +154,17 @@ foreach ($name in $totemAssets.Keys) {
 # Enum sources for the dropdowns
 # ---------------------------------------------------------------------------------------------------
 
-$enemyCardNames = @($assetIndex.All | Where-Object {
-    $_.Type -eq 'CardData' -and $_.Path -match '[\\/]CardData[\\/](Enemy|Generic)[\\/]'
+# Deck dropdown: any card authored NotOffered, wherever it lives - Rarity is the actual rule ("every
+# enemy/boss card is 4") rather than the Enemy/Generic folder convention, which is only where the
+# generator happens to have put them. Uses the asset's own resolved Name (what Resolve-AssetName and
+# the C# importer's FindByName<CardData> both key on), not the Card Name display text.
+$enemyCardAssets = @($assetIndex.All | Where-Object { $_.Type -eq 'CardData' })
+$enemyCardNames = @($enemyCardAssets | Where-Object {
+    (Get-CardRecord -Asset $_ -AssetIndex $assetIndex -RepoRoot $repoRoot).Row.Rarity -eq 'NotOffered'
 } | ForEach-Object { $_.Name })
 
 $lootNames = @($assetIndex.All | Where-Object { $_.Type -eq 'LootTable' } | ForEach-Object { $_.Name })
+$targetingNames = @($assetIndex.All | Where-Object { $_.Type -eq 'TargetingPattern' } | ForEach-Object { $_.Name })
 
 # ---------------------------------------------------------------------------------------------------
 # Preserve Brandon's Power Level and Notes from whatever workbook is already on disk.
@@ -186,7 +198,12 @@ function Get-ExistingBodyPreserved {
                 if ($match) { $key = $match.Prefab } else { continue }
             }
 
-            $preserved[$key] = @{ Brandon = $tab.Brandon; Notes = $tab.Notes }
+            # Estimated is a formula (Write-EnemyWorkbook.ps1's own Cells[...].Formula), never
+            # preserved by that write - its cached .Text here is whatever Excel last recalculated it
+            # to, which is why it is read from the OLD workbook alongside Brandon's/Notes rather than
+            # recomputed here. A workbook nobody has opened in Excel since it last changed has no
+            # cache yet, which is exactly why EffectivePower below falls back to Brandon's first.
+            $preserved[$key] = @{ Brandon = $tab.Brandon; Notes = $tab.Notes; Estimated = $tab.Estimated }
         }
     }
     finally {
@@ -198,6 +215,53 @@ function Get-ExistingBodyPreserved {
 
 $preserved = Get-ExistingBodyPreserved -WorkbookPath $WorkbookPath -Bodies $bodies
 Write-Host "  Preserved Brandon's/Notes for $($preserved.Count) tab(s) from the existing workbook"
+
+# ---------------------------------------------------------------------------------------------------
+# Preserve the PowerLevel tab - both the pw_* weights and the Range Power table - the same way
+# Brandon's/Notes survive above. Without this, retuning a weight directly in Excel and then syncing
+# would silently snap it back to Get-PowerWeightDefaults'/Get-RangePowerDefaults' starting numbers,
+# since this tab was otherwise always rebuilt from those hardcoded defaults on every export.
+# ---------------------------------------------------------------------------------------------------
+
+function Get-ExistingPowerLevelValues {
+    param([string]$WorkbookPath)
+
+    $result = @{ Weights = @{}; RangeRows = @() }
+    if (-not (Test-Path -LiteralPath $WorkbookPath)) { return $result }
+
+    try { $pkg = Open-ExcelPackage -Path $WorkbookPath }
+    catch { Write-Warning "Could not open the existing workbook to preserve PowerLevel values: $($_.Exception.Message)"; return $result }
+
+    try {
+        $ws = $pkg.Workbook.Worksheets['PowerLevel']
+        if ($null -ne $ws -and $null -ne $ws.Dimension) {
+            $last = $ws.Dimension.End.Row
+            for ($r = 1; $r -le $last; $r++) {
+                $label = ([string]$ws.Cells[$r, 1].Text).Trim()
+                # A multi-arg indexer used directly as a method-call argument fails to PARSE at all
+                # (not just misparse) - $ws.Cells[$r, 2] must be its own statement first. See the
+                # PowerShell EPPlus gotchas memory.
+                $cellText = [string]$ws.Cells[$r, 2].Text
+                $value = 0.0
+                if (-not [double]::TryParse($cellText, [ref]$value)) { continue }
+
+                # A weight name and a Range Power row can never collide (pw_* vs a bare integer), so
+                # one pass over the whole tab sorts both out without needing to track which section a
+                # row sits in - immune to the section being reordered or a note row moving around.
+                if ($label -match '^pw_\w+$') { $result.Weights[$label] = $value }
+                elseif ($label -match '^\d+$') { $result.RangeRows += , @([int]$label, $value) }
+            }
+        }
+    }
+    finally {
+        Close-ExcelPackage $pkg -NoSave
+    }
+
+    return $result
+}
+
+$existingPowerLevel = Get-ExistingPowerLevelValues -WorkbookPath $WorkbookPath
+Write-Host "  Preserved $($existingPowerLevel.Weights.Count) PowerLevel weight(s) and $($existingPowerLevel.RangeRows.Count) Range Power row(s) from the existing workbook"
 
 # ---------------------------------------------------------------------------------------------------
 # Refuse to discard unsynced sheet edits
@@ -234,7 +298,7 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
                 $sheetRow = [ordered]@{
                     DisplayName = $tab.DisplayName; Health = $tab.Health; ActionsPerTurn = $tab.ActionsPerTurn
                     Brain = $tab.Brain; Targeting = $tab.Targeting; LootTable = $tab.LootTable
-                    Deck = ConvertTo-DeckComparable -Names $tab.Deck
+                    Deck = ConvertTo-DeckComparable -Names $tab.Deck; Role = $tab.Role
                 }
 
                 $hasBase = $baseline.Bodies.ContainsKey($tab.Guid)
@@ -271,7 +335,9 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
 . (Join-Path $scriptDir 'Write-EnemyWorkbook.ps1')
 
 Write-EnemyWorkbook -WorkbookPath $WorkbookPath -Bodies $bodies -Totems $totems `
-    -EnemyCardNames $enemyCardNames -LootNames $lootNames -Preserved $preserved -RepoRoot $repoRoot
+    -EnemyCardNames $enemyCardNames -LootNames $lootNames -TargetingNames $targetingNames `
+    -PreservedWeights $existingPowerLevel.Weights -PreservedRangeRows $existingPowerLevel.RangeRows `
+    -Preserved $preserved -RepoRoot $repoRoot
 
 # ---------------------------------------------------------------------------------------------------
 # CSV mirror - a flat projection, not a per-tab dump. Roster.csv carries every synced field plus the
@@ -285,9 +351,35 @@ if (-not $NoCsvMirror) {
     foreach ($b in $bodies) {
         $pv = $null
         if ($preserved.ContainsKey($b.Prefab)) { $pv = $preserved[$b.Prefab] }
+        $brandon = if ($pv) { $pv.Brandon } else { '' }
+        $estimated = if ($pv) { $pv.Estimated } else { '' }
+
+        # EffectivePower is what Import-EnemySheet.ps1 will write to Character.powerLevel - computed
+        # here too, purely so the CSV mirror (and anyone reading it without opening the workbook) can
+        # see the same number. A body with neither a usable Brandon's nor a cached Estimated cannot be
+        # scored yet, and EncounterRoller can never draw an unscored body - loud, not silent, because
+        # that failure mode is otherwise invisible until a level looks emptier than it should.
+        $effectivePower = ''
+        $brandonValue = 0.0
+        if ($brandon -ne '' -and [double]::TryParse($brandon, [ref]$brandonValue)) {
+            $effectivePower = $brandonValue
+        }
+        else {
+            $estimatedValue = 0.0
+            if ($estimated -ne '' -and [double]::TryParse($estimated, [ref]$estimatedValue)) {
+                $effectivePower = $estimatedValue
+            }
+            else {
+                Write-Warning ("$($b.Prefab) has neither a Brandon's Power Level nor a cached Estimated " +
+                    "Power Level (open Docs/EnemySheets.xlsx in Excel at least once to populate the " +
+                    "latter) - EncounterRoller will never be able to draw it.")
+            }
+        }
+
         $rosterRows += [pscustomobject][ordered]@{
             Prefab        = $b.Prefab
             Boss          = if ($b.Boss) { 'Yes' } else { 'No' }
+            Role          = $b.Role
             DisplayName   = $b.DisplayName
             Health        = $b.MaxHealth
             ActionsPerTurn = $b.ActionPoints
@@ -296,7 +388,8 @@ if (-not $NoCsvMirror) {
             LootTable     = $b.LootTable
             DeckSize      = @($b.Deck).Count
             Deck          = ConvertTo-DeckComparable -Names @($b.Deck | ForEach-Object { $_.Name })
-            BrandonsPowerLevel = if ($pv) { $pv.Brandon } else { '' }
+            BrandonsPowerLevel = $brandon
+            EffectivePower = $effectivePower
             Notes         = if ($pv) { $pv.Notes } else { '' }
             GUID          = $b.Guid
         }

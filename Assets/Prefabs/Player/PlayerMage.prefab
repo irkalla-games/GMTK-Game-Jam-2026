@@ -1069,6 +1069,9 @@ MonoBehaviour:
   maxHealth: 10
   maxEnergy: 3
   playableCharacter: 2
+  battleRole: 2
+  powerLevel: 0
+  isBoss: 0
   characterClass: 2
   displayName: Mage
   portrait: {fileID: 21300000, guid: 31caf4d1eeee1a14fa0241c13fd335e0, type: 3}

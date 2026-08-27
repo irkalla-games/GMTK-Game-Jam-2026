@@ -82,6 +82,17 @@ public class BattleManager : Singleton<BattleManager>
     [Tooltip("Where spawned enemies are parented. Optional - tidiness only.")]
     [SerializeField] private Transform enemyParent;
 
+    [Tooltip("Every body EncounterRoller may draw from for CurrentLevel.EncounterBudget. Optional - a "
+             + "level whose budget fields are all 0 (the default) never needs one, same fallback story "
+             + "as debugCampaign above.")]
+    [SerializeField] private EnemyRegistry enemyRegistry;
+
+    /// Resolved once, at battle start, by RollEncounter - see its own doc comment for why rolling
+    /// happens exactly there and only there. Empty whenever CurrentLevel's EncounterBudget is all 0.
+    private readonly List<EnemyPlacement> rolledStartingEnemies = new();
+
+    private readonly List<EnemyWave> rolledWaves = new();
+
     [Tooltip("Frames the board once it is built, so the whole thing is on screen whatever size the "
              + "level asked for. Optional: leave it unassigned and the camera simply stays where it "
              + "is, which is what a scene that has not been through Tools/Board/2 - Wire Cameras does.")]
@@ -450,6 +461,11 @@ public class BattleManager : Singleton<BattleManager>
         // the framing needs, and it is final the moment BuildGrid returns.
         if (boardCamera != null) { boardCamera.Frame(GridManager.Instance.BoardBounds); }
 
+        // After the board exists (EncounterRoller needs BoardSize) and before SpawnEnemies reads
+        // rolledStartingEnemies. Rolled once here rather than lazily per wave so NextWavePanel can
+        // preview a generated wave's real portraits from the very first frame - see TryNextWave.
+        RollEncounter();
+
         // Characters placed directly in the scene (see the tooltip on `characters`) never pass through
         // AddCharacter, so they are wired up here instead. SpawnParty/SpawnEnemies route through
         // AddCharacter and subscribe themselves - looping over `characters` after them would double up.
@@ -525,9 +541,61 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Instantiates the run's party from RunManager and places it at this level's spawn cells, index
-    /// for index. Skipped when either is missing - no run means this scene was opened stand-alone with
-    /// no debug campaign to bootstrap from, and no level means there is nowhere authored to put
+    /// Which of this level's spawn cells each roster index gets, honouring BattleRole where it is
+    /// constrained and filling the rest by whoever is left. Cells are ranked by y - the same axis a
+    /// level already authors its front-to-back layout on, e.g. Level3Menagerie's back cell sits one row
+    /// higher than its other two - so a higher-y cell is "closer to the enemy" with no new authoring.
+    ///
+    /// Frontline-only members claim the highest-y cells first, Backline-only members claim the
+    /// lowest-y cells first, and whatever remains in the middle goes to Both/None members in that
+    /// order - "flexible filler", so a single-role member never loses its row to a flexible one. A
+    /// roster index with no entry in the result ran out of cells to claim (more roster than authored
+    /// cells, or more same-role members than that role had room for) and falls back to the caller's
+    /// own last-cell behaviour.
+    /// </summary>
+    private static Dictionary<int, Vector2Int> AssignPartyCells(
+        IReadOnlyList<PartyMember> roster, IReadOnlyList<Vector2Int> spawnCells)
+    {
+        List<Vector2Int> byDepth = new(spawnCells);
+        byDepth.Sort((a, b) => b.y - a.y);
+
+        int frontPtr = 0;
+        int backPtr = byDepth.Count - 1;
+        Dictionary<int, Vector2Int> assigned = new();
+
+        for (int i = 0; i < roster.Count && frontPtr <= backPtr; i++)
+        {
+            PartyMember member = roster[i];
+            if (member == null || member.prefab == null) { continue; }
+
+            if (member.prefab.BattleRole == BattleRole.Frontline) { assigned[i] = byDepth[frontPtr++]; }
+        }
+
+        for (int i = 0; i < roster.Count && frontPtr <= backPtr; i++)
+        {
+            if (assigned.ContainsKey(i)) { continue; }
+
+            PartyMember member = roster[i];
+            if (member == null || member.prefab == null) { continue; }
+
+            if (member.prefab.BattleRole == BattleRole.Backline) { assigned[i] = byDepth[backPtr--]; }
+        }
+
+        for (int i = 0; i < roster.Count && frontPtr <= backPtr; i++)
+        {
+            if (assigned.ContainsKey(i)) { continue; }
+
+            assigned[i] = byDepth[frontPtr++];
+        }
+
+        return assigned;
+    }
+
+    /// <summary>
+    /// Instantiates the run's party from RunManager and places it at this level's spawn cells,
+    /// role-matched where BattleRole constrains a member and index-for-index otherwise - see
+    /// AssignPartyCells. Skipped when either is missing - no run means this scene was opened stand-alone
+    /// with no debug campaign to bootstrap from, and no level means there is nowhere authored to put
     /// anyone - in both cases whatever is already sitting in `characters` from the scene is the whole
     /// party, exactly as it was before either of these existed.
     ///
@@ -575,6 +643,7 @@ public class BattleManager : Singleton<BattleManager>
         }
 
         Dictionary<string, int> spawnedByName = new();
+        Dictionary<int, Vector2Int> roleCells = AssignPartyCells(roster, spawnCells);
 
         for (int i = 0; i < roster.Count; i++)
         {
@@ -582,10 +651,13 @@ public class BattleManager : Singleton<BattleManager>
 
             if (record == null || record.prefab == null) { continue; }
 
-            // Past the authored cells, everyone else requests the last one - NearestFreeSpawnTile then
-            // fans them out from there, the same way an over-full enemy wave already spreads from its
-            // own requested cell.
-            Vector2Int wanted = i < spawnCells.Count ? spawnCells[i] : spawnCells[^1];
+            // A role-matched cell if AssignPartyCells found one; otherwise this member is past the
+            // authored cells (or lost a same-role tie for them), and requests the last one same as
+            // before role-awareness existed - NearestFreeSpawnTile then fans them out from there, the
+            // same way an over-full enemy wave already spreads from its own requested cell.
+            Vector2Int wanted = roleCells.TryGetValue(i, out Vector2Int roleCell)
+                ? roleCell
+                : spawnCells[^1];
 
             // Resolved before Instantiate: a board with no room left should cost no GameObject and no
             // roster entry - same reasoning as SpawnPlacement.
@@ -632,7 +704,32 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Instantiates this level's authored enemies and adds them to the roster.
+    /// Fills rolledStartingEnemies/rolledWaves from CurrentLevel.EncounterBudget, once. A budget field
+    /// left at 0 (the default) draws nothing, so a level that never touches EncounterBudget rolls two
+    /// empty lists and behaves exactly as it did before this existed - see EncounterBudget's own doc
+    /// comment. Uses UnityEngine.Random rather than a level-authored seed, the same choice
+    /// LevelData.PickTileSet already made for its own per-playthrough variety.
+    /// </summary>
+    private void RollEncounter()
+    {
+        rolledStartingEnemies.Clear();
+        rolledWaves.Clear();
+
+        LevelData level = CurrentLevel;
+        if (level == null) { return; }
+
+        EncounterBudget budget = level.EncounterBudget;
+        System.Random dice = new(UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+        EncounterRoller roller = new(enemyRegistry, budget.poolFilter, level.PartySpawnCells,
+            GridManager.Instance.BoardSize, dice);
+
+        rolledStartingEnemies.AddRange(roller.RollStartingLineup(budget));
+        rolledWaves.AddRange(roller.RollReinforcementWaves(budget));
+    }
+
+    /// <summary>
+    /// Instantiates this level's authored enemies plus RollEncounter's starting lineup, and adds them
+    /// to the roster.
     ///
     /// Here rather than in a spawner of its own because ordering is the whole difficulty: the roster
     /// has to be complete before anything walks it, and two components' Awakes have no guaranteed
@@ -643,6 +740,11 @@ public class BattleManager : Singleton<BattleManager>
         if (CurrentLevel == null) { return; }
 
         foreach (EnemyPlacement placement in CurrentLevel.Enemies)
+        {
+            SpawnPlacement(placement);
+        }
+
+        foreach (EnemyPlacement placement in rolledStartingEnemies)
         {
             SpawnPlacement(placement);
         }
@@ -700,15 +802,27 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Spawns every LevelData wave keyed to the round TurnsElapsed just reached. Called from TurnStart
-    /// before the per-character loop, so a wave enemy draws a hand and commits an intent the same round
-    /// it lands - the same reasoning SpawnEnemies uses for the opening roster.
+    /// Spawns every LevelData wave plus every RollEncounter-generated wave keyed to the round
+    /// TurnsElapsed just reached. Called from TurnStart before the per-character loop, so a wave enemy
+    /// draws a hand and commits an intent the same round it lands - the same reasoning SpawnEnemies
+    /// uses for the opening roster.
     /// </summary>
     private void SpawnDueWaves()
     {
-        if (CurrentLevel == null) { return; }
+        if (CurrentLevel != null)
+        {
+            foreach (EnemyWave wave in CurrentLevel.Waves)
+            {
+                if (wave.turn != TurnsElapsed || wave.enemies == null) { continue; }
 
-        foreach (EnemyWave wave in CurrentLevel.Waves)
+                foreach (EnemyPlacement placement in wave.enemies)
+                {
+                    SpawnPlacement(placement);
+                }
+            }
+        }
+
+        foreach (EnemyWave wave in rolledWaves)
         {
             if (wave.turn != TurnsElapsed || wave.enemies == null) { continue; }
 
@@ -717,6 +831,44 @@ public class BattleManager : Singleton<BattleManager>
                 SpawnPlacement(placement);
             }
         }
+    }
+
+    /// <summary>
+    /// The soonest upcoming wave across both LevelData's hand-authored waves and RollEncounter's
+    /// generated ones - what NextWavePanel previews. LevelData.TryNextWave only sees the authored half;
+    /// this is the merged version, possible only because RollEncounter resolves every generated wave up
+    /// front at battle start rather than lazily when it fires, so there is always a real enemy list to
+    /// preview instead of an empty placeholder.
+    /// </summary>
+    public bool TryNextWave(int turnsElapsed, out int turn, out List<EnemyPlacement> enemies)
+    {
+        turn = int.MaxValue;
+        enemies = null;
+
+        // The out variables' definite assignment has to stay tied to this one condition for the
+        // compiler to trust them below - see NextWavePanel.Refresh's own comment on the same trap.
+        if (CurrentLevel != null && CurrentLevel.TryNextWave(
+                turnsElapsed, out int authoredTurn, out List<EnemyPlacement> authoredEnemies))
+        {
+            turn = authoredTurn;
+            enemies = new List<EnemyPlacement>(authoredEnemies);
+        }
+
+        foreach (EnemyWave wave in rolledWaves)
+        {
+            if (wave.turn <= turnsElapsed || wave.enemies == null || wave.enemies.Count == 0) { continue; }
+            if (wave.turn > turn) { continue; }
+
+            if (wave.turn < turn)
+            {
+                turn = wave.turn;
+                enemies = new List<EnemyPlacement>();
+            }
+
+            enemies.AddRange(wave.enemies);
+        }
+
+        return enemies != null;
     }
 
     private void Update()

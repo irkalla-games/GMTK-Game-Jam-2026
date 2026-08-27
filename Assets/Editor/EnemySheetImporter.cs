@@ -12,13 +12,18 @@ using UnityEngine;
 /// Editor holds Temp/UnityLockfile, so PowerShell owns reading the .xlsx and diffing it, and Unity owns
 /// every prefab write so SerializedObject and PrefabUtility stay in charge of serialization.
 ///
-/// Only Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name and Deck are synced - the
-/// rest of a body tab (Card Facts, the averages, Estimated Power Level) is derived and this importer
-/// never reads it. Bodies are never created, renamed or deleted by the sheet: EnemyRosterGenerator (see
-/// its own guardrail) is what brings a new body into existence, and from then on this is what keeps its
-/// tuned numbers in sync. A tab with no matching prefab is impossible in normal use - the export only
-/// ever writes one tab per prefab Get-DiscoveredRoster finds - so Import-EnemySheet.ps1 reports it as a
-/// problem rather than silently skipping it.
+/// Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name, Role and Deck are designer-
+/// authored and merge-arbitrated by Import-EnemySheet.ps1 (a column changed on both sides since the
+/// last sync is a conflict, left untouched). PowerLevel and Boss are different: they are DERIVED
+/// (Brandon's-or-Estimated, and which folder the prefab lives in respectively) and always written
+/// one-way whenever they differ from what is already on the prefab, regardless of whether anything
+/// merge-arbitrated also changed - see BodySpec.changed, which lists both kinds together. The rest of a
+/// body tab (Card Facts, the averages) is derived in a different sense - pure sheet arithmetic this
+/// importer never reads at all. Bodies are never created, renamed or deleted by the sheet:
+/// EnemyRosterGenerator (see its own guardrail) is what brings a new body into existence, and from then
+/// on this is what keeps its tuned numbers in sync. A tab with no matching prefab is impossible in
+/// normal use - the export only ever writes one tab per prefab Get-DiscoveredRoster finds - so
+/// Import-EnemySheet.ps1 reports it as a problem rather than silently skipping it.
 ///
 /// Editor-only, and not covered by Tools/compile-check.ps1 - verify by focusing the Editor and reading
 /// the console.
@@ -75,6 +80,9 @@ public static class EnemySheetImporter
         public string targeting;   // TargetingPattern asset name, or "" for none
         public string lootTable;   // LootTable asset name, or "" to inherit the level's
         public List<string> deck = new();
+        public int battleRole;     // BattleRole bitmask - merge-arbitrated, see the class doc comment
+        public float powerLevel;   // Derived (Brandon's ?? Estimated) - always a one-way overwrite
+        public bool isBoss;        // Derived (prefab's own folder) - always a one-way overwrite
         public List<string> changed = new();
     }
 
@@ -315,6 +323,9 @@ public static class EnemySheetImporter
         so.FindProperty("brain").intValue = spec.brain;
         so.FindProperty("targetingPattern").objectReferenceValue = targeting;
         so.FindProperty("lootTable").objectReferenceValue = loot;
+        so.FindProperty("battleRole").intValue = spec.battleRole;
+        so.FindProperty("powerLevel").floatValue = spec.powerLevel;
+        so.FindProperty("isBoss").boolValue = spec.isBoss;
 
         SerializedProperty deckProp = so.FindProperty("deck");
         deckProp.arraySize = deck.Count;

@@ -566,6 +566,9 @@ MonoBehaviour:
   maxHealth: 10
   maxEnergy: 3
   playableCharacter: 0
+  battleRole: 2
+  powerLevel: 2
+  isBoss: 0
   characterClass: 0
   displayName: Ranger
   portrait: {fileID: 21300000, guid: 9031ddff7d13d6c4fad61bb77e53414f, type: 3}

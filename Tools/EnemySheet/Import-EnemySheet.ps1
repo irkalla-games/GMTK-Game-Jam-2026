@@ -8,18 +8,21 @@
     EnemySheetImporter.cs reads that file and writes the prefabs, which is what keeps
     PrefabUtility.EditPrefabContentsScope and SerializedObject writes Unity's business.
 
-    Only Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name and Deck are synced -
-    every other cell on a body tab (the Card Facts block, the averages, Estimated Power Level) is
-    derived and never read here. Bodies are never created or renamed by the sheet: the roster is
-    whatever Get-DiscoveredRoster finds among the actual prefabs, same as the export side, so a tab
-    with no matching prefab (should not happen - the export only ever writes one tab per discovered
-    body) is skipped rather than guessed at.
-
-    Three-way merge, per column, exactly like Import-CardSheet.ps1: a column that changed only in the
+    Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name, Role and Deck are synced by
+    three-way merge, per column, exactly like Import-CardSheet.ps1: a column that changed only in the
     sheet is queued as an update; changed only in Unity is left for the next export to pick up; changed
     on both sides since the last sync is a conflict, and disqualifies the WHOLE body rather than
     half-merging it - Deck is one such column even though it is several cells, compared as one joined
     string so a single swapped card cannot look like six independent changes.
+
+    PowerLevel and Boss are different: DERIVED (Brandon's-if-set-else-Estimated, and which folder the
+    prefab lives in) rather than something either side authors independently, so they are compared and
+    queued as a one-way overwrite instead of merge-arbitrated - see Get-SheetEffectivePower. Every
+    other cell on a body tab (the Card Facts block, the averages) is derived in a different sense - pure
+    sheet arithmetic never read here at all. Bodies are never created or renamed by the sheet: the
+    roster is whatever Get-DiscoveredRoster finds among the actual prefabs, same as the export side, so
+    a tab with no matching prefab (should not happen - the export only ever writes one tab per
+    discovered body) is skipped rather than guessed at.
 
 .PARAMETER WorkbookPath
     Defaults to Docs/EnemySheets.xlsx at the repo root.
@@ -116,7 +119,9 @@ if ($effectiveFromCsv) {
                 DisplayName = [string]$row.DisplayName; Health = [string]$row.Health
                 ActionsPerTurn = [string]$row.ActionsPerTurn; Brain = [string]$row.Brain
                 Targeting = [string]$row.Targeting; LootTable = [string]$row.LootTable
-                Brandon = [string]$row.BrandonsPowerLevel; Notes = [string]$row.Notes
+                Role = [string]$row.Role
+                Brandon = [string]$row.BrandonsPowerLevel; EffectivePower = [string]$row.EffectivePower
+                Notes = [string]$row.Notes
                 Deck = $deck
             }
         }
@@ -172,7 +177,7 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
     $sheetRow = [ordered]@{
         DisplayName = $sheet.DisplayName; Health = $sheet.Health; ActionsPerTurn = $sheet.ActionsPerTurn
         Brain = $sheet.Brain; Targeting = $sheet.Targeting; LootTable = $sheet.LootTable
-        Deck = ConvertTo-DeckComparable -Names $sheet.Deck
+        Deck = ConvertTo-DeckComparable -Names $sheet.Deck; Role = $sheet.Role
     }
 
     $hasBase = $guid -and $baseline.Bodies.ContainsKey($guid)
@@ -206,6 +211,22 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
         continue
     }
 
+    # PowerLevel and Boss are derived, not merge-arbitrated (see Get-EnemyMergeColumns), so they are
+    # compared and queued independently of $changed - a body can need a power/boss update on a sync
+    # where nothing else moved (the very first sync after this feature ships, for every prefab at once).
+    $computedPower = Get-SheetEffectivePower -SheetRow $sheet
+    $powerNeedsUpdate = ($null -ne $computedPower) -and ([Math]::Abs($computedPower - $body.PowerOnAsset) -gt 0.0001)
+    $bossNeedsUpdate = ($body.Boss -ne $body.BossOnAsset)
+
+    if ($null -eq $computedPower -and $body.PowerOnAsset -eq 0) {
+        $problems += "'$prefab' has no Brandon's or Estimated Power Level yet - EncounterRoller can " +
+            'never draw it until one is authored (open Docs/EnemySheets.xlsx in Excel at least once ' +
+            'so a formula-only Estimated has something cached to read).'
+    }
+
+    if ($powerNeedsUpdate) { $changed += "PowerLevel ('$($body.PowerOnAsset)' -> '$computedPower')" }
+    if ($bossNeedsUpdate) { $changed += "Boss ('$($body.BossOnAsset)' -> '$($body.Boss)')" }
+
     if ($changed.Count -eq 0) { continue }
 
     $relativePath = $body.Path.Replace([string]$repoRoot, '').TrimStart('\', '/') -replace '\\', '/'
@@ -222,6 +243,12 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
     $finalTargeting = if ($verdicts.Targeting -eq 'takeSheet') { $sheet.Targeting } else { $body.Targeting }
     $finalLoot = if ($verdicts.LootTable -eq 'takeSheet') { $sheet.LootTable } else { $body.LootTable }
     $finalDeck = if ($verdicts.Deck -eq 'takeSheet') { @($sheet.Deck) } else { @($body.Deck | ForEach-Object { $_.Name }) }
+    $finalRoleName = if ($verdicts.Role -eq 'takeSheet') { $sheet.Role } else { $body.Role }
+
+    # PowerLevel/Boss are one-way overwrites (there is no "asset side" value a designer authors
+    # independently for either), so unlike the columns above they are never gated by a verdict - the
+    # computed/derived value wins outright whenever it differs from what is already on the prefab.
+    $finalPower = if ($null -ne $computedPower) { $computedPower } else { $body.PowerOnAsset }
 
     $actions += [ordered]@{
         prefab       = $prefab
@@ -234,6 +261,9 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
         targeting    = $finalTargeting
         lootTable    = $finalLoot
         deck         = $finalDeck
+        battleRole   = ConvertFrom-BattleRoleName $finalRoleName
+        powerLevel   = $finalPower
+        isBoss       = $body.Boss
         changed      = $changed
     }
 }

@@ -36,6 +36,46 @@ public struct EnemyWave
 }
 
 /// <summary>
+/// A level's power budgets for EncounterRoller, on top of whatever is hand-authored in `enemies`/
+/// `waves`. Every field defaults to 0, and 0 spends nothing - a level that never touches this struct
+/// rolls exactly nothing, the same "0 is inert" rule BoardSize and RangeShape.Anywhere already follow,
+/// which is what keeps every existing tailored level spawning unchanged.
+///
+/// frontlinePower/backlinePower/bossFrontlinePower/bossBacklinePower each draw from their own
+/// role-and-boss-filtered pool; anyPower draws from the combined frontline+backline pool and rolls
+/// each pick's side independently, so one number can land anywhere from all-frontline to all-backline
+/// across different playthroughs rather than a fixed split. reinforcementPower is spent the same
+/// "any" way, across successive generated EnemyWaves of at most maxPowerPerWave, scheduled
+/// waveInterval turns apart (plus a random 0..waveIntervalJitter offset per wave) until it runs out -
+/// see EncounterRoller.RollReinforcementWaves. Every draw excludes bodies costing more than
+/// maxPowerPerEnemy, and stops as soon as the next pick would exceed the remaining budget - a budget
+/// is a ceiling, never a target to hit exactly.
+/// </summary>
+[System.Serializable]
+public struct EncounterBudget
+{
+    public float frontlinePower;
+    public float backlinePower;
+    public float anyPower;
+
+    public float bossFrontlinePower;
+    public float bossBacklinePower;
+
+    public float reinforcementPower;
+
+    public float maxPowerPerEnemy;
+    public float maxPowerPerWave;
+
+    public int waveInterval;
+    public int waveIntervalJitter;
+
+    [Tooltip("Empty draws from the whole EnemyRegistry. Non-empty restricts every bucket above to just "
+             + "these prefabs - for a thematically narrow level (all bandits, say) without needing a "
+             + "second registry.")]
+    public List<GameObject> poolFilter;
+}
+
+/// <summary>
 /// One level's worth of board setup: which enemies stand where, and where the party is placed.
 ///
 /// Deliberately does not say *who* is in the party - RunState owns the roster because it is chosen
@@ -52,6 +92,10 @@ public class LevelData : ScriptableObject
 
     [Tooltip("Reinforcements spawned partway through the battle, keyed by round.")]
     [SerializeField] private List<EnemyWave> waves = new();
+
+    [Tooltip("Power budgets EncounterRoller draws from at battle start, on top of the enemies/waves "
+             + "above. Leave every field at 0 for a fully hand-tailored level - see EncounterBudget.")]
+    [SerializeField] private EncounterBudget encounterBudget;
 
     [Tooltip("Where the run's party is placed, index for index against RunState's roster. A party "
              + "with more members than this list has spawn cells for requests the last authored cell "
@@ -88,6 +132,8 @@ public class LevelData : ScriptableObject
     public IReadOnlyList<EnemyPlacement> Enemies => enemies;
 
     public IReadOnlyList<EnemyWave> Waves => waves;
+
+    public EncounterBudget EncounterBudget => encounterBudget;
 
     public IReadOnlyList<Vector2Int> PartySpawnCells => partySpawnCells;
 

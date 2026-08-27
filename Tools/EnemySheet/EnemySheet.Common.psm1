@@ -25,6 +25,34 @@ Import-Module $commonPath -Force -DisableNameChecking
 
 $script:BrainNames = @('None', 'Warrior', 'Ranger', 'Summoner')
 
+# Assets/Scripts/Character/BattleRole.cs - [Flags], but only 4 legal combinations ever exist, so this
+# maps each mask directly rather than bit-joining like CharacterClass's ConvertTo-ClassName does. 0
+# means "unconstrained" here (not "Any"/all classes) - see BattleRole's own doc comment.
+$script:BattleRoleNames = [ordered]@{ 0 = 'None'; 1 = 'Frontline'; 2 = 'Backline'; 3 = 'Both' }
+
+function ConvertTo-BattleRoleName {
+    param($Mask)
+
+    # Masked to the two real bits before the lookup. Unity's [Flags] Inspector serialises "Everything"
+    # as -1 rather than 3, so a role picked that way would otherwise read as Unknown(-1) - and the next
+    # sync would hand that string to ConvertFrom-BattleRoleName, which answers 0 for anything it does
+    # not recognise, silently demoting a Both character to None. Masking makes -1 round-trip as Both.
+    $value = (ConvertTo-IntOrDefault $Mask) -band 3
+    if ($script:BattleRoleNames.Contains($value)) { return $script:BattleRoleNames[$value] }
+    return "Unknown($value)"
+}
+
+function ConvertFrom-BattleRoleName {
+    param([string]$Name)
+
+    if ([string]::IsNullOrWhiteSpace($Name)) { return 0 }
+    $trimmed = $Name.Trim()
+    foreach ($key in $script:BattleRoleNames.Keys) {
+        if ($script:BattleRoleNames[$key] -eq $trimmed) { return $key }
+    }
+    return 0
+}
+
 # ---------------------------------------------------------------------------------------------------
 # Power weight table - the PowerLevel tab's row order and starting values. Column C is the "why" note
 # shown next to each. Kept as one ordered list so the sheet, the named cells and this module's own
@@ -70,7 +98,6 @@ function Get-PowerWeightDefaults {
 
         # --- Shape ---
         @('pw_Area',   0.30, 'Per extra tile an area-effect card''s footprint covers, beyond the one tile it aims at.'),
-        @('pw_Range',  0.20, 'Per tile of reach beyond 1 - a card that only works adjacent is worth less than one that also threatens from range.'),
         @('pw_Horizon', 3.00, 'How many future attacks a Strength/Weaken/Vulnerable stack is assumed to affect. Also gates how long a Poison Blade weapon-buff is assumed to keep landing.'),
         @('pw_Draw',    1.00, 'Per card. Enemies rarely draw, but a few summon/ritual cards do.'),
         @('pw_Energy',  1.00, 'Reserved - no enemy card currently grants energy.'),
@@ -78,6 +105,24 @@ function Get-PowerWeightDefaults {
         @('pw_SelfDamage', -1.00, 'Per point. Negative - a card that hurts its own owner is a cost, not a benefit.'),
         @('pw_ActionScale', 1.00, 'Multiplies Average Card Power * Actions Per Turn before it is added to Health. 1 assumes every action in a turn is, on average, as strong as the deck''s average card.'),
         @('pw_Tolerance', 0.25, 'How far Estimated Power Level may sit from Brandon''s before the Roster tab flags it OVER/UNDER.')
+    )
+}
+
+function Get-RangePowerDefaults {
+    <#
+        .SYNOPSIS
+            The Range Power table's starting rows - a card's own reach (Range Max) scored per exact
+            value rather than a per-tile rate, since reach does not get linearly better: the jump from
+            melee to "just barely ranged" matters more than the jump from Range 4 to Range 5.
+
+        .DESCRIPTION
+            Looked up with VLOOKUP's approximate-match mode (see Add-BodySheet's Card Power formula), so
+            a Range Max not yet in the table reads as the largest listed value at or below it - a new
+            Range 7 card scores as Range 6 until a row is added for it, rather than erroring. Range 1
+            (melee) is 0 by design: it is the baseline every other row is a bonus over.
+    #>
+    return @(
+        @(1, 0.0), @(2, 1.5), @(3, 4.0), @(4, 5.0), @(5, 6.0), @(6, 7.0)
     )
 }
 
@@ -152,6 +197,14 @@ function Get-CharacterBody {
         Targeting    = Resolve-AssetName -Reference (Get-NodeField $char 'targetingPattern') -AssetIndex $AssetIndex
         LootTable    = Resolve-AssetName -Reference (Get-NodeField $char 'lootTable') -AssetIndex $AssetIndex
         Deck         = @(Get-DeckCards -DeckNode (Get-NodeField $char 'deck') -AssetIndex $AssetIndex)
+        Role         = ConvertTo-BattleRoleName (Get-NodeField $char 'battleRole')
+
+        # The prefab's CURRENT powerLevel/isBoss, as opposed to Boss above (folder-derived ground
+        # truth) or the sheet's resolved values computed in Import-EnemySheet.ps1 - kept apart so the
+        # importer can tell whether a one-way write is actually needed instead of rewriting every
+        # prefab on every sync.
+        PowerOnAsset = ConvertTo-DoubleOrDefault (Get-NodeField $char 'powerLevel')
+        BossOnAsset  = ConvertTo-BoolOrDefault (Get-NodeField $char 'isBoss')
     }
 }
 
@@ -349,7 +402,9 @@ function Read-BodySheetTab {
         Brain          = & $get 'Brain'
         Targeting      = & $get 'Targeting'
         LootTable      = & $get 'Loot Table'
+        Role           = & $get 'Role'
         Brandon        = & $get "Brandon's Power Level"
+        Estimated      = & $get 'Estimated Power Level'
         Notes          = & $get 'Notes'
         Deck           = $deck
     }
@@ -358,8 +413,49 @@ function Read-BodySheetTab {
 function Get-EnemyMergeColumns {
     <# The columns a three-way merge arbitrates - Deck is one column here even though it is several
        cells on the sheet, compared as one joined string so a reorder or a single swapped card reads as
-       exactly one change rather than an avalanche of per-slot diffs. #>
-    return @('DisplayName', 'Health', 'ActionsPerTurn', 'Brain', 'Targeting', 'LootTable', 'Deck')
+       exactly one change rather than an avalanche of per-slot diffs.
+
+       Role is merged here because it is designer-authored, same as Brain/Targeting. PowerLevel and
+       Boss are NOT here - they are derived (Brandon's/Estimated, and the prefab's own folder) rather
+       than something either side authors independently, so Import-EnemySheet.ps1 writes them one-way
+       instead of arbitrating a conflict that cannot actually happen. #>
+    return @('DisplayName', 'Health', 'ActionsPerTurn', 'Brain', 'Targeting', 'LootTable', 'Deck', 'Role')
+}
+
+function Get-SheetEffectivePower {
+    <#
+        .SYNOPSIS
+            Brandon's Power Level if authored, else the sheet's own resolved estimate - what
+            Import-EnemySheet.ps1 writes to Character.powerLevel. $null (never 0) when neither side has
+            anything usable, so a deliberately-authored zero-power body can never be confused with an
+            unscored one.
+
+        .DESCRIPTION
+            Reads either shape Import-EnemySheet.ps1 produces: a CSV-mirror row already carries a
+            pre-resolved EffectivePower column (computed once at export time, see Export-EnemySheet.ps1),
+            while a row read fresh from an open workbook tab (Read-BodySheetTab) carries Brandon's and
+            Estimated separately and this resolves them the same way on the fly.
+    #>
+    param($SheetRow)
+
+    $brandon = 0.0
+    if ($SheetRow.Brandon -and [double]::TryParse([string]$SheetRow.Brandon, [ref]$brandon)) { return $brandon }
+
+    if ($SheetRow.PSObject.Properties.Name -contains 'EffectivePower') {
+        $effective = 0.0
+        if ($SheetRow.EffectivePower -and [double]::TryParse([string]$SheetRow.EffectivePower, [ref]$effective)) {
+            return $effective
+        }
+        return $null
+    }
+
+    $estimated = 0.0
+    if ($SheetRow.PSObject.Properties.Name -contains 'Estimated' -and $SheetRow.Estimated `
+        -and [double]::TryParse([string]$SheetRow.Estimated, [ref]$estimated)) {
+        return $estimated
+    }
+
+    return $null
 }
 
 function ConvertTo-DeckComparable {
@@ -380,6 +476,7 @@ function Get-EnemyMergeRow {
         Targeting      = $Body.Targeting
         LootTable      = $Body.LootTable
         Deck           = ConvertTo-DeckComparable -Names @($Body.Deck | ForEach-Object { $_.Name })
+        Role           = $Body.Role
     }
 }
 

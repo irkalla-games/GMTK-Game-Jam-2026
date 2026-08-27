@@ -668,6 +668,9 @@ MonoBehaviour:
   maxHealth: 25
   maxEnergy: 3
   playableCharacter: 0
+  battleRole: 1
+  powerLevel: 1
+  isBoss: 0
   characterClass: 0
   displayName: Skeleton Warrior
   portrait: {fileID: 21300000, guid: f48cf026170fb2245920a77961889595, type: 3}

@@ -404,7 +404,7 @@ RectTransform:
   m_GameObject: {fileID: 4119137545581316138}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.5573334, y: 1.5573334, z: 1}
+  m_LocalScale: {x: 0.32, y: 0.32, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5000000000000002}
@@ -586,7 +586,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.51369864, y: 0.51369864, z: 1}
+  m_LocalScale: {x: 2.5, y: 2.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7627141365252465588}
@@ -668,6 +668,9 @@ MonoBehaviour:
   maxHealth: 26
   maxEnergy: 3
   playableCharacter: 0
+  battleRole: 1
+  powerLevel: 2
+  isBoss: 0
   characterClass: 0
   displayName: Mimic
   portrait: {fileID: 0}
@@ -744,7 +747,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimator
   animator: {fileID: 7130099151914716108}
   idleStateName: Idle
-  cues: []
+  cues:
+  - cue: 5
+    stateName: Move
+    duration: 0.5
+  - cue: 1
+    stateName: MeleeAttack
+    duration: 1.1666667
+  - cue: 6
+    stateName: Hurt
+    duration: 0.25
+  - cue: 7
+    stateName: Die
+    duration: 0.5
   flipRenderer: {fileID: 1046345344289980744}
   counterFlip: {fileID: 0}
   muzzle: {fileID: 0}

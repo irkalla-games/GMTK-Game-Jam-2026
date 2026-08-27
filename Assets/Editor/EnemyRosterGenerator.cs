@@ -1042,7 +1042,9 @@ public static class EnemyRosterGenerator
         // Copied from the template only the first time. A re-run edits the prefab in place instead,
         // which is what keeps its GUID - and so every LevelData placement, SummonEffect and deck
         // reference pointing at it - intact. Every field this generator owns is still rewritten.
-        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+        bool created = AssetDatabase.LoadAssetAtPath<GameObject>(path) == null;
+
+        if (created)
         {
             if (!AssetDatabase.CopyAsset(EnemyRoster.MeleeTemplate, path))
             {
@@ -1075,7 +1077,7 @@ public static class EnemyRosterGenerator
             metrics.TryGetValue(spec.name, out BodyMetrics body);
 
             ApplyScale(root, renderer, spec, body);
-            ApplyCharacter(root, spec, cards, loot, path);
+            ApplyCharacter(root, spec, cards, loot, path, created);
             ApplyAnimation(root, renderer, spec, rig, path);
         }
     }
@@ -1125,9 +1127,27 @@ public static class EnemyRosterGenerator
         canvas.localScale = new Vector3(counter, counter, 1f);
     }
 
+    /// <summary>
+    /// Writes the Character fields this generator owns, and seeds the ones the enemy sheet owns.
+    ///
+    /// Two tools write this component. EnemySheetImporter owns the balance - health, action points,
+    /// brain, targeting, loot, deck, display name, and the battleRole/powerLevel/isBoss trio that only
+    /// it knows about - because Docs/EnemyDesign is where those get tuned. This generator owns the
+    /// body: the art, the animation, the prefab's structure, and the two facts that are true of every
+    /// enemy whatever the sheet says (it is an Enemy, and it drops an ItemDrop).
+    ///
+    /// Before that split, both tools wrote the same eight fields and whichever ran last won - so a
+    /// morning of balancing in the sheet was undone by regenerating the roster for an unrelated art
+    /// change, with nothing to show that it had happened.
+    ///
+    /// `seed` is true only on a prefab this run just created from the template. A new body still comes
+    /// out of the table fully playable rather than at the template's stats; from then on the sheet has
+    /// it. That is why the stat fields stay in EnemyRoster - they are a starting point, not the
+    /// authority, and they will drift from the sheet over time.
+    /// </summary>
     private static void ApplyCharacter(
         GameObject root, CharacterSpec spec, Dictionary<string, CardData> cards,
-        Dictionary<string, LootTable> loot, string path)
+        Dictionary<string, LootTable> loot, string path, bool seed)
     {
         Character character = root.GetComponent<Character>();
 
@@ -1139,19 +1159,33 @@ public static class EnemyRosterGenerator
 
         SerializedObject so = new(character);
 
-        so.FindProperty("maxHealth").intValue = spec.maxHealth;
-        so.FindProperty("<Health>k__BackingField").intValue = spec.maxHealth;
+        // Always. Neither is a balance decision: every body in this roster is an enemy, and every one
+        // of them drops through the same ItemDrop prefab.
         so.FindProperty("playableCharacter").intValue = (int)PlayableCharacter.Enemy;
-        so.FindProperty("displayName").stringValue = spec.displayName;
-        so.FindProperty("actionPoints").intValue = spec.actionPoints;
-        so.FindProperty("brain").intValue = (int)spec.brain;
-        so.FindProperty("targetingPattern").objectReferenceValue = spec.targeting == null
-            ? null
-            : FindByName<TargetingPattern>(spec.targeting, "Assets/Data/TargetingData");
-
         so.FindProperty("itemDropPrefab").objectReferenceValue =
             AssetDatabase.LoadAssetAtPath<GameObject>(ItemDropPath);
 
+        if (seed)
+        {
+            so.FindProperty("maxHealth").intValue = spec.maxHealth;
+            so.FindProperty("<Health>k__BackingField").intValue = spec.maxHealth;
+            so.FindProperty("displayName").stringValue = spec.displayName;
+            so.FindProperty("actionPoints").intValue = spec.actionPoints;
+            so.FindProperty("brain").intValue = (int)spec.brain;
+            so.FindProperty("targetingPattern").objectReferenceValue = spec.targeting == null
+                ? null
+                : FindByName<TargetingPattern>(spec.targeting, "Assets/Data/TargetingData");
+
+            SeedLoot(so, spec, loot);
+            SeedDeck(so, spec, cards);
+        }
+
+        so.ApplyModifiedProperties();
+    }
+
+    private static void SeedLoot(
+        SerializedObject so, CharacterSpec spec, Dictionary<string, LootTable> loot)
+    {
         LootTable table = null;
 
         if (spec.loot != null && loot != null) { loot.TryGetValue(spec.loot, out table); }
@@ -1167,7 +1201,11 @@ public static class EnemyRosterGenerator
         {
             Warn($"{spec.name} names loot table '{spec.loot}', which was not found.");
         }
+    }
 
+    private static void SeedDeck(
+        SerializedObject so, CharacterSpec spec, Dictionary<string, CardData> cards)
+    {
         SerializedProperty deck = so.FindProperty("deck");
         List<CardData> built = new();
 
@@ -1193,8 +1231,6 @@ public static class EnemyRosterGenerator
         {
             deck.GetArrayElementAtIndex(i).objectReferenceValue = built[i];
         }
-
-        so.ApplyModifiedProperties();
     }
 
     private static void ApplyAnimation(

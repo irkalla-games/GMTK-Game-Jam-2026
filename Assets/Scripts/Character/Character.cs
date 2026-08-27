@@ -24,6 +24,19 @@ public class Character : MonoBehaviour
 
     [SerializeField] private PlayableCharacter playableCharacter = PlayableCharacter.Enemy;
 
+    [Tooltip("Which spawn row(s) this character is eligible for - see BattleRole. None (the default) "
+             + "means unconstrained, placed only after every role-constrained character has a cell.")]
+    [SerializeField] private BattleRole battleRole = BattleRole.None;
+
+    [Tooltip("Brandon's Power Level if set, else the sheet's Estimated Power Level - synced by "
+             + "EnemySheetImporter, never hand-edited here. 0 means unscored: EncounterRoller can never "
+             + "draw it, so a body left at 0 silently never appears in a random encounter.")]
+    [SerializeField] private float powerLevel;
+
+    [Tooltip("Drives EncounterRoller's boss budgets. Synced from the prefab's own folder "
+             + "(Assets/Prefabs/Bosses) - never hand-edited here.")]
+    [SerializeField] private bool isBoss;
+
     [Tooltip("Which cards this character may hold. Cards not matching are skipped when the deck is "
              + "built.")]
     [SingleClass]
@@ -110,6 +123,12 @@ public class Character : MonoBehaviour
     public int MaxEnergy => maxEnergy;
 
     public PlayableCharacter Affiliation => playableCharacter;
+
+    public BattleRole BattleRole => battleRole;
+
+    public float PowerLevel => powerLevel;
+
+    public bool IsBoss => isBoss;
 
     /// True only for the party the player clicks to control directly. Ally, EnemyAllied and Neutral
     /// are all AI-resolved, same as Enemy - see BattleManager.LivingEnemies.

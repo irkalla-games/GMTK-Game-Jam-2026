@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b54b5cf9131cdf4d8ed6b706bcce75b, type: 3}
+  m_Name: RealRun - Random
+  m_EditorClassIdentifier: Assembly-CSharp::RunData
+  levels:
+  - {fileID: 11400000, guid: 5e7b87325e799474f883eb502eba52a6, type: 2}
+  - {fileID: 11400000, guid: 58e64b478fcae4c44a9419c049ec95f1, type: 2}
+  startingParty:
+  - {fileID: 8814313836042315297, guid: 2f55586ecf87a1f46baec75a87d99411, type: 3}
+  - {fileID: 6338188868612233919, guid: cb01aa46fbd50204695accbc09080159, type: 3}
+  startingPartyDecks: []
+  startingHeroes: []
+  carryDamageBetweenLevels: 0

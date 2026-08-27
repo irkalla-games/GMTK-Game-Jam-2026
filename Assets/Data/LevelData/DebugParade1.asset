@@ -50,6 +50,18 @@ MonoBehaviour:
     cell: {x: 7, y: 4}
     deckOverride: []
   waves: []
+  encounterBudget:
+    frontlinePower: 0
+    backlinePower: 0
+    anyPower: 0
+    bossFrontlinePower: 0
+    bossBacklinePower: 0
+    reinforcementPower: 0
+    maxPowerPerEnemy: 0
+    maxPowerPerWave: 0
+    waveInterval: 0
+    waveIntervalJitter: 0
+    poolFilter: []
   partySpawnCells:
   - {x: 1, y: 0}
   - {x: 3, y: 0}

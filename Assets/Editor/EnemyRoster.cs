@@ -119,6 +119,15 @@ public sealed class CharacterSpec
     /// Folder holding the pack's own .anim files. Only needed when any state sets reuse.
     public string clipFolder;
 
+    // -----------------------------------------------------------------------------------------
+    // Seed stats. These are written ONLY when the generator creates a prefab for the first time -
+    // from then on Docs/EnemyDesign owns them, through EnemySheetImporter, and re-running this tool
+    // leaves them alone. See EnemyRosterGenerator.ApplyCharacter for the full ownership split.
+    //
+    // So expect these to drift from what is actually on the prefab, and do not balance here: a
+    // number changed below reaches a body that already exists only if its prefab is deleted first.
+    // battleRole, powerLevel and isBoss are the sheet's alone and have no counterpart here at all.
+    // -----------------------------------------------------------------------------------------
     public int maxHealth = 10;
     public int actionPoints = 1;
     public BrainType brain = BrainType.Warrior;
@@ -256,22 +265,27 @@ public static class EnemyRoster
     public const float BossHeight = 1.4f;
 
     // ---------------------------------------------------------------------------------------------
-    // Pack roots. Four of these differ from how the packs are usually referred to - the folder on disk
-    // is "Enemy Galore 1 - Pixel Art", "EVil Wizard" (capital V), "Bringer Of Death" (sprites under
-    // "Sprite Sheet") and "Medieval King Pack".
+    // Pack roots. Every one of these is the only thing tying the roster to where the art lives, so
+    // moving a pack breaks all 130 sheet and clip references at once - and the symptom is not an
+    // error but every body silently falling back to the template's sprite and scale, which reads in
+    // game as "the sizes reverted". If that happens, check here first.
+    //
+    // Four differ from how the packs are usually referred to: the folder on disk is "Enemy Galore 1 -
+    // Pixel Art", "EVil Wizard" (capital V), "Bringer Of Death" (sprites under "Sprite Sheet") and
+    // "Medieval King Pack".
     // ---------------------------------------------------------------------------------------------
 
-    private const string Bandits = "Assets/Bandits - Pixel Art";
-    private const string Galore = "Assets/Enemy Galore 1 - Pixel Art/Sprites";
-    private const string Fantasy = "Assets/Monsters Creatures Fantasy/Sprites";
-    private const string Fantasy2 = "Assets/Monsters Creatures Fantasy 2/Sprites";
-    private const string BlackKnight = "Assets/2D Pixel Art Black Knight";
-    private const string Reaper = "Assets/Bringer Of Death";
-    private const string HeroKnight = "Assets/Hero Knight - Pixel Art";
-    private const string Wizard1 = "Assets/EVil Wizard/Sprites";
-    private const string Wizard2 = "Assets/Evil Wizard 2/Sprites";
-    private const string Wizard3 = "Assets/Evil Wizard 3/Sprites";
-    private const string King = "Assets/Medieval King Pack/Sprites";
+    private const string Bandits = "Assets/Extra Assets/Bandits - Pixel Art";
+    private const string Galore = "Assets/Extra Assets/Enemy Galore 1 - Pixel Art/Sprites";
+    private const string Fantasy = "Assets/Extra Assets/Monsters Creatures Fantasy/Sprites";
+    private const string Fantasy2 = "Assets/Extra Assets/Monsters Creatures Fantasy 2/Sprites";
+    private const string BlackKnight = "Assets/Extra Assets/2D Pixel Art Black Knight";
+    private const string Reaper = "Assets/Extra Assets/Bringer Of Death";
+    private const string HeroKnight = "Assets/Extra Assets/Hero Knight - Pixel Art";
+    private const string Wizard1 = "Assets/Extra Assets/EVil Wizard/Sprites";
+    private const string Wizard2 = "Assets/Extra Assets/Evil Wizard 2/Sprites";
+    private const string Wizard3 = "Assets/Extra Assets/Evil Wizard 3/Sprites";
+    private const string King = "Assets/Extra Assets/Medieval King Pack/Sprites";
 
     // ---------------------------------------------------------------------------------------------
     // Shorthand for a state row. S builds a clip from a sliced sheet; R reuses one the pack ships.
@@ -541,7 +555,7 @@ public static class EnemyRoster
         {
             name = "Bat", displayName = "Bat",
             spriteFolder = Galore + "/Bat",
-            maxHealth = 8, height = 0.55f, actionPoints = 2, targeting = "Weakest", hover = 0.3f,
+            maxHealth = 15, height = 0.55f, actionPoints = 2, targeting = "Weakest", hover = 0.3f,
             states = new[]
             {
                 S("Idle", AnimationCue.None, "Bat_Fly", loop: true),

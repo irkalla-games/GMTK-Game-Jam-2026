@@ -26,16 +26,17 @@
 
 $script:BodyRow = [ordered]@{
     EnemyName = 1; Boss = 2; Guid = 3; Sync = 4
-    DisplayName = 7; Health = 8; Actions = 9; Brain = 10; Targeting = 11; Loot = 12
-    Brandon = 14; Estimated = 15; Delta = 16
-    AvgCardPower = 18; AvgDamage = 19; AvgStatus = 20; AvgSummon = 21
-    DeckHeader = 23; ActionsFromCard = 24; Counted = 25
-    FactsHeader = 27
-    Cost = 28; RangeMax = 29; TilesHit = 30; Damage = 31; PoisonTotal = 32; Heal = 33; Shield = 34
-    BlockTotal = 35; Parry = 36; Dodge = 37; Strength = 38; Weaken = 39; Vulnerable = 40; Frozen = 41
-    Rooted = 42; Taunt = 43; Stealth = 44; PoisonBlade = 45; DoubleNextAttack = 46; DoubleShield = 47
-    Draw = 48; MoveTiles = 49; SummonPower = 50; Cooldown = 51; CardPower = 52; StatusPower = 53
-    Notes = 55
+    DisplayName = 7; Health = 8; Actions = 9; Brain = 10; Targeting = 11; Loot = 12; Role = 13
+    Brandon = 15; Estimated = 16; Delta = 17
+    AvgCardPower = 19; AvgDamage = 20; AvgStatus = 21; AvgSummon = 22
+    DeckHeader = 24; ActionsFromCard = 25; Counted = 26
+    FactsHeader = 28
+    Cost = 29; RangeMax = 30; TilesHit = 31; Damage = 32; RangePower = 33; PoisonTotal = 34; Heal = 35
+    Shield = 36; BlockTotal = 37; Parry = 38; Dodge = 39; Strength = 40; Weaken = 41; Vulnerable = 42
+    Frozen = 43; Rooted = 44; Taunt = 45; Stealth = 46; PoisonBlade = 47; DoubleNextAttack = 48
+    DoubleShield = 49; Draw = 50; MoveTiles = 51; SummonPower = 52; Cooldown = 53; CardPower = 54
+    StatusPower = 55
+    Notes = 57
 }
 
 $script:TotemRow = [ordered]@{
@@ -102,6 +103,9 @@ function Write-EnemyWorkbook {
         $Totems,
         $EnemyCardNames,
         $LootNames,
+        $TargetingNames,
+        $PreservedWeights,    # hashtable: pw_* name -> current Value, read back from the old workbook
+        $PreservedRangeRows,  # array of @(Range, Power) pairs, same idea
         $Preserved,       # hashtable: Prefab -> @{ Brandon = ...; Notes = ... }
         [string]$RepoRoot
     )
@@ -116,7 +120,11 @@ function Write-EnemyWorkbook {
 
     $allNames = @($Bodies | ForEach-Object { $_.Prefab }) + @($Totems | ForEach-Object { $_.Prefab })
 
-    Add-PowerLevelSheet -Package $pkg
+    Add-PowerLevelSheet -Package $pkg -PreservedWeights $PreservedWeights -PreservedRangeRows $PreservedRangeRows
+
+    # Named ranges (list_Brain, list_Targeting, list_EnemyCard, ...) have to exist before any body tab
+    # references them in a dropdown - same ordering Write-CardWorkbook.ps1 already follows.
+    Add-EnumsSheet -Package $pkg -EnemyCardNames $EnemyCardNames -LootNames $LootNames -TargetingNames $TargetingNames -Bodies $Bodies -Totems $Totems
 
     foreach ($body in $Bodies) {
         Add-BodySheet -Package $pkg -Body $body -Preserved $Preserved -AllPowerNames $allNames
@@ -127,7 +135,6 @@ function Write-EnemyWorkbook {
     }
 
     Add-RosterSheet -Package $pkg -Bodies $Bodies
-    Add-EnumsSheet -Package $pkg -EnemyCardNames $EnemyCardNames -LootNames $LootNames -Bodies $Bodies -Totems $Totems
     Add-ReadmeSheet -Package $pkg
 
     Set-SheetOrder -Package $pkg -Bodies $Bodies -Totems $Totems
@@ -140,7 +147,15 @@ function Write-EnemyWorkbook {
 # ---------------------------------------------------------------------------------------------------
 
 function Add-PowerLevelSheet {
-    param($Package)
+    <#
+        Values are read back from whatever is already in the workbook (PreservedWeights/
+        PreservedRangeRows, gathered by Export-EnemySheet.ps1's Get-ExistingPowerLevelValues) the same
+        way a body tab's Brandon's Power Level and Notes survive a re-export. Get-PowerWeightDefaults
+        still owns the row order, the set of weights that exist and their "why" notes - only the Value
+        column is ever overridden by what is already on disk, and only for a name that already has an
+        entry there, so a weight added to the code later still appears with its coded starting value.
+    #>
+    param($Package, $PreservedWeights, $PreservedRangeRows)
 
     $ws = $Package.Workbook.Worksheets.Add('PowerLevel')
 
@@ -152,10 +167,14 @@ function Add-PowerLevelSheet {
     $weights = @(Get-PowerWeightDefaults)
     for ($i = 0; $i -lt $weights.Count; $i++) {
         $r = $i + 2
-        $ws.Cells[$r, 1].Value = $weights[$i][0]
-        $ws.Cells[$r, 2].Value = [double]$weights[$i][1]
+        $wname = $weights[$i][0]
+        $wvalue = [double]$weights[$i][1]
+        if ($null -ne $PreservedWeights -and $PreservedWeights.ContainsKey($wname)) { $wvalue = [double]$PreservedWeights[$wname] }
+
+        $ws.Cells[$r, 1].Value = $wname
+        $ws.Cells[$r, 2].Value = $wvalue
         $ws.Cells[$r, 3].Value = $weights[$i][2]
-        Add-NamedCell -Package $Package -Worksheet $ws -Name $weights[$i][0] -Address "B$r"
+        Add-NamedCell -Package $Package -Worksheet $ws -Name $wname -Address "B$r"
     }
 
     $ws.Cells['B2:B200'].Style.Numberformat.Format = '0.00'
@@ -168,6 +187,34 @@ function Add-PowerLevelSheet {
     $note = $weights.Count + 3
     $ws.Cells[$note, 1].Value = 'Edit the Value column - every body tab and the Roster tab recalculate. Nothing here is baked into the export script.'
     $ws.Cells[$note, 1].Style.Font.Italic = $true
+
+    # Range Power - looked up per exact value (VLOOKUP approximate match) rather than a per-tile rate,
+    # since reach is not linear: melee-to-just-ranged matters more than Range 4-to-5. See the Card Power
+    # formula below and Get-RangePowerDefaults' own comment for the approximate-match rule.
+    $rangeHeaderRow = $note + 2
+    $ws.Cells[($rangeHeaderRow - 1), 1].Value = 'Range Power'
+    $ws.Cells[($rangeHeaderRow - 1), 1].Style.Font.Bold = $true
+    $ws.Cells[$rangeHeaderRow, 1].Value = 'Range'
+    $ws.Cells[$rangeHeaderRow, 2].Value = 'Power'
+    $ws.Cells["A$rangeHeaderRow`:B$rangeHeaderRow"].Style.Font.Bold = $true
+
+    # Unlike the weights above (a fixed set of names the code owns), the Range Power table is entirely
+    # user-extensible - the whole point is being able to add a Range 7 row by hand. So the WHOLE
+    # existing table survives a re-export verbatim; Get-RangePowerDefaults only seeds it on the very
+    # first export, when there is nothing yet to read back.
+    $rangeRows = if (@($PreservedRangeRows).Count -gt 0) { @($PreservedRangeRows | Sort-Object { $_[0] }) } else { @(Get-RangePowerDefaults) }
+    for ($i = 0; $i -lt $rangeRows.Count; $i++) {
+        $r = $rangeHeaderRow + 1 + $i
+        $ws.Cells[$r, 1].Value = [int]$rangeRows[$i][0]
+        $ws.Cells[$r, 2].Value = [double]$rangeRows[$i][1]
+        $ws.Cells[$r, 2].Style.Numberformat.Format = '0.00'
+    }
+    $rangeLastRow = $rangeHeaderRow + $rangeRows.Count
+    Add-NamedCell -Package $Package -Worksheet $ws -Name 'range_Power' -Address "A$($rangeHeaderRow + 1):B$rangeLastRow"
+
+    $rangeNote = $rangeLastRow + 1
+    $ws.Cells[$rangeNote, 1].Value = 'Looked up by nearest Range at or below a card''s own Range Max - add a row for a new value; anything past the last row scores the same as it.'
+    $ws.Cells[$rangeNote, 1].Style.Font.Italic = $true
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -205,8 +252,17 @@ function Add-BodySheet {
     $ws.Cells[$row.Targeting, 2].Value = $Body.Targeting
     $ws.Cells[$row.Loot, 1].Value = 'Loot Table'
     $ws.Cells[$row.Loot, 2].Value = $Body.LootTable
-    foreach ($r in @($row.DisplayName, $row.Health, $row.Actions, $row.Brain, $row.Targeting, $row.Loot)) {
+    $ws.Cells[$row.Role, 1].Value = 'Role'
+    $ws.Cells[$row.Role, 2].Value = $Body.Role
+    foreach ($r in @($row.DisplayName, $row.Health, $row.Actions, $row.Brain, $row.Targeting, $row.Loot, $row.Role)) {
         $ws.Cells[$r, 1].Style.Font.Italic = $true
+    }
+
+    foreach ($v in @(@($row.Brain, 'list_Brain'), @($row.Targeting, 'list_Targeting'), @($row.Loot, 'list_Loot'), @($row.Role, 'list_Role'))) {
+        $dv = $ws.DataValidations.AddListValidation("B$($v[0])")
+        $dv.Formula.ExcelFormula = "=$($v[1])"
+        $dv.ShowErrorMessage = $false
+        $dv.AllowBlank = $true
     }
 
     $pv = $null
@@ -259,7 +315,8 @@ function Add-BodySheet {
 
     $factLabels = [ordered]@{
         Cost = 'Cost'; RangeMax = 'Range Max'; TilesHit = 'Tiles Hit'
-        Damage = 'Damage'; PoisonTotal = 'Poison Total'; Heal = 'Heal'; Shield = 'Shield'
+        Damage = 'Damage'; RangePower = 'Range'
+        PoisonTotal = 'Poison Total'; Heal = 'Heal'; Shield = 'Shield'
         BlockTotal = 'Block Total'; Parry = 'Parry'; Dodge = 'Dodge'
         Strength = 'Strength'; Weaken = 'Weaken'; Vulnerable = 'Vulnerable'
         Frozen = 'Frozen'; Rooted = 'Rooted'; Taunt = 'Taunt'; Stealth = 'Stealth'
@@ -283,6 +340,11 @@ function Add-BodySheet {
 
         $ws.Cells[$row.DeckHeader, $col].Value = $entry.Name
 
+        $dvDeck = $ws.DataValidations.AddListValidation("$letter$($row.DeckHeader)")
+        $dvDeck.Formula.ExcelFormula = '=list_EnemyCard'
+        $dvDeck.ShowErrorMessage = $false
+        $dvDeck.AllowBlank = $true
+
         if ($null -eq $facts) {
             # Deck references something Get-CardRecord could not resolve (a missing asset). Surfaced,
             # not silently dropped - the rest of the row is left blank so it visibly contributes nothing.
@@ -299,6 +361,7 @@ function Add-BodySheet {
         $ws.Cells[$row.RangeMax, $col].Value = [int]$entry.Record.Row.'Range Max'
         $ws.Cells[$row.TilesHit, $col].Value = [int]$facts.TilesHit
         $ws.Cells[$row.Damage, $col].Value = [int]$facts.Damage
+        $ws.Cells[$row.RangePower, $col].Formula = "IFERROR(VLOOKUP($letter`$$($row.RangeMax),range_Power,2,TRUE),0)"
         $ws.Cells[$row.PoisonTotal, $col].Value = [int]$facts.PoisonTotal
         $ws.Cells[$row.Heal, $col].Value = [int]$facts.Heal
         $ws.Cells[$row.Shield, $col].Value = [int]$facts.Shield
@@ -340,7 +403,7 @@ function Add-BodySheet {
         }
 
         $ws.Cells[$row.CardPower, $col].Formula =
-            "$letter`$$($row.Damage)*pw_Damage+$letter`$$($row.PoisonTotal)*pw_Poison+$letter`$$($row.Heal)*pw_Heal" +
+            "$letter`$$($row.Damage)*pw_Damage+$letter`$$($row.RangePower)+$letter`$$($row.PoisonTotal)*pw_Poison+$letter`$$($row.Heal)*pw_Heal" +
             "+$letter`$$($row.Shield)*pw_Shield+$letter`$$($row.BlockTotal)*pw_Block+$letter`$$($row.Parry)*pw_Parry" +
             "+$letter`$$($row.Dodge)*pw_Dodge+$letter`$$($row.Strength)*pw_Strength*pw_Horizon" +
             "+$letter`$$($row.Weaken)*pw_Weaken*pw_Horizon+$letter`$$($row.Vulnerable)*pw_Vulnerable*pw_Horizon" +
@@ -348,10 +411,12 @@ function Add-BodySheet {
             "+$letter`$$($row.Stealth)*pw_Stealth+$letter`$$($row.PoisonBlade)*pw_PoisonBlade*pw_Horizon" +
             "+$letter`$$($row.DoubleNextAttack)*pw_DoubleNextAttack+$letter`$$($row.DoubleShield)*pw_DoubleShield" +
             "+$letter`$$($row.Draw)*pw_Draw+$letter`$$($row.MoveTiles)*pw_Move+$letter`$$($row.SummonPower)*pw_Summon" +
-            "+MAX(0,$letter`$$($row.TilesHit)-1)*pw_Area+MAX(0,$letter`$$($row.RangeMax)-1)*pw_Range"
+            "+MAX(0,$letter`$$($row.TilesHit)-1)*pw_Area"
 
+        # Status Power is "everything that isn't Damage, Range or Summon" - all three now have their own
+        # visible row/average, so none of the three should also hide inside this one.
         $ws.Cells[$row.StatusPower, $col].Formula =
-            "$letter`$$($row.CardPower)-$letter`$$($row.Damage)*pw_Damage-$letter`$$($row.SummonPower)*pw_Summon"
+            "$letter`$$($row.CardPower)-$letter`$$($row.Damage)*pw_Damage-$letter`$$($row.RangePower)-$letter`$$($row.SummonPower)*pw_Summon"
     }
 
     if ($lastCol -ge 2) {
@@ -498,11 +563,11 @@ function Add-RosterSheet {
     $ws = $Package.Workbook.Worksheets.Add('Roster')
     $row = $script:BodyRow
 
-    $headers = @('Name', 'Boss', 'Health', 'Actions', 'Brain', 'Targeting', 'Deck Size',
+    $headers = @('Name', 'Boss', 'Role', 'Health', 'Actions', 'Brain', 'Targeting', 'Deck Size',
                  'Avg Damage', 'Avg Status', 'Avg Summon', 'Avg Card Power',
-                 'Estimated', "Brandon's", 'Delta', 'Flag')
+                 'Estimated', "Brandon's", 'Effective Power', 'Delta', 'Flag')
     for ($c = 0; $c -lt $headers.Count; $c++) { $ws.Cells[1, ($c + 1)].Value = $headers[$c] }
-    $ws.Cells['A1:O1'].Style.Font.Bold = $true
+    $ws.Cells['A1:Q1'].Style.Font.Bold = $true
 
     $ordered = @($Bodies | Sort-Object { $_.Prefab })
     for ($i = 0; $i -lt $ordered.Count; $i++) {
@@ -512,25 +577,31 @@ function Add-RosterSheet {
 
         $ws.Cells[$r, 1].Value = $b.Prefab
         $ws.Cells[$r, 2].Value = if ($b.Boss) { 'Yes' } else { 'No' }
-        $ws.Cells[$r, 3].Formula = "$name!B$($row.Health)"
-        $ws.Cells[$r, 4].Formula = "$name!B$($row.Actions)"
-        $ws.Cells[$r, 5].Formula = "$name!B$($row.Brain)"
-        $ws.Cells[$r, 6].Formula = "$name!B$($row.Targeting)"
-        $ws.Cells[$r, 7].Value = @($b.Deck).Count
-        $ws.Cells[$r, 8].Formula = "$name!B$($row.AvgDamage)"
-        $ws.Cells[$r, 9].Formula = "$name!B$($row.AvgStatus)"
-        $ws.Cells[$r, 10].Formula = "$name!B$($row.AvgSummon)"
-        $ws.Cells[$r, 11].Formula = "$name!B$($row.AvgCardPower)"
-        $ws.Cells[$r, 12].Formula = "$name!B$($row.Estimated)"
-        $ws.Cells[$r, 13].Formula = "$name!B$($row.Brandon)"
-        $ws.Cells[$r, 14].Formula = "$name!B$($row.Delta)"
-        $ws.Cells[$r, 15].Formula =
-            "IF(N$r=`"`",`"`",IF(ABS(N$r)<=L$r*pw_Tolerance,`"OK`",IF(N$r>0,`"OVER`",`"UNDER`")))"
+        $ws.Cells[$r, 3].Formula = "$name!B$($row.Role)"
+        $ws.Cells[$r, 4].Formula = "$name!B$($row.Health)"
+        $ws.Cells[$r, 5].Formula = "$name!B$($row.Actions)"
+        $ws.Cells[$r, 6].Formula = "$name!B$($row.Brain)"
+        $ws.Cells[$r, 7].Formula = "$name!B$($row.Targeting)"
+        $ws.Cells[$r, 8].Value = @($b.Deck).Count
+        $ws.Cells[$r, 9].Formula = "$name!B$($row.AvgDamage)"
+        $ws.Cells[$r, 10].Formula = "$name!B$($row.AvgStatus)"
+        $ws.Cells[$r, 11].Formula = "$name!B$($row.AvgSummon)"
+        $ws.Cells[$r, 12].Formula = "$name!B$($row.AvgCardPower)"
+        $ws.Cells[$r, 13].Formula = "$name!B$($row.Estimated)"
+        $ws.Cells[$r, 14].Formula = "$name!B$($row.Brandon)"
+        # Effective Power: what EncounterRoller actually draws against - Brandon's if authored, else
+        # the Estimated formula's own result. Mirrors the resolution Import-EnemySheet.ps1 computes
+        # independently when it writes Character.powerLevel, so this column is a live preview of that,
+        # not the value's source.
+        $ws.Cells[$r, 15].Formula = "IF(N$r=`"`",M$r,N$r)"
+        $ws.Cells[$r, 16].Formula = "$name!B$($row.Delta)"
+        $ws.Cells[$r, 17].Formula =
+            "IF(P$r=`"`",`"`",IF(ABS(P$r)<=M$r*pw_Tolerance,`"OK`",IF(P$r>0,`"OVER`",`"UNDER`")))"
     }
 
     $last = $ordered.Count + 1
     if ($ordered.Count -gt 0) {
-        $ws.Cells["H2:N$last"].Style.Numberformat.Format = '0.00'
+        $ws.Cells["I2:P$last"].Style.Numberformat.Format = '0.00'
 
         $verdicts = @(
             @('OVER',  @(255, 199, 206), @(156, 0, 6)),
@@ -538,17 +609,17 @@ function Add-RosterSheet {
             @('OK',    @(198, 239, 206), @(0, 97, 0))
         )
         foreach ($v in $verdicts) {
-            $fmt = $ws.ConditionalFormatting.AddEqual($ws.Cells["O2:O$last"])
+            $fmt = $ws.ConditionalFormatting.AddEqual($ws.Cells["Q2:Q$last"])
             $fmt.Formula = '"' + $v[0] + '"'
             $fmt.Style.Fill.BackgroundColor.Color = [System.Drawing.Color]::FromArgb($v[1][0], $v[1][1], $v[1][2])
             $fmt.Style.Font.Color.Color = [System.Drawing.Color]::FromArgb($v[2][0], $v[2][1], $v[2][2])
         }
 
-        $ws.Cells["A1:O$last"].AutoFilter = $true
+        $ws.Cells["A1:Q$last"].AutoFilter = $true
     }
 
     $ws.Column(1).Width = 22
-    $ws.Column(6).Width = 18
+    $ws.Column(7).Width = 18
     $ws.View.FreezePanes(2, 2)
 }
 
@@ -557,14 +628,17 @@ function Add-RosterSheet {
 # ---------------------------------------------------------------------------------------------------
 
 function Add-EnumsSheet {
-    param($Package, [string[]]$EnemyCardNames, [string[]]$LootNames, $Bodies, $Totems)
+    param($Package, [string[]]$EnemyCardNames, [string[]]$LootNames, [string[]]$TargetingNames, $Bodies, $Totems)
 
     $ws = $Package.Workbook.Worksheets.Add('Enums')
 
     $lists = [ordered]@{
+        # BrainType is a C# enum - it only changes when the enum does, unlike Targeting/Loot/cards which
+        # are assets and are read fresh off disk every export.
         list_Brain     = @('None', 'Warrior', 'Ranger', 'Summoner')
-        list_Targeting = @('') + @('Closest', 'Furthest', 'Random', 'RangerTargeting', 'Strongest', 'WarriorTargeting', 'Weakest')
+        list_Targeting = @('') + @($TargetingNames | Sort-Object -Unique)
         list_Loot      = @('') + @($LootNames | Sort-Object -Unique)
+        list_Role      = @('None', 'Frontline', 'Backline', 'Both')
         list_Bool      = @('Yes', 'No')
         list_EnemyCard = @($EnemyCardNames | Sort-Object -Unique)
     }
@@ -603,7 +677,7 @@ function Add-ReadmeSheet {
         @('', ''),
         @('The tabs', 'head'),
         @('PowerLevel', 'The tuning surface. Every pw_* weight here is a named cell - change one and every body tab and Roster recalculate immediately, no re-export needed.'),
-        @('One tab per body', 'Health, Actions Per Turn, Brain, Targeting, Loot Table and Deck mirror the prefab''s Character component. Card Facts below the deck strip are read from each card''s own CardData/CardEffect assets - edit a card''s numbers on Docs/CardDesign.xlsx, not here.'),
+        @('One tab per body', 'Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck mirror the prefab''s Character component. Card Facts below the deck strip are read from each card''s own CardData/CardEffect assets - edit a card''s numbers on Docs/CardDesign.xlsx, not here.'),
         @('One tab per totem', 'A totem has no health or deck - Totem Power is its auras and reactions, weighted the same way a body''s Card Power is.'),
         @('Roster', 'Every body side by side, sorted by name, so you can see how they stack up. Fully formula-driven off the individual tabs.'),
         @('Enums', 'Dropdown sources for Brain, Targeting, Loot Table and Deck cells.'),
@@ -611,14 +685,16 @@ function Add-ReadmeSheet {
         @('Reading a body tab', 'head'),
         @('Brandon''s Power Level', 'Hand-authored ground truth - type in what a body feels like it should be worth. Preserved across re-exports.'),
         @('Estimated Power Level', '(Average Card Power * Actions Per Turn * pw_ActionScale + Health * pw_Health) / pw_Divisor. Tune the PowerLevel weights until Delta sits near zero for the bodies you already trust, then trust the estimate for the rest.'),
+        @('Role', 'Which spawn row(s) this body is eligible for - None (unconstrained), Frontline, Backline or Both. Synced to Character.battleRole; drives BattleManager.SpawnParty and EncounterRoller placement.'),
         @('Counted', 'No for a Move-only card or a Cooldown card - excluded from every average. Cooldown cards get scored separately later.'),
         @('Summon Power', 'A live reference to the summoned body''s (or totem''s) own power cell, scaled down if its lifetime is shorter than pw_SummonHorizon.'),
         @('', ''),
         @('Syncing back to Unity', 'head'),
-        @('One button', 'In Unity: Tools > Sync Enemies With Sheet. Applies your edits to Health, Actions Per Turn, Brain, Targeting, Loot Table and Deck to the matching prefab, then refreshes this workbook so anything changed in the Inspector shows up here too.'),
+        @('One button', 'In Unity: Tools > Sync Enemies With Sheet. Applies your edits to Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck to the matching prefab, then refreshes this workbook so anything changed in the Inspector shows up here too.'),
         @('Deck', 'One card name per column, left to right, no gaps - the first blank cell ends the deck. Duplicates are fine and expected (four Enemy Slash cards is four cells). Pick names from the dropdown so a typo cannot silently drop a card.'),
         @('Brandon''s Power Level and Notes', 'Never sync anywhere - they are authored HERE and preserved across every re-export.'),
         @('Card Facts, Card Power, averages, Roster', 'Never hand-edit - fully derived from the prefab and its cards, rebuilt on every export.'),
+        @('Effective Power and Boss', 'Not sheet columns you edit directly - Effective Power (Brandon''s if set, else Estimated) and Boss (which folder the prefab lives in) are written to Character.powerLevel/isBoss one-way, every sync, regardless of whether anything else on the tab changed. A body with neither Brandon''s nor a usable Estimated result is skipped with a warning and can never be drawn by EncounterRoller.'),
         @('If both sides changed', 'That body is left alone on BOTH sides and named in the Unity console, the same conflict rule Docs/CardDesign.xlsx follows. Make them agree, or change only one, then sync again.'),
         @('Regenerating without syncing', 'Tools > Enemies > Refresh Sheet From Unity discards any sheet edit that has not been synced yet - only for when the sheet is known to be wrong.')
     )

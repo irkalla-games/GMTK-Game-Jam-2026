@@ -33,6 +33,18 @@ MonoBehaviour:
     - prefab: {fileID: 9030803548844171682, guid: 40cab8c86b3615741ac4bc8db8156b37, type: 3}
       cell: {x: 6, y: 6}
       deckOverride: []
+  encounterBudget:
+    frontlinePower: 0
+    backlinePower: 0
+    anyPower: 0
+    bossFrontlinePower: 0
+    bossBacklinePower: 0
+    reinforcementPower: 0
+    maxPowerPerEnemy: 0
+    maxPowerPerWave: 0
+    waveInterval: 0
+    waveIntervalJitter: 0
+    poolFilter: []
   partySpawnCells:
   - {x: 2, y: 0}
   - {x: 4, y: 0}

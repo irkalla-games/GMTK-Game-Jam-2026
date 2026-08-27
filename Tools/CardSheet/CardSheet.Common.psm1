@@ -82,6 +82,27 @@ function ConvertTo-IntOrDefault {
     return $Default
 }
 
+function ConvertTo-DoubleOrDefault {
+    param($Value, [double]$Default = 0)
+
+    if ($null -eq $Value) { return $Default }
+    $text = ([string]$Value).Trim()
+    if ($text -eq '') { return $Default }
+
+    $parsed = 0.0
+    $style = [System.Globalization.NumberStyles]::Float
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    if ([double]::TryParse($text, $style, $culture, [ref]$parsed)) { return $parsed }
+    return $Default
+}
+
+function ConvertTo-BoolOrDefault {
+    <# Unity writes bool fields as YAML 0/1, same shape ConvertTo-IntOrDefault already parses. #>
+    param($Value, [bool]$Default = $false)
+
+    return (ConvertTo-IntOrDefault $Value -Default $(if ($Default) { 1 } else { 0 })) -ne 0
+}
+
 function ConvertTo-ClassName {
     <# 0 is Any; anything else is a bit mask, so 5 reads "Knight+Rogue". #>
     param($Mask)

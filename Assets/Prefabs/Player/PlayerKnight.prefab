@@ -1003,6 +1003,9 @@ MonoBehaviour:
   maxHealth: 30
   maxEnergy: 3
   playableCharacter: 2
+  battleRole: 1
+  powerLevel: 0
+  isBoss: 0
   characterClass: 1
   displayName: Knight
   portrait: {fileID: 21300000, guid: 2f7e81f4616095a40b3309b8b577af15, type: 3}

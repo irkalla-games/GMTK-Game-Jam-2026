@@ -4872,6 +4872,7 @@ MonoBehaviour:
   levelData: {fileID: 0}
   debugCampaign: {fileID: 11400000, guid: c2ddf5dab567a5e4da56551a025fe317, type: 2}
   enemyParent: {fileID: 0}
+  enemyRegistry: {fileID: 11400000, guid: 0e3f4b371b1a5cb46987be5c800cb35f, type: 2}
   boardCamera: {fileID: 1620745035}
   turnsToSurvive: 20
   handSize: 5

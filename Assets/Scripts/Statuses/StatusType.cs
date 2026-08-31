@@ -102,4 +102,14 @@ public enum StatusType
     /// status type it names to the carrier once per round, at whichever end of the round
     /// AuraData.timing says - see TurnTickStatus and TurnTiming.
     TurnTick = 19,
+
+    /// Buff. Poison's mirror on the healing side: heals its stack count at the end of the carrier's
+    /// own phase, then decays by one. Front-loaded and self-limiting for the same reason Poison is -
+    /// one counter is both the per-tick amount and how many ticks are left. See RegenerationStatus.
+    Regeneration = 20,
+
+    /// Buff, and the template for on-hit riders' healing counterpart - see OnHitStatus. For as long
+    /// as it lasts, every hit the carrier lands also heals the carrier for half the damage dealt.
+    /// stacks is remaining turns, not charges, the same shape PoisonBlade uses.
+    Lifesteal = 21,
 }

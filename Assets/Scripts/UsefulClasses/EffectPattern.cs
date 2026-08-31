@@ -108,9 +108,22 @@ public class EffectPattern : ScriptableObject
     /// toward `aim`. Pure coordinate math - no GridTile - so EnemyBrain can score a pattern against
     /// Board the same way the player-facing highlight does.
     /// </summary>
-    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell)
+    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell) => Covers(caster, aim, cell, -1);
+
+    /// <summary>
+    /// As above, but with the facing the player has locked in - see Card.AimOctant. `octantOverride` is
+    /// an *absolute* facing (0-7, as SnapOctant numbers them) that replaces the caster->aim direction
+    /// outright; -1 means "no rotation", deriving the facing from that direction exactly as the overload
+    /// above does.
+    ///
+    /// Absolute rather than a relative quarter-turn count, on purpose. A relative offset gets re-applied
+    /// on top of a freshly computed base direction every time the cursor moves, so a wall the player had
+    /// turned vertical would snap back to horizontal the moment they aimed at a tile on a different
+    /// bearing. Locking the facing is the whole reason a rotation survives re-aiming.
+    /// </summary>
+    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell, int octantOverride)
     {
-        int octant = SnapOctant(aim - caster);
+        int octant = octantOverride >= 0 ? octantOverride % 8 : SnapOctant(aim - caster);
         Vector2Int worldOffset = cell - aim;
 
         bool isDiagonalOctant = octant % 2 == 1;
@@ -194,6 +207,11 @@ public class EffectPattern : ScriptableObject
     /// 0 Up, 1 UpRight, 2 Right, 3 DownRight, 4 Down, 5 DownLeft, 6 Left, 7 UpLeft. Even octants are
     /// cardinal, odd are diagonal - that parity is what Covers uses to pick which grid to read.
     /// </summary>
+    /// The public face of SnapOctant. Card needs it to work out which absolute facing a fresh rotation
+    /// should start turning from - the one the footprint is showing right now, before the player's first
+    /// press of the rotate key locks it.
+    public static int OctantOf(Vector2Int direction) => SnapOctant(direction);
+
     private static int SnapOctant(Vector2Int direction)
     {
         if (direction == Vector2Int.zero) { return 0; }

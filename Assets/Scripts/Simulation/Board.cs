@@ -101,6 +101,67 @@ public class Board
         return distance;
     }
 
+    /// Extra steps a body is worth detouring around. High enough that a route with an open alternative
+    /// always wins it, low enough that a corridor with no alternative still gets walked - see
+    /// CostField.
+    public const int OccupiedCost = 4;
+
+    /// <summary>
+    /// Cost-to-reach from `start` to every cell on the board, walking through occupied tiles at a
+    /// price rather than refusing them outright. Empty ground costs 1 a step; a cell with somebody
+    /// standing on it costs 1 + OccupiedCost, so a body already in the room is a detour rather than a
+    /// wall - a column of enemies in a one-wide corridor still shuffles forward as the front one
+    /// clears its tile, instead of every rank behind it deciding there is no way round and standing
+    /// still. Wall of Force (`blocked`) is not a detour: it is impassable exactly like Flood treats it.
+    ///
+    /// `ignore` is the cell the walker is deciding from, which is occupied by the walker itself and
+    /// would otherwise price its own starting tile into the field.
+    ///
+    /// Dijkstra rather than BFS, since the two edge weights differ - but both are small fixed
+    /// integers on a board with a few dozen cells, so a bucket queue indexed by tentative cost is the
+    /// whole algorithm; no heap needed.
+    /// </summary>
+    public Dictionary<Vector2Int, int> CostField(Vector2Int start, Vector2Int ignore)
+    {
+        Dictionary<Vector2Int, int> cost = new() { [start] = 0 };
+        List<Queue<Vector2Int>> buckets = new() { new Queue<Vector2Int>(new[] { start }) };
+
+        for (int bucket = 0; bucket < buckets.Count; bucket++)
+        {
+            Queue<Vector2Int> frontier = buckets[bucket];
+
+            while (frontier.Count > 0)
+            {
+                Vector2Int cell = frontier.Dequeue();
+
+                // A cell can be enqueued into more than one bucket before its cheapest cost is
+                // settled; skip a stale entry that no longer matches the cost it was recorded under.
+                if (cost[cell] != bucket) { continue; }
+
+                foreach (Vector2Int step in Steps)
+                {
+                    Vector2Int neighbour = cell + step;
+
+                    if (!cells.Contains(neighbour) || blocked.Contains(neighbour)) { continue; }
+
+                    bool occupied = neighbour != ignore && neighbour != start
+                        && occupants.ContainsKey(neighbour);
+                    int next = bucket + 1 + (occupied ? OccupiedCost : 0);
+
+                    if (cost.TryGetValue(neighbour, out int known) && known <= next) { continue; }
+
+                    cost[neighbour] = next;
+
+                    while (buckets.Count <= next) { buckets.Add(new Queue<Vector2Int>()); }
+
+                    buckets[next].Enqueue(neighbour);
+                }
+            }
+        }
+
+        return cost;
+    }
+
     /// <summary>
     /// Walks backwards from `goal` to `start` through a Flood result, returning the steps to take in
     /// order and excluding the start tile. Empty if goal was never reached.

@@ -39,4 +39,5 @@ public enum CharacterClass
     Knight = 1 << 0,
     Mage = 1 << 1,
     Rogue = 1 << 2,
+    Cleric = 1 << 3,
 }

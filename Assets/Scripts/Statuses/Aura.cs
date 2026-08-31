@@ -46,6 +46,10 @@ public class Aura : Status
     /// same number - see Status.Amount and Character.FindStatus.
     public override int Amount => projectedEffect.Amount;
 
+    /// Forwarded like every other member - a totem projecting Block, Parry, Dodge or Vulnerable has to
+    /// sort into the same incoming chain a carried one would, not fall back to the base default of 0.
+    public override int Order => projectedEffect.Order;
+
     /// The one member that does *not* forward: being projected is the whole difference between this and
     /// the StatusEffect it wraps. A status row reads this to leave the badge blank, since an aura's
     /// clock is "as long as you stand there" rather than a number of turns.

@@ -32,7 +32,12 @@ public static class TotemContentGenerator
     private const string EffectRoot = "Assets/Data/EffectData";
     private const string CardRoot = "Assets/Data/CardData";
 
-    private class TotemSpec
+    /// Internal, not private: ClericContentGenerator constructs these directly for the Heal/Beacon/
+    /// Sentinel totems rather than going through BuildTotemSpecs/BuildCardSpecs, which would also
+    /// auto-generate a Knight- or Mage-class summon card for them (BuildCardSpecs assigns Knight for
+    /// AuraAudience.Allies and Mage for Enemies, with no way to say Cleric) - see CreateTotemPrefab's
+    /// own accessibility note.
+    internal class TotemSpec
     {
         public string fileName;
         public string displayName;
@@ -49,6 +54,11 @@ public static class TotemContentGenerator
         public int magnitude;
         public TurnTiming timing;
         public Color color;
+
+        /// Written onto the totem's own Character component alongside displayName. Every totem here
+        /// leaves this at the source prefab's default of 1 except the Taunt totems ClericContentGenerator
+        /// builds - see Character.maxHealth and Totem's own "totems have 1 HP" precedent.
+        public int maxHealth = 1;
     }
 
     private class EntrySpec
@@ -171,7 +181,10 @@ public static class TotemContentGenerator
     /// subject/magnitude/timing even when the spec does not use them, so converting a spec away from
     /// TurnTick actually clears what a previous run left in those three rather than leaving them stale.
     /// </summary>
-    private static GameObject CreateTotemPrefab(TotemSpec spec)
+    /// Internal, not private - ClericContentGenerator calls this directly for the Heal/Beacon/Sentinel
+    /// totems, which are built one at a time rather than through BuildTotemSpecs/Generate (see
+    /// TotemSpec's own accessibility note for why those three stay out of that shared list).
+    internal static GameObject CreateTotemPrefab(TotemSpec spec)
     {
         string path = $"{TotemFolder}/{spec.fileName}.prefab";
 
@@ -180,6 +193,7 @@ public static class TotemContentGenerator
 
         SerializedObject characterSO = new(root.GetComponent<Character>());
         characterSO.FindProperty("displayName").stringValue = spec.displayName;
+        characterSO.FindProperty("maxHealth").intValue = spec.maxHealth;
         characterSO.ApplyModifiedProperties();
 
         SerializedObject totemSO = new(root.GetComponent<Totem>());

@@ -168,12 +168,15 @@ public class CharacterSelectPanel : MonoBehaviour
 
     /// Grows or shrinks `selections` to exactly `size`, keeping every entry that still fits - shrinking
     /// from 4 to 2 leaves slots 0 and 1 exactly as chosen, growing back to 4 restores fresh defaults for
-    /// the slots that were dropped rather than remembering what they used to hold.
+    /// the slots that were dropped rather than remembering what they used to hold. A newly added slot
+    /// defaults to the roster entry at its own index (slot 2 -> roster.Characters[2]) rather than always
+    /// the first character, so growing the party introduces each hero in roster order.
     private void EnsureSelectionCount(int size)
     {
         while (selections.Count < size)
         {
-            CharacterOption defaultCharacter = roster.Characters[0];
+            int rosterIndex = Mathf.Min(selections.Count, roster.Characters.Count - 1);
+            CharacterOption defaultCharacter = roster.Characters[rosterIndex];
             selections.Add((defaultCharacter, DefaultDeckFor(defaultCharacter)));
         }
 

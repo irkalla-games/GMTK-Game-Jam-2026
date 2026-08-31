@@ -18,7 +18,7 @@ MonoBehaviour:
     shape: 3
     minDistance: 0
     maxDistance: 0
-  <requiredClass>k__BackingField: 1
+  <requiredClass>k__BackingField: 5
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0

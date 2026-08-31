@@ -78,6 +78,7 @@ $script:ClassTabs = [ordered]@{
     Knight  = @('Knight')
     Mage    = @('Mage')
     Rogue   = @('Rogue')
+    Cleric  = @('Cleric')
     Neutral = @('Enemy', 'Generic')
 }
 
@@ -314,6 +315,10 @@ function Get-BalanceRecord {
         'Eff Rogue'    = $null
         'Exp Plot'     = $null
         'Pw Idea'      = $null
+        # Appended after every existing column rather than grouped beside the other three Eff columns,
+        # so AC..AK keep the exact letters Set-BalanceSheet/Add-ChartsSheet already hardcode - see
+        # Set-BalanceSheet's own new AL formula and its column-map comment.
+        'Eff Cleric'   = $null
     }
 }
 
@@ -498,7 +503,7 @@ function New-CardRecordFromRow {
 # Ideas tabs are pure passthrough for the authoring columns - hand-authored, never derived from assets.
 # Their rows are still scored onto Balance where the effects resolve, so a proposal can be checked
 # against the same curve as a shipped card.
-foreach ($tab in @('Knight Ideas', 'Mage Ideas', 'Rogue Ideas')) {
+foreach ($tab in @('Knight Ideas', 'Mage Ideas', 'Rogue Ideas', 'Cleric Ideas')) {
     $existing = Get-ExistingSheet -SheetName $tab
     $classDir = ($tab -split ' ')[0]
 

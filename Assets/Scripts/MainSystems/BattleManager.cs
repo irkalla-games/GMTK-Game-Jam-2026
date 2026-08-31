@@ -155,6 +155,17 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private bool intentDirty;
 
+    /// <summary>
+    /// The snapshot EnemyResolve is currently walking, and how far through it - null/-1 outside
+    /// EnemyResolve. Exists so LockAimsOn can answer "which enemies still have an action point coming
+    /// this phase" without iterating the LivingEnemies() generator anonymously: everyone from
+    /// enemyResolveIndex onward (the enemy currently acting included) has a turn still ahead of it,
+    /// everyone before it has already finished and would never read a lock this sets.
+    /// </summary>
+    private List<Character> enemyResolveOrder;
+
+    private int enemyResolveIndex = -1;
+
     /// Which run record each spawned party member came from, so the state it finishes the level with
     /// can be written back to the run. Only party members are in here - an enemy has nothing that
     /// outlives the battle.
@@ -890,9 +901,14 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Keeps every enemy's CommittedIntent - and so the icon over its head - equal to what would
-    /// actually happen if EnemyResolve ran right now. Runs once per frame rather than from inside each
-    /// handler, so one card that queues three actions produces one recompute instead of three.
+    /// Keeps every enemy's CommittedIntent - and so the icon and damage number over its head - equal
+    /// to what would actually happen if EnemyResolve ran right now. Runs once per frame rather than
+    /// from inside each handler, so one card that queues three actions produces one recompute instead
+    /// of three.
+    ///
+    /// Decide is lock-aware (see its own doc comment), so this re-aims each enemy's already-committed
+    /// card at the moved board rather than picking a new one - a hero stepping closer changes where an
+    /// archer's shot lands, never what card it is shooting with.
     ///
     /// Only while the player is rearranging the board. EnemyResolve clears each enemy's icon the
     /// instant it finishes acting, and a pass landing after that would hand the icon straight back
@@ -914,9 +930,11 @@ public class BattleManager : Singleton<BattleManager>
         {
             Intent next = Decide(enemy, board);
 
-            // Kind only - assigning an identical kind would still raise IntentChanged and roll the
-            // icon over to the sprite it is already showing.
-            if (next.kind == enemy.CommittedIntent.kind) { continue; }
+            // Every field, not just kind - a re-aim onto a different tile or victim (same locked
+            // card) still has to repaint the icon's position and damage number. Matches skips only a
+            // truly identical result, so re-assigning it never rolls the icon over to the sprite it is
+            // already showing.
+            if (next.Matches(enemy.CommittedIntent)) { continue; }
 
             enemy.CommittedIntent = next;
         }
@@ -1246,7 +1264,13 @@ public class BattleManager : Singleton<BattleManager>
 
             // Shield wipes itself in here. BattleManager does not know that - it just says the turn
             // started and lets each status decide what that means. See Character.OnTurnStart.
+            // Dodge pays its deferred charge here too - see DodgeStatus.
             character.OnTurnStart();
+
+            // A round-scoped lock, not a status - nothing pays a charge to clear it. EnemyResolve
+            // already clears its own as each enemy finishes, so this only matters for one whose
+            // action points ran out - died, Frozen - while still holding one.
+            character.LockedAim = Intent.Wait();
         }
 
         // Every OnTurnStart hook has run by here - Shield has wiped itself, and none of it went
@@ -1270,9 +1294,20 @@ public class BattleManager : Singleton<BattleManager>
             // Same reasoning TargetSelector.TryPick documents for resolving Random once per pick.
             enemy.RollTotemHunt();
 
+            // Last round's lock has to be gone before Decide runs, or Decide (via the lock-aware
+            // private overload above) would just re-aim the card this enemy already discarded playing
+            // last turn. No lock is held here, so this is always a fresh EnemyBrain.Decide.
+            enemy.ClearIntentLock();
+
+            Intent opening = Decide(enemy, board);
+
+            // The one and only place a lock is set - see Character.LockedCard. Every recompute for the
+            // rest of this turn re-aims this exact card rather than picking a new one.
+            enemy.LockIntent(opening);
+
             // The setter raises IntentChanged, which is what puts the icon up - see
             // CharacterOverheadViewer.
-            enemy.CommittedIntent = Decide(enemy, board);
+            enemy.CommittedIntent = opening;
 
             if (!enemy.CommittedIntent.IsWait)
             {
@@ -1316,26 +1351,40 @@ public class BattleManager : Singleton<BattleManager>
     {
         Phase = BattlePhase.EnemyResolve;
 
-        foreach (Character enemy in LivingEnemies())
+        enemyResolveOrder = new List<Character>(LivingEnemies());
+        enemyResolveOrder.Sort(CompareByGridOrder);
+
+        for (enemyResolveIndex = 0; enemyResolveIndex < enemyResolveOrder.Count; enemyResolveIndex++)
         {
+            Character enemy = enemyResolveOrder[enemyResolveIndex];
+
+            if (enemy == null || enemy.IsDead) { continue; }
+
             // Frozen burns the whole turn, not one action - there is no partial thaw. Clear the
             // intent too, or a frozen enemy would wear a ghost icon into the next turn.
             if (!enemy.CanAct)
             {
                 Debug.Log($"{enemy.name} is frozen and loses its turn");
                 enemy.CommittedIntent = Intent.Wait();
+                enemy.LockedAim = Intent.Wait();
+                enemy.ClearIntentLock();
                 continue;
             }
 
             for (int ap = 0; ap < enemy.ActionPoints && !enemy.IsDead; ap++)
             {
-                // Every action point decided outright against the live board. CommittedIntent is only
-                // ever what the icon shows - it is kept live by the refresh pass, not consulted here.
-                Intent step = Decide(enemy, GridManager.Instance.Read());
+                // LockAimsOn may have frozen this enemy onto an Attack it was aiming at a dodger who
+                // has since moved on - see DodgeStatus. Consuming that lock instead of deciding fresh
+                // is the one exception to "CommittedIntent is only ever what the icon shows"; every
+                // other action point is still decided outright against the live board, same as always.
+                bool committed = !enemy.LockedAim.IsWait;
+                Intent step = committed ? enemy.LockedAim : Decide(enemy, GridManager.Instance.Read());
+
+                enemy.LockedAim = Intent.Wait();
 
                 if (step.IsWait) { break; }
 
-                yield return StartCoroutine(Execute(enemy, step));
+                yield return StartCoroutine(Execute(enemy, step, committed));
 
                 // AddAction resolves the first action synchronously, so "queued" is not "finished".
                 // Also waits on LootManager: an enemy can shove a hero onto a loot tile, and the reward
@@ -1346,7 +1395,12 @@ public class BattleManager : Singleton<BattleManager>
             // Clears this enemy's icon the moment it is done, rather than every icon vanishing at
             // once when EnemyResolve began - so mid-resolve you can see who is still owed an action.
             enemy.CommittedIntent = Intent.Wait();
+            enemy.LockedAim = Intent.Wait();
+            enemy.ClearIntentLock();
         }
+
+        enemyResolveOrder = null;
+        enemyResolveIndex = -1;
 
         // Actions resolve through the queue, and AddAction runs the first one synchronously, so
         // "queued" is not "finished". Without this the turn would roll over mid-animation.
@@ -1355,16 +1409,68 @@ public class BattleManager : Singleton<BattleManager>
         TickStatuses(playerControlled: false);
     }
 
+    /// <summary>
+    /// Freezes any not-yet-finished enemy that is currently aiming an Attack at `dodger` onto that
+    /// exact Intent, so it keeps swinging at `vacated` instead of re-Deciding once `dodger` has moved
+    /// away. Called from DodgeStatus.OnTakeDamage, before the sidestep is queued - Decide has to see
+    /// `dodger` still standing on `vacated` for its answer to be the tile being frozen.
+    ///
+    /// "Not yet finished" is enemyResolveOrder from enemyResolveIndex onward when EnemyResolve is
+    /// running (the enemy currently acting included, for its next action point) - or every living
+    /// enemy when it is not running yet, since nobody has acted this round at all. Locking an enemy
+    /// whose own remaining action points run out before it is ever consumed is harmless: EnemyResolve
+    /// clears LockedAim the moment that enemy finishes its turn.
+    /// </summary>
+    public void LockAimsOn(Character dodger, GridTile vacated)
+    {
+        if (dodger == null || GridManager.Instance == null) { return; }
+
+        Board board = GridManager.Instance.Read();
+        int start = enemyResolveOrder != null ? enemyResolveIndex : 0;
+        IReadOnlyList<Character> order = enemyResolveOrder ?? new List<Character>(LivingEnemies());
+
+        for (int i = start; i < order.Count; i++)
+        {
+            Character enemy = order[i];
+
+            if (enemy == null || enemy.IsDead || !enemy.CanAct) { continue; }
+
+            Intent decided = Decide(enemy, board);
+
+            if (decided.kind == IntentKind.Attack && decided.victim == dodger)
+            {
+                enemy.LockedAim = decided;
+            }
+        }
+    }
+
     /// True when no reward panel is up or queued. A LootManager-less scene (a test harness, or one
     /// that simply has no loot yet) must not block the turn loop forever, hence the null check.
     private static bool LootIdle() => LootManager.Instance == null || LootManager.Instance.IsIdle;
 
-    /// Asks this character's brain for one action. Wait if it has no brain, which is every player.
+    /// <summary>
+    /// What this character would do right now - Wait if it has no brain, which is every player.
+    ///
+    /// Lock-aware: if this character is still holding the card it committed to this turn (see
+    /// Character.LockedCard), this re-aims that same card at the live board instead of asking Decide
+    /// fresh, so every caller - the per-frame refresh below, TurnStart's opening commit, and
+    /// EnemyResolve's own re-ask per action point - gets the same "same card, live aim" answer without
+    /// needing to know the lock exists. Only falls through to a fresh Decide when the locked card can
+    /// no longer be aimed at anything at all; TurnStart is the only place that result gets re-locked,
+    /// so a card dropped here for being briefly unplayable is not silently replaced forever.
+    /// </summary>
     private static Intent Decide(Character character, Board board)
     {
         EnemyBrain brain = EnemyBrain.For(character.Brain);
 
         if (brain == null || character.Tile == null) { return Intent.Wait(); }
+
+        if (character.LockedCard != null && character.Holds(character.LockedCard))
+        {
+            Intent held = brain.Reaim(character, character.LockedCard, character.LockedKind, board);
+
+            if (!held.IsWait) { return held; }
+        }
 
         return brain.Decide(character, board);
     }
@@ -1377,15 +1483,22 @@ public class BattleManager : Singleton<BattleManager>
     /// board changed in the single frame between deciding and acting, not that a stale plan met a
     /// rearranged board.
     ///
+    /// `committed` means `step` came from Character.LockedAim rather than a fresh Decide - a Dodge
+    /// froze this onto a tile its target has since left. That swing must still go off and whiff, not
+    /// fizzle as "there is nobody there", so this asks Card.CommittedRefusal instead of Card.Refusal -
+    /// range and cooldown only, no occupant check. See DodgeStatus and BattleManager.LockAimsOn.
+    ///
     /// Resolution goes through ResolveEffects exactly as a played card does, so enemy attacks pick up
     /// Strength, Double Attack and the target's armor for free. Nothing in the card pipeline needed
     /// to learn that enemies exist.
     /// </summary>
-    private IEnumerator Execute(Character enemy, Intent step)
+    private IEnumerator Execute(Character enemy, Intent step, bool committed = false)
     {
         GridTile tile = GridManager.Instance.GetTile(step.target);
 
-        string refusal = tile == null ? "that tile is gone" : step.card.Refusal(enemy, tile);
+        string refusal = tile == null
+            ? "that tile is gone"
+            : committed ? step.card.CommittedRefusal(enemy, tile) : step.card.Refusal(enemy, tile);
 
         if (refusal != null)
         {
@@ -1456,6 +1569,18 @@ public class BattleManager : Singleton<BattleManager>
                 yield return character;
             }
         }
+    }
+
+    /// Bottom-left to bottom-right, then up a row: the order EnemyResolve acts in, so it reads off
+    /// board position rather than spawn order. y ascending first (bottom row before the ones above
+    /// it), then x ascending within a row (left before right). A tileless enemy sorts last rather than
+    /// throwing, though EnemyResolve never actually holds one.
+    private static int CompareByGridOrder(Character a, Character b)
+    {
+        Vector2Int ca = a.Tile != null ? a.Tile.Coordinates : new Vector2Int(int.MaxValue, int.MaxValue);
+        Vector2Int cb = b.Tile != null ? b.Tile.Coordinates : new Vector2Int(int.MaxValue, int.MaxValue);
+
+        return ca.y != cb.y ? ca.y.CompareTo(cb.y) : ca.x.CompareTo(cb.x);
     }
 
     private bool AllHeroesDead()

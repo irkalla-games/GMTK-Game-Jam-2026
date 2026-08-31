@@ -3,13 +3,18 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Resizes HeroPortrait.prefab ~1.5x - rebudgeting the bottom section from scratch rather than blindly
-/// scaling it, since the chip row already overflowed past the panel's own bottom edge before this and a
-/// uniform ×1.5 of that would only make it worse - and assigns each player class prefab's
-/// Character.portrait: White Cross for the Knight, White Witch Hat for the Mage, White Mask for the
-/// Rogue. Character.Portrait is read generically by HeroPortrait, PartySheetColumn and CharacterOption,
-/// so setting it once here is what the Tab panel and character-select screen also pick up - no separate
-/// art needed for either.
+/// Resizes HeroPortrait.prefab to its current spec - rebudgeting the whole layout from scratch rather
+/// than blindly scaling it, same reasoning as the original ~1.5x pass this superseded. The energy pips
+/// stand in a vertical column beside the health bar instead of a horizontal row below it, with the health
+/// text next to the bar at the foot of that column and pips stacking upward from there - so the status
+/// chip row is the only thing left below the bar. Fitting the side column cost the panel 24 units of
+/// width (144 -> 168); PortraitImage, NameLabel, HealthBarBg and ChipParent all shift left by half that
+/// (-12) to keep the bar/name/portrait column centred against the new panel width, and
+/// HeroPortrait.PlacePip stacks pips upward from pipParent instead of rightward to match. Also assigns
+/// each player class prefab's Character.portrait: White Cross for the
+/// Knight, White Witch Hat for the Mage, White Mask for the Rogue. Character.Portrait is read generically
+/// by HeroPortrait, PartySheetColumn and CharacterOption, so setting it once here is what the Tab panel
+/// and character-select screen also pick up - no separate art needed for either.
 ///
 /// Edits existing prefabs via PrefabUtility.LoadPrefabContents/SaveAsPrefabAsset rather than deleting
 /// and recreating them, which is what keeps their file GUIDs - and every scene/prefab reference to them
@@ -18,7 +23,10 @@ using UnityEngine;
 /// PartyPortraitWiring.EnsureHeroPortraitPrefab early-returns once the prefab exists, which is the right
 /// answer to "does this exist at all" and the wrong one to "does this match the current spec."
 ///
-/// Idempotent: every value is re-applied unconditionally on every run.
+/// Idempotent: every value is re-applied unconditionally on every run. The panel's width change means
+/// PartyPortraitPanel's restWidth/activeWidth (wired by PartyPortraitWiring) need to grow to match, or
+/// rest-scaled portraits in the row will overlap - see PartyPortraitWiring.RestWidth/ActiveWidth's own
+/// comment. Re-run Tools > Battle HUD > Wire Party Portraits after this.
 ///
 /// Editor-only, and deliberately not covered by Tools/compile-check.ps1 by default - verify with the
 /// -IncludeEditor switch, or by focusing the Editor and checking the console, per CLAUDE.md.
@@ -61,8 +69,9 @@ public static class HeroPortraitResizeWiring
     }
 
     // ------------------------------------------------------------------------------------------
-    // HeroPortrait.prefab - a fresh vertical budget for the new 144x285 size, not a scale of the old
-    // (buggy) one. See the plan this was authored from for the numbers' derivation.
+    // HeroPortrait.prefab - a fresh layout budget for the current 168x285 size, not a scale of the
+    // previous 144-wide one. The extra 24 units of width holds the pip column beside the bar; every
+    // other core element (portrait/name/bar/chips) shifts left by half that (-12) to stay centred.
     // ------------------------------------------------------------------------------------------
 
     private static bool ResizeHeroPortrait()
@@ -74,22 +83,36 @@ public static class HeroPortraitResizeWiring
         GameObject root = PrefabUtility.LoadPrefabContents(HeroPortraitPrefabPath);
         RectTransform rootRect = (RectTransform)root.transform;
 
-        rootRect.sizeDelta = new Vector2(144f, 285f);
+        rootRect.sizeDelta = new Vector2(168f, 285f);
 
-        SetRect(rootRect, "PortraitImage", new Vector2(0f, 76.5f), new Vector2(120f, 120f));
-        SetRect(rootRect, "NameLabel", new Vector2(0f, -1.5f), new Vector2(138f, 30f));
-        SetRect(rootRect, "HealthBarBg", new Vector2(0f, -27f), new Vector2(129f, 15f));
-        SetRect(rootRect, "HealthText", new Vector2(0f, -49.5f), new Vector2(138f, 24f));
-        SetRect(rootRect, "PipParent", new Vector2(0f, -76f), Vector2.zero);
-        SetRect(rootRect, "ChipParent", new Vector2(0f, -90.5f), Vector2.zero);
+        SetRect(rootRect, "PortraitImage", new Vector2(-12f, 76.5f), new Vector2(120f, 120f));
+        SetRect(rootRect, "NameLabel", new Vector2(-12f, -1.5f), new Vector2(138f, 30f));
+        SetRect(rootRect, "HealthBarBg", new Vector2(-12f, -27f), new Vector2(129f, 15f));
+
+        // Pulled up tight against the bar's bottom edge (-34.5) - now that the pip/text column moved up
+        // beside the bar instead of hanging below it, nothing else needs the space in between. Anchored
+        // near the panel's own left edge (-84, so -80 leaves a small 4-unit margin) rather than under the
+        // bar's centre - HeroPortrait.Place lays chips out left-to-right from this point in a single row
+        // that never wraps (the chip-row counterpart to PlacePip above), so starting as far left as the
+        // panel allows is what gives that row the most width to grow into before a chip has to spill past
+        // the panel's right edge.
+        SetRect(rootRect, "ChipParent", new Vector2(-80f, -44f), Vector2.zero);
+
+        // Beside the bar rather than below it. HealthText sits level with HealthBarBg (bar centre y -27)
+        // just past its right edge (52.5) - "right next to" the bar rather than tucked under it. PipParent
+        // anchors the column's bottom just above the text, and pips stack upward from there (3 pips span
+        // y -15..28), which is what makes the whole side column read noticeably higher than the bar it
+        // sits beside instead of hanging below it. Leaves the chip row as the only thing below the bar.
+        SetRect(rootRect, "HealthText", new Vector2(70f, -27f), new Vector2(36f, 16f));
+        SetRect(rootRect, "PipParent", new Vector2(70f, -15f), Vector2.zero);
 
         SetFontSize(rootRect, "NameLabel", 24f);
-        SetFontSize(rootRect, "HealthText", 18f);
+        SetFontSize(rootRect, "HealthText", 11f);
 
         HeroPortrait portrait = root.GetComponent<HeroPortrait>();
         SerializedObject so = new(portrait);
-        so.FindProperty("pipSize").floatValue = 21f;
-        so.FindProperty("pipSpacing").floatValue = 4.5f;
+        so.FindProperty("pipSize").floatValue = 13f;
+        so.FindProperty("pipSpacing").floatValue = 2f;
         so.FindProperty("chipSize").floatValue = 42f;
         so.FindProperty("chipSpacing").floatValue = 3f;
         so.ApplyModifiedProperties();

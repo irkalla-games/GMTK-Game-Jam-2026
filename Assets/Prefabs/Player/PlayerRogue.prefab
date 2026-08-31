@@ -1223,6 +1223,9 @@ MonoBehaviour:
   maxHealth: 20
   maxEnergy: 3
   playableCharacter: 2
+  battleRole: 0
+  powerLevel: 0
+  isBoss: 0
   characterClass: 4
   displayName: Rogue
   portrait: {fileID: 21300000, guid: 4bd722eab7fbfe149a44edd733c6da3a, type: 3}

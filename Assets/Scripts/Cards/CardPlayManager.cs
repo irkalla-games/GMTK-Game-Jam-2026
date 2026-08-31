@@ -99,6 +99,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
         {
             Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {refusal}");
             cardViewer.transform.DOShakePosition(0.25f, 0.15f);
+            ShowRefusalHint(card, actor, tile, refusal);
             return;
         }
 
@@ -108,6 +109,12 @@ public class CardPlayManager : Singleton<CardPlayManager>
         ClearHighlights();
         actor.SpendEnergy(card.cost);
         card.ResolveEffects(actor, tile);
+
+        // After ResolveEffects, not before - the rotation the player dialled in is exactly what has
+        // to land, so it must still be readable through card.AimOctant for that call. Reset now,
+        // rather than left for the next Select, so a card played again while still on cooldown (or
+        // simply picked up again later) starts from its default orientation.
+        card.ResetAim();
 
         // Into the actor's own discard pile - the card came out of that character's hand.
         // ActiveHandViewer is listening for Character.CardDiscarded and removes the viewer itself.
@@ -124,6 +131,11 @@ public class CardPlayManager : Singleton<CardPlayManager>
     /// </summary>
     public void RefreshAimPreviews(GridTile hovered)
     {
+        // Remembered so the E-key rotate handler can re-run this against the same tile the cursor is
+        // already parked over - without it, rotating with the mouse sitting still would leave the old
+        // orientation lit until something else moved it, since nothing else would ever call back in.
+        lastHovered = hovered;
+
         if (GridManager.Instance == null) { return; }
 
         Character actor = BattleManager.Instance != null ? BattleManager.Instance.ActiveCharacter : null;
@@ -131,6 +143,32 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         GridManager.Instance.ShowAreaPreview(card, actor, hovered);
         GridManager.Instance.ShowDamagePreview(card, actor, hovered);
+        GridManager.Instance.ShowPushPreview(card, actor, hovered);
+    }
+
+    private GridTile lastHovered;
+
+    /// World-unit cap height of the refusal label. A sentence rather than a damage number, so it is
+    /// shorter than FloatingTextManager's own default to keep the line from overhanging its tile.
+    private const float RefusalHintHeight = 0.28f;
+
+    /// <summary>
+    /// Pops a plain-language label over the clicked tile when a refusal is worth explaining, rather
+    /// than only shaking the card and writing to the console where a player will never see it.
+    ///
+    /// Deliberately narrow: only the push refusal gets one. Every other reason is either already
+    /// obvious on screen (out of range shows no highlight, an unaffordable card shows its cost) or
+    /// phrased for a log rather than a player. Compared against the refusal the click actually
+    /// produced, so a tile that is *also* out of range reports that instead of blaming the push.
+    /// </summary>
+    private static void ShowRefusalHint(Card card, Character actor, GridTile tile, string refusal)
+    {
+        if (FloatingTextManager.Instance == null) { return; }
+
+        if (card.PushRefusal(actor, tile) != refusal) { return; }
+
+        FloatingTextManager.Instance.Show(tile, "Too many enemies nearby!", PanelPalette.Gold,
+                                          RefusalHintHeight);
     }
 
     private static string Name(CardViewer cardViewer) =>
@@ -142,6 +180,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         selected = cardViewer;
         cardViewer.SetSelected(true);
+        cardViewer.card.ResetAim();
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
 
         if (GridManager.Instance != null)
@@ -152,6 +191,13 @@ public class CardPlayManager : Singleton<CardPlayManager>
             // previews lit until the next hover event - nobody will refresh them, since nothing moved.
             GridManager.Instance.ClearAreaPreview();
             GridManager.Instance.ClearDamagePreview();
+            GridManager.Instance.ClearPushPreview();
+        }
+
+        if (AimHintLabel.Instance != null)
+        {
+            if (cardViewer.card.CanRotateAim) { AimHintLabel.Instance.Show("Press E to rotate"); }
+            else { AimHintLabel.Instance.Hide(); }
         }
     }
 
@@ -160,9 +206,13 @@ public class CardPlayManager : Singleton<CardPlayManager>
         if (!HasSelection) { return; }
 
         selected.SetSelected(false);
+        selected.card.ResetAim();
         selected = null;
+        lastHovered = null;
         ClearHighlights();
         StartCoroutine(ActiveHandViewer.Instance.Relayout());
+
+        if (AimHintLabel.Instance != null) { AimHintLabel.Instance.Hide(); }
     }
 
     private static void ClearHighlights()
@@ -172,6 +222,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
         GridManager.Instance.ClearPlayableTiles();
         GridManager.Instance.ClearAreaPreview();
         GridManager.Instance.ClearDamagePreview();
+        GridManager.Instance.ClearPushPreview();
     }
 
     private void Update()
@@ -181,6 +232,24 @@ public class CardPlayManager : Singleton<CardPlayManager>
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             Deselect();
+            return;
+        }
+
+        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame && selected.card.CanRotateAim)
+        {
+            // The first turn of a session starts from the facing currently on screen, which depends on
+            // where the caster stands and which tile is under the cursor - hence both are handed over.
+            Character actor = BattleManager.Instance != null ? BattleManager.Instance.ActiveCharacter : null;
+
+            selected.card.RotateAim(actor, lastHovered);
+
+            // The locked facing moves the footprint, which changes which tiles the push can actually
+            // clear - so the green highlight has to be rebuilt, not just the previews. Leaving it
+            // would let it promise a tile the very next click refuses, which is the one thing
+            // Card.Refusal and ShowPlayableTiles exist together to prevent.
+            if (GridManager.Instance != null) { GridManager.Instance.ShowPlayableTiles(selected.card, actor); }
+
+            RefreshAimPreviews(lastHovered);
             return;
         }
 

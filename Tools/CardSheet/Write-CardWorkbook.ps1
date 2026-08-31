@@ -240,7 +240,7 @@ function Add-EnumsSheet {
     $legacyFolders = @('Defensive Buff', 'Offensive Buffs', 'Defensive Buffs', 'Offensive Buff')
 
     $folders = @()
-    foreach ($tab in @('Knight', 'Mage', 'Rogue', 'Neutral')) {
+    foreach ($tab in @('Knight', 'Mage', 'Rogue', 'Cleric', 'Neutral')) {
         $folders += @($Sheets[$tab] | ForEach-Object { $_.Folder })
     }
     $folders = @($canonicalFolders + $folders |
@@ -248,7 +248,8 @@ function Add-EnumsSheet {
         Sort-Object -Unique)
 
     $lists = [ordered]@{
-        list_Class     = @('Any', 'Knight', 'Mage', 'Rogue', 'Knight+Mage', 'Knight+Rogue', 'Mage+Rogue', 'Knight+Mage+Rogue')
+        list_Class     = @('Any', 'Knight', 'Mage', 'Rogue', 'Cleric', 'Knight+Mage', 'Knight+Rogue', 'Mage+Rogue',
+                            'Knight+Cleric', 'Mage+Cleric', 'Rogue+Cleric', 'Knight+Mage+Rogue')
         list_Rarity    = @('Common', 'Uncommon', 'Rare', 'Legendary', 'NotOffered')
         list_Shape     = @('Anywhere', 'Chebyshev', 'Manhattan', 'SelfTile')
         list_Aim       = @('Tile', 'Self')
@@ -296,7 +297,9 @@ function Set-BalanceSheet {
     # Column map, kept here because every formula below depends on it:
     #   D Cost  E Rarity  G Enemy Tiles  H Ally Tiles  I Damage  J Heal  K Shield  L Block  M Parry
     #   N Poison  O Strength  P Weaken  Q Draw  R Move  S Combo  U Control  V Quantifiable
-    #   W Power  X Power/Energy  Y Expected  Z Delta  AA Flag  AB Issues  AC..AJ chart helpers
+    #   W Power  X Power/Energy  Y Expected  Z Delta  AA Flag  AB Issues  AC..AK chart helpers
+    #   AL Eff Cleric - appended after AK (Pw Idea) on purpose, so AC..AK keep the exact letters every
+    #   formula above already hardcodes; see Export-CardSheet.ps1's Get-BalanceRecord for why.
     for ($r = 2; $r -le $last; $r++) {
         # Effective target counts: the aimed tile always counts, extra tiles only at the occupancy
         # rate, and the whole thing capped - area scales with the board, but the number of things
@@ -330,6 +333,7 @@ function Set-BalanceSheet {
         $ws.Cells[$r, 35].Formula = "IF(AND(`$V$r<>`"No`",ISNUMBER(SEARCH(`"Rogue`",`$C$r)),$shipped),`$X$r,NA())"
         $ws.Cells[$r, 36].Formula = "IF(`$V$r<>`"No`",`$Y$r,NA())"
         $ws.Cells[$r, 37].Formula = "IF(AND(`$V$r<>`"No`",ISNUMBER(SEARCH(`"Ideas`",`$F$r))),`$W$r,NA())"
+        $ws.Cells[$r, 38].Formula = "IF(AND(`$V$r<>`"No`",ISNUMBER(SEARCH(`"Cleric`",`$C$r)),$shipped),`$X$r,NA())" # AL Eff Cleric
     }
 
     $ws.Cells["W2:Z$last"].Style.Numberformat.Format = '0.00'
@@ -357,8 +361,8 @@ function Set-BalanceSheet {
     $fmtBad.Style.Fill.BackgroundColor.Color = [System.Drawing.Color]::FromArgb(255, 199, 206)
 
     $ws.View.FreezePanes(2, 3)
-    $ws.Cells["A1:AK1"].Style.Font.Bold = $true
-    $ws.Cells["A1:AK$last"].AutoFilter = $true
+    $ws.Cells["A1:AL1"].Style.Font.Bold = $true
+    $ws.Cells["A1:AL$last"].AutoFilter = $true
 
     # Summary tables and charts live on their own sheet. They used to sit off to the right of this one,
     # which put a second "Cost"/"Knight" header on row 1 and made the sheet unreadable to Import-Excel -
@@ -378,17 +382,19 @@ function Add-ChartsSheet {
     # Source is the tab a row came from, and anything ending in "Ideas" is a proposal, not content.
     $notIdeas = "$B`$F`$2:`$F`$$Last,`"<>*Ideas*`""
 
-    # --- Cost histogram source, A1:D7. COUNTIFS on a wildcard so "Knight+Rogue" counts for both. ---
+    # --- Cost histogram source, A1:E7. COUNTIFS on a wildcard so "Knight+Rogue" counts for both. ---
     $ws.Cells['A1'].Value = 'Cost'
     $ws.Cells['B1'].Value = 'Knight'
     $ws.Cells['C1'].Value = 'Mage'
     $ws.Cells['D1'].Value = 'Rogue'
+    $ws.Cells['E1'].Value = 'Cleric'
     for ($c = 0; $c -le 5; $c++) {
         $r = $c + 2
         $ws.Cells[$r, 1].Value = $c
         $ws.Cells[$r, 2].Formula = "COUNTIFS($B`$D`$2:`$D`$$Last,`$A$r,$B`$C`$2:`$C`$$Last,`"*Knight*`",$notIdeas)"
         $ws.Cells[$r, 3].Formula = "COUNTIFS($B`$D`$2:`$D`$$Last,`$A$r,$B`$C`$2:`$C`$$Last,`"*Mage*`",$notIdeas)"
         $ws.Cells[$r, 4].Formula = "COUNTIFS($B`$D`$2:`$D`$$Last,`$A$r,$B`$C`$2:`$C`$$Last,`"*Rogue*`",$notIdeas)"
+        $ws.Cells[$r, 5].Formula = "COUNTIFS($B`$D`$2:`$D`$$Last,`$A$r,$B`$C`$2:`$C`$$Last,`"*Cleric*`",$notIdeas)"
     }
 
     # --- Coverage source, F1:I12. One row per effect kind, keyed to the Balance column that holds it. ---
@@ -402,6 +408,7 @@ function Add-ChartsSheet {
     $ws.Cells['G1'].Value = 'Knight'
     $ws.Cells['H1'].Value = 'Mage'
     $ws.Cells['I1'].Value = 'Rogue'
+    $ws.Cells['J1'].Value = 'Cleric'
     for ($i = 0; $i -lt $kinds.Count; $i++) {
         $r = $i + 2
         $col = $kinds[$i][1]
@@ -409,21 +416,24 @@ function Add-ChartsSheet {
         $ws.Cells[$r, 7].Formula = "COUNTIFS($B`$$col`$2:`$$col`$$Last,`">0`",$B`$C`$2:`$C`$$Last,`"*Knight*`",$notIdeas)"
         $ws.Cells[$r, 8].Formula = "COUNTIFS($B`$$col`$2:`$$col`$$Last,`">0`",$B`$C`$2:`$C`$$Last,`"*Mage*`",$notIdeas)"
         $ws.Cells[$r, 9].Formula = "COUNTIFS($B`$$col`$2:`$$col`$$Last,`">0`",$B`$C`$2:`$C`$$Last,`"*Rogue*`",$notIdeas)"
+        $ws.Cells[$r, 10].Formula = "COUNTIFS($B`$$col`$2:`$$col`$$Last,`">0`",$B`$C`$2:`$C`$$Last,`"*Cleric*`",$notIdeas)"
     }
     $r = $kinds.Count + 2
     $ws.Cells[$r, 6].Value = 'Control'
     $ws.Cells[$r, 7].Formula = "COUNTIFS($B`$U`$2:`$U`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Knight*`",$notIdeas)"
     $ws.Cells[$r, 8].Formula = "COUNTIFS($B`$U`$2:`$U`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Mage*`",$notIdeas)"
     $ws.Cells[$r, 9].Formula = "COUNTIFS($B`$U`$2:`$U`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Rogue*`",$notIdeas)"
+    $ws.Cells[$r, 10].Formula = "COUNTIFS($B`$U`$2:`$U`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Cleric*`",$notIdeas)"
     $r++
     $ws.Cells[$r, 6].Value = 'Summon'
     $ws.Cells[$r, 7].Formula = "COUNTIFS($B`$T`$2:`$T`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Knight*`",$notIdeas)"
     $ws.Cells[$r, 8].Formula = "COUNTIFS($B`$T`$2:`$T`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Mage*`",$notIdeas)"
     $ws.Cells[$r, 9].Formula = "COUNTIFS($B`$T`$2:`$T`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Rogue*`",$notIdeas)"
+    $ws.Cells[$r, 10].Formula = "COUNTIFS($B`$T`$2:`$T`$$Last,`"?*`",$B`$C`$2:`$C`$$Last,`"*Cleric*`",$notIdeas)"
     $covLast = $r
 
-    $ws.Cells['A1:D1'].Style.Font.Bold = $true
-    $ws.Cells['F1:I1'].Style.Font.Bold = $true
+    $ws.Cells['A1:E1'].Style.Font.Bold = $true
+    $ws.Cells['F1:J1'].Style.Font.Bold = $true
 
     $q   = "'Balance'!"
     $top = 15
@@ -445,7 +455,7 @@ function Add-ChartsSheet {
     # 2. Efficiency by class.
     $c2 = $ws.Drawings.AddChart('Efficiency', [OfficeOpenXml.Drawing.Chart.eChartType]::XYScatter)
     $c2.Title.Text = 'Efficiency - power per energy, by class'
-    foreach ($s in @(@('AG', 'Knight'), @('AH', 'Mage'), @('AI', 'Rogue'))) {
+    foreach ($s in @(@('AG', 'Knight'), @('AH', 'Mage'), @('AI', 'Rogue'), @('AL', 'Cleric'))) {
         $serie = $c2.Series.Add("$q`$$($s[0])`$2:`$$($s[0])`$$Last", "$q`$D`$2:`$D`$$Last")
         $serie.Header = $s[1]
     }
@@ -457,7 +467,7 @@ function Add-ChartsSheet {
     # 3. Cost histogram.
     $c3 = $ws.Drawings.AddChart('CostCurve', [OfficeOpenXml.Drawing.Chart.eChartType]::ColumnClustered)
     $c3.Title.Text = 'Cost distribution - how many cards at each price, per class'
-    foreach ($s in @(@('B', 'Knight'), @('C', 'Mage'), @('D', 'Rogue'))) {
+    foreach ($s in @(@('B', 'Knight'), @('C', 'Mage'), @('D', 'Rogue'), @('E', 'Cleric'))) {
         $serie = $c3.Series.Add("'Charts'!`$$($s[0])`$2:`$$($s[0])`$7", "'Charts'!`$A`$2:`$A`$7")
         $serie.Header = $s[1]
     }
@@ -469,7 +479,7 @@ function Add-ChartsSheet {
     # 4. Coverage - the chart that makes "Rogue has no heal" a picture rather than a hunch.
     $c4 = $ws.Drawings.AddChart('Coverage', [OfficeOpenXml.Drawing.Chart.eChartType]::ColumnClustered)
     $c4.Title.Text = 'Coverage - which effects each class actually has'
-    foreach ($s in @(@('G', 'Knight'), @('H', 'Mage'), @('I', 'Rogue'))) {
+    foreach ($s in @(@('G', 'Knight'), @('H', 'Mage'), @('I', 'Rogue'), @('J', 'Cleric'))) {
         $serie = $c4.Series.Add("'Charts'!`$$($s[0])`$2:`$$($s[0])`$$covLast", "'Charts'!`$F`$2:`$F`$$covLast")
         $serie.Header = $s[1]
     }
@@ -489,7 +499,8 @@ function Add-ChartsSheet {
 function Set-CardSheets {
     param($Package, $Sheets)
 
-    $cardTabs = @('Knight', 'Mage', 'Rogue', 'Neutral', 'Knight Ideas', 'Mage Ideas', 'Rogue Ideas')
+    $cardTabs = @('Knight', 'Mage', 'Rogue', 'Cleric', 'Neutral',
+                  'Knight Ideas', 'Mage Ideas', 'Rogue Ideas', 'Cleric Ideas')
 
     foreach ($tab in $cardTabs) {
         $ws = $Package.Workbook.Worksheets[$tab]
@@ -513,7 +524,8 @@ function Set-CardSheets {
             @('Effect 1',    'list_Effect'),
             @('Effect 2',    'list_Effect'),
             @('Effect 3',    'list_Effect'),
-            @('No Reward',   'list_Bool')
+            @('No Reward',   'list_Bool'),
+            @('Rotatable',   'list_Bool')
         )
         if ($isIdeas) {
             $validations += ,@('Buildable', 'list_Buildable')
@@ -581,7 +593,7 @@ function Add-ReadmeSheet {
         @('It applies your sheet edits to the assets, then rebuilds this workbook so anything you authored in the Inspector appears here. Safe to press whatever you changed and wherever - it works out per column which side moved, and stops rather than guessing when both did.', ''),
         @('', ''),
         @('The tabs', 'head'),
-        @('Knight / Mage / Rogue / Neutral', 'THE REAL CARDS. These mirror the .asset files. Everything here syncs to Unity - add a row, change a Description, and it lands in the game.'),
+        @('Knight / Mage / Rogue / Cleric / Neutral', 'THE REAL CARDS. These mirror the .asset files. Everything here syncs to Unity - add a row, change a Description, and it lands in the game.'),
         @('* Ideas', 'DESIGN SPACE ONLY. Never imported, whatever the Buildable column says. To build an idea, copy its row onto the matching class tab - the leading columns are identical, so it pastes straight across.'),
         @('Glossary', 'Tooltip wording for every status and keyword. Edit Title/Body/Terms and sync to reword what the player reads. Also syncs.'),
         @('Effects', 'The shared CardEffect assets under Assets/Data/EffectData. Used By shows how many cards reference each one.'),
@@ -592,7 +604,7 @@ function Add-ReadmeSheet {
         @('Enums', 'Sources for the dropdowns. Mirrors the C# enums - change the enum, not this sheet.'),
         @('', ''),
         @('Adding a card', 'head'),
-        @('1.', 'Add a row on a CLASS tab (Knight/Mage/Rogue/Neutral) and leave GUID blank. Sync will read NEW. Rows on an Ideas tab are never built.'),
+        @('1.', 'Add a row on a CLASS tab (Knight/Mage/Rogue/Cleric/Neutral) and leave GUID blank. Sync will read NEW. Rows on an Ideas tab are never built.'),
         @('2.', 'Key is the asset filename. Folder decides which sub-folder it lands in.'),
         @('3.', 'Effect 1..3 take the NAME of an effect asset - see the Effects tab. "Damage 7" is fine even if it does not exist yet; the importer creates it.'),
         @('4.', 'Aim is Tile (the clicked tile) or Self (the caster). Area is Single, a radius like "Manhattan 0-2", or "Pattern:Cone3".'),
@@ -612,6 +624,7 @@ function Add-ReadmeSheet {
         @('Rarity', 'How good it is as a reward. NotOffered keeps it out of every reward pool.'),
         @('Range Shape/Min/Max', 'Which tiles may be clicked, measured from the caster. Chebyshev is a square, Manhattan a diamond.'),
         @('Area N', 'The footprint each effect covers around its aim tile. Single is one tile.'),
+        @('Rotatable', 'TRUE lets the player turn the card''s area a quarter turn while aiming (E). Only meaningful with a Pattern area - a Radius area already reads the same after any turn.'),
         @('GUID', 'Unity asset id. Blank means the card does not exist yet - this is what the importer diffs on.'),
         @('Buildable', 'Ideas tabs only, and purely informational now: Yes means the current engine could build it, anything else names what is missing. It does NOT gate anything - Ideas rows are never imported at all.'),
         @('Quantifiable', 'Balance tab. Yes = fully scored. Partial = has a numeric core plus an unscored rider (Ice Shard damages AND freezes) - plotted, but Flag reads RIDER because the number is a floor. No = nothing numeric at all, kept off the curve entirely.'),
@@ -653,8 +666,8 @@ function Add-ReadmeSheet {
 function Set-SheetOrder {
     param($Package)
 
-    $order = @('README', 'Knight', 'Mage', 'Rogue', 'Neutral',
-               'Knight Ideas', 'Mage Ideas', 'Rogue Ideas',
+    $order = @('README', 'Knight', 'Mage', 'Rogue', 'Cleric', 'Neutral',
+               'Knight Ideas', 'Mage Ideas', 'Rogue Ideas', 'Cleric Ideas',
                'Glossary', 'Effects', 'Decks', 'Model', 'Balance', 'Charts', 'Enums')
 
     foreach ($name in $order) {

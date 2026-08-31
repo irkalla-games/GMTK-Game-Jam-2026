@@ -101,6 +101,7 @@ public static class CardSheetImporter
         public int rangeMin;
         public int rangeMax;
         public bool excludeFromRewards;
+        public bool rotatableAim;
         public string description;
         public string animation;
         public List<KeywordSpec> keywords = new();
@@ -757,6 +758,7 @@ public static class CardSheetImporter
         so.FindProperty("<requiredClass>k__BackingField").intValue = spec.requiredClass;
         so.FindProperty("<rarity>k__BackingField").intValue = spec.rarity;
         so.FindProperty("<excludeFromRewards>k__BackingField").boolValue = spec.excludeFromRewards;
+        so.FindProperty("<rotatableAim>k__BackingField").boolValue = spec.rotatableAim;
         so.FindProperty("<description>k__BackingField").stringValue = spec.description;
 
         SerializedProperty range = so.FindProperty("<range>k__BackingField");

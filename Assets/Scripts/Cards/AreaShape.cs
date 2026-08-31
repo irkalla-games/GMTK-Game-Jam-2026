@@ -84,12 +84,19 @@ public struct AreaShape
     /// math - no GridTile - so EnemyBrain can score a footprint against Board the same way the
     /// player-facing highlight does.
     /// </summary>
-    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell)
+    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell) => Covers(caster, aim, cell, -1);
+
+    /// <summary>
+    /// As above, but with the facing the player has locked in - see Card.AimOctant. -1 means "no
+    /// rotation". Ignored for Radius: a box (Chebyshev) or diamond (Manhattan) measured from the aim
+    /// tile reads the same at any facing, so there is nothing for a rotation to change.
+    /// </summary>
+    public bool Covers(Vector2Int caster, Vector2Int aim, Vector2Int cell, int octantOverride)
     {
         return kind switch
         {
             AreaKind.Radius => radius.Contains(aim, cell),
-            AreaKind.Pattern => pattern != null && pattern.Covers(caster, aim, cell),
+            AreaKind.Pattern => pattern != null && pattern.Covers(caster, aim, cell, octantOverride),
             _ => cell == aim,
         };
     }

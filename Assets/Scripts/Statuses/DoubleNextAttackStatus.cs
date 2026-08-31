@@ -1,10 +1,8 @@
 ﻿/// <summary>
 /// Doubles one attack, then spends a charge. No duration - it waits for the swing.
 ///
-/// Only doubles the card's own number; Strength is added on top by StrengthStatus. That ordering is
-/// deliberate where it holds, because it keeps this buff's value tied to the card it lands on rather
-/// than also doubling Strength's flat bonus. Under FIFO hooks it only holds when this status was
-/// applied first - see Status.
+/// Only doubles the card's own number; Strength is added on top by StrengthStatus, undoubled - see
+/// Order, which is what pins this ahead of Strength regardless of which was granted first.
 ///
 /// It spends on the carrier's *next* attack, not their best one, which is the trap: buff the Knight
 /// and if they play Quick Attack (3) before Slash (9) the doubling burns for +3. That is real
@@ -13,6 +11,10 @@
 public class DoubleNextAttackStatus : StatusEffect
 {
     public DoubleNextAttackStatus(int stacks) : base(StatusType.DoubleNextAttack, stacks) { }
+
+    /// Before Strength (StrengthStatus.Order, the default 0) so the multiplier only ever sees the
+    /// card's own base number - see the class doc.
+    public override int Order => -10;
 
     public override DamageInfo OnDealDamage(DamageInfo info)
     {

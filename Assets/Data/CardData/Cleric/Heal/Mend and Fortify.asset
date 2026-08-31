@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: Mend and Fortify
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Mend and Fortify
+  <cost>k__BackingField: 2
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 1
+    maxDistance: 4
+  <requiredClass>k__BackingField: 8
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
+  <description>k__BackingField: Heal 5 and gain 3 Strength.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5007, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

@@ -6,6 +6,11 @@
 /// DamageInfo it returns. A status has no business deciding when in the sequence the counter-hit
 /// lands, and doing it here would mean reflecting before Block and Shield had finished with the hit.
 ///
+/// Last in the incoming chain (see Order) and the only one that reads what came before it: Block and
+/// Shield have already had their say by the time this runs, so it only ever fires - and only ever
+/// spends a charge - on whatever damage is still standing. A hit Block or Shield has already reduced to
+/// zero passes through untouched, charge and all held in reserve for the next one.
+///
 /// **A parry can itself be parried.** The counter-hit goes back through the ordinary TakeDamage door,
 /// so the original attacker's own statuses all get their say - their Shield absorbs it, their Block
 /// reduces it, and their Parry sends it straight back again. Two characters holding Parry will bounce
@@ -16,15 +21,20 @@ public class ParryStatus : StatusEffect
 {
     public ParryStatus(int stacks) : base(StatusType.Parry, stacks) { }
 
+    /// Last of the incoming chain - see the class doc and Status.Order.
+    public override int Order => 10;
+
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {
-        if (stacks <= 0) { return info; }
+        // Nothing left to negate - Block and/or Shield already finished the job. Leave the charge
+        // unspent rather than reflecting a zero.
+        if (stacks <= 0 || info.amount <= 0) { return info; }
 
         // Looking is free. Only an actual hit spends the charge - see DamageInfo.consumeCharges.
         if (info.consumeCharges) { stacks--; }
 
-        // Reflected() also marks the hit negated, so Block and Shield are never reached - there is
-        // nothing left of it to reduce.
+        // Reflected() also marks the hit negated, but Block and Shield have already run by this point -
+        // see Order.
         return info.Reflected();
     }
 

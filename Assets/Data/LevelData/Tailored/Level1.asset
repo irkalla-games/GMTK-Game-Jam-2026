@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   enemies:
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 0, y: 5}
+    cell: {x: 3, y: 3}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -22,7 +22,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 2, y: 4}
+    cell: {x: 2, y: 3}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -30,7 +30,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    cell: {x: 4, y: 5}
+    cell: {x: 2, y: 2}
     deckOverride:
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
     - {fileID: 11400000, guid: 4e6ad46400a24ad49889dba4ec94d0b6, type: 2}
@@ -82,11 +82,23 @@ MonoBehaviour:
     - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
       cell: {x: 4, y: 5}
       deckOverride: []
+  encounterBudget:
+    frontlinePower: 0
+    backlinePower: 0
+    anyPower: 0
+    bossFrontlinePower: 0
+    bossBacklinePower: 0
+    reinforcementPower: 0
+    maxPowerPerEnemy: 0
+    maxPowerPerWave: 0
+    waveInterval: 0
+    waveIntervalJitter: 0
+    poolFilter: []
   partySpawnCells:
-  - {x: 2, y: 3}
-  - {x: 2, y: 2}
-  - {x: 3, y: 0}
-  - {x: 4, y: 0}
+  - {x: 2, y: 1}
+  - {x: 3, y: 1}
+  - {x: 2, y: 1}
+  - {x: 3, y: 1}
   boardSize: {x: 5, y: 6}
   turnsToSurvive: 10
   handSize: 5

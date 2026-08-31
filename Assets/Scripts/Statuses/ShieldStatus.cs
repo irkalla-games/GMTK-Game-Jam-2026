@@ -16,6 +16,10 @@ public class ShieldStatus : StatusEffect
 {
     public ShieldStatus(int stacks) : base(StatusType.Shield, stacks) { }
 
+    /// After Block (BlockStatus.Order, the default 0) - the flat per-hit reduction lands first, and the
+    /// pool only has to absorb whatever that leaves.
+    public override int Order => 20;
+
     public override DamageInfo OnTakeDamage(DamageInfo info)
     {
         int absorbed = Mathf.Min(stacks, info.amount);

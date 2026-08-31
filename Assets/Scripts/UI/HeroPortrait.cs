@@ -204,13 +204,16 @@ public class HeroPortrait : MonoBehaviour
         return pips[index];
     }
 
+    /// Bottom-to-top, one column - pipParent anchors just above the health text beside the bar, and pips
+    /// stack upward from there so the first pip sits closest to the text. Unlike StatusChip's row this
+    /// never needs to wrap sideways.
     private void PlacePip(RectTransform rect, int index)
     {
-        rect.anchorMin = new Vector2(0f, 0.5f);
-        rect.anchorMax = new Vector2(0f, 0.5f);
-        rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchorMin = new Vector2(0.5f, 0f);
+        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
         rect.sizeDelta = new Vector2(pipSize, pipSize);
-        rect.anchoredPosition = new Vector2(index * (pipSize + pipSpacing), 0f);
+        rect.anchoredPosition = new Vector2(0f, index * (pipSize + pipSpacing));
     }
 
     /// <summary>

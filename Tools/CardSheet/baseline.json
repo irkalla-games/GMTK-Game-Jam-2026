@@ -1,6 +1,615 @@
 ﻿{
-    "writtenUtc":  "2026-08-22T00:52:52.1758033Z",
+    "writtenUtc":  "2026-08-31T08:34:30.1384923Z",
     "cards":  [
+                  {
+                      "guid":  "0313f5e3f95e9704d8ddff8d29ecefcd",
+                      "columns":  {
+                                      "Card Name":  "Blade Ward",
+                                      "Cost":  "1",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "Block 2",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Give 2 Block.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "0",
+                                      "Range Max":  "4",
+                                      "Key":  "Blade Ward",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Buff (Defensive)",
+                                      "Tags":  "Defence",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "03b73a23f7ceebf41b9dc0773a7935bc",
+                      "columns":  {
+                                      "Card Name":  "Vengeful Vigor",
+                                      "Cost":  "1",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "Lifesteal 1",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Apply Lifesteal 1.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "0",
+                                      "Range Max":  "4",
+                                      "Key":  "Vengeful Vigor",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Buff (Offensive)",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "0aca4faf7138a9c4db512e6cf3962233",
+                      "columns":  {
+                                      "Card Name":  "Purge",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Purge Poison",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Remove all Poison from an ally and afflict the nearest enemy with it.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Purge",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Debuff",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "09e3ae3a175a86a44b79648130db2fbf",
+                      "columns":  {
+                                      "Card Name":  "Cleansing Light",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Cleanse Poison Heal",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Remove all Poison from an ally and heal them for the stacks removed.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Cleansing Light",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "b2d16f22e3045c1baf6d28e51c2f6004",
+                      "columns":  {
+                                      "Card Name":  "Touch Heal",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Heal 10",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Heal 10.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Cure Wounds",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "Healing",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "b0de35f4e0b135845b19e60120fd3205",
+                      "columns":  {
+                                      "Card Name":  "Heal Word",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Heal 5",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Heal 5.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Heal Word",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "Healing",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "31fea6d7f3b17b54fbfee4ce54165c76",
+                      "columns":  {
+                                      "Card Name":  "Mend and Fortify",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "Heal 5",
+                                      "Effect 2":  "Strength 3",
+                                      "Effect 3":  "",
+                                      "Description":  "Heal 5 and gain 3 Strength.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Mend and Fortify",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "Tile",
+                                      "Area 2":  "Single",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "b463c182abe12924b8bd14a649d2c3a4",
+                      "columns":  {
+                                      "Card Name":  "Mend and Guard",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "Heal 5",
+                                      "Effect 2":  "Block 2",
+                                      "Effect 3":  "",
+                                      "Description":  "Heal 5 and gain Block 2.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Mend and Guard",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "Tile",
+                                      "Area 2":  "Single",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "940d27453c9c1924499110bc2380e444",
+                      "columns":  {
+                                      "Card Name":  "Renew",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Heal 3",
+                                      "Effect 2":  "Draw 1",
+                                      "Effect 3":  "",
+                                      "Description":  "Heal 3 and draw a card.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Renew",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "Tile",
+                                      "Area 2":  "Single",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "25e5a08179ad2a848b8539a19c5bbfa7",
+                      "columns":  {
+                                      "Card Name":  "Renewing Touch",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "Regeneration 4",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Apply Regeneration 4.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Renewing Touch",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "96e73bab6c061cd49bf0c98a367e781e",
+                      "columns":  {
+                                      "Card Name":  "Smite",
+                                      "Cost":  "1",
+                                      "Rarity":  "Common",
+                                      "Effect 1":  "Damage 4",
+                                      "Effect 2":  "Heal 3",
+                                      "Effect 3":  "",
+                                      "Description":  "Deal 4 damage. Heal 3.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "4",
+                                      "Key":  "Smite",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Heal",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "Self",
+                                      "Area 2":  "Single",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "01e630d4f30206f499a5038a0e474c92",
+                      "columns":  {
+                                      "Card Name":  "Aegis Totem",
+                                      "Cost":  "3",
+                                      "Rarity":  "Rare",
+                                      "Effect 1":  "SummonAegisTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Aegis Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Aegis Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "b5992955f6f71d249bd207dc483e4566",
+                      "columns":  {
+                                      "Card Name":  "Bastion Totem",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonBastionTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Bastion Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Bastion Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "f6d1fbe1cfdd0314f9969e1457bfebe1",
+                      "columns":  {
+                                      "Card Name":  "Beacon Totem",
+                                      "Cost":  "1",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonBeaconTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Beacon Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "2",
+                                      "Key":  "Beacon Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "30dc9807bee5a3a47a453cded652caa6",
+                      "columns":  {
+                                      "Card Name":  "Bulwark Totem",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonBulwarkTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Bulwark Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Bulwark Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "1b8727d4f538799408c987e9f1732674",
+                      "columns":  {
+                                      "Card Name":  "Heal Totem",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonHealTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Heal Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Heal Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "ffeb8d4fdf2a22347bff2bd9386b9ad2",
+                      "columns":  {
+                                      "Card Name":  "Rampart Totem",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonRampartTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Rampart Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Rampart Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "6f8d325e11962dd419a639a3bb29700e",
+                      "columns":  {
+                                      "Card Name":  "Sentinel Totem",
+                                      "Cost":  "3",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonSentinelTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Sentinel Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Sentinel Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "c5d25d3eaabd87644b8f9bf160b035f4",
+                      "columns":  {
+                                      "Card Name":  "Summon Skeleton",
+                                      "Cost":  "3",
+                                      "Rarity":  "Rare",
+                                      "Effect 1":  "SummonSkeletonAlly",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Skeleton.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "SummonSkeleton",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "Summon",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "51382dd5fb68f1c42b8c120d2112eb72",
+                      "columns":  {
+                                      "Card Name":  "Warcry Totem",
+                                      "Cost":  "3",
+                                      "Rarity":  "Rare",
+                                      "Effect 1":  "SummonWarcryTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Warcry Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Warcry Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
+                  {
+                      "guid":  "363d14991cd36564ca3dc5e550c81bc5",
+                      "columns":  {
+                                      "Card Name":  "Warlord Totem",
+                                      "Cost":  "2",
+                                      "Rarity":  "Uncommon",
+                                      "Effect 1":  "SummonWarlordTotem",
+                                      "Effect 2":  "",
+                                      "Effect 3":  "",
+                                      "Description":  "Summon a Warlord Totem.",
+                                      "Range Shape":  "Chebyshev",
+                                      "Range Min":  "1",
+                                      "Range Max":  "3",
+                                      "Key":  "Warlord Totem",
+                                      "Class":  "Cleric",
+                                      "Folder":  "Summon",
+                                      "Tags":  "",
+                                      "Aim 1":  "Tile",
+                                      "Area 1":  "Single",
+                                      "Aim 2":  "",
+                                      "Area 2":  "",
+                                      "Aim 3":  "",
+                                      "Area 3":  "",
+                                      "Keywords":  "",
+                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
+                                      "Animation":  ""
+                                  }
+                  },
                   {
                       "guid":  "0614839401c15d54aba05fe204ab3ebe",
                       "columns":  {
@@ -26,6 +635,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 4",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -54,6 +664,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  "EnemyArrow"
                                   }
                   },
@@ -63,10 +674,10 @@
                                       "Card Name":  "",
                                       "Cost":  "1",
                                       "Rarity":  "NotOffered",
-                                      "Effect 1":  "Damage 4",
+                                      "Effect 1":  "Damage 5",
                                       "Effect 2":  "",
                                       "Effect 3":  "",
-                                      "Description":  "Deal 4 damage.",
+                                      "Description":  "Deal 5 damage.",
                                       "Range Shape":  "Chebyshev",
                                       "Range Min":  "1",
                                       "Range Max":  "1",
@@ -82,6 +693,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -110,6 +722,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Innate",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -138,6 +751,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Dormant 3, Cooldown 4",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -166,6 +780,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -194,6 +809,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -222,6 +838,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 3",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -250,6 +867,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -278,6 +896,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -306,6 +925,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -334,6 +954,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 3",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -362,6 +983,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -390,6 +1012,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 4",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -418,6 +1041,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -446,6 +1070,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -474,6 +1099,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -502,6 +1128,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -530,6 +1157,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 3",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -558,6 +1186,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -586,6 +1215,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 2",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -614,6 +1244,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -642,6 +1273,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 3",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -670,6 +1302,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -698,6 +1331,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -726,6 +1360,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -754,6 +1389,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -782,6 +1418,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -810,6 +1447,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -838,6 +1476,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -866,6 +1505,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -894,6 +1534,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -922,6 +1563,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -950,6 +1592,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -978,6 +1621,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1006,6 +1650,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1034,6 +1679,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 3",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1062,6 +1708,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1090,6 +1737,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1118,6 +1766,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "Cooldown 2",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1146,6 +1795,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1174,6 +1824,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1202,6 +1853,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1230,6 +1882,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1258,6 +1911,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1286,6 +1940,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1314,6 +1969,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "TRUE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1331,7 +1987,7 @@
                                       "Range Min":  "0",
                                       "Range Max":  "0",
                                       "Key":  "Block",
-                                      "Class":  "Knight",
+                                      "Class":  "Knight+Rogue",
                                       "Folder":  "Buff (Defensive)",
                                       "Tags":  "Defence",
                                       "Aim 1":  "Self",
@@ -1342,6 +1998,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1370,6 +2027,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1398,6 +2056,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1426,6 +2085,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1454,6 +2114,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1482,6 +2143,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1510,6 +2172,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1538,6 +2201,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1566,6 +2230,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1594,6 +2259,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1622,6 +2288,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1650,6 +2317,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1678,6 +2346,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1706,6 +2375,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1734,118 +2404,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "01e630d4f30206f499a5038a0e474c92",
-                      "columns":  {
-                                      "Card Name":  "Aegis Totem",
-                                      "Cost":  "3",
-                                      "Rarity":  "Rare",
-                                      "Effect 1":  "SummonAegisTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Aegis Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Aegis Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "b5992955f6f71d249bd207dc483e4566",
-                      "columns":  {
-                                      "Card Name":  "Bastion Totem",
-                                      "Cost":  "2",
-                                      "Rarity":  "Uncommon",
-                                      "Effect 1":  "SummonBastionTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Bastion Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Bastion Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "30dc9807bee5a3a47a453cded652caa6",
-                      "columns":  {
-                                      "Card Name":  "Bulwark Totem",
-                                      "Cost":  "2",
-                                      "Rarity":  "Uncommon",
-                                      "Effect 1":  "SummonBulwarkTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Bulwark Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Bulwark Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "ffeb8d4fdf2a22347bff2bd9386b9ad2",
-                      "columns":  {
-                                      "Card Name":  "Rampart Totem",
-                                      "Cost":  "2",
-                                      "Rarity":  "Uncommon",
-                                      "Effect 1":  "SummonRampartTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Rampart Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Rampart Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1874,62 +2433,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "51382dd5fb68f1c42b8c120d2112eb72",
-                      "columns":  {
-                                      "Card Name":  "Warcry Totem",
-                                      "Cost":  "3",
-                                      "Rarity":  "Rare",
-                                      "Effect 1":  "SummonWarcryTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Warcry Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Warcry Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "363d14991cd36564ca3dc5e550c81bc5",
-                      "columns":  {
-                                      "Card Name":  "Warlord Totem",
-                                      "Cost":  "2",
-                                      "Rarity":  "Uncommon",
-                                      "Effect 1":  "SummonWarlordTotem",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Warlord Totem.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "Warlord Totem",
-                                      "Class":  "Knight",
-                                      "Folder":  "Summon",
-                                      "Tags":  "",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1958,6 +2462,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -1986,34 +2491,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "0313f5e3f95e9704d8ddff8d29ecefcd",
-                      "columns":  {
-                                      "Card Name":  "Blade Ward",
-                                      "Cost":  "1",
-                                      "Rarity":  "Uncommon",
-                                      "Effect 1":  "Block 2",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Give 2 Block.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "0",
-                                      "Range Max":  "4",
-                                      "Key":  "Blade Ward",
-                                      "Class":  "Mage",
-                                      "Folder":  "Buff (Defensive)",
-                                      "Tags":  "Defence",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2042,6 +2520,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  "Status"
                                   }
                   },
@@ -2070,6 +2549,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  "Status"
                                   }
                   },
@@ -2098,6 +2578,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  "Freeze"
                                   }
                   },
@@ -2126,62 +2607,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "b2d16f22e3045c1baf6d28e51c2f6004",
-                      "columns":  {
-                                      "Card Name":  "Touch Heal",
-                                      "Cost":  "1",
-                                      "Rarity":  "Common",
-                                      "Effect 1":  "Heal 10",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Heal 10.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "4",
-                                      "Key":  "Cure Wounds",
-                                      "Class":  "Mage",
-                                      "Folder":  "Heal",
-                                      "Tags":  "Healing",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "b0de35f4e0b135845b19e60120fd3205",
-                      "columns":  {
-                                      "Card Name":  "Heal Word",
-                                      "Cost":  "1",
-                                      "Rarity":  "Common",
-                                      "Effect 1":  "Heal 5",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Heal 5.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "4",
-                                      "Key":  "Heal Word",
-                                      "Class":  "Mage",
-                                      "Folder":  "Heal",
-                                      "Tags":  "Healing",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2210,6 +2636,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2238,6 +2665,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2266,6 +2694,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  "Fireball"
                                   }
                   },
@@ -2294,6 +2723,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2322,6 +2752,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2350,6 +2781,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2378,6 +2810,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2406,6 +2839,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2434,6 +2868,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2462,6 +2897,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2490,6 +2926,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2518,6 +2955,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2546,34 +2984,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
-                                      "Animation":  ""
-                                  }
-                  },
-                  {
-                      "guid":  "c5d25d3eaabd87644b8f9bf160b035f4",
-                      "columns":  {
-                                      "Card Name":  "Summon Skeleton",
-                                      "Cost":  "3",
-                                      "Rarity":  "Rare",
-                                      "Effect 1":  "SummonSkeletonAlly",
-                                      "Effect 2":  "",
-                                      "Effect 3":  "",
-                                      "Description":  "Summon a Skeleton.",
-                                      "Range Shape":  "Chebyshev",
-                                      "Range Min":  "1",
-                                      "Range Max":  "3",
-                                      "Key":  "SummonSkeleton",
-                                      "Class":  "Mage",
-                                      "Folder":  "Summon",
-                                      "Tags":  "Summon",
-                                      "Aim 1":  "Tile",
-                                      "Area 1":  "Single",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
-                                      "Aim 3":  "",
-                                      "Area 3":  "",
-                                      "Keywords":  "",
-                                      "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2602,6 +3013,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "TRUE",
                                       "Animation":  ""
                                   }
                   },
@@ -2611,8 +3023,8 @@
                                       "Card Name":  "Wall of Force",
                                       "Cost":  "2",
                                       "Rarity":  "Rare",
-                                      "Effect 1":  "Wall of Force",
-                                      "Effect 2":  "",
+                                      "Effect 1":  "Push",
+                                      "Effect 2":  "Wall of Force",
                                       "Effect 3":  "",
                                       "Description":  "Create a Wall of Force, stopping all movement through that area.",
                                       "Range Shape":  "Chebyshev",
@@ -2624,12 +3036,13 @@
                                       "Tags":  "Defence",
                                       "Aim 1":  "Tile",
                                       "Area 1":  "Pattern:Wall3",
-                                      "Aim 2":  "",
-                                      "Area 2":  "",
+                                      "Aim 2":  "Tile",
+                                      "Area 2":  "Pattern:Wall3",
                                       "Aim 3":  "",
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "TRUE",
                                       "Animation":  ""
                                   }
                   },
@@ -2658,6 +3071,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2686,6 +3100,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2714,6 +3129,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2742,6 +3158,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2770,6 +3187,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2798,6 +3216,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2826,6 +3245,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2854,6 +3274,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2882,6 +3303,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2910,6 +3332,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2938,6 +3361,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   },
@@ -2966,6 +3390,7 @@
                                       "Area 3":  "",
                                       "Keywords":  "",
                                       "No Reward":  "FALSE",
+                                      "Rotatable":  "FALSE",
                                       "Animation":  ""
                                   }
                   }
@@ -3138,6 +3563,24 @@
                          "type":  "Summoned",
                          "title":  "SUMMONED",
                          "body":  "Will die in {stacks} turns.",
+                         "terms":  "",
+                         "defaultStacks":  1,
+                         "defaultAmount":  1
+                     },
+                     {
+                         "kind":  "Status",
+                         "type":  "Regeneration",
+                         "title":  "REGENERATION",
+                         "body":  "Heals {stacks} at the end of each of the carrier\u0027s turns, then decays by 1.",
+                         "terms":  "",
+                         "defaultStacks":  1,
+                         "defaultAmount":  1
+                     },
+                     {
+                         "kind":  "Status",
+                         "type":  "Lifesteal",
+                         "title":  "LIFESTEAL",
+                         "body":  "For {stacks} more of the carrier\u0027s turns, every hit it lands also heals it for half the damage dealt.",
                          "terms":  "",
                          "defaultStacks":  1,
                          "defaultAmount":  1

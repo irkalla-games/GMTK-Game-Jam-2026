@@ -8,10 +8,11 @@ using UnityEngine;
 /// "nothing promised", the same reasoning as RangeShape.Anywhere = 0. These values are written into
 /// IntentIcons.asset, so append new kinds and never reorder them.
 ///
-/// The icon this drives is live, not a promise made once at TurnStart - BattleManager recomputes every
-/// enemy's Intent whenever the board changes (see BattleManager.LateUpdate) and re-asks it outright
-/// when the enemy actually acts, so what you see over an enemy's head is always what EnemyBrain.Decide
-/// would return right now.
+/// The card is a promise made once at TurnStart, not re-decided from scratch on every board change -
+/// see Character.LockedCard and BattleManager.Decide. Only the *aim* stays live: BattleManager keeps
+/// re-asking EnemyBrain.Reaim for that same card as the board changes (see BattleManager.LateUpdate),
+/// so the victim and tile you see over an enemy's head always match where the locked card would
+/// actually land, while the card itself only changes if it stops being legal anywhere at all.
 /// </summary>
 public enum IntentKind
 {
@@ -33,9 +34,12 @@ public enum IntentKind
 /// resolves, so moving a target out from under a committed Attack turns it back into a Move on the
 /// very next recompute rather than firing anyway.
 ///
-/// Every field here is re-derived together, every time - see EnemyBrain.Decide. There is no separate
-/// "kind was promised, card and tile are still stale" step; CommittedIntent always holds the result of
-/// the most recent Decide call.
+/// `kind` and `card` are a promise for the whole turn - see Character.LockedCard. `target` and
+/// `victim` are re-derived every time the board changes, by re-aiming that same card - see
+/// EnemyBrain.Reaim and BattleManager.Decide - so CommittedIntent always holds where the locked card
+/// would land right now, never a stale tile. Character.LockedAim is a second, narrower freeze on top
+/// of this one: Dodge locks a copy of a whole Attack Intent, tile included, so it can be replayed
+/// against a tile the victim has already left - see BattleManager.LockAimsOn.
 /// </summary>
 public struct Intent
 {
@@ -45,12 +49,25 @@ public struct Intent
 
     public Vector2Int target;
 
+    /// Who TryFindAttack picked this Attack for, out of TargetSelector.TryPick - null for Move and
+    /// Summon, which have no victim. Not derived from the footprint: an area card aimed at the mage
+    /// that happens to splash the rogue is still "aiming at the mage", so only this field can answer
+    /// "was this enemy planning to attack the rogue specifically" - see BattleManager.LockAimsOn.
+    public Character victim;
+
     public bool IsWait => kind == IntentKind.Wait || card == null;
+
+    /// True when every field agrees - not just kind. BattleManager.LateUpdate's recompute pass reads
+    /// this rather than comparing kind alone, so an Attack that re-aimed onto a different tile or
+    /// victim (the same locked card, a different target) still repaints the damage number and icon
+    /// position, while an identical re-decide costs nothing.
+    public bool Matches(Intent other) =>
+        kind == other.kind && card == other.card && target == other.target && victim == other.victim;
 
     public static Intent Wait() => default;
 
-    public static Intent Play(IntentKind kind, Card card, Vector2Int target) =>
-        new() { kind = kind, card = card, target = target };
+    public static Intent Play(IntentKind kind, Card card, Vector2Int target, Character victim = null) =>
+        new() { kind = kind, card = card, target = target, victim = victim };
 
     public override string ToString() =>
         IsWait ? "Wait" : $"{kind}: {card.cardName} at {target}";

@@ -255,14 +255,16 @@ leaves behind. Tune numbers in the Inspector *after* the last run, or lift them 
 Marked with TODOs in the code: enemy behaviour (non-player characters just stand there), and win/loss
 conditions.
 
-Shield (a pool of extra health, wiped each turn), Block (a flat per-hit reduction with a limited
-number of charges) and Parry (negates a hit and reflects it back) are `Status` subclasses like
+Shield (a pool of extra health, wiped each turn), Block (a flat reduction on every hit, lasting a
+limited number of turns) and Parry (negates a hit and reflects it back) are `Status` subclasses like
 everything else — `ShieldStatus`, `BlockStatus`, `ParryStatus`. They apply in whatever order they were
 gained, not a fixed priority: hooks run FIFO. A reflected parry goes back through `TakeDamage`, so the
 attacker's own statuses answer it and a parry can itself be parried; `Character.MaxParryBounces` caps
 the resulting bounce war, which only fails to terminate on its own if an aura is granting Parry.
 
-Balance notes, all consequences of the numbers as authored rather than bugs: Block and Parry charges
-survive `TurnStart` while Shield does not, and against the current 3–5 enemy damage band per-hit
-mitigation beats the pooled kind — Block 5 x3 prevents up to 15 for the same energy that buys 8
-Shield.
+Balance notes, all consequences of the numbers as authored rather than bugs: Parry charges survive
+`TurnStart` while Shield and Block do not — Block now decrements one stack per turn regardless of
+whether it took a hit (`BlockStatus.OnTurnStart`), so "Block 3" is a flat -3 to every hit for the next
+three turns rather than three hits' worth. Against the current 3–5 enemy damage band that fully negates
+most single-enemy hits for as long as it lasts; against several enemies in one turn it is worth far
+more than the same-cost Shield, which drains its pool faster the more hits arrive.

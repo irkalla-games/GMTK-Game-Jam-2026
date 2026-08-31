@@ -97,6 +97,8 @@ public abstract class StatusEffect : Status
         StatusType.PoisonBlade => new PoisonBladeStatus(stacks),
         StatusType.Stealth => new StealthStatus(stacks),
         StatusType.Vulnerable => new VulnerableStatus(stacks, VulnerableStatus.BaseAmount + amountBonus),
+        StatusType.Regeneration => new RegenerationStatus(stacks),
+        StatusType.Lifesteal => new LifestealStatus(stacks),
 
         // GainMultiplier, Potency and TurnTick are aura-only, same reason Taunt is missing here: each
         // needs a subject StatusType (and TurnTick a TurnTiming) that this signature has nowhere to

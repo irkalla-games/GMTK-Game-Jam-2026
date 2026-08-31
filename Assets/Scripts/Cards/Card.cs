@@ -20,6 +20,76 @@ public class Card
     /// is a copy - writing to it can never reach back into the shared CardData asset.
     public TargetRange range;
 
+    /// <summary>
+    /// The absolute facing (0-7, as EffectPattern.OctantOf numbers them) the player has turned this
+    /// card's footprint to, or -1 for "follow the aim direction", which is the default every card
+    /// starts and ends an aiming session on.
+    ///
+    /// Absolute, not a count of quarter turns, and that distinction is the whole point: a relative
+    /// offset is re-applied on top of a freshly derived base direction every time the cursor moves, so
+    /// a wall turned vertical would flip back to horizontal the instant the player aimed at a tile on a
+    /// different bearing. Storing the facing itself is what makes a rotation survive re-aiming.
+    ///
+    /// Per copy, and only meaningful for one aiming session - CardPlayManager clears it via ResetAim on
+    /// select, deselect and play. Read through AimOctant, never directly: a card the designer did not
+    /// mark rotatable must stay unrotatable even if something writes here.
+    /// </summary>
+    private int aimOctant = -1;
+
+    /// Whether this card has anything worth rotating - the designer opted in, and at least one entry
+    /// has a Pattern area. A Radius area is symmetric under both distance metrics it can be authored
+    /// with, so rotating one would be a no-op; gating on Pattern here is what keeps CardPlayManager's
+    /// hint and rotate key from lighting up for a card rotation could never change.
+    public bool CanRotateAim => data.rotatableAim && HasPatternArea();
+
+    /// The facing actually in effect - always -1 ("follow the aim direction") for a card the designer
+    /// did not mark rotatableAim, regardless of what aimOctant holds, so a stray write can never rotate
+    /// a card that was never meant to.
+    public int AimOctant => data.rotatableAim ? aimOctant : -1;
+
+    /// <summary>
+    /// Turns the footprint a quarter turn clockwise and locks it there. The first turn of a session has
+    /// to start from whatever facing is on screen right now, which is derived from where the player is
+    /// currently aiming - hence `source` and `hovered`; every turn after that builds on the locked
+    /// facing and ignores them.
+    ///
+    /// One quarter turn is two octants, not one: that keeps a cardinal facing cardinal and a diagonal
+    /// one diagonal, which is the split EffectPattern.Covers reads the octant's parity for when it
+    /// picks which painted grid to stamp.
+    /// </summary>
+    public void RotateAim(Character source, GridTile hovered)
+    {
+        int current = aimOctant >= 0 ? aimOctant : EffectPattern.OctantOf(AimDirection(source, hovered));
+
+        aimOctant = (current + 2) % 8;
+    }
+
+    /// Clears the locked facing. Called whenever this card stops being the one currently armed -
+    /// selected, deselected, or played - so aiming it fresh next time follows the aim direction again.
+    public void ResetAim() { aimOctant = -1; }
+
+    /// Which way this card is being aimed right now, caster tile to hovered tile. Zero (which
+    /// EffectPattern reads as Up) when either end is missing, so a rotation pressed before the cursor
+    /// has ever been over the board still has a defined starting facing.
+    private static Vector2Int AimDirection(Character source, GridTile hovered)
+    {
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        if (casterTile == null || hovered == null) { return Vector2Int.zero; }
+
+        return hovered.Coordinates - casterTile.Coordinates;
+    }
+
+    private bool HasPatternArea()
+    {
+        foreach (CardEffectEntry entry in effectEntries)
+        {
+            if (entry.area.Kind == AreaKind.Pattern) { return true; }
+        }
+
+        return false;
+    }
+
     public string cardName => data.cardName;
     public string description => data.description;
     public Sprite image => data.image;
@@ -334,7 +404,54 @@ public class Card
             if (refusal != null) { return refusal; }
         }
 
+        // Asked after the per-entry loop because it is not a question any single effect can answer: a
+        // push needs the whole footprint, and the ring around it, before it knows whether every body
+        // caught inside has somewhere to go. Skipped above by the area-entry rule like every other
+        // area effect's own Refusal, so it has to be asked here or not at all.
+        return PushRefusal(source, target);
+    }
+
+    /// <summary>
+    /// Why a Push entry on this card cannot land on `target`, or null if it can.
+    ///
+    /// A push with nowhere to put somebody refuses the whole card rather than quietly leaving them
+    /// standing where they were: the tile never lights up, the click costs nothing, and
+    /// CardPlayManager has a reason to show the player. Public because that message is worth telling
+    /// apart from every other refusal - see CardPlayManager.ShowRefusalHint.
+    /// </summary>
+    public string PushRefusal(Character source, GridTile target)
+    {
+        foreach ((Character mover, GridTile destination) in PreviewPush(source, target))
+        {
+            if (destination == null)
+            {
+                string who = mover != null ? mover.name : "somebody";
+                return $"there is no room to push {who} clear";
+            }
+        }
+
         return null;
+    }
+
+    /// <summary>
+    /// Range and timing only - the half of Refusal that does not ask who is standing on `target`.
+    ///
+    /// For BattleManager.Execute finishing off a Dodge-frozen enemy Intent (see
+    /// BattleManager.LockAimsOn): that swing was already legal the instant it was locked, and it has
+    /// to still go off and whiff against an empty tile rather than fizzle with Refusal's "there is
+    /// nobody there". Skipping the per-entry effect.Refusal loop is also what lets it land on whoever
+    /// else has since wandered onto the tile - ally or enemy - since RefuseByAudience is exactly what
+    /// would otherwise reject a friendly-fire hit.
+    /// </summary>
+    public string CommittedRefusal(Character source, GridTile target)
+    {
+        if (!range.Contains(source != null ? source.Tile : null, target))
+        {
+            string where = target != null ? target.Coordinates.ToString() : "nowhere";
+            return $"{where} is out of range ({range})";
+        }
+
+        return LockRefusal();
     }
 
     /// <summary>
@@ -358,7 +475,7 @@ public class Card
             GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : hovered;
             if (aim == null) { continue; }
 
-            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
+            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant))
             {
                 footprint.Add(tile);
             }
@@ -381,7 +498,7 @@ public class Card
             yield break;
         }
 
-        foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area))
+        foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant))
         {
             if (entry.effect.Refusal(source, tile) == null) { yield return tile; }
         }
@@ -463,6 +580,78 @@ public class Card
         return loss;
     }
 
+    /// <summary>
+    /// Who a Push entry on this card would move, and where to, if it were played on `target` right
+    /// now - the numeric sibling of ShowAreaPreview's red footprint, this time for PushGhost rather
+    /// than a health number. Unfiltered by PushEffect.Refusal, same as AreaFootprint: PushEffect
+    /// refuses nothing, and it is GridManager.PlanPush's job to decide who actually moves.
+    ///
+    /// Reads the raw footprint (not EntryFootprint, which drops tiles by the effect's own Refusal) for
+    /// the same reason - the ring a body is shoved onto is a property of the whole footprint, empty
+    /// tiles included, and filtering here would compute the wrong ring.
+    ///
+    /// An entry whose destination is null is a body the ring had no legal room for. Callers must decide
+    /// what that means to them: PushRefusal turns it into a refusal of the card, GridManager.
+    /// ShowPushPreview draws no ghost for it, PushAction leaves that body standing.
+    /// </summary>
+    public List<(Character mover, GridTile destination)> PreviewPush(Character source, GridTile target)
+    {
+        List<(Character, GridTile)> plan = new();
+
+        if (source == null || GridManager.Instance == null) { return plan; }
+
+        GridTile casterTile = source.Tile;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect is not PushEffect) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            if (aim == null) { continue; }
+
+            List<GridTile> footprint = entry.area.IsSingle
+                ? new List<GridTile> { aim }
+                : GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
+
+            plan.AddRange(GridManager.Instance.PlanPush(source, footprint));
+        }
+
+        return plan;
+    }
+
+    /// <summary>
+    /// How hard this card would swing if played on `target` right now - the enemy's own outgoing side
+    /// only (authored damage, entry adjustments, Strength/Weaken/Double Attack), stopping short of
+    /// PreviewDamage's other half. Deliberately does not touch the defender at all: what the intent
+    /// icon's damage number reads, so it depends only on this character's own state and moves with
+    /// Strength or a totem's Potency aura without needing to watch anyone else's Block or Shield.
+    ///
+    /// Summed across every damage entry - today's cards have exactly one, but an AoE with two riders
+    /// should still report their total rather than only the first. shouldConsume: false for the same
+    /// reason PreviewDamage passes it: reading this must never spend a real Double Attack charge.
+    /// </summary>
+    public int OutgoingDamage(Character source, GridTile target)
+    {
+        int total = 0;
+
+        if (source == null) { return total; }
+
+        GridTile casterTile = source.Tile;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect is not DamageEffect damage) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            if (aim == null) { continue; }
+
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+            total += source.ComputeOutgoingDamage(ctx.Amount(damage.Damage), shouldConsume: false);
+        }
+
+        return total;
+    }
+
     /// The furthest any one entry's area footprint reaches beyond its own aim tile - 0 for a card
     /// with no area entries. What EnemyBrain.LongestReach reads to know a splash card threatens
     /// further out than its plain click range suggests: the blast covers the rest of the gap, so an
@@ -517,7 +706,7 @@ public class Card
             }
             else
             {
-                landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area);
+                landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
                 landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
 
                 // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)

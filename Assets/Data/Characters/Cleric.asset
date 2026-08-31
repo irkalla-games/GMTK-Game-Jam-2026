@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e424af3dee2e819428d8ee96039f179f, type: 3}
+  m_Name: Cleric
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterOption
+  displayName: Cleric
+  prefab: {fileID: 6338188868612233919, guid: 93ec24b05518f5f408c2bbb97459c633, type: 3}
+  decks:
+  - {fileID: 11400000, guid: 485c0bb802aef454784edf2f77383cd2, type: 2}

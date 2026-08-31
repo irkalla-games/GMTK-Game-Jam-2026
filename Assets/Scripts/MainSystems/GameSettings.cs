@@ -17,6 +17,8 @@ public static class GameSettings
 {
     private const string TutorialKey = "settings.tutorialEnabled";
 
+    private const string IntentDamageKey = "settings.showIntentDamage";
+
     /// <summary>
     /// Whether Play should run the tutorial on the first level. Defaults on: a player who has never
     /// touched the toggle is by definition the one who needs it.
@@ -31,6 +33,25 @@ public static class GameSettings
 
             // Written through immediately rather than left to Unity's own flush on quit - a player
             // who alt-F4s from the menu still gets the choice they just made.
+            PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Whether an enemy's overhead intent icon also shows the raw damage its locked attack card would
+    /// swing for - see Card.OutgoingDamage and CharacterOverheadViewer. Defaults on.
+    ///
+    /// Unlike TutorialEnabled, this is read live rather than snapshotted into RunManager at StartRun:
+    /// it changes nothing about how a battle plays, only what the player is shown, so there is nothing
+    /// a run in progress needs protecting from.
+    /// </summary>
+    public static bool ShowIntentDamage
+    {
+        get => PlayerPrefs.GetInt(IntentDamageKey, 1) != 0;
+
+        set
+        {
+            PlayerPrefs.SetInt(IntentDamageKey, value ? 1 : 0);
             PlayerPrefs.Save();
         }
     }

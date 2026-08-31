@@ -15,6 +15,9 @@ public class StrengthStatus : StatusEffect
 
     public StrengthStatus(int stacks) : base(StatusType.Strength, stacks) { }
 
+    // No Order override: the default 0 already sits after Double Attack (-10), which is what keeps
+    // this flat bonus from being doubled along with the card's own number - see DoubleNextAttackStatus.
+
     public override DamageInfo OnDealDamage(DamageInfo info)
     {
         if (stacks <= 0) { return info; }

@@ -52,6 +52,11 @@ public static class CharacterSelectWiring
     /// cells are board authoring, independent of whatever roster happens to be assigned at the menu.
     private const int MaxPartySize = 4;
 
+    /// Distance between adjacent slot centres. 500 was tuned for 2 slots and crowded the screen once a
+    /// 4-slot party (see EnsureSelectionCount's roster-order defaults) pushed the outer arrows toward
+    /// the edge - see SetSlotSpacing.
+    private const float SlotSpacing = 350f;
+
     [MenuItem("Tools/Main Menu/Wire Character Select")]
     public static void Wire()
     {
@@ -147,6 +152,39 @@ public static class CharacterSelectWiring
         Debug.Log(updated > 0
             ? $"Character select wiring: topped up {updated} LevelData asset(s)."
             : "Character select wiring: every LevelData already has enough party spawn cells - nothing to do.");
+    }
+
+    /// Forces CharacterSelectPanel.slotSpacing to SlotSpacing - unlike Wire's SetIfEmpty fields, this one
+    /// overwrites every run, since the point of the command is to apply whatever number is tuned into
+    /// the constant below. Bump SlotSpacing and re-run to retune.
+    [MenuItem("Tools/Main Menu/Set Character Select Slot Spacing")]
+    public static void SetSlotSpacing()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            Debug.LogError("Character select wiring: exit Play Mode first - scene edits made in play do not persist.");
+            return;
+        }
+
+        if (!OpenMenuScene()) { return; }
+
+        CharacterSelectPanel panel = Object.FindAnyObjectByType<CharacterSelectPanel>(FindObjectsInactive.Include);
+
+        if (panel == null)
+        {
+            Debug.LogError($"Character select wiring: no CharacterSelectPanel in {ScenePath} - run "
+                           + "Wire Character Select first.");
+            return;
+        }
+
+        SerializedObject so = new(panel);
+        so.FindProperty("slotSpacing").floatValue = SlotSpacing;
+        so.ApplyModifiedProperties();
+
+        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+
+        Debug.Log($"Character select wiring: slotSpacing -> {SlotSpacing}.");
     }
 
     /// Testing-only. Unlocks every DeckData.Locked deck for whoever's PlayerPrefs this Editor is

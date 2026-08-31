@@ -138,6 +138,20 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 13
+  - title: REGENERATION
+    body: Heals {stacks} at the end of each of the carrier's turns, then decays by
+      1.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 20
+  - title: LIFESTEAL
+    body: For {stacks} more of the carrier's turns, every hit it lands also heals
+      it for half the damage dealt.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 21
   keywords:
   - title: INNATE
     body: Always in hand. Never enters the draw or discard pile.

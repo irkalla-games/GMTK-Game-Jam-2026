@@ -91,6 +91,13 @@ public class CardData : ScriptableObject
                     + "Common, just not a reward' case.")]
     [field: SerializeField] public bool excludeFromRewards { get; private set; }
 
+    [field: Tooltip("Whether the player may turn this card's area footprint a quarter turn while "
+                    + "aiming it, pressing E - Wall of Force aimed left of the caster becomes a wall "
+                    + "running across their approach instead of along it. Only meaningful on a card "
+                    + "with a Pattern-shaped area entry; a Radius area is already rotationally "
+                    + "symmetric under both distance metrics, so this does nothing for one.")]
+    [field: SerializeField] public bool rotatableAim { get; private set; }
+
     [field: SerializeField] public string description { get; private set; }
     [field: SerializeField] public Sprite image { get; private set; }
 

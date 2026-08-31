@@ -329,8 +329,10 @@ public class GridManager : Singleton<GridManager>
     }
 
 
-    /// Lower x first, then lower y. Only exists to make NearestFreeSpawnTile's tie-break deterministic.
-    private static bool IsEarlier(Vector2Int a, Vector2Int b) => a.x != b.x ? a.x < b.x : a.y < b.y;
+    /// Lower x first, then lower y. Deterministic tie-break shared with EnemyBrain.TryFindMove - the
+    /// same reasoning as NearestFreeSpawnTile's own tie-break: enumeration order is not something to
+    /// lean on, and the same board asked the same question twice should answer the same way both times.
+    internal static bool IsEarlier(Vector2Int a, Vector2Int b) => a.x != b.x ? a.x < b.x : a.y < b.y;
 
     /// Clockwise from north, index 0. Index i and index i+4 (mod 8) are always opposite each other,
     /// which StepAwayFrom leans on to build each distance tier as a pair of indices.
@@ -627,6 +629,52 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// Ghosts currently standing in for a previewed push - tracked so ClearPushPreview destroys
+    /// exactly those, the same shape damagePreviewed uses for ClearDamagePreview.
+    private readonly List<PushGhost> pushGhosts = new();
+
+    /// <summary>
+    /// Shows a translucent copy of every character a Push entry on `card` would move, standing on the
+    /// tile it would land on, if `card` were played on `hovered` right now - the visual sibling of
+    /// ShowDamagePreview, reading Card.PreviewPush instead of PreviewDamage. Shown alongside the red
+    /// area tiles so the shove is legible before the click commits to it.
+    /// </summary>
+    public void ShowPushPreview(Card card, Character source, GridTile hovered)
+    {
+        ClearPushPreview();
+
+        if (card == null || source == null || hovered == null) { return; }
+
+        // Nothing is promised on a tile the card cannot actually be played on. A ghost is a statement
+        // that a body *will* end up there, so showing one where the click would be refused is the one
+        // thing this preview must never do - the same bargain Card.Refusal and ShowPlayableTiles
+        // already strike over the green highlight.
+        if (card.Refusal(source, hovered) != null) { return; }
+
+        foreach ((Character mover, GridTile destination) in card.PreviewPush(source, hovered))
+        {
+            // Null means the ring had no room for this body - it is not going anywhere, so it gets no
+            // ghost. In practice the refusal above has already returned for this tile; kept because
+            // PreviewPush's contract allows it and a silent wrong-place ghost is worse than a missing one.
+            if (destination == null) { continue; }
+
+            PushGhost ghost = PushGhost.Create(mover, destination);
+            if (ghost != null) { pushGhosts.Add(ghost); }
+        }
+    }
+
+
+    public void ClearPushPreview()
+    {
+        foreach (PushGhost ghost in pushGhosts)
+        {
+            if (ghost != null) { Destroy(ghost.gameObject); }
+        }
+
+        pushGhosts.Clear();
+    }
+
+
     /// <summary>
     /// Drops the hover tint from every tile, leaving the range highlight alone. Called by
     /// BattleManager when input locks: a tile lit under the cursor gets no OnMouseExit when a modal
@@ -773,8 +821,10 @@ public class GridManager : Singleton<GridManager>
 
     /// Every tile a footprint aimed from `caster` toward `aim` covers. The metric itself lives in
     /// AreaShape, so this and Card.ResolveEffects can never drift apart, the same relationship
-    /// GetTilesInRange has with TargetRange.
-    public List<GridTile> GetTilesInArea(GridTile caster, GridTile aim, AreaShape area)
+    /// GetTilesInRange has with TargetRange. `octantOverride` is the absolute facing the player has
+    /// locked a rotatable card to - see Card.AimOctant - and defaults to -1, "no rotation", for every
+    /// caller that predates it.
+    public List<GridTile> GetTilesInArea(GridTile caster, GridTile aim, AreaShape area, int octantOverride = -1)
     {
         List<GridTile> results = new();
 
@@ -784,11 +834,222 @@ public class GridManager : Singleton<GridManager>
 
         foreach (GridTile tile in tiles.Values)
         {
-            if (area.Covers(casterCoord, aim.Coordinates, tile.Coordinates)) { results.Add(tile); }
+            if (area.Covers(casterCoord, aim.Coordinates, tile.Coordinates, octantOverride)) { results.Add(tile); }
         }
 
         return results;
     }
+
+
+    /// <summary>
+    /// Every tile immediately surrounding `footprint` - the 8-neighbours of each footprint tile, minus
+    /// the footprint itself and any duplicates. 12 tiles around a 3x1 wall, 8 around a single tile.
+    /// What PlanPush shoves a caught character out onto.
+    /// </summary>
+    public List<GridTile> RingAround(IEnumerable<GridTile> footprint)
+    {
+        HashSet<Vector2Int> inside = new();
+        foreach (GridTile tile in footprint) { if (tile != null) { inside.Add(tile.Coordinates); } }
+
+        List<GridTile> ring = new();
+        HashSet<Vector2Int> added = new();
+
+        foreach (Vector2Int cell in inside)
+        {
+            foreach (Vector2Int step in ClockwiseSteps)
+            {
+                Vector2Int neighbour = cell + step;
+
+                if (inside.Contains(neighbour) || added.Contains(neighbour)) { continue; }
+
+                GridTile tile = GetTile(neighbour);
+                if (tile == null) { continue; }
+
+                added.Add(neighbour);
+                ring.Add(tile);
+            }
+        }
+
+        return ring;
+    }
+
+
+    /// <summary>
+    /// Who a push out of `footprint` would move, and where to, aimed by `pusher` - the geometry behind
+    /// Wall of Force's shove and PushGhost's preview. Pure: nothing is mutated, so ShowPushPreview and
+    /// PushAction.Execute can both call this and see the same plan, right up until the moment the
+    /// second one actually commits it.
+    ///
+    /// Every occupant of `footprint` other than `pusher` themselves is a candidate - there is no
+    /// direction "away from yourself" to shove the caster in. Candidates resolve farthest-from-`pusher`
+    /// first, so an outer body claims its ring tile before an inner one competes for the same one.
+    ///
+    /// Deliberately not random, unlike StepAwayFrom: a push publishes a landing tile as a ghost before
+    /// the card is even played, so the plan has to be reproducible between that preview and the actual
+    /// resolve.
+    ///
+    /// A mover the ring has no legal room for is returned with a null destination, not omitted - "this
+    /// body cannot be cleared" is the answer Card.PushRefusal turns into a refusal of the whole card,
+    /// so it has to survive the trip back rather than being silently dropped here.
+    /// </summary>
+    public List<(Character mover, GridTile destination)> PlanPush(Character pusher, IReadOnlyList<GridTile> footprint)
+    {
+        List<(Character mover, GridTile destination)> plan = new();
+
+        if (pusher == null || pusher.Tile == null || footprint == null || footprint.Count == 0) { return plan; }
+
+        Vector2Int origin = pusher.Tile.Coordinates;
+        HashSet<Vector2Int> inside = new();
+        List<Character> movers = new();
+
+        foreach (GridTile tile in footprint)
+        {
+            if (tile == null) { continue; }
+
+            inside.Add(tile.Coordinates);
+
+            if (tile.Occupant != null && tile.Occupant != pusher) { movers.Add(tile.Occupant); }
+        }
+
+        List<GridTile> ring = RingAround(footprint);
+
+        // Farthest from the pusher first (Chebyshev), IsEarlier as the deterministic tie-break every
+        // other board-wide ranking in this file already uses.
+        movers.Sort((a, b) =>
+        {
+            int distanceA = Chebyshev(origin, a.Tile.Coordinates);
+            int distanceB = Chebyshev(origin, b.Tile.Coordinates);
+
+            if (distanceA != distanceB) { return distanceB - distanceA; }
+
+            return IsEarlier(a.Tile.Coordinates, b.Tile.Coordinates) ? -1 : 1;
+        });
+
+        HashSet<Vector2Int> claimed = new();
+
+        foreach (Character mover in movers)
+        {
+            Vector2Int from = mover.Tile.Coordinates;
+
+            int dx = System.Math.Sign(from.x - origin.x);
+            int dy = System.Math.Sign(from.y - origin.y);
+
+            // Sourceless direction (the mover shares the caster's own tile, which cannot happen for a
+            // real footprint - kept as a fallback rather than an exception).
+            if (dx == 0 && dy == 0) { continue; }
+
+            // The side of the footprint this push is driving toward - always the one facing away from
+            // the pusher. Every ring cell is sorted by which side of that line it falls on before
+            // anything else is asked about it; see SideRank.
+            Vector2Int away = new(dx, dy);
+
+            Vector2Int ideal = from;
+            do { ideal += away; } while (inside.Contains(ideal));
+
+            GridTile best = null;
+
+            foreach (GridTile candidate in ring)
+            {
+                Vector2Int cell = candidate.Coordinates;
+
+                if (claimed.Contains(cell)) { continue; }
+                if (MoveRefusal(mover, candidate) != null) { continue; }
+
+                if (best == null) { best = candidate; continue; }
+
+                int comparison = ComparePushCandidates(cell, best.Coordinates, from, ideal, origin, away);
+
+                if (comparison < 0 || (comparison == 0 && IsEarlier(cell, best.Coordinates)))
+                {
+                    best = candidate;
+                }
+            }
+
+            // A mover with nowhere legal stays in the plan with a *null* destination rather than being
+            // dropped from it. Card.PushRefusal reads exactly that to refuse the whole card, and
+            // PushGhost must not promise a landing tile to somebody who has none.
+            if (best != null) { claimed.Add(best.Coordinates); }
+
+            plan.Add((mover, best));
+        }
+
+        return plan;
+    }
+
+    /// <summary>
+    /// Which of two candidate landing cells a push should prefer - negative if `a` wins, positive if
+    /// `b` does, 0 if nothing here separates them. The ladder, in priority order:
+    ///
+    ///   1. The far side of the footprint beats the flanks, which beat the near side. A wall is put
+    ///      down to get bodies onto one particular side of it, so that decision outranks every other -
+    ///      including the straight/diagonal test below. Asking them the other way round is what let a
+    ///      body caught in a 3-wide wall be shoved straight *back toward* the pusher (a cardinal step)
+    ///      in preference to a diagonal one that would have cleared it to the far face.
+    ///   2. The smallest shove that works. A push is a nudge clear of the wall, not a launch, so one
+    ///      cell always beats two - even when the two-cell option is a tidy straight line and the
+    ///      one-cell option is a diagonal. This sits above the straight/diagonal test for exactly that
+    ///      reason: distance is what a player reads first, and a body flung two cells sideways to
+    ///      avoid a single diagonal step looks like a bug even when the ladder meant it.
+    ///   3. A straight shove beats a diagonal one, once both are on the same side and the same
+    ///      distance away. Measured from where the body actually stands.
+    ///   4. Closest to `ideal`, the cell directly away from the pusher, so the shove still reads as
+    ///      "driven back from the hero" rather than merely "moved somewhere legal".
+    ///   5. Whichever ends up furthest from the pusher.
+    ///
+    /// Callers settle anything still tied with IsEarlier, which is what keeps the whole plan
+    /// reproducible - the ghost preview promises a landing tile before the click, so it has to be.
+    /// </summary>
+    private static int ComparePushCandidates(Vector2Int a, Vector2Int b, Vector2Int from, Vector2Int ideal,
+                                              Vector2Int pusher, Vector2Int away)
+    {
+        int bySide = SideRank(a - from, away) - SideRank(b - from, away);
+        if (bySide != 0) { return bySide; }
+
+        int byStep = Chebyshev(from, a) - Chebyshev(from, b);
+        if (byStep != 0) { return byStep; }
+
+        int byCardinal = CardinalRank(a - from) - CardinalRank(b - from);
+        if (byCardinal != 0) { return byCardinal; }
+
+        int byIdeal = Chebyshev(ideal, a) - Chebyshev(ideal, b);
+        if (byIdeal != 0) { return byIdeal; }
+
+        return Chebyshev(pusher, b) - Chebyshev(pusher, a);
+    }
+
+    /// <summary>
+    /// 0 for a straight step along a grid axis - (0, +/-1) or (+/-1, 0), at any length - and 1 for a
+    /// diagonal one like (-1, +1). Lower wins, so sorting on this alone puts every straight option
+    /// ahead of every diagonal.
+    ///
+    /// Grid axes, not screen ones, and on an isometric board the two do not line up: a grid step of
+    /// (+1, 0) travels up-and-right on screen, while a step that looks horizontal on screen is the
+    /// grid diagonal (-1, +1). Straight here means straight on the board, which is the space cards,
+    /// patterns and ranges are all reasoned about in. See IsoToWorld for the mapping.
+    /// </summary>
+    private static int CardinalRank(Vector2Int step) => step.x == 0 || step.y == 0 ? 0 : 1;
+
+    /// <summary>
+    /// Which side of the footprint a landing cell sits on, relative to the direction this push drives:
+    /// 0 for the far side (the face bodies are being cleared toward), 1 for the flanking cells level
+    /// with them, 2 for the near side back toward the pusher.
+    ///
+    /// The *sign* of the dot product rather than its magnitude, so this is a clean three-way split
+    /// instead of a gradient. "Get them to the far face of the wall" is a single decision; how they are
+    /// arranged once they are there is what the rest of the ladder settles. A wall laid across a
+    /// hero's approach with an enemy in the middle of it therefore fills its whole far row - the cell
+    /// straight across first, then the far corners - before it will consider putting anybody back on
+    /// the hero's own side.
+    /// </summary>
+    private static int SideRank(Vector2Int step, Vector2Int away)
+    {
+        int dot = (step.x * away.x) + (step.y * away.y);
+
+        return dot > 0 ? 0 : dot == 0 ? 1 : 2;
+    }
+
+    private static int Chebyshev(Vector2Int a, Vector2Int b) =>
+        Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
 
     
     /// <summary>

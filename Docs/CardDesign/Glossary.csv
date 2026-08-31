@@ -18,6 +18,8 @@
 "Status","Potency","POTENT","Increases the effect of {status} by {stacks}. (Does not effects stack amount)","","1","1"
 "Status","TurnTick","STANDING WARD","Applies {amount} {status} to all {targets} {timing}.","","1","1"
 "Status","Summoned","SUMMONED","Will die in {stacks} turns.","","1","1"
+"Status","Regeneration","REGENERATION","Heals {stacks} at the end of each of the carrier's turns, then decays by 1.","","1","1"
+"Status","Lifesteal","LIFESTEAL","For {stacks} more of the carrier's turns, every hit it lands also heals it for half the damage dealt.","","1","1"
 "Keyword","Innate","INNATE","Always in hand. Never enters the draw or discard pile.","","1","1"
 "Keyword","Cooldown","COOLDOWN","Unusable for {magnitude} turns after it is played.","","1","1"
 "Keyword","Dormant","DORMANT","Unusable for {magnitude} turns after you gain it.","","1","1"

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Owns the small canvas above a character's head: a health bar with a shield fill layered over it,
 /// a damage-preview fill layered under it, and - enemies only - an icon for the category of action
-/// they have committed to this turn.
+/// they have committed to this turn, with the raw damage of a committed Attack shown beside it.
 ///
 /// Character raises StatsChanged and IntentChanged and knows nothing about this class - the same
 /// contract as CardDrawn/CardDiscarded and ActiveHandViewer. This is the thing worth not repeating
@@ -33,6 +33,11 @@ public class CharacterOverheadViewer : MonoBehaviour
              + "old one out, the same mechanic TurnTransitionViewer plays for the turn counter. Unused "
              + "if intentIcon is empty.")]
     [SerializeField] private IntentRoll intentRoll = new();
+
+    [Tooltip("The raw damage number beside the intent icon for an Attack, gated on "
+             + "GameSettings.ShowIntentDamage. Built beside intentRoll's own window - unused if "
+             + "intentIcon is empty.")]
+    [SerializeField] private IntentDamageLabel damageLabel = new();
 
     [Header("Status icons")]
     [Tooltip("Small glyph row pooled under this - a point anchor to the left of the bar and clear of "
@@ -80,7 +85,14 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         character = GetComponent<Character>();
 
-        if (intentIcon != null) { intentRoll.Build(intentIcon); }
+        if (intentIcon != null)
+        {
+            intentRoll.Build(intentIcon);
+
+            // Must run after Build - the label anchors to intentRoll.Window, which Build is what
+            // creates.
+            damageLabel.Build(intentRoll.Window);
+        }
 
         if (healthFill != null) { previewFill = DamagePreviewFill.Build(healthFill); }
 
@@ -129,6 +141,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         if (intentIcon != null)
         {
             intentRoll.Show(icons != null ? icons.For(shownKind) : null);
+            RefreshIntentDamage(character.CommittedIntent);
         }
     }
 
@@ -151,6 +164,11 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         RefreshBar();
         RefreshStatusIcons();
+
+        // The damage number is this character's own outgoing side (Strength, Weaken, Double Attack),
+        // so it has to repaint on the same signal as the health bar - see Card.OutgoingDamage's own
+        // doc comment for why the defender's side is deliberately not watched here.
+        RefreshIntentDamage(character.CommittedIntent);
     }
 
     private void OnTurnAdvanced()
@@ -161,7 +179,15 @@ public class CharacterOverheadViewer : MonoBehaviour
 
     private void OnIntentChanged(Character _) => RefreshIntent();
 
-    private void OnActionResolved(GameAction action, ActionContext ctx) => RefreshStatusIcons();
+    private void OnActionResolved(GameAction action, ActionContext ctx)
+    {
+        RefreshStatusIcons();
+
+        // A totem's aura is pulled, not pushed (see Totem/Aura) - summoning or destroying one near
+        // this character never raises its own StatsChanged, only an action resolving somewhere on the
+        // board. Same reasoning RefreshStatusIcons above already relies on this event for.
+        RefreshIntentDamage(character.CommittedIntent);
+    }
 
     /// <summary>
     /// Shows a projected loss of `loss` health on next refresh - GridManager.ShowDamagePreview calls
@@ -197,7 +223,14 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         if (intentIcon == null) { return; }
 
-        IntentKind next = character.CommittedIntent.kind;
+        Intent intent = character.CommittedIntent;
+
+        // Repaints on every IntentChanged, unlike the roll below - a re-aim onto a different tile or
+        // victim keeps the same kind (so the icon does not roll) but can still change what the locked
+        // card would hit for, e.g. a splash card now catching one more character.
+        RefreshIntentDamage(intent);
+
+        IntentKind next = intent.kind;
 
         // Guards the case IntentChanged does not: BattleManager's own refresh pass already skips
         // assigning an unchanged kind, but TurnStart re-commits every enemy from scratch every round,
@@ -209,6 +242,22 @@ public class CharacterOverheadViewer : MonoBehaviour
 
         shownKind = next;
         intentRoll.Play(from, to);
+    }
+
+    /// <summary>
+    /// The raw damage this character's currently-committed Attack card would swing for, or hidden
+    /// entirely - a Move/Summon/Wait intent has no victim to show one about, and GameSettings can turn
+    /// the whole feature off. Deliberately does not depend on anything the defender is carrying - see
+    /// Card.OutgoingDamage's own doc comment for why that is the point, not a gap.
+    /// </summary>
+    private void RefreshIntentDamage(Intent intent)
+    {
+        bool show = GameSettings.ShowIntentDamage
+                    && intent.kind == IntentKind.Attack
+                    && intent.card != null
+                    && GridManager.Instance != null;
+
+        damageLabel.Show(show ? intent.card.OutgoingDamage(character, GridManager.Instance.GetTile(intent.target)) : 0);
     }
 
     /// <summary>

@@ -26,11 +26,13 @@
 ///              a candidate from one before it is made ("do not consider this carrier at all"). Both
 ///              are asked by TargetSelector.TryPick.
 ///
-/// Hooks run in FIFO order: the order Character.ActiveStatuses returns them, which is auras first and
-/// then the character's own in the order they were gained. There is no priority key, so mitigation is
-/// not pinned to Parry -> Block -> Shield and the outgoing total depends on which buff landed first.
-/// If that ever needs pinning, a `virtual int Order` here plus a stable sort in ActiveStatuses
-/// restores it without touching any individual status.
+/// Hooks run in the order Character.ActiveStatuses returns them: a stable sort by Order, and for any
+/// two statuses sharing the same Order (the overwhelming majority - see below), that means auras first
+/// and then the character's own in the order they were gained, exactly as if Order did not exist. Only
+/// a status that overrides Order moves itself out of that FIFO pack; everything else is untouched by
+/// its presence. See DodgeStatus, VulnerableStatus, ShieldStatus and ParryStatus for the incoming chain
+/// (Dodge -> Vulnerable -> Block -> Shield -> Parry) and DoubleNextAttackStatus for the outgoing one
+/// (Double Attack before Strength).
 ///
 /// **One number, and the status decides what spends it.** There is a single counter, `stacks`, and
 /// what it counts is the subclass's business - magnitude, charges, or remaining turns. Nothing outside
@@ -69,6 +71,19 @@ public abstract class Status
 
     /// Nothing left to hold: a status is done when its counter runs out, whatever the counter meant.
     public bool IsExpired => stacks <= 0;
+
+    /// <summary>
+    /// Where this status sorts among the others active on one character - lower runs first. The default
+    /// is 0, which every status not listed above still is; a stable sort means every default-0 status
+    /// keeps resolving in plain FIFO order relative to every other default-0 status; only the handful
+    /// with an opinion move relative to that pack.
+    ///
+    /// Not a fixed priority enum, because most statuses have no stake in when they run - Poison, Frozen,
+    /// Taunt and the rest do not interact with each other's hooks at all, so pinning them would just be
+    /// noise. Override this only where a specific ordering is load-bearing, and say why - see
+    /// DodgeStatus.Order for the pattern.
+    /// </summary>
+    public virtual int Order => 0;
 
     /// <summary>
     /// How hard this particular application hits, for the statuses whose effect has a size as well as a

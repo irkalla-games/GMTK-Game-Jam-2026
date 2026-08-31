@@ -22,6 +22,10 @@ public class VulnerableStatus : StatusEffect
 
     public override int Amount => amount;
 
+    /// After Dodge (a fully-avoided hit should not even be worth worsening) but before Block, Shield
+    /// and Parry - it decides how big the hit is before anything starts cutting it down.
+    public override int Order => -10;
+
     /// Folds into another Vulnerable only when it hits exactly as hard - see WeakenStatus.
     public override bool MergesWith(StatusEffect incoming) => incoming.Amount == amount;
 

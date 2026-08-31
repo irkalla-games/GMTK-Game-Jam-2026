@@ -22,6 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 05000000
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 1
   <description>k__BackingField: Create a Wall of Flames, anything standing ontop
     will take 4 damage.
   <image>k__BackingField: {fileID: 0}

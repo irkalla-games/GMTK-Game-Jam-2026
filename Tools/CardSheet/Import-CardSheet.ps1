@@ -106,18 +106,20 @@ if (-not $effectiveFromCsv) {
     Import-Module ImportExcel -DisableNameChecking
 }
 
-$cardTabs  = @('Knight', 'Mage', 'Rogue', 'Neutral')
-$ideaTabs  = @('Knight Ideas', 'Mage Ideas', 'Rogue Ideas')
+$cardTabs  = @('Knight', 'Mage', 'Rogue', 'Cleric', 'Neutral')
+$ideaTabs  = @('Knight Ideas', 'Mage Ideas', 'Rogue Ideas', 'Cleric Ideas')
 
 # Which sub-folder of Assets/Data/CardData a tab's cards belong under.
 $tabRoot = @{
     'Knight'       = 'Knight'
     'Mage'         = 'Mage'
     'Rogue'        = 'Rogue'
+    'Cleric'       = 'Cleric'
     'Neutral'      = 'Generic'
     'Knight Ideas' = 'Knight'
     'Mage Ideas'   = 'Mage'
     'Rogue Ideas'  = 'Rogue'
+    'Cleric Ideas' = 'Cleric'
 }
 
 function Read-Tab {
@@ -235,13 +237,14 @@ function ConvertTo-EffectSpec {
     }
     # Poison Blade before Poison: regex alternation is first-match, not longest-match, so the bare
     # "Poison" branch would otherwise claim the prefix and leave " Blade" unmatched.
-    elseif ($n -match '^(Poison Blade|Stealth|Poison|Strength|Weaken|Freeze|Frozen|Root|Rooted|Dodge|Taunt|Double Shield|Double Next Attack)(?:\s+(\d+))?$') {
+    elseif ($n -match '^(Poison Blade|Stealth|Poison|Strength|Weaken|Freeze|Frozen|Root|Rooted|Dodge|Taunt|Double Shield|Double Next Attack|Regeneration|Lifesteal)(?:\s+(\d+))?$') {
         $statusNames = @{
             'Poison' = 'Poison'; 'Strength' = 'Strength'; 'Weaken' = 'Weaken'
             'Freeze' = 'Frozen'; 'Frozen' = 'Frozen'; 'Root' = 'Rooted'; 'Rooted' = 'Rooted'
             'Dodge' = 'Dodge'; 'Taunt' = 'Taunt'
             'Double Shield' = 'DoubleShield'; 'Double Next Attack' = 'DoubleNextAttack'
             'Poison Blade' = 'PoisonBlade'; 'Stealth' = 'Stealth'
+            'Regeneration' = 'Regeneration'; 'Lifesteal' = 'Lifesteal'
         }
         $status = $statusNames[$Matches[1]]
         $stacks = 1
@@ -374,7 +377,8 @@ foreach ($tab in $cardTabs) {
         if ($folder) { $path += "/$folder" }
         $path += "/$key.asset"
 
-        $noReward = (Get-Cell $row 'No Reward').ToUpperInvariant() -eq 'TRUE'
+        $noReward   = (Get-Cell $row 'No Reward').ToUpperInvariant() -eq 'TRUE'
+        $rotatable  = (Get-Cell $row 'Rotatable').ToUpperInvariant() -eq 'TRUE'
 
         $card = [ordered]@{
             key            = $key
@@ -390,6 +394,7 @@ foreach ($tab in $cardTabs) {
             rangeMin       = [int](ConvertTo-IntOrDefault (Get-Cell $row 'Range Min'))
             rangeMax       = [int](ConvertTo-IntOrDefault (Get-Cell $row 'Range Max'))
             excludeFromRewards = $noReward
+            rotatableAim   = $rotatable
             description    = Get-Cell $row 'Description'
             animation      = Get-Cell $row 'Animation'
             keywords       = @(ConvertTo-KeywordSpec (Get-Cell $row 'Keywords'))

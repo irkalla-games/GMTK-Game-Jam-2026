@@ -55,17 +55,30 @@ public static class PartyPortraitWiring
     // at x=520 bottom-left anchored). Tunable afterward in the Inspector like every other HUD position
     // this project wires up.
     //
-    // Y keeps the active hero's full scaled height - root height x activeScale, currently
-    // 285 x 1.25 = ~356, half ~178 - clear of the screen's own bottom edge (y=0), since Row sits at the
-    // canvas's bottom-left corner and everything here hangs off that point. Kept close to that ~178
-    // floor rather than given generous headroom, so the row still hugs the bottom of the screen.
-    private static readonly Vector2 RowAnchoredPosition = new(200f, 190f);
+    // Y keeps the active hero's lowest content - the chip row's bottom edge, HeroPortrait.prefab's
+    // ChipParent (y -44) minus its own height (42) = -86 local units - clear of the screen's own bottom
+    // edge (y=0), since Row sits at the canvas's bottom-left corner and every portrait's own pivot sits
+    // at Row's y (Layout always targets y 0 within the row). Scaled by activeScale (1.25): -86 * 1.25 =
+    // -107.5, so 120 leaves ~12.5 units of clearance below the active hero's chip row.
+    //
+    // 120, not a smaller drop from some in-between value: Game.unity's Row had already been hand-tuned in
+    // the Inspector to y 145 before this pass (independent of whatever this constant said), so a target
+    // that only reads as "a bit lower than the code comment's old number" can land within a few units of
+    // where the scene already was and read as no move at all - re-run this and check the actual scene
+    // value first if the row still doesn't look like it moved.
+    private static readonly Vector2 RowAnchoredPosition = new(200f, 120f);
 
     // Matches PartyPortraitPanel.cs's own field defaults (kept in step by hand, same as this file's own
     // HeroPortraitPrefabPath/HeroPortrait.prefab pairing) - pushed unconditionally below since the
     // scene's already-serialized instance would otherwise never see a .cs default change.
-    private const float RestWidth = 72f;
-    private const float ActiveWidth = 210f;
+    //
+    // RestWidth/ActiveWidth track HeroPortrait.prefab's own root width (168, see HeroPortraitResizeWiring)
+    // so a rest-scaled portrait's slot always matches its actual visual footprint: RestWidth = rootWidth *
+    // restScale (168 * 0.5), ActiveWidth = rootWidth * activeScale + the same +30 pad the original 144-wide
+    // pass used (168 * 1.25 + 30). Falling out of step here is what makes adjacent rest-scaled portraits
+    // overlap in the row - re-run this whenever HeroPortrait.prefab's width changes.
+    private const float RestWidth = 84f;
+    private const float ActiveWidth = 240f;
     private const float RowSpacing = 18f;
     private const float RestScale = 0.5f;
 

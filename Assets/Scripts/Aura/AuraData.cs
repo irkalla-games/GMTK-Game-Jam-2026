@@ -52,23 +52,29 @@ public class AuraData
 
     /// <summary>
     /// Builds the StatusEffect this entry describes. Routes GainMultiplier, Potency and TurnTick to
-    /// their own constructors - StatusEffect.Create has nowhere to put subject/magnitude/timing, the
-    /// same reason it returns null for Taunt - and falls back to StatusEffect.Create for every ordinary
+    /// their own constructors - StatusEffect.Create has nowhere to put subject/magnitude/timing - and
+    /// Taunt to one built from `owner`, and falls back to StatusEffect.Create for every ordinary
     /// type, so an existing totem authored before these fields existed (subject None, magnitude 0,
     /// timing TurnEnd, none of which its type reads) builds exactly as it did before.
     ///
     /// `amountBonus` is what the totem's own equipment-style potency adds to the size of the projected
     /// status - Totem.Project asks its owner, which inherited the summoner's bonus at summon time, so a
-    /// mage's Weaken ring deepens the Weaken their Sap Totem casts. The three parameterised types ignore
-    /// it: their magnitude is authored outright rather than being a status size.
+    /// mage's Weaken ring deepens the Weaken their Sap Totem casts. The three parameterised types and
+    /// Taunt ignore it: their magnitude is authored outright, or in Taunt's case there is no size at all.
+    ///
+    /// `owner` is the totem's own Character - the taunter a Taunt-type entry names, since a totem has
+    /// no other character to point at. StatusEffect.Create alone cannot build a TauntStatus (its
+    /// type/stacks signature has nowhere to carry a taunter reference); an aura is the one place that
+    /// reference is unambiguous - a taunting totem should pull enemies toward *itself*.
     ///
     /// Totem.Project is the only caller.
     /// </summary>
-    public StatusEffect CreateEffect(int amountBonus = 0) => type switch
+    public StatusEffect CreateEffect(int amountBonus, Character owner) => type switch
     {
         StatusType.GainMultiplier => new GainMultiplierStatus(subject, magnitude, stacks),
         StatusType.Potency => new PotencyStatus(subject, magnitude, stacks),
         StatusType.TurnTick => new TurnTickStatus(subject, magnitude, timing, stacks),
+        StatusType.Taunt => owner != null ? new TauntStatus(owner, stacks) : null,
         _ => StatusEffect.Create(type, stacks, amountBonus),
     };
 }

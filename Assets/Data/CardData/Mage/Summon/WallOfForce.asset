@@ -22,11 +22,23 @@ MonoBehaviour:
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 1
   <description>k__BackingField: Create a Wall of Force, stopping all movement through
     that area.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: c5e3aa0879e546d4e8e0f9f154fde8f2, type: 2}
+    aimsAt: 0
+    area:
+      kind: 2
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 11400000, guid: 8f79c6a0cdb32114494d00fc261c76fd, type: 2}
+    amountDelta: 0
+    amountPercent: 0
   - effect: {fileID: 11400000, guid: 8b40ec0331a65494e86c0a3cc51f6ca7, type: 2}
     aimsAt: 0
     area:

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -210,16 +211,86 @@ public class Character : MonoBehaviour
     /// <summary>
     /// What this enemy would do if its turn came right now - what the overhead icon shows.
     ///
-    /// Kept live rather than decided once: BattleManager recomputes it whenever the board changes (see
-    /// BattleManager.LateUpdate), and re-derives it outright, kind included, the moment the enemy
-    /// actually acts. There is no separate "stale but committed" state - moving a hero out of an
-    /// archer's reach turns its Attack back into a Move rather than leaving it to swing at nothing.
+    /// The card is a promise for the whole turn (see LockedCard); the tile and victim are not -
+    /// BattleManager recomputes those whenever the board changes (see BattleManager.LateUpdate) by
+    /// re-aiming the same locked card, and re-derives the whole thing outright the moment the enemy
+    /// actually acts and the lock is consumed or lapses. Moving a hero out of an archer's reach turns
+    /// its Attack back into a Move only once the locked card genuinely cannot be aimed at anyone -
+    /// stepping back into range hands the same card back rather than rolling a new one.
     /// </summary>
     public Intent CommittedIntent
     {
         get => committedIntent;
         set { committedIntent = value; IntentChanged?.Invoke(this); }
     }
+
+    /// <summary>
+    /// The card this enemy committed to for the whole turn, and the kind it was committed as -
+    /// BattleManager.Decide re-aims this same card every time the board changes rather than picking a
+    /// new one, which is what makes the intent icon's damage number a promise instead of a forecast
+    /// that can flicker as the player moves. Null between rounds and whenever nothing was committed
+    /// (a Wait turn).
+    ///
+    /// Distinct from LockedAim: that one is Dodge freezing a *whole* Intent, tile included, for a
+    /// single action point, and it still overrides this outright when set - see
+    /// BattleManager.LockAimsOn and EnemyResolve. This one only pins the card; the aim stays live.
+    /// </summary>
+    public Card LockedCard { get; private set; }
+
+    public IntentKind LockedKind { get; private set; }
+
+    /// Commits to `intent`'s card and kind for the rest of the turn, or clears the lock if it is a
+    /// Wait. Called once from BattleManager.TurnStart with a fresh Decide; never called with the
+    /// result of Reaim, or a re-aim would silently become a new lock.
+    public void LockIntent(Intent intent)
+    {
+        if (intent.IsWait)
+        {
+            ClearIntentLock();
+            return;
+        }
+
+        LockedCard = intent.card;
+        LockedKind = intent.kind;
+    }
+
+    public void ClearIntentLock()
+    {
+        LockedCard = null;
+        LockedKind = IntentKind.Wait;
+    }
+
+    /// Whether `card` is still one of this character's hand copies - what BattleManager.Decide checks
+    /// before trusting LockedCard, since the card may have been discarded (played, or a hand reshuffle)
+    /// since it was locked. A plain loop rather than Hand.Contains-via-LINQ, matching the rest of this
+    /// class's per-frame-safe style.
+    public bool Holds(Card card)
+    {
+        if (card == null) { return false; }
+
+        foreach (Card held in Hand)
+        {
+            if (held == card) { return true; }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// An Attack this enemy is now locked onto, overriding the next Decide call in EnemyResolve -
+    /// how Dodge makes an enemy keep swinging at the tile its target just left instead of re-aiming
+    /// at wherever they moved to. Intent.Wait() (the default) means nothing is locked and EnemyResolve
+    /// decides fresh, exactly as before Dodge could set this.
+    ///
+    /// Deliberately plain scratch state rather than a Status: it answers no question about this
+    /// character, it is written by BattleManager.LockAimsOn and consumed by EnemyResolve, and it is
+    /// cleared every round - see BattleManager.TurnStart and EnemyResolve.
+    ///
+    /// Not routed through the CommittedIntent setter - locking an aim must not raise IntentChanged,
+    /// or the overhead icon over this enemy's own head would repaint from an intent decided about the
+    /// dodger, not about itself.
+    /// </summary>
+    public Intent LockedAim { get; set; }
 
     public bool IsDead => Health <= 0;
 
@@ -613,9 +684,10 @@ public class Character : MonoBehaviour
     /// first, then its own, each in the order it was gained.
     ///
     /// Auras come first so they always resolve ahead of anything the character is carrying itself, and
-    /// building the list in that order is the whole enforcement - there is no sort. That also means
-    /// hooks run FIFO, so mitigation order and the outgoing damage total both depend on which status
-    /// landed first. See Status.
+    /// building the list in that order is most of the enforcement - the rest is Status.Order, applied
+    /// below as a stable sort. Two statuses with the same Order (the default, and the overwhelming
+    /// majority) keep resolving FIFO - auras first, then the character's own in the order they were
+    /// gained - exactly as if Order did not exist. See Status.
     ///
     /// A fresh list every call rather than a reused buffer: a Poison tick can kill the carrier, and a
     /// Died handler running mid-iteration could otherwise clobber the buffer being walked.
@@ -644,7 +716,10 @@ public class Character : MonoBehaviour
         // Then the character's own, in the order they were applied.
         aurasThenOwn.AddRange(ownStatusEffects);
 
-        return aurasThenOwn;
+        // Stable, so ties (the default Order of 0) do not disturb the equip -> aura -> own sequence
+        // built above - only a status that overrides Order moves out of that pack. OrderBy, not
+        // List.Sort, because List.Sort is not guaranteed stable.
+        return aurasThenOwn.OrderBy(status => status.Order).ToList();
     }
 
     /// <summary>
@@ -897,6 +972,30 @@ public class Character : MonoBehaviour
         {
             if (ownStatusEffects[i].IsExpired) { ownStatusEffects.RemoveAt(i); }
         }
+    }
+
+    /// <summary>
+    /// Strips every carried instance of `type` outright and returns how many stacks were removed -
+    /// Purge and Cleansing Light both need the number to hand to whatever they do with it next
+    /// (afflict an enemy, heal the target). Only carried statuses, the same reach PruneExpired has:
+    /// an aura projected onto this character from a totem is not something removing it here could
+    /// touch, and it would come back on the very next query anyway.
+    /// </summary>
+    public int RemoveStatus(StatusType type)
+    {
+        int removed = 0;
+
+        for (int i = ownStatusEffects.Count - 1; i >= 0; i--)
+        {
+            if (ownStatusEffects[i].type != type) { continue; }
+
+            removed += ownStatusEffects[i].stacks;
+            ownStatusEffects.RemoveAt(i);
+        }
+
+        if (removed > 0) { RaiseStatsChanged(); }
+
+        return removed;
     }
 
     /// <summary>

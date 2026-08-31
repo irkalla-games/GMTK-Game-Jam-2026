@@ -33,6 +33,12 @@ public class IntentRoll
 
     private Tweener rollTween;
 
+    /// The masked window Build creates around the authored icon - null until Build has run. Exposed so
+    /// IntentDamageLabel can anchor beside the icon's own slot rather than the icon itself: the icon
+    /// Image is duplicated into two rolling copies (see Build), so anything parented under it would be
+    /// duplicated and roll away too.
+    public RectTransform Window => window;
+
     /// <summary>
     /// Wraps `authored` - the single Image CharacterOverheadViewer already exposes in the Inspector -
     /// in a masked window with two stacked copies of it. Call once, from Awake, and only when authored

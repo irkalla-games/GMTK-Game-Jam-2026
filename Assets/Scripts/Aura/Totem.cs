@@ -200,7 +200,7 @@ public class Totem : MonoBehaviour
             // at range 0) would recurse forever. See Character.CarriedAppliedPotency.
             int amountBonus = owner != null ? owner.CarriedAppliedPotency(aura.Type) : 0;
 
-            StatusEffect projectedEffect = aura.CreateEffect(amountBonus);
+            StatusEffect projectedEffect = aura.CreateEffect(amountBonus, owner);
 
             if (projectedEffect != null) { into.Add(new Aura(this, projectedEffect)); }
         }

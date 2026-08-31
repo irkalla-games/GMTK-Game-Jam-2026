@@ -42,13 +42,14 @@ $script:KeywordNames = @('None', 'Innate', 'Cooldown', 'Dormant')
 # Enum.TryParse then rejects it - so the tooltip silently cannot be edited from the sheet at all.
 $script:StatusNames  = @('None', 'Strength', 'DoubleNextAttack', 'Poison', 'Frozen', 'Shield', 'Block',
                          'Parry', 'Rooted', 'DoubleShield', 'Dodge', 'Weaken', 'Taunt', 'Summoned',
-                         'PoisonBlade', 'Stealth', 'Vulnerable', 'GainMultiplier', 'Potency', 'TurnTick')
+                         'PoisonBlade', 'Stealth', 'Vulnerable', 'GainMultiplier', 'Potency', 'TurnTick',
+                         'Regeneration', 'Lifesteal')
 
 # Assets/Scripts/TileEffects/TileEffectType.cs
 $script:TileEffectNames = @('None', 'WallOfForce', 'WallOfFlames')
 
 # CharacterClass is a [Flags] mask, so it needs bit handling rather than an index lookup.
-$script:ClassBits = [ordered]@{ Knight = 1; Mage = 2; Rogue = 4 }
+$script:ClassBits = [ordered]@{ Knight = 1; Mage = 2; Rogue = 4; Cleric = 8 }
 
 function Get-EnumName {
     param([string[]]$Table, $Value, [string]$Fallback = '')
@@ -931,6 +932,7 @@ function Get-CardRecord {
 
     $record['Keywords']    = Format-Keywords (Get-BackingField $n 'keywords')
     $record['No Reward']   = if ((ConvertTo-IntOrDefault (Get-BackingField $n 'excludeFromRewards')) -ne 0) { 'TRUE' } else { 'FALSE' }
+    $record['Rotatable']   = if ((ConvertTo-IntOrDefault (Get-BackingField $n 'rotatableAim')) -ne 0) { 'TRUE' } else { 'FALSE' }
     $record['Description'] = [string](Get-BackingField $n 'description')
     $record['Animation']   = Resolve-AssetName -Reference (Get-BackingField $n 'animation') -AssetIndex $AssetIndex
     $record['GUID']        = $Asset.Guid
@@ -1076,7 +1078,7 @@ function Get-CardColumns {
         'Aim 1', 'Area 1',
         'Aim 2', 'Area 2',
         'Aim 3', 'Area 3',
-        'Keywords', 'No Reward', 'Animation', 'GUID', 'Sync', 'Notes'
+        'Keywords', 'No Reward', 'Rotatable', 'Animation', 'GUID', 'Sync', 'Notes'
     )
 }
 
@@ -1387,7 +1389,7 @@ function Get-CardIssues {
     if ([string]::IsNullOrWhiteSpace($row['Card Name']))  { $issues += 'blank card name' }
     if ([string]::IsNullOrWhiteSpace($row['Description'])){ $issues += 'blank description' }
 
-    $expected = @{ Knight = 'Knight'; Mage = 'Mage'; Rogue = 'Rogue' }
+    $expected = @{ Knight = 'Knight'; Mage = 'Mage'; Rogue = 'Rogue'; Cleric = 'Cleric' }
     if ($expected.ContainsKey($Card.ClassDir)) {
         if ($row['Class'] -notlike "*$($Card.ClassDir)*") {
             $issues += "class '$($row['Class'])' does not match $($Card.ClassDir)/ folder"

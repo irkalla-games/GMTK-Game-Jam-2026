@@ -13,10 +13,10 @@ public class MainMenu : MonoBehaviour
     [Tooltip("Who Play may offer at the character-select screen, and how large a party it allows.")]
     [SerializeField] private CharacterRoster roster;
 
-    [Tooltip("Play/Settings/Exit/TutorialToggle - hidden individually while the select screen is up, "
-             + "restored on Back. A list of the existing objects rather than a shared container so no "
-             + "scene reparenting was needed to introduce this screen - the select screen has no idea "
-             + "any of this exists, it only fires BackClicked.")]
+    [Tooltip("Play/Settings/Exit/TutorialToggle/IntentDamageToggle - hidden individually while the "
+             + "select screen is up, restored on Back. A list of the existing objects rather than a "
+             + "shared container so no scene reparenting was needed to introduce this screen - the "
+             + "select screen has no idea any of this exists, it only fires BackClicked.")]
     [SerializeField] private List<GameObject> menuButtons = new();
 
     [SerializeField] private CharacterSelectPanel selectPanel;
@@ -24,6 +24,11 @@ public class MainMenu : MonoBehaviour
     [Tooltip("Runs the tutorial before the run proper when ticked. Remembered between sessions - the "
              + "state authored here is only what the button looks like before GameSettings is read.")]
     [SerializeField] private Toggle tutorialToggle;
+
+    [Tooltip("Shows the raw damage of an enemy's committed attack beside its intent icon when ticked. "
+             + "Remembered between sessions, and read live rather than snapshotted into a run - see "
+             + "GameSettings.ShowIntentDamage.")]
+    [SerializeField] private Toggle intentDamageToggle;
 
     [Tooltip("The tutorial prologue: one scripted level with its own fixed party and decks. Played "
              + "instead of the character-select screen while the toggle is on, and followed "
@@ -95,14 +100,20 @@ public class MainMenu : MonoBehaviour
     {
         if (selectPanel != null) { selectPanel.BackClicked += OnSelectPanelBackClicked; }
 
-        if (tutorialToggle == null) { return; }
-
         // SetIsOnWithoutNotify, not isOn: assigning isOn fires onValueChanged, which would write the
         // saved value straight back over itself - harmless today, but it makes the read look like a
         // write and would matter the moment anything else listens.
-        tutorialToggle.SetIsOnWithoutNotify(GameSettings.TutorialEnabled);
+        if (tutorialToggle != null)
+        {
+            tutorialToggle.SetIsOnWithoutNotify(GameSettings.TutorialEnabled);
+            tutorialToggle.onValueChanged.AddListener(OnTutorialToggled);
+        }
 
-        tutorialToggle.onValueChanged.AddListener(OnTutorialToggled);
+        if (intentDamageToggle != null)
+        {
+            intentDamageToggle.SetIsOnWithoutNotify(GameSettings.ShowIntentDamage);
+            intentDamageToggle.onValueChanged.AddListener(OnIntentDamageToggled);
+        }
     }
 
     /// The select screen has already hidden itself before raising this - see
@@ -122,4 +133,6 @@ public class MainMenu : MonoBehaviour
     }
 
     private static void OnTutorialToggled(bool enabled) => GameSettings.TutorialEnabled = enabled;
+
+    private static void OnIntentDamageToggled(bool enabled) => GameSettings.ShowIntentDamage = enabled;
 }

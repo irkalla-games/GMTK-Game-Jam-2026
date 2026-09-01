@@ -171,28 +171,35 @@ public static class ClericContentGenerator
     {
         Dictionary<string, GameObject> prefabs = new();
 
+        // Gem 2 turquoise: a maintained boon, on the Heal/Regeneration colour. Aura wash and gem colour
+        // both come from gemColour now, so there is no auraColor to keep in sync by hand.
         prefabs["HealTotem"] = TotemContentGenerator.CreateTotemPrefab(new TotemContentGenerator.TotemSpec
         {
             fileName = "HealTotem",
             displayName = "Heal Totem",
             affects = AuraAudience.Allies,
-            auraType = StatusType.Regeneration,
-            stacks = 5,
-            color = new Color(0.3f, 0.75f, 0.45f, 1f),
+            requiredClass = CharacterClass.Cleric,
+            gem = 2,
+            gemColour = "TURQUOISE",
+            auras = { TotemContentGenerator.Plain(StatusType.Regeneration, 5) },
         });
 
-        // stacks is left at TotemSpec's default (1): TauntStatus's counter is remaining turns, but a
+        // stacks is left at AuraSpec's default (1): TauntStatus's counter is remaining turns, but a
         // projected aura is rebuilt fresh every query and neither ForcedQuarry nor Character.ActiveStatuses
         // consults IsExpired for an aura entry, so the value here is inert - the totem taunts for as
         // long as anything stands in its range, permanently, the same as every other plain aura here.
+        //
+        // Gem 9 gold: the taunt shape, on the utility colour.
         prefabs["BeaconTotem"] = TotemContentGenerator.CreateTotemPrefab(new TotemContentGenerator.TotemSpec
         {
             fileName = "BeaconTotem",
             displayName = "Beacon Totem",
             affects = AuraAudience.Enemies,
-            auraType = StatusType.Taunt,
+            requiredClass = CharacterClass.Cleric,
             maxHealth = 5,
-            color = new Color(0.85f, 0.75f, 0.2f, 1f),
+            gem = 9,
+            gemColour = "GOLD",
+            auras = { TotemContentGenerator.Plain(StatusType.Taunt, 1) },
         });
 
         prefabs["SentinelTotem"] = TotemContentGenerator.CreateTotemPrefab(new TotemContentGenerator.TotemSpec
@@ -200,9 +207,11 @@ public static class ClericContentGenerator
             fileName = "SentinelTotem",
             displayName = "Sentinel Totem",
             affects = AuraAudience.Enemies,
-            auraType = StatusType.Taunt,
+            requiredClass = CharacterClass.Cleric,
             maxHealth = 12,
-            color = new Color(0.8f, 0.4f, 0.1f, 1f),
+            gem = 9,
+            gemColour = "GOLD",
+            auras = { TotemContentGenerator.Plain(StatusType.Taunt, 1) },
         });
 
         return prefabs;

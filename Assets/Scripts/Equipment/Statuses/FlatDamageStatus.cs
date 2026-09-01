@@ -5,16 +5,23 @@
 /// should not need Strength or Block on the board to do anything, so this always applies.
 ///
 /// Never touches consumeCharges - there is no charge here to spend, so a preview (a damage tooltip, an
-/// enemy brain scoring a move) sees the same number a real hit would land. Reports StatusType.None for
-/// the same reason GainBonusStatus does: an equipment-granted modifier is not meant to render as its own
-/// status chip.
+/// enemy brain scoring a move) sees the same number a real hit would land.
+///
+/// Serves two owners now. Equipment leaves `type` at StatusType.None, for the same reason
+/// GainBonusStatus does: an equipment-granted modifier is not meant to render as its own status chip.
+/// A totem passes FlatDamageDealt or FlatDamageTaken, so the aura can name itself to the tooltip -
+/// those two are in StatusTypes.IsTotemOnly, so they stay out of Displayable and still draw no chip.
+/// One class, because the rule is identical either way; only who is asking differs.
 /// </summary>
 public class FlatDamageStatus : StatusEffect
 {
     private readonly int outgoingBonus;
     private readonly int incomingReduction;
 
-    public FlatDamageStatus(int outgoingBonus, int incomingReduction) : base(StatusType.None, 1)
+    /// `type` defaults to None so every existing equipment caller is unchanged - see
+    /// DamageBonusModifier, which wants exactly that. AuraData.CreateEffect passes a real type.
+    public FlatDamageStatus(int outgoingBonus, int incomingReduction, StatusType type = StatusType.None)
+        : base(type, 1)
     {
         this.outgoingBonus = outgoingBonus;
         this.incomingReduction = incomingReduction;

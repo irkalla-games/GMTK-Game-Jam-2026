@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45605270123f1924fba3208646da064b, type: 3}
+  m_Name: Contagion Totem
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  <cardName>k__BackingField: Contagion Totem
+  <cost>k__BackingField: 2
+  <range>k__BackingField:
+    shape: 1
+    minDistance: 1
+    maxDistance: 3
+  <requiredClass>k__BackingField: 4
+  <rarity>k__BackingField: 1
+  <tags>k__BackingField: 
+  <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
+  <description>k__BackingField: Summon a Contagion Totem.
+  <image>k__BackingField: {fileID: 0}
+  <effects>k__BackingField: []
+  <effectEntries>k__BackingField:
+  - effect: {fileID: 11400000, guid: db2710c080b2cfd4b84c37f51ccaf1f0, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  <animation>k__BackingField: {fileID: 0}
+  <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

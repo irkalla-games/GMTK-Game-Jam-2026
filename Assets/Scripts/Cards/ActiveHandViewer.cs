@@ -56,6 +56,14 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         + "a card's own grow-and-slide tween can outlast the gap before the next one starts.")]
     [SerializeField] private float dealInterval = 0.06f;
 
+    /// The widest gap between two cards, in normalized spline t.
+    private const float MaxCardSpacing = 0.13f;
+
+    /// How much of the spline a full row is allowed to occupy, centred on t = 0.5 - so 0.1 to 0.9.
+    /// Kept under 1 on purpose: EvaluatePosition clamps t on an open spline, so anything reaching an
+    /// endpoint stops moving and starts stacking.
+    private const float MaxHandSpan = 0.6f;
+
     private readonly List<CardViewer> cardsInHand = new();
 
     /// Whose hand is on screen. Held so the CardDrawn subscription can be moved off it on a switch.
@@ -364,7 +372,13 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     {
         if (cardsInHand.Count == 0) { yield break; }
 
-        float cardSpacing = 1.5f / 10f;
+        // Cap, then shrink to fit. Below MaxHandSpan / MaxCardSpacing + 1 cards the gap is
+        // MaxCardSpacing and the row grows outward from the centre; past that the row's width is
+        // pinned at MaxHandSpan and the gap divides down instead, so the cards compress rather than
+        // clamping onto the spline's ends and overlapping.
+        float cardSpacing = cardsInHand.Count > 1
+            ? Mathf.Min(MaxCardSpacing, MaxHandSpan / (cardsInHand.Count - 1))
+            : MaxCardSpacing;
         float firstPosition = 0.5f - (cardsInHand.Count - 1) * cardSpacing / 2;
         Spline spline = splineContainer.Spline;
         for (int i = 0; i < cardsInHand.Count; i++)

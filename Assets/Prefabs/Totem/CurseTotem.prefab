@@ -263,7 +263,7 @@ Animator:
   m_GameObject: {fileID: 3553222561094655021}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 89c17cfa31957c147bc2e1b583441b1b, type: 2}
+  m_Controller: {fileID: 9100000, guid: 20956f66114293f469b4a3291a8fc1b7, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -291,6 +291,9 @@ MonoBehaviour:
   maxHealth: 1
   maxEnergy: 0
   playableCharacter: 3
+  battleRole: 0
+  powerLevel: 0
+  isBoss: 0
   characterClass: 0
   displayName: Curse Totem
   portrait: {fileID: 0}
@@ -326,7 +329,7 @@ MonoBehaviour:
     magnitude: 2
     timing: 0
   reactions: []
-  auraColor: {r: 0.75, g: 0.15, b: 0.25, a: 1}
+  auraColor: {r: 0.7137255, g: 0.42745098, b: 0.6627451, a: 1}
 --- !u!210 &5592060693227080579
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -359,6 +362,11 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
   statusIconParent: {fileID: 1519047009593190365}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}
@@ -398,7 +406,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.067032814, y: 0.23968172}
+  m_Offset: {x: 0, y: 0.12}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -408,7 +416,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.0059605, y: 1.3225737}
+  m_Size: {x: 0.70086956, y: 0.72}
   m_EdgeRadius: 0
 --- !u!114 &4937260286401870684
 MonoBehaviour:
@@ -527,8 +535,8 @@ Transform:
   m_GameObject: {fileID: 4535047790831772079}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.05, y: 0.469, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 3}
+  m_LocalPosition: {x: 0, y: 0.12, z: 0}
+  m_LocalScale: {x: 2.6956522, y: 2.6956522, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8056755788774372532}
@@ -582,7 +590,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300228, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 01da0d6a220260a4db934a9a505fe0ae, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

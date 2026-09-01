@@ -112,4 +112,32 @@ public enum StatusType
     /// as it lasts, every hit the carrier lands also heals the carrier for half the damage dealt.
     /// stacks is remaining turns, not charges, the same shape PoisonBlade uses.
     Lifesteal = 21,
+
+    /// Aura-only: adds AuraData.magnitude to every attack made from inside the totem's range.
+    ///
+    /// Strength's unconditional cousin, and the pair exists because Strength cannot carry a number:
+    /// StrengthStatus.AmountPerHit is a const 3 shared by every Strength in the game, so a "+5 damage"
+    /// totem is unauthorable through it. This reads its size straight off the aura entry.
+    ///
+    /// Also unlike Potency, which only fires while the carrier already holds a charge of its subject -
+    /// a Warlord Totem does nothing for an ally with no Strength, while this always applies. See
+    /// FlatDamageStatus, which already implemented exactly this for equipment and is now reachable
+    /// from AuraData.CreateEffect too.
+    FlatDamageDealt = 22,
+
+    /// Aura-only: takes AuraData.magnitude off every hit landed on anyone inside the totem's range.
+    ///
+    /// FlatDamageDealt's mirror on the incoming side, and Block's unconditional cousin for the same
+    /// reason - BlockStatus.AmountPerHit is a const 3, and Block's charges never deplete when they
+    /// arrive as an aura, so "Block 1 on a totem" was only ever a flat -3 wearing a charge counter's
+    /// clothes. This says so, and lets the number be authored.
+    FlatDamageTaken = 23,
+
+    /// Aura-only: adds AuraData.magnitude to the stack count of whatever status AuraData.subject names,
+    /// whenever that status is applied to someone in range.
+    ///
+    /// GainMultiplier's additive sibling - that one scales how many stacks land, this adds a flat
+    /// amount on top - and rides the same Character.AddStatus OnGainStatus pipeline, so a totem and a
+    /// piece of equipment granting the same subject compound rather than fight. See GainBonusStatus.
+    GainBonus = 24,
 }

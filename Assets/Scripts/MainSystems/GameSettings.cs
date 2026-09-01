@@ -19,6 +19,8 @@ public static class GameSettings
 
     private const string IntentDamageKey = "settings.showIntentDamage";
 
+    private const string DebugRunKey = "settings.debugRunEnabled";
+
     /// <summary>
     /// Whether Play should run the tutorial on the first level. Defaults on: a player who has never
     /// touched the toggle is by definition the one who needs it.
@@ -52,6 +54,25 @@ public static class GameSettings
         set
         {
             PlayerPrefs.SetInt(IntentDamageKey, value ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Whether Play drops straight into the debug testbed instead of a real run - one 8×8 board, the
+    /// whole party, every totem in hand reach and a card that refills energy on demand.
+    ///
+    /// Defaults **off**, unlike the two above: this is the only setting whose on-state is not a way to
+    /// play the game, and a player who has never touched it must never end up in it. Checked before
+    /// TutorialEnabled in MainMenu.playButton, so turning it on wins over a tutorial that is also on.
+    /// </summary>
+    public static bool DebugRunEnabled
+    {
+        get => PlayerPrefs.GetInt(DebugRunKey, 0) != 0;
+
+        set
+        {
+            PlayerPrefs.SetInt(DebugRunKey, value ? 1 : 0);
             PlayerPrefs.Save();
         }
     }

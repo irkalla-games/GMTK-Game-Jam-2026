@@ -118,7 +118,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         // Into the actor's own discard pile - the card came out of that character's hand.
         // ActiveHandViewer is listening for Character.CardDiscarded and removes the viewer itself.
-        actor.Discard(card);
+        //
+        // DiscardPlayed rather than Discard: this is the play path, and a Rebound card is only supposed
+        // to come back when it was played rather than every time it leaves hand - see that method.
+        actor.DiscardPlayed(card);
     }
 
 

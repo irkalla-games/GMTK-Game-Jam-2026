@@ -30,6 +30,17 @@ public class MainMenu : MonoBehaviour
              + "GameSettings.ShowIntentDamage.")]
     [SerializeField] private Toggle intentDamageToggle;
 
+    [Tooltip("Drops Play straight into the debug testbed instead of a real run. Remembered between "
+             + "sessions, and off by default - see GameSettings.DebugRunEnabled.")]
+    [SerializeField] private Toggle debugRunToggle;
+
+    [Tooltip("The debug testbed: one 8x8 board with the whole party, every class's totems in its Test "
+             + "deck and a hand of 7. Played instead of both the tutorial and character select while "
+             + "the toggle above is on.\n\n"
+             + "Leave empty to disable the debug path entirely - Play then behaves as it always did, "
+             + "whatever the toggle says. Same escape hatch TutorialRun has.")]
+    [SerializeField] private RunData debugRun;
+
     [Tooltip("The tutorial prologue: one scripted level with its own fixed party and decks. Played "
              + "instead of the character-select screen while the toggle is on, and followed "
              + "automatically by a normal run built from Campaign's levels and the party below.\n\n"
@@ -56,11 +67,37 @@ public class MainMenu : MonoBehaviour
     /// </summary>
     public void playButton()
     {
+        if (TryStartDebugRun()) { return; }
+
         if (TryStartTutorial()) { return; }
 
         SetMenuButtonsActive(false);
 
         selectPanel.Show(campaign, roster);
+    }
+
+    /// <summary>
+    /// Sends Play into the debug testbed, skipping both the tutorial and character select.
+    ///
+    /// Checked before TryStartTutorial rather than after: the tutorial defaults on, so a debug toggle
+    /// that lost to it would appear to do nothing until you also turned the tutorial off.
+    ///
+    /// The party is fixed for the same reason the tutorial's is - the point of this level is that all
+    /// four classes are on the board with their own totems, and a party chosen at the select screen
+    /// could not guarantee that. Its heroes and decks live on the debugRun asset, authored by
+    /// Tools/Debug/Generate Debug Testbed, so what Play starts is a thing you can open and read.
+    ///
+    /// No follow-on: a testbed hands you back to the menu when it ends rather than starting a campaign.
+    /// </summary>
+    private bool TryStartDebugRun()
+    {
+        if (!GameSettings.DebugRunEnabled || debugRun == null) { return false; }
+
+        RunManager.StartRun(debugRun, showTutorial: false);
+
+        SceneManager.LoadScene("Game");
+
+        return true;
     }
 
     /// <summary>
@@ -114,6 +151,12 @@ public class MainMenu : MonoBehaviour
             intentDamageToggle.SetIsOnWithoutNotify(GameSettings.ShowIntentDamage);
             intentDamageToggle.onValueChanged.AddListener(OnIntentDamageToggled);
         }
+
+        if (debugRunToggle != null)
+        {
+            debugRunToggle.SetIsOnWithoutNotify(GameSettings.DebugRunEnabled);
+            debugRunToggle.onValueChanged.AddListener(OnDebugRunToggled);
+        }
     }
 
     /// The select screen has already hidden itself before raising this - see
@@ -135,4 +178,6 @@ public class MainMenu : MonoBehaviour
     private static void OnTutorialToggled(bool enabled) => GameSettings.TutorialEnabled = enabled;
 
     private static void OnIntentDamageToggled(bool enabled) => GameSettings.ShowIntentDamage = enabled;
+
+    private static void OnDebugRunToggled(bool enabled) => GameSettings.DebugRunEnabled = enabled;
 }

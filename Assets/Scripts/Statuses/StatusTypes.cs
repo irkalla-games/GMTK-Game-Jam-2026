@@ -8,19 +8,24 @@ using System.Collections.Generic;
 public static class StatusTypes
 {
     /// <summary>
-    /// True for GainMultiplier, Potency and TurnTick - the three types a totem projects to describe
-    /// what it does to whoever stands in range, rather than a modifier the character holds. All three
-    /// are parameterised over another status type, which is why they read
-    /// AuraData.subject/magnitude/timing, why StatusEffect.Create refuses to build one (no card grants
-    /// "Potency"), and why no character-facing readout should show them - see AuraData.HasSubject,
-    /// which is built on this.
+    /// True for the types a totem projects to describe what it does to whoever stands in range, rather
+    /// than a modifier the character holds. Every one of them reads its size (and sometimes its
+    /// subject and timing) off the AuraData entry rather than off a stack count, which is why
+    /// StatusEffect.Create refuses to build one - no card grants "Potency" - and why no
+    /// character-facing readout should show them. See AuraData.HasSubject, which is built on this.
+    ///
+    /// GainMultiplier, Potency and TurnTick are parameterised over another status type. FlatDamageDealt
+    /// and FlatDamageTaken are not: they name no subject, they simply carry a number. They belong here
+    /// anyway, because the question this answers is "is this a totem's description of itself rather
+    /// than something you carry", and for both of those the answer is yes.
     /// </summary>
     public static bool IsTotemOnly(this StatusType type) =>
-        type is StatusType.GainMultiplier or StatusType.Potency or StatusType.TurnTick;
+        type is StatusType.GainMultiplier or StatusType.Potency or StatusType.TurnTick
+             or StatusType.FlatDamageDealt or StatusType.FlatDamageTaken or StatusType.GainBonus;
 
     /// <summary>
     /// Every status worth putting in front of the player, in enum declaration order: None (the "never
-    /// set" sentinel) and the three totem-only types above are excluded, Shield is not - callers that
+    /// set" sentinel) and the totem-only types above are excluded, Shield is not - callers that
     /// draw it elsewhere (SelectedCharacterPanel, HeroPortrait; HealthBarFill puts it on the bar) skip
     /// it themselves, same as they already did.
     ///

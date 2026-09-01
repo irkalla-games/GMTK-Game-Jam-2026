@@ -1119,6 +1119,38 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
+    /// Discards a card that was just *played*, which is the only kind of discard Rebound reacts to.
+    ///
+    /// Rebound deliberately does not live in Discard itself. Discard is also how a hand is dumped at
+    /// turn end and how DiscardAction spends a card, and a keyword meaning "you keep this after playing
+    /// it" must not fire for either - a card you were forced to discard should stay discarded. It also
+    /// hung the game: DiscardHand loops until the hand is empty, and a card that re-added itself inside
+    /// Discard made that loop infinite.
+    ///
+    /// The return is raised as its own CardDrawn rather than folded into the CardDiscarded above,
+    /// because the card genuinely does leave hand and arrive again - ActiveHandViewer removes the
+    /// viewer on the first event and builds a fresh one on the second, which is the flight out and
+    /// back. hand.Add directly rather than PutInHand: that helper also registers the card in
+    /// innateCards, which would quietly make any Rebound card innate too.
+    /// </summary>
+    public void DiscardPlayed(Card card)
+    {
+        // Read before the discard, not after. Discard is a no-op for a card that was never in hand, so
+        // asking afterwards cannot tell "just played" from "was never here" - and the second case would
+        // conjure the card *into* hand rather than return it to it.
+        bool played = card != null && hand.Contains(card);
+
+        Discard(card);
+
+        if (!played || !card.HasKeyword(CardKeywordType.Rebound)) { return; }
+
+        discardPile.Remove(card);
+        hand.Add(card);
+
+        CardDrawn?.Invoke(this, card);
+    }
+
+    /// <summary>
     /// Puts back any innate card that DiscardHand or a play removed from hand. Called before the
     /// normal top-up draw each turn so innate cards occupy real hand slots rather than inflating hand
     /// size past HandSize.
@@ -1419,11 +1451,19 @@ public class Character : MonoBehaviour
         if (GridManager.Instance != null) { GridManager.Instance.PlaceCharacter(this, startCoordinates); }
     }
 
+    /// <summary>
+    /// Dumps the whole hand.
+    ///
+    /// Iterates a snapshot rather than looping while the hand is non-empty. The old form assumed every
+    /// Discard shrinks the hand by one, and the first keyword that put a card back - Rebound - turned
+    /// that into an infinite loop that froze the Editor hard enough to need Task Manager. A snapshot
+    /// cannot spin however Discard behaves, and a card that legitimately survives a dump simply stays.
+    /// </summary>
     public void DiscardHand()
     {
-        while(hand.Count > 0)
+        foreach (Card card in new List<Card>(hand))
         {
-            Discard(hand[0]);
+            Discard(card);
         }
     }
 }

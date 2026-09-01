@@ -905,9 +905,9 @@ public class CardViewer : MonoBehaviour
         RelayoutHand();
     }
 
-    /// Hovering a card in hand changes its footprint, so the hand re-spaces around it. A reward card
-    /// has no hand to re-space and must not reach for one - ActiveHandViewer may not even exist in a
-    /// scene that only shows a reward.
+    /// Hovering a card in hand raises it and re-sorts it to the front, in place - neighbours do not
+    /// move. A reward card has no hand to relayout and must not reach for one - ActiveHandViewer may
+    /// not even exist in a scene that only shows a reward.
     private void RelayoutHand()
     {
         if (!inHand || ActiveHandViewer.Instance == null) { return; }

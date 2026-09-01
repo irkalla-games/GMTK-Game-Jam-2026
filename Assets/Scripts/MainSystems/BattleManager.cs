@@ -1510,7 +1510,9 @@ public class BattleManager : Singleton<BattleManager>
 
         Debug.Log($"{enemy.name} plays {step.card.cardName} at {step.target}");
 
-        enemy.Discard(step.card);
+        // DiscardPlayed, matching CardPlayManager: an enemy resolving its intent is playing a card, so
+        // a Rebound one should come back to its hand exactly as it would for a hero.
+        enemy.DiscardPlayed(step.card);
         step.card.ResolveEffects(enemy, tile);
 
         // The one place the pattern is spent. Only attacks, and only ones that really went off - the

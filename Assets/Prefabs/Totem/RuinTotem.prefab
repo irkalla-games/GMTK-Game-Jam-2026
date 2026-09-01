@@ -377,7 +377,7 @@ Animator:
   m_GameObject: {fileID: 7455767437643236649}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 89c17cfa31957c147bc2e1b583441b1b, type: 2}
+  m_Controller: {fileID: 9100000, guid: 50fd7f596e6a23940b5c4048523bd494, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -405,6 +405,9 @@ MonoBehaviour:
   maxHealth: 1
   maxEnergy: 0
   playableCharacter: 3
+  battleRole: 0
+  powerLevel: 0
+  isBoss: 0
   characterClass: 0
   displayName: Ruin Totem
   portrait: {fileID: 0}
@@ -440,7 +443,7 @@ MonoBehaviour:
     magnitude: 3
     timing: 0
   reactions: []
-  auraColor: {r: 0.65, g: 0.2, b: 0.15, a: 1}
+  auraColor: {r: 0.7137255, g: 0.42745098, b: 0.6627451, a: 1}
 --- !u!210 &7124068669857107449
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -473,6 +476,11 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
   statusIconParent: {fileID: 377546695394572918}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}
@@ -512,7 +520,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.067032814, y: 0.23968172}
+  m_Offset: {x: 0, y: 0.12}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -522,7 +530,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.0059605, y: 1.3225737}
+  m_Size: {x: 0.5208, y: 0.72}
   m_EdgeRadius: 0
 --- !u!114 &5011823351465103159
 MonoBehaviour:
@@ -566,8 +574,8 @@ Transform:
   m_GameObject: {fileID: 7899052768977095045}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.05, y: 0.469, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 3}
+  m_LocalPosition: {x: 0, y: 0.12, z: 0}
+  m_LocalScale: {x: 0.62, y: 0.62, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 741859804951935913}
@@ -621,7 +629,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300228, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 64d7edd73c4681e4c85aeb8ad76a8e0b, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

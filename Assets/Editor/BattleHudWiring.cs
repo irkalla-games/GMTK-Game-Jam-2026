@@ -262,7 +262,7 @@ public static class BattleHudWiring
 
     /// HandViewer is world-space on a spline, not UI - transform position is the only knob (see
     /// ActiveHandViewer.UpdateCardPosition). ---VISUALS sits at world x 0.81334, so this puts the fan's
-    /// centre at world x 4.0, clear of both the hero plate (ends at world x -5.4) and the relocated
+    /// centre at world x 3.5, clear of both the hero plate (ends at world x -5.4) and the relocated
     /// ManaCounter (ends at world x -4.3).
     private static void MoveHandViewer()
     {
@@ -275,7 +275,7 @@ public static class BattleHudWiring
         }
 
         Vector3 position = hand.transform.localPosition;
-        hand.transform.localPosition = new Vector3(3.19f, position.y, position.z);
+        hand.transform.localPosition = new Vector3(2.69f, position.y, position.z);
     }
 
     // ------------------------------------------------------------------------------------------

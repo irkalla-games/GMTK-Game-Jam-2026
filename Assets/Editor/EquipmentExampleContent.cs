@@ -5,15 +5,24 @@ using UnityEngine;
 /// <summary>
 /// One-shot authoring of starter equipment and one upgraded card variant, so the feature has something
 /// real to playtest rather than just the machinery - the equipment counterpart to
-/// AreaOfEffectExampleContent. Covers every EquipmentModifier type at least once: StatusGrantModifier,
-/// GrantBonusModifier, DamageBonusModifier, SummonHealthModifier, and CardTuningModifier wrapping each
-/// of AreaModifier/RangeModifier/CostModifier. More items following the same shape can be authored by
-/// hand in the Inspector, or by extending this file.
+/// AreaOfEffectExampleContent. Covers every EquipmentModifier type at least once: GrantBonusModifier,
+/// DamageBonusModifier, AppliedPotencyModifier, SummonHealthModifier, and CardTuningModifier wrapping
+/// each of AreaModifier/RangeModifier/CostModifier. More items following the same shape can be authored
+/// by hand in the Inspector, or by extending this file.
 ///
-/// Idempotent: each asset is only created if it does not already exist, and Slash.upgradedForm is only
-/// set if it is not already pointing somewhere, so re-running after hand-tuning one of these will not
-/// stomp it. Editor-only, and deliberately not covered by Tools/compile-check.ps1 without -IncludeEditor
-/// - verify by focusing the Editor and checking the console, per CLAUDE.md.
+/// Repairs rather than skips: every AuthorX method reuses the EquipmentData asset already at its path
+/// and rewrites every field (and every modifier sub-asset) it owns on every run, the same convention
+/// TutorialContentGenerator documents - a half-tuned set stays fixable by re-running this rather than
+/// only by hand. The names, descriptions, rarities and required classes below are deliberately today's
+/// on-disk truth, not this script's original authored values - Whetstone became Sharpening Ring,
+/// Blasting Cap became Fire Mage's Hat, Tower Shield became Buckler with its own description, and so
+/// on. Re-pointing the constants at what is actually equipped in every save is what makes "repair"
+/// correct instead of quietly reverting every hand-tuned name and description back to its first draft.
+/// Adrenal Charm is gone from this file entirely for the same reason: it was deliberately deleted from
+/// the project, and repair-not-skip must never resurrect something that was intentionally removed.
+///
+/// Editor-only, and deliberately not covered by Tools/compile-check.ps1 without -IncludeEditor -
+/// verify by focusing the Editor and checking the console, per CLAUDE.md.
 /// </summary>
 public static class EquipmentExampleContent
 {
@@ -30,15 +39,14 @@ public static class EquipmentExampleContent
 
         EnsureFolder(Folder);
 
-        AuthorWhetstone();
-        AuthorTowerShield();
+        AuthorSharpeningRing();
+        AuthorBuckler();
         AuthorIronboundVambrace();
-        AuthorHexbindersCord();
-        AuthorAdrenalCharm();
+        AuthorWeakenRing();
         AuthorTotemAnchor();
-        AuthorBlastingCap();
-        AuthorLongLens();
-        AuthorFeatherweightGrips();
+        AuthorFireMagesHat();
+        AuthorLongsword();
+        AuthorBootsOfSpeed();
 
         AuthorSlashUpgrade();
 
@@ -51,13 +59,13 @@ public static class EquipmentExampleContent
         Debug.Log("Equipment examples: done.");
     }
 
-    private static void AuthorWhetstone()
+    /// Was Whetstone - the asset and its display name were both renamed after this script first ran.
+    /// The name is literally "Ring" now, so it belongs in the unlimited Ring slot rather than Weapon.
+    private static void AuthorSharpeningRing()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Whetstone.asset", "Whetstone", "+1 damage on every attack.",
-            Rarity.Common, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Folder + "/Sharpening Ring.asset", "Sharpening Ring", "+1 damage on every attack.",
+            Rarity.Uncommon, CharacterClass.Knight, EquipmentSlot.Ring);
 
         DamageBonusModifier bonus = AddModifier<DamageBonusModifier>(item, so =>
         {
@@ -67,13 +75,12 @@ public static class EquipmentExampleContent
         FinishEquipment(item, bonus);
     }
 
-    private static void AuthorTowerShield()
+    /// Was Tower Shield/"+2 Shield whenever you gain Shield" - renamed and reworded to Buckler.
+    private static void AuthorBuckler()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Tower Shield.asset", "Tower Shield", "+2 Shield whenever you gain Shield.",
-            Rarity.Common, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Folder + "/Tower Shield.asset", "Buckler", "When gaining Shield, gain an additional 2 stacks.",
+            Rarity.Common, CharacterClass.Any, EquipmentSlot.Armor);
 
         GrantBonusModifier bonus = AddModifier<GrantBonusModifier>(item, so =>
         {
@@ -88,9 +95,7 @@ public static class EquipmentExampleContent
     {
         EquipmentData item = BeginEquipment(
             Folder + "/Ironbound Vambrace.asset", "Ironbound Vambrace", "+1 Block whenever you gain Block.",
-            Rarity.Uncommon, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Rarity.Uncommon, CharacterClass.Any, EquipmentSlot.Armor);
 
         GrantBonusModifier bonus = AddModifier<GrantBonusModifier>(item, so =>
         {
@@ -102,20 +107,17 @@ public static class EquipmentExampleContent
     }
 
     /// <summary>
-    /// The potency ring. Uses AppliedPotencyModifier rather than the GrantBonusModifier it was first
-    /// authored with: that one rides OnGainStatus, which Character.AddStatus runs over the *receiver's*
-    /// statuses, so it deepened Weaken applied *to* the wearer - the opposite of what the description
-    /// always claimed. It also moved the stack count, which for Weaken is the duration now, so "+1" read
-    /// as one turn longer instead of one point deeper.
+    /// Was Hexbinder's Cord - renamed to Weaken Ring, and its description picked up the "your totems
+    /// included" clause. Uses AppliedPotencyModifier rather than GrantBonusModifier: that one rides
+    /// OnGainStatus, which Character.AddStatus runs over the *receiver's* statuses, so it deepened
+    /// Weaken applied *to* the wearer - the opposite of what the description always claimed.
     /// </summary>
-    private static void AuthorHexbindersCord()
+    private static void AuthorWeakenRing()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Hexbinder's Cord.asset", "Hexbinder's Cord",
+            Folder + "/Weaken Ring.asset", "Weaken Ring",
             "The Weaken you apply cuts 1 deeper - your totems included.",
-            Rarity.Uncommon, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Rarity.Uncommon, CharacterClass.Mage, EquipmentSlot.Ring);
 
         AppliedPotencyModifier bonus = AddModifier<AppliedPotencyModifier>(item, so =>
         {
@@ -126,30 +128,14 @@ public static class EquipmentExampleContent
         FinishEquipment(item, bonus);
     }
 
-    private static void AuthorAdrenalCharm()
-    {
-        EquipmentData item = BeginEquipment(
-            Folder + "/Adrenal Charm.asset", "Adrenal Charm", "Permanently under the effect of Strength 1.",
-            Rarity.Common, CharacterClass.Any);
-
-        if (item == null) { return; }
-
-        StatusGrantModifier grant = AddModifier<StatusGrantModifier>(item, so =>
-        {
-            so.FindProperty("type").intValue = (int)StatusType.Strength;
-            so.FindProperty("stacks").intValue = 1;
-        });
-
-        FinishEquipment(item, grant);
-    }
-
+    /// Not a weapon, armor, hat or boot - a totem charm worn like jewelry, so it lands in the same
+    /// unlimited Ring slot Sharpening Ring and Weaken Ring occupy rather than being shoehorned into one
+    /// of the four single-occupant slots it does not fit.
     private static void AuthorTotemAnchor()
     {
         EquipmentData item = BeginEquipment(
             Folder + "/Totem Anchor.asset", "Totem Anchor", "Totems you summon have +7 max health.",
-            Rarity.Uncommon, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Rarity.Rare, CharacterClass.Knight, EquipmentSlot.Ring);
 
         SummonHealthModifier bonus = AddModifier<SummonHealthModifier>(item, so =>
         {
@@ -160,13 +146,12 @@ public static class EquipmentExampleContent
         FinishEquipment(item, bonus);
     }
 
-    private static void AuthorBlastingCap()
+    /// Was Blasting Cap - renamed to Fire Mage's Hat, which is exactly what it is: a Hat slot item.
+    private static void AuthorFireMagesHat()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Blasting Cap.asset", "Blasting Cap", "Fire cards gain a 3x3 splash.",
-            Rarity.Rare, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Folder + "/Fire Mage's Hat.asset", "Fire Mage's Hat", "Fire cards gain a 3x3 splash.",
+            Rarity.Rare, CharacterClass.Mage, EquipmentSlot.Hat);
 
         AreaModifier splash = AddModifier<AreaModifier>(item, so =>
         {
@@ -196,13 +181,12 @@ public static class EquipmentExampleContent
         FinishEquipment(item, tuning);
     }
 
-    private static void AuthorLongLens()
+    /// Was Long Lens - the asset file kept its old name, but its display name is Longsword: a weapon.
+    private static void AuthorLongsword()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Long Lens.asset", "Long Lens", "Attack cards gain +1 range.",
-            Rarity.Rare, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Folder + "/Long Lens.asset", "Longsword", "Attack cards gain +1 range.",
+            Rarity.Rare, CharacterClass.Knight, EquipmentSlot.Weapon);
 
         RangeModifier reach = AddModifier<RangeModifier>(item, so =>
         {
@@ -223,13 +207,12 @@ public static class EquipmentExampleContent
         FinishEquipment(item, tuning);
     }
 
-    private static void AuthorFeatherweightGrips()
+    /// Was Featherweight Grips - renamed to Boots of Speed, and its description reworded to match.
+    private static void AuthorBootsOfSpeed()
     {
         EquipmentData item = BeginEquipment(
-            Folder + "/Featherweight Grips.asset", "Featherweight Grips", "Movement cards cost 1 less.",
-            Rarity.Rare, CharacterClass.Any);
-
-        if (item == null) { return; }
+            Folder + "/Boots of Speed.asset", "Boots of Speed", "Decrease the cost of movement by 1.",
+            Rarity.Rare, CharacterClass.Any, EquipmentSlot.Boots);
 
         CostModifier cheaper = AddModifier<CostModifier>(item, so =>
         {
@@ -364,41 +347,72 @@ public static class EquipmentExampleContent
         Debug.Log($"Equipment examples: {table.name} equipmentChance -> {chance}.");
     }
 
-    /// Creates the asset and its shared fields, or returns null if it already exists - the signal every
-    /// AuthorX method uses to skip the rest of its own work.
+    /// Creates the asset at `path` if it does not exist yet, or loads and reuses it if it does - repair,
+    /// not skip. Every field this owns is rewritten on every run so a hand-edited or half-built asset
+    /// stays correct rather than only fixable by deleting it first.
     private static EquipmentData BeginEquipment(
-        string path, string equipmentName, string description, Rarity rarity, CharacterClass requiredClass)
+        string path, string equipmentName, string description, Rarity rarity, CharacterClass requiredClass,
+        EquipmentSlot slot)
     {
-        if (AssetDatabase.LoadAssetAtPath<EquipmentData>(path) != null) { return null; }
+        EquipmentData item = AssetDatabase.LoadAssetAtPath<EquipmentData>(path);
 
-        EquipmentData item = ScriptableObject.CreateInstance<EquipmentData>();
-        AssetDatabase.CreateAsset(item, path);
+        if (item == null)
+        {
+            item = ScriptableObject.CreateInstance<EquipmentData>();
+            AssetDatabase.CreateAsset(item, path);
+        }
 
         SerializedObject so = new(item);
         so.FindProperty("<equipmentName>k__BackingField").stringValue = equipmentName;
         so.FindProperty("<description>k__BackingField").stringValue = description;
         so.FindProperty("<rarity>k__BackingField").intValue = (int)rarity;
         so.FindProperty("<requiredClass>k__BackingField").intValue = (int)requiredClass;
+        so.FindProperty("<slot>k__BackingField").intValue = (int)slot;
         so.ApplyModifiedProperties();
 
         return item;
     }
 
-    /// Builds one modifier, configures it, and attaches it as a sub-asset of `owner` - `owner` must
-    /// already exist on disk (BeginEquipment's CreateAsset) before a sub-asset can attach to it.
+    /// Builds one modifier, configures it, and attaches it as a sub-asset of `owner` - reusing an
+    /// existing sub-asset of type T already attached to `owner` if one is there, rather than adding a
+    /// fresh duplicate every time this runs. `owner` must already exist on disk (BeginEquipment's
+    /// CreateAsset) before a sub-asset can attach to it.
     private static T AddModifier<T>(EquipmentData owner, Action<SerializedObject> configure) where T : ScriptableObject
     {
-        T instance = ScriptableObject.CreateInstance<T>();
-        instance.name = typeof(T).Name;
+        T instance = FindSubAsset<T>(owner);
+        bool isNew = instance == null;
+
+        if (isNew)
+        {
+            instance = ScriptableObject.CreateInstance<T>();
+            instance.name = typeof(T).Name;
+        }
 
         SerializedObject so = new(instance);
         configure(so);
         so.ApplyModifiedProperties();
 
-        AssetDatabase.AddObjectToAsset(instance, owner);
+        if (isNew) { AssetDatabase.AddObjectToAsset(instance, owner); }
+
         EditorUtility.SetDirty(instance);
 
         return instance;
+    }
+
+    /// The first sub-asset of type T already attached to `owner`, or null if there is none yet - what
+    /// makes AddModifier idempotent instead of appending a new modifier sub-asset on every run.
+    private static T FindSubAsset<T>(EquipmentData owner) where T : UnityEngine.Object
+    {
+        string path = AssetDatabase.GetAssetPath(owner);
+
+        if (string.IsNullOrEmpty(path)) { return null; }
+
+        foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(path))
+        {
+            if (asset is T typed) { return typed; }
+        }
+
+        return null;
     }
 
     private static void FinishEquipment(EquipmentData item, params EquipmentModifier[] modifiers)
@@ -415,7 +429,7 @@ public static class EquipmentExampleContent
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(item);
 
-        Debug.Log($"Equipment examples: created {AssetDatabase.GetAssetPath(item)}.");
+        Debug.Log($"Equipment examples: repaired {AssetDatabase.GetAssetPath(item)}.");
     }
 
     private static void EnsureFolder(string path)

@@ -13,7 +13,8 @@ public class CardPlayManager : Singleton<CardPlayManager>
     /// asked for" apart from "they have picked up some other card" - see TutorialDirector.
     public Card SelectedCard => selected != null ? selected.card : null;
 
-    /// Cancels a pending card selection without playing it - the same effect Escape already has.
+    /// Cancels a pending card selection without playing it - the same effect Backspace already has.
+    /// (Backspace, not Escape: Escape opens the pause menu, which is one key with one meaning.)
     /// Exposed for anything that switches the active character out from under a selected card, e.g.
     /// PartyPortraitPanel, where leaving the selection pointing at a hand that just left the screen
     /// would be a bug rather than a feature.
@@ -232,7 +233,7 @@ public class CardPlayManager : Singleton<CardPlayManager>
     {
         if (!HasSelection) { return; }
 
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current != null && Keyboard.current.backspaceKey.wasPressedThisFrame)
         {
             Deselect();
             return;

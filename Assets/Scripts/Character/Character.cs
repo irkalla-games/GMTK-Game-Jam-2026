@@ -486,8 +486,42 @@ public class Character : MonoBehaviour
 
     public void ResetEnergy()
     {
-        Energy = maxEnergy;
+        Energy = maxEnergy + BonusEnergy;
         RaiseStatsChanged();
+    }
+
+    /// <summary>
+    /// How much this character's active statuses and equipment add to its energy refill each turn -
+    /// a ring's "+1 energy each turn". Summed exactly like AppliedPotency: two rings each granting a
+    /// point should both count.
+    /// </summary>
+    public int BonusEnergy
+    {
+        get
+        {
+            int total = 0;
+
+            foreach (Status status in ActiveStatuses()) { total += status.BonusEnergy; }
+
+            return total;
+        }
+    }
+
+    /// <summary>
+    /// The hand-size counterpart to BonusEnergy - a ring's "+1 card drawn each turn". Read by
+    /// BattleManager when it refills a hand up to HandSize; kept off Character's own hand-size field
+    /// for the same reason HandSize itself lives on BattleManager/LevelData rather than here.
+    /// </summary>
+    public int BonusHandSize
+    {
+        get
+        {
+            int total = 0;
+
+            foreach (Status status in ActiveStatuses()) { total += status.BonusHandSize; }
+
+            return total;
+        }
     }
 
     /// <summary>
@@ -723,17 +757,81 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
+    /// The item currently held in `slot`, or null if it is empty - what a reward panel asks before
+    /// offering a swap, and what an equipment UI reads to show a slot as filled or free.
+    ///
+    /// Always null for EquipmentSlot.Ring: unlimited slots have no single occupant to name. Use
+    /// Equipment and filter by slot to list every ring instead.
+    /// </summary>
+    public EquipmentData EquippedIn(EquipmentSlot slot)
+    {
+        if (EquipmentSlots.IsUnlimited(slot)) { return null; }
+
+        foreach (EquipmentData item in equipment)
+        {
+            if (item != null && item.slot == slot) { return item; }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Equips `item` for the rest of the run: its permanent statuses start showing up in
     /// ActiveStatuses immediately, and every card this character already holds is re-tuned to account
-    /// for it - see RefreshCardModifiers. Duplicates stack: equipping a second copy of the same item
-    /// runs its Project/Apply a second time, same as two totems both granting Strength give two
-    /// separate auras rather than one doubled entry.
+    /// for it - see RefreshCardModifiers. Duplicates stack in an unlimited slot (Ring): equipping a
+    /// second copy runs its Project/Apply a second time, same as two totems both granting Strength give
+    /// two separate auras rather than one doubled entry. Every other slot holds exactly one item -
+    /// equipping into an occupied one unequips the current occupant first, same as Unequip, before the
+    /// new item takes its place.
+    ///
+    /// Returns whatever this displaced, or null if the slot was empty (or unlimited). Callers are free
+    /// to ignore it - BattleManager.RecordRunEquipment enforces the same one-occupant-per-slot rule
+    /// independently when it writes a reward into the run record, so the live equip and the record stay
+    /// in sync without LootManager having to thread this value through by hand.
     /// </summary>
-    public void Equip(EquipmentData item)
+    public EquipmentData Equip(EquipmentData item)
+    {
+        if (item == null) { return null; }
+
+        EquipmentData displaced = null;
+
+        if (!EquipmentSlots.IsUnlimited(item.slot))
+        {
+            displaced = EquippedIn(item.slot);
+
+            if (displaced != null) { equipment.Remove(displaced); }
+        }
+
+        equipment.Add(item);
+        RefreshCardModifiers();
+        RaiseStatsChanged();
+
+        return displaced;
+    }
+
+    /// <summary>
+    /// Takes one copy of `item` back off, undoing exactly what Equip did.
+    ///
+    /// Removes a single copy rather than every match, mirroring Equip's rule that duplicates stack -
+    /// two copies of the same item are two separate contributions, so taking one back should leave the
+    /// other standing.
+    ///
+    /// Nothing else is needed, for two reasons worth stating because both look like omissions:
+    /// ActiveStatuses rebuilds from `equipment` on every single call and EquipmentModifier.Project is
+    /// pulled fresh rather than cached, so a projected status simply stops existing on the next query -
+    /// it never entered ownStatusEffects and there is nothing to prune. And RefreshCardModifiers is
+    /// reset-then-reapply (ResetToAuthored first), so the removed item's Apply half is undone by
+    /// construction rather than by any inverse operation.
+    ///
+    /// Lives here rather than on a caller because RaiseStatsChanged is private: the HUD and the enemy
+    /// intent previews both go stale without it.
+    /// </summary>
+    public void Unequip(EquipmentData item)
     {
         if (item == null) { return; }
 
-        equipment.Add(item);
+        if (!equipment.Remove(item)) { return; }
+
         RefreshCardModifiers();
         RaiseStatsChanged();
     }
@@ -742,6 +840,10 @@ public class Character : MonoBehaviour
     /// Bulk form for SpawnParty: replaces this character's equipment wholesale from its PartyMember
     /// record. Called before SetDeck, so BuildDeck constructs every card already tuned rather than
     /// building once and re-tuning immediately after.
+    ///
+    /// Deliberately does NOT refresh cards or raise StatsChanged, unlike Equip/Unequip - it gets away
+    /// with that only because SpawnParty calls it before SetDeck, so BuildDeck tunes every card on
+    /// construction. Calling it mid-battle would leave stale card tuning and a stale HUD.
     /// </summary>
     public void SetEquipment(IEnumerable<EquipmentData> items)
     {

@@ -1,0 +1,467 @@
+﻿{
+    "writtenUtc":  "2026-09-03T02:13:39.7487521Z",
+    "items":  [
+                  {
+                      "guid":  "cb28d281a6db23d40a920ce38608486e",
+                      "columns":  {
+                                      "Key":  "Boots of Speed",
+                                      "Folder":  "",
+                                      "Item Name":  "Boots of Speed",
+                                      "Description":  "Decrease the cost of movement by 1.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Boots",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Movement;filter.cards=;;[0|CostModifier|delta=-1]"
+                                  }
+                  },
+                  {
+                      "guid":  "539a747d8bc65bc46bd8eade9b5d7e70",
+                      "columns":  {
+                                      "Key":  "Fire Mage\u0027s Hat",
+                                      "Folder":  "",
+                                      "Item Name":  "Fire Mage\u0027s Hat",
+                                      "Description":  "Fire cards gain a 3x3 splash.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Mage",
+                                      "Slot":  "Hat",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Fire;filter.cards=;;[0|AreaModifier|on.allEntries=TRUE;on.index=0;on.matchesEffect=;area.kind=Radius;area.radius.shape=Chebyshev;area.radius.minDistance=0;area.radius.maxDistance=1;area.pattern=]"
+                                  }
+                  },
+                  {
+                      "guid":  "6bde503f81c56f142885567f558b543f",
+                      "columns":  {
+                                      "Key":  "Ironbound Vambrace",
+                                      "Folder":  "",
+                                      "Item Name":  "Ironbound Vambrace",
+                                      "Description":  "+1 Block whenever you gain Block.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Armor",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|GrantBonusModifier|subject=Block;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "a5f1ad9a6f7b32e4892c27e03079f2ec",
+                      "columns":  {
+                                      "Key":  "Long Lens",
+                                      "Folder":  "",
+                                      "Item Name":  "Longsword",
+                                      "Description":  "Attack cards gain +1 range.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Knight",
+                                      "Slot":  "Weapon",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Attack;filter.cards=;;[0|RangeModifier|minDelta=0;maxDelta=1;overrideShape=FALSE;shape=Anywhere]"
+                                  }
+                  },
+                  {
+                      "guid":  "eb2d981e17702cd429478ce8aee66d84",
+                      "columns":  {
+                                      "Key":  "Sharpening Ring",
+                                      "Folder":  "",
+                                      "Item Name":  "Sharpening Ring",
+                                      "Description":  "+1 damage on every attack.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Knight",
+                                      "Slot":  "Weapon",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|DamageBonusModifier|outgoing=1;incomingReduction=0;;"
+                                  }
+                  },
+                  {
+                      "guid":  "a13cfd4aa91ed014f976397f823dccea",
+                      "columns":  {
+                                      "Key":  "Totem Anchor",
+                                      "Folder":  "",
+                                      "Item Name":  "Totem Anchor",
+                                      "Description":  "Totems you summon have +7 max health.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Knight",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|SummonHealthModifier|bonus=10;totemsOnly=TRUE;;"
+                                  }
+                  },
+                  {
+                      "guid":  "bc731371c2971c742a551d54bca83e42",
+                      "columns":  {
+                                      "Key":  "Tower Shield",
+                                      "Folder":  "",
+                                      "Item Name":  "Buckler",
+                                      "Description":  "When gaining Shield, gain an additional 2 stacks.",
+                                      "Rarity":  "Common",
+                                      "Class":  "Any",
+                                      "Slot":  "Armor",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|GrantBonusModifier|subject=Shield;bonus=2;;"
+                                  }
+                  },
+                  {
+                      "guid":  "85512a7c3918a0d4988dc995919f24d9",
+                      "columns":  {
+                                      "Key":  "Weaken Ring",
+                                      "Folder":  "",
+                                      "Item Name":  "Weaken Ring",
+                                      "Description":  "The Weaken you apply cuts 1 deeper - your totems included.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Mage",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|AppliedPotencyModifier|subject=Weaken;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "d79d9c7f044e99546bbdcd46f1bf60e0",
+                      "columns":  {
+                                      "Key":  "Amber Signet",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Amber Signet",
+                                      "Description":  "-1 damage from every hit taken.",
+                                      "Rarity":  "Common",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|DamageBonusModifier|outgoing=0;incomingReduction=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "7bde568935c2bc64e817f19ee883b1de",
+                      "columns":  {
+                                      "Key":  "Astrologer\u0027s Loop",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Astrologer\u0027s Loop",
+                                      "Description":  "+1 card drawn each turn.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ResourceModifier|bonusEnergy=0;bonusHandSize=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "2608c7be7da3dc840a5501d17e1db021",
+                      "columns":  {
+                                      "Key":  "Bloodshard Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Bloodshard Ring",
+                                      "Description":  "+3 damage while below half health.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ConditionalDamageModifier|condition=BelowHalfHealth;bonus=3;;"
+                                  }
+                  },
+                  {
+                      "guid":  "db96db7956dc2224297744e7b0caad6a",
+                      "columns":  {
+                                      "Key":  "Bramblewreath",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Bramblewreath",
+                                      "Description":  "Attackers take 2 damage.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ThornsModifier|amount=2;;"
+                                  }
+                  },
+                  {
+                      "guid":  "131e0a862d3d5364691b5022ab2dc9b7",
+                      "columns":  {
+                                      "Key":  "Cascade Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Cascade Ring",
+                                      "Description":  "+1 Parry whenever you gain Parry.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|GrantBonusModifier|subject=Parry;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "046860ea13c2f4d4eb6bc85ceeb7bdb3",
+                      "columns":  {
+                                      "Key":  "Cinderforge Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Cinderforge Ring",
+                                      "Description":  "Fire cards deal +3 damage.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Fire;filter.cards=;;[0|MagnitudeModifier|on.allEntries=TRUE;on.index=0;on.matchesEffect=;delta=3;percent=0]"
+                                  }
+                  },
+                  {
+                      "guid":  "af1dbbca5becf384e9a7dc7b4aab1d19",
+                      "columns":  {
+                                      "Key":  "Deathgrip Signet",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Deathgrip Signet",
+                                      "Description":  "Killing an enemy grants 1 energy.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|KillRewardModifier|bonusEnergy=1;grantedStatus=None;grantedStacks=0;;"
+                                  }
+                  },
+                  {
+                      "guid":  "6b61448a6b1a85043bb3aec047e976b2",
+                      "columns":  {
+                                      "Key":  "Deepcoral Signet",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Deepcoral Signet",
+                                      "Description":  "+2 damage dealt, -1 damage taken.",
+                                      "Rarity":  "Legendary",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|DamageBonusModifier|outgoing=2;incomingReduction=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "384357e58a665144b8e6243bf2779bce",
+                      "columns":  {
+                                      "Key":  "Dread Sovereign",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Dread Sovereign",
+                                      "Description":  "The Weaken you apply cuts 2 deeper. Killing an enemy grants 1 Strength.",
+                                      "Rarity":  "Legendary",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|AppliedPotencyModifier|subject=Weaken;bonus=2;;||1|KillRewardModifier|bonusEnergy=0;grantedStatus=Strength;grantedStacks=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "6add3031dbe4dc44aa64bed9dee48124",
+                      "columns":  {
+                                      "Key":  "Emberwood Band",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Emberwood Band",
+                                      "Description":  "Fire cards cost 1 less.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Fire;filter.cards=;;[0|CostModifier|delta=-1]"
+                                  }
+                  },
+                  {
+                      "guid":  "e053f08dd4e77594182ccb5307e59386",
+                      "columns":  {
+                                      "Key":  "Glacier Band",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Glacier Band",
+                                      "Description":  "Permanently under the effect of Shield 2.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=Shield;stacks=2;;"
+                                  }
+                  },
+                  {
+                      "guid":  "7fe436a4fc70d7b468666152ec19481a",
+                      "columns":  {
+                                      "Key":  "Harlequin Band",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Harlequin Band",
+                                      "Description":  "+1 Dodge whenever you gain Dodge.",
+                                      "Rarity":  "Common",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|GrantBonusModifier|subject=Dodge;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "1f8dc71acb2df6a42b6d297b0a3a0fc4",
+                      "columns":  {
+                                      "Key":  "Manaflow Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Manaflow Ring",
+                                      "Description":  "Defence cards cost 1 less.",
+                                      "Rarity":  "Common",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Defence;filter.cards=;;[0|CostModifier|delta=-1]"
+                                  }
+                  },
+                  {
+                      "guid":  "694de4aa707485e4aa295f481130c4f1",
+                      "columns":  {
+                                      "Key":  "Marigold Band",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Marigold Band",
+                                      "Description":  "Permanently under the effect of Regeneration 2.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=Regeneration;stacks=2;;"
+                                  }
+                  },
+                  {
+                      "guid":  "3b457afdbda824e4da5b5148ad3394a0",
+                      "columns":  {
+                                      "Key":  "Opaline Charm",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Opaline Charm",
+                                      "Description":  "+1 energy and +1 card each turn.",
+                                      "Rarity":  "Legendary",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ResourceModifier|bonusEnergy=1;bonusHandSize=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "1c712f8e0d0af794b8d05f34c31b5388",
+                      "columns":  {
+                                      "Key":  "Panther\u0027s Eye",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Panther\u0027s Eye",
+                                      "Description":  "+3 damage while at full health.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ConditionalDamageModifier|condition=AtFullHealth;bonus=3;;"
+                                  }
+                  },
+                  {
+                      "guid":  "82d1448bcddc7d3488e8ed174c19d57b",
+                      "columns":  {
+                                      "Key":  "Rimeguard Band",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Rimeguard Band",
+                                      "Description":  "Permanently under the effect of Block 2.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=Block;stacks=2;;"
+                                  }
+                  },
+                  {
+                      "guid":  "32b10e334a4b1cd4a9b7f0141bee8c80",
+                      "columns":  {
+                                      "Key":  "Ring of Focus",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Ring of Focus",
+                                      "Description":  "+1 energy each turn.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ResourceModifier|bonusEnergy=1;bonusHandSize=0;;"
+                                  }
+                  },
+                  {
+                      "guid":  "79a658d7ca03aa24e9ec0213a282c142",
+                      "columns":  {
+                                      "Key":  "Seraph\u0027s Ward",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Seraph\u0027s Ward",
+                                      "Description":  "Permanently under the effect of Shield 3, and +1 Shield whenever you gain Shield.",
+                                      "Rarity":  "Legendary",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=Shield;stacks=3;;||1|GrantBonusModifier|subject=Shield;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "7041612277fdd0a4d9f804983b02d7f2",
+                      "columns":  {
+                                      "Key":  "Serpent\u0027s Coil",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Serpent\u0027s Coil",
+                                      "Description":  "Permanently under the effect of Poison Blade.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=PoisonBlade;stacks=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "586a2c7a7288e80469e4da1bd6f2bf60",
+                      "columns":  {
+                                      "Key":  "Sporecap Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Sporecap Ring",
+                                      "Description":  "The Vulnerable you apply cuts 1 deeper.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|AppliedPotencyModifier|subject=Vulnerable;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "d445cc9fc75c05e4180d7170c0e45ac2",
+                      "columns":  {
+                                      "Key":  "Stormsplit Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Stormsplit Ring",
+                                      "Description":  "+1 damage per Strength stack you hold.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|ScalingDamageModifier|subject=Strength;perStack=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "d9425b662aef8424db22892387cce27b",
+                      "columns":  {
+                                      "Key":  "Vampire\u0027s Token",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Vampire\u0027s Token",
+                                      "Description":  "Permanently under the effect of Lifesteal.",
+                                      "Rarity":  "Rare",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|StatusGrantModifier|type=Lifesteal;stacks=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "fd782f182f028cf4e87fd2756788cd35",
+                      "columns":  {
+                                      "Key":  "Wardens\u0027 Braid",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Wardens\u0027 Braid",
+                                      "Description":  "+1 Poison whenever you apply Poison.",
+                                      "Rarity":  "Common",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|GrantBonusModifier|subject=Poison;bonus=1;;"
+                                  }
+                  },
+                  {
+                      "guid":  "b200a37f711afa841b64a35bce00f201",
+                      "columns":  {
+                                      "Key":  "Zephyr Ring",
+                                      "Folder":  "Rings",
+                                      "Item Name":  "Zephyr Ring",
+                                      "Description":  "Movement cards reach 1 tile further.",
+                                      "Rarity":  "Uncommon",
+                                      "Class":  "Any",
+                                      "Slot":  "Ring",
+                                      "No Reward":  "FALSE",
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Movement;filter.cards=;;[0|RangeModifier|minDelta=0;maxDelta=1;overrideShape=FALSE;shape=Anywhere]"
+                                  }
+                  }
+              ]
+}

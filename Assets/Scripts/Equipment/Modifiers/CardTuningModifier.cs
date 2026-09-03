@@ -18,6 +18,12 @@ public class CardTuningModifier : EquipmentModifier
     [SerializeField] private CardFilter filter;
     [SerializeField] private List<CardModifier> modifiers = new();
 
+    /// Read-only view of the nested rewrite list, for tooling that has to walk it without duplicating
+    /// or reaching around this class's own Apply/Describe logic - see EquipmentModifierSchema and
+    /// EquipmentSheetImporter, which need to enumerate a CardTuningModifier's children the same way
+    /// Character.ActiveStatuses() walks EquipmentData.modifiers.
+    public IReadOnlyList<CardModifier> NestedModifiers => modifiers;
+
     public override void Apply(Card card, CardData data)
     {
         if (!filter.Matches(data)) { return; }

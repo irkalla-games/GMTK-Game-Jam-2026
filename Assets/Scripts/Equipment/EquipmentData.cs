@@ -27,6 +27,10 @@ public class EquipmentData : ScriptableObject
     [field: Tooltip("Which character may hold this item. Any means everyone.")]
     [field: SerializeField] public CharacterClass requiredClass { get; private set; }
 
+    [field: Tooltip("Which slot this occupies. Ring is unlimited; every other slot holds one item, and "
+                    + "equipping a second replaces the first. See EquipmentSlots.IsUnlimited.")]
+    [field: SerializeField] public EquipmentSlot slot { get; private set; }
+
     [field: Tooltip("Keeps this item out of every reward pool while leaving its rarity alone - mirrors "
                     + "CardData.excludeFromRewards.")]
     [field: SerializeField] public bool excludeFromRewards { get; private set; }

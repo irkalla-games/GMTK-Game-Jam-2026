@@ -49,6 +49,13 @@ public class BoardCamera : MonoBehaviour
              + "cropped rather than shrinking without limit - which is the louder failure of the two.")]
     [SerializeField] private float maxOrthoSize = 12f;
 
+    [Header("Background")]
+    [Tooltip("Solid clear colour, set here rather than left on the scene-authored Camera value so it "
+             + "cannot silently revert. Applied once in Awake - matches BoardVisuals.glowEdgeColor (both "
+             + "default to pure black) so the two are seamless wherever the backdrop sprite's own edge "
+             + "falls short of the frustum's.")]
+    [SerializeField] private Color backgroundColor = Color.black;
+
     private Camera cam;
 
     /// The bounds Frame() was last handed, kept so a window resize can re-fit without BattleManager
@@ -73,6 +80,8 @@ public class BoardCamera : MonoBehaviour
         cam = GetComponent<Camera>();
         Zoom = Mathf.Clamp(cam != null ? cam.orthographicSize : minOrthoSize, minOrthoSize, maxOrthoSize);
         Focus = transform.position;
+
+        if (cam != null) { cam.backgroundColor = backgroundColor; }
     }
 
     /// <summary>

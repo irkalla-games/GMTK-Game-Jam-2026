@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
+  m_Name: Astrologer's Loop
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  <equipmentName>k__BackingField: Astrologer's Loop
+  <description>k__BackingField: +1 card drawn each turn.
+  <icon>k__BackingField: {fileID: 21300000, guid: 3109af30c55a06d469e2206d30d0dd84, type: 3}
+  <rarity>k__BackingField: 2
+  <requiredClass>k__BackingField: 0
+  <slot>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 0
+  <modifiers>k__BackingField:
+  - {fileID: 1934819906506109857}
+--- !u!114 &1934819906506109857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c29ac2de515449e4ab9b73558bffc51e, type: 3}
+  m_Name: ResourceModifier
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceModifier
+  bonusEnergy: 0
+  bonusHandSize: 1

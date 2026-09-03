@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
@@ -13,7 +12,7 @@ public class MainMenu : MonoBehaviour
     [Tooltip("Who Play may offer at the character-select screen, and how large a party it allows.")]
     [SerializeField] private CharacterRoster roster;
 
-    [Tooltip("Play/Settings/Exit/TutorialToggle/IntentDamageToggle - hidden individually while the "
+    [Tooltip("Play/Settings/Exit and the title - hidden individually while the "
              + "select screen is up, restored on Back. A list of the existing objects rather than a "
              + "shared container so no scene reparenting was needed to introduce this screen - the "
              + "select screen has no idea any of this exists, it only fires BackClicked.")]
@@ -21,18 +20,14 @@ public class MainMenu : MonoBehaviour
 
     [SerializeField] private CharacterSelectPanel selectPanel;
 
-    [Tooltip("Runs the tutorial before the run proper when ticked. Remembered between sessions - the "
-             + "state authored here is only what the button looks like before GameSettings is read.")]
-    [SerializeField] private Toggle tutorialToggle;
+    [Tooltip("The Settings screen, opened by the Settings button. Holds display, audio and the three "
+             + "game options that used to sit as loose toggles on the menu itself.")]
+    [SerializeField] private MenuSettingsPanel settingsPanel;
 
-    [Tooltip("Shows the raw damage of an enemy's committed attack beside its intent icon when ticked. "
-             + "Remembered between sessions, and read live rather than snapshotted into a run - see "
-             + "GameSettings.ShowIntentDamage.")]
-    [SerializeField] private Toggle intentDamageToggle;
+    [Tooltip("Looping track for the menu, started on Start and handed to AudioManager - which survives "
+             + "the scene load, so it keeps playing rather than restarting.")]
+    [SerializeField] private AudioClip menuMusic;
 
-    [Tooltip("Drops Play straight into the debug testbed instead of a real run. Remembered between "
-             + "sessions, and off by default - see GameSettings.DebugRunEnabled.")]
-    [SerializeField] private Toggle debugRunToggle;
 
     [Tooltip("The debug testbed: one 8x8 board with the whole party, every class's totems in its Test "
              + "deck and a hand of 7. Played instead of both the tutorial and character select while "
@@ -57,6 +52,26 @@ public class MainMenu : MonoBehaviour
     public void exitButton(){
         Application.Quit();
         Debug.Log("Game Closed");
+    }
+
+    /// <summary>
+    /// Opens the Settings screen, hiding the menu buttons behind it exactly as Play hides them for
+    /// character select.
+    ///
+    /// The panel raises Closed when the player backs out; this restores the buttons then, rather than
+    /// the panel reaching back to do it - same one-way shape as CharacterSelectPanel.BackClicked.
+    /// </summary>
+    public void settingsButton()
+    {
+        if (settingsPanel == null)
+        {
+            Debug.LogWarning($"{name}: no settings panel assigned - run Tools/Main Menu/Wire Settings Panel.");
+            return;
+        }
+
+        SetMenuButtonsActive(false);
+
+        settingsPanel.Show();
     }
 
     /// <summary>
@@ -137,31 +152,22 @@ public class MainMenu : MonoBehaviour
     {
         if (selectPanel != null) { selectPanel.BackClicked += OnSelectPanelBackClicked; }
 
-        // SetIsOnWithoutNotify, not isOn: assigning isOn fires onValueChanged, which would write the
-        // saved value straight back over itself - harmless today, but it makes the read look like a
-        // write and would matter the moment anything else listens.
-        if (tutorialToggle != null)
-        {
-            tutorialToggle.SetIsOnWithoutNotify(GameSettings.TutorialEnabled);
-            tutorialToggle.onValueChanged.AddListener(OnTutorialToggled);
-        }
+        if (settingsPanel != null) { settingsPanel.Closed += OnSettingsPanelClosed; }
 
-        if (intentDamageToggle != null)
-        {
-            intentDamageToggle.SetIsOnWithoutNotify(GameSettings.ShowIntentDamage);
-            intentDamageToggle.onValueChanged.AddListener(OnIntentDamageToggled);
-        }
-
-        if (debugRunToggle != null)
-        {
-            debugRunToggle.SetIsOnWithoutNotify(GameSettings.DebugRunEnabled);
-            debugRunToggle.onValueChanged.AddListener(OnDebugRunToggled);
-        }
+        // Null-checked rather than assumed: AudioManager builds itself before the first scene
+        // loads, but a scene entered some other way should not throw over background music.
+        if (AudioManager.Instance != null) { AudioManager.Instance.PlayMusic(menuMusic); }
     }
 
     /// The select screen has already hidden itself before raising this - see
     /// CharacterSelectPanel.OnBackButtonClicked - so all that is left here is restoring the buttons it
     /// covered.
+    /// Settings covers the same buttons Play does, and gives them back the same way.
+    private void OnSettingsPanelClosed()
+    {
+        SetMenuButtonsActive(true);
+    }
+
     private void OnSelectPanelBackClicked()
     {
         SetMenuButtonsActive(true);
@@ -174,10 +180,4 @@ public class MainMenu : MonoBehaviour
             if (button != null) { button.SetActive(active); }
         }
     }
-
-    private static void OnTutorialToggled(bool enabled) => GameSettings.TutorialEnabled = enabled;
-
-    private static void OnIntentDamageToggled(bool enabled) => GameSettings.ShowIntentDamage = enabled;
-
-    private static void OnDebugRunToggled(bool enabled) => GameSettings.DebugRunEnabled = enabled;
 }

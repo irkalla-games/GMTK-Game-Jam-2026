@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
+  m_Name: Ring of Focus
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  <equipmentName>k__BackingField: Ring of Focus
+  <description>k__BackingField: +1 energy each turn.
+  <icon>k__BackingField: {fileID: 21300000, guid: e9b6e34148732404ab5864aea4e7f24d, type: 3}
+  <rarity>k__BackingField: 2
+  <requiredClass>k__BackingField: 0
+  <slot>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 0
+  <modifiers>k__BackingField:
+  - {fileID: 6534602296255291231}
+--- !u!114 &6534602296255291231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c29ac2de515449e4ab9b73558bffc51e, type: 3}
+  m_Name: ResourceModifier
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceModifier
+  bonusEnergy: 1
+  bonusHandSize: 0

@@ -247,7 +247,7 @@ public class LootManager : Singleton<LootManager>
             context.Reoffer = false;
 
             string title = context.character != null ? $"{context.character.DisplayName}'s reward" : null;
-            panel.ShowEquipment(candidates, skips, title);
+            panel.ShowEquipment(candidates, context.character, skips, title);
 
             yield return new WaitUntil(() => panel.Resolved);
 

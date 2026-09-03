@@ -128,8 +128,13 @@ public class RewardPanel : MonoBehaviour
     /// EquipmentViewers instead of CardViewers. LootManager calls this instead of Show when a loot
     /// roll comes up equipment, replacing the whole panel's offer rather than mixing the two in one row
     /// - see LootManager.Drain/OfferLevelClear.
+    ///
+    /// `receiver` is who the offer is for - passed through to each EquipmentViewer so a candidate whose
+    /// slot is already occupied can show what it would replace. May be null (the level-clear path can
+    /// reach here after its hero's Character has been torn down), in which case no swap is shown.
     /// </summary>
-    public void ShowEquipment(List<EquipmentData> candidates, List<SkipReward> skipRewards, string title = null)
+    public void ShowEquipment(
+        List<EquipmentData> candidates, Character receiver, List<SkipReward> skipRewards, string title = null)
     {
         Resolved = false;
         ChosenCard = null;
@@ -142,7 +147,7 @@ public class RewardPanel : MonoBehaviour
 
         if (titleLabel != null) { titleLabel.text = title ?? string.Empty; }
 
-        SpawnEquipment(candidates);
+        SpawnEquipment(candidates, receiver);
         SpawnSkipButtons(skipRewards);
     }
 
@@ -188,7 +193,7 @@ public class RewardPanel : MonoBehaviour
         }
     }
 
-    private void SpawnEquipment(List<EquipmentData> candidates)
+    private void SpawnEquipment(List<EquipmentData> candidates, Character receiver)
     {
         if (equipmentPrefab == null || equipmentAnchor == null)
         {
@@ -209,7 +214,11 @@ public class RewardPanel : MonoBehaviour
 
             if (rect != null) { rect.anchoredPosition = new Vector2(startX + i * equipmentSpacing, 0f); }
 
-            viewer.Setup(item, ChooseEquipment);
+            // Null for an unlimited slot (Ring) - EquippedIn always answers null there, so nothing this
+            // pick would replace ever shows a swap.
+            EquipmentData replaced = receiver != null ? receiver.EquippedIn(item.slot) : null;
+
+            viewer.Setup(item, replaced, ChooseEquipment);
 
             spawnedEquipment.Add(viewer);
         }

@@ -11,7 +11,7 @@ using UnityEngine.UI;
 /// one panel trying to do both jobs at every size.
 ///
 /// Contract copied from CardPilePanel: hidden regardless of authored scene state, SetInputLocked while
-/// open, Escape closes it (here Tab does too, since Tab is also what opens it). InputLocked is a single
+/// open, Tab closes it as well as opening it. InputLocked is a single
 /// bool, so Show refuses outright while a reward panel or any other modal already holds it rather than
 /// fighting it for the lock.
 /// </summary>
@@ -29,9 +29,25 @@ public class PartySheetPanel : Singleton<PartySheetPanel>
 
     [SerializeField] private Glossary glossary;
 
-    [SerializeField] private float columnWidth = 260f;
+    /// <summary>
+    /// Column width and gap, read straight off PanelPalette rather than serialized here.
+    ///
+    /// These were [SerializeField] floats, and that was a real bug rather than a style preference:
+    /// PartySheetColumn.prefab sizes its own root from PanelPalette.ColumnWidth, while Refresh below
+    /// rewrites every column's sizeDelta from this value on every single refresh. Two copies of one
+    /// number, with the scene's copy silently winning at runtime - so widening the palette constant
+    /// moved the prefab, looked correct in the Project window, and changed nothing in play, because
+    /// Game.unity still held the old width and stamped it back over the prefab the moment the sheet
+    /// opened. Exactly the drift PanelPalette's own header says it exists to prevent.
+    ///
+    /// Now there is one number. Changing PanelPalette.ColumnWidth is the whole edit - no wiring
+    /// command, no scene save, nothing to keep in step. The stale columnWidth/columnSpacing keys left
+    /// in Game.unity are inert (Unity drops YAML keys with no matching field) and disappear the next
+    /// time the scene is saved.
+    /// </summary>
+    private static float ColumnWidth => PanelPalette.ColumnWidth;
 
-    [SerializeField] private float columnSpacing = 24f;
+    private static float ColumnSpacing => PanelPalette.ColumnSpacing;
 
     /// Grown on demand and reused, never destroyed - same pooling contract every other pooled view in
     /// this codebase uses.
@@ -75,12 +91,14 @@ public class PartySheetPanel : Singleton<PartySheetPanel>
 
         if (Keyboard.current.tabKey.wasPressedThisFrame)
         {
+            // A pile panel closing on this same press has already spoken for it - see
+            // CardPilePanel.TabConsumedThisFrame.
+            if (CardPilePanel.TabConsumedThisFrame) { return; }
+
             if (IsOpen) { Close(); } else { Show(); }
 
             return;
         }
-
-        if (IsOpen && Keyboard.current.escapeKey.wasPressedThisFrame) { Close(); }
     }
 
     public void Show()
@@ -92,6 +110,10 @@ public class PartySheetPanel : Singleton<PartySheetPanel>
         IsOpen = true;
 
         if (root != null) { root.SetActive(true); }
+
+        // Columns are pooled and reused across opens, so a column left on the equipment page last time
+        // would still be there now. The sheet always opens on statuses - see PartySheetColumn.
+        foreach (PartySheetColumn column in columns) { column.ResetToFirstPage(); }
 
         Refresh();
 
@@ -147,10 +169,10 @@ public class PartySheetPanel : Singleton<PartySheetPanel>
             }
         }
 
-        float total = livingHeroes.Count * columnWidth
-            + Mathf.Max(0, livingHeroes.Count - 1) * columnSpacing;
+        float total = livingHeroes.Count * ColumnWidth
+            + Mathf.Max(0, livingHeroes.Count - 1) * ColumnSpacing;
 
-        float startX = -total / 2f + columnWidth / 2f;
+        float startX = -total / 2f + ColumnWidth / 2f;
 
         for (int i = 0; i < livingHeroes.Count; i++)
         {
@@ -161,8 +183,8 @@ public class PartySheetPanel : Singleton<PartySheetPanel>
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(columnWidth, rect.sizeDelta.y);
-            rect.anchoredPosition = new Vector2(startX + i * (columnWidth + columnSpacing), 0f);
+            rect.sizeDelta = new Vector2(ColumnWidth, rect.sizeDelta.y);
+            rect.anchoredPosition = new Vector2(startX + i * (ColumnWidth + ColumnSpacing), 0f);
         }
 
         for (int i = livingHeroes.Count; i < columns.Count; i++) { columns[i].gameObject.SetActive(false); }

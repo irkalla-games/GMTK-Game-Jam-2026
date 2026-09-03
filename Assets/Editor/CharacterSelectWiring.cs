@@ -28,8 +28,8 @@ using UnityEngine.UI;
 public static class CharacterSelectWiring
 {
     private const string ScenePath = "Assets/Scenes/MainMenu.unity";
-    private const string SkipButtonPrefabPath = "Assets/Prefabs/SkipButtonPrefab.prefab";
-    private const string SlotPrefabPath = "Assets/Prefabs/CharacterSelectSlot.prefab";
+    private const string SkipButtonPrefabPath = "Assets/Prefabs/UI/SkipButtonPrefab.prefab";
+    private const string SlotPrefabPath = "Assets/Prefabs/UI/CharacterSelectSlot.prefab";
     private const string DefaultRosterPath = "Assets/Data/Characters/DefaultRoster.asset";
 
     private const string PanelName = "CharacterSelectPanel";

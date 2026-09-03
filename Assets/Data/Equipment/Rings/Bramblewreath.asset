@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
+  m_Name: Bramblewreath
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  <equipmentName>k__BackingField: Bramblewreath
+  <description>k__BackingField: Attackers take 2 damage.
+  <icon>k__BackingField: {fileID: 21300000, guid: b371b9dfe13ee4b4d930a7ce38614b45, type: 3}
+  <rarity>k__BackingField: 1
+  <requiredClass>k__BackingField: 0
+  <slot>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 0
+  <modifiers>k__BackingField:
+  - {fileID: 3220049292837479092}
+--- !u!114 &3220049292837479092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c99a69bae76c0246b828d051881ebe2, type: 3}
+  m_Name: ThornsModifier
+  m_EditorClassIdentifier: Assembly-CSharp::ThornsModifier
+  amount: 2

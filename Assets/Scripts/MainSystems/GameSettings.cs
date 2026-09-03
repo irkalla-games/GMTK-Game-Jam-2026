@@ -76,4 +76,88 @@ public static class GameSettings
             PlayerPrefs.Save();
         }
     }
+
+    // ---- Audio --------------------------------------------------------------------------------
+    // Stored as plain 0..1 linear values, which is what a Slider hands over and what a player means by
+    // "half volume". AudioManager is what turns them into AudioSource.volume; nothing here knows an
+    // AudioSource exists, so this file stays a store rather than becoming a second place that decides
+    // how loud things are.
+
+    private const string MasterVolumeKey = "settings.volume.master";
+
+    private const string MusicVolumeKey = "settings.volume.music";
+
+    private const string SfxVolumeKey = "settings.volume.sfx";
+
+    /// <summary>
+    /// Overall level, multiplied into both channels below. Defaults to 0.8 rather than 1 so there is
+    /// somewhere to go up as well as down.
+    /// </summary>
+    public static float MasterVolume
+    {
+        get => PlayerPrefs.GetFloat(MasterVolumeKey, 0.8f);
+
+        set => SetVolume(MasterVolumeKey, value);
+    }
+
+    public static float MusicVolume
+    {
+        get => PlayerPrefs.GetFloat(MusicVolumeKey, 0.7f);
+
+        set => SetVolume(MusicVolumeKey, value);
+    }
+
+    public static float SfxVolume
+    {
+        get => PlayerPrefs.GetFloat(SfxVolumeKey, 0.8f);
+
+        set => SetVolume(SfxVolumeKey, value);
+    }
+
+    /// Clamped on the way in rather than on the way out: a value written out of range would otherwise
+    /// persist and every reader would have to defend against it.
+    private static void SetVolume(string key, float value)
+    {
+        PlayerPrefs.SetFloat(key, Mathf.Clamp01(value));
+        PlayerPrefs.Save();
+    }
+
+    // ---- Display ------------------------------------------------------------------------------
+
+    private const string FullscreenKey = "settings.display.fullscreen";
+
+    private const string ResolutionKey = "settings.display.resolution";
+
+    /// <summary>
+    /// Defaults on, which is what a player launching a game expects. DisplaySettings is what applies
+    /// it; this only remembers the choice.
+    /// </summary>
+    public static bool Fullscreen
+    {
+        get => PlayerPrefs.GetInt(FullscreenKey, 1) != 0;
+
+        set
+        {
+            PlayerPrefs.SetInt(FullscreenKey, value ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Index into DisplaySettings.Resolutions, or -1 for "whatever the display is already using".
+    ///
+    /// -1 rather than a stored width and height, and -1 as the default, because the list is built from
+    /// Screen.resolutions at runtime: a saved index taken on one monitor can be out of range on another,
+    /// and DisplaySettings.Apply treats anything out of range as -1 rather than refusing to start.
+    /// </summary>
+    public static int ResolutionIndex
+    {
+        get => PlayerPrefs.GetInt(ResolutionKey, -1);
+
+        set
+        {
+            PlayerPrefs.SetInt(ResolutionKey, value);
+            PlayerPrefs.Save();
+        }
+    }
 }

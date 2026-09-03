@@ -104,14 +104,31 @@ public class CardPilePanel : Singleton<CardPilePanel>
         if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(false); }
     }
 
-    /// Escape closes the panel same as the button - a purely informational screen has nothing worth
+    /// <summary>
+    /// The frame on which Tab was used to close this panel, or -1.
+    ///
+    /// PartySheetPanel toggles on Tab, and Unity does not define which component's Update runs
+    /// first, so without this one Tab press could close the pile AND open the party sheet. The two
+    /// orderings are covered differently: if the sheet runs first its Show refuses outright, because
+    /// this panel still holds InputLocked; if this one runs first the lock is already released by
+    /// then, and this marker is what tells the sheet the press was spoken for.
+    /// </summary>
+    private static int tabConsumedFrame = -1;
+
+    public static bool TabConsumedThisFrame => tabConsumedFrame == Time.frameCount;
+
+    /// Tab closes the panel same as the button - a purely informational screen has nothing worth
     /// making the player hunt for a button to leave, unlike CardRemovalPanel's choice, which is
     /// deliberately Cancel-button-only.
     private void Update()
     {
         if (!IsOpen) { return; }
 
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { Close(); }
+        if (Keyboard.current == null || !Keyboard.current.tabKey.wasPressedThisFrame) { return; }
+
+        tabConsumedFrame = Time.frameCount;
+
+        Close();
     }
 
     private void Clear()

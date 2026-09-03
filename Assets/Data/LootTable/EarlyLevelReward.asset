@@ -22,4 +22,4 @@ MonoBehaviour:
   excludedCards: []
   guaranteedCards: []
   choiceCount: 5
-  equipmentChance: 0
+  equipmentChance: 0.25

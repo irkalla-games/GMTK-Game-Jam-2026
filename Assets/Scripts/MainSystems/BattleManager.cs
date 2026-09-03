@@ -175,19 +175,29 @@ public class BattleManager : Singleton<BattleManager>
     private bool rewardPanelUp;
 
     /// <summary>
-    /// True while a modal owns the screen - a reward panel or a notification. Not Time.timeScale -
+    /// True while a modal owns the screen - a reward panel, a notification, the pause menu, or the
+    /// debug tools. Not Time.timeScale, even though the pause menu does also freeze time -
     /// that would stall the WaitForSeconds inside EnemyResolve (an enemy shoving a hero onto loot
     /// takes that exact path) and would not actually block a click, since OnMouseDown is a physics
     /// raycast no uGUI panel intercepts. This is the real gate; OnTileClicked and
     /// CardPlayManager.OnCardClicked both check it.
     ///
-    /// The notification half is *pulled* rather than pushed, the same way auras are. If Show/Hide
+    /// The notification and pause halves are *pulled* rather than pushed, the same way auras are. If
+    /// Show/Hide
     /// wrote the flag instead, a notification opening over a reward panel would clear the panel's
     /// lock when it was dismissed - one bool cannot remember that two things wanted it held.
     /// </summary>
     public bool InputLocked =>
         rewardPanelUp
-        || (NotificationManager.Instance != null && NotificationManager.Instance.IsShowing);
+        || (NotificationManager.Instance != null && NotificationManager.Instance.IsShowing)
+        || (PauseMenu.Instance != null && PauseMenu.Instance.IsOpen)
+
+        // The debug panel does not freeze time, so this is the only thing stopping a click that
+        // lands beside its window from selecting whoever is standing there. A full-screen Canvas
+        // is not enough on its own: tile clicks are OnMouseDown physics raycasts, which no uGUI
+        // panel intercepts - the same reason this property exists at all rather than relying on
+        // the reward panel covering the screen.
+        || (DebugPanel.Instance != null && DebugPanel.Instance.IsOpen);
 
     public void SetInputLocked(bool value) => rewardPanelUp = value;
 
@@ -238,6 +248,28 @@ public class BattleManager : Singleton<BattleManager>
         if (Phase != BattlePhase.PlayerActing && Phase != BattlePhase.NotStarted)
         {
             Debug.Log($"tile clicked: {tile.Coordinates} - ignored, not the player's turn ({Phase})");
+            return;
+        }
+
+        // Above the tutorial gate on purpose, unlike everything below it. A debug spawn is not a move
+        // the player is making, so a tutorial step that permits one specific tile has no business
+        // refusing it - the point of the tool is to break the situation open and look at it.
+        if (armedDebugSpawn != null)
+        {
+            GameObject prefab = armedDebugSpawn;
+            bool asSummon = armedDebugIsSummon;
+
+            // Cleared before placing, not after: a failed placement must not leave the click
+            // armed, or the next click anywhere on the board tries again.
+            ClearDebugSpawnArm();
+
+            bool placed = asSummon ? DebugSummon(prefab, tile) : DebugSpawn(prefab, tile.Coordinates);
+
+            if (!placed)
+            {
+                Debug.LogWarning($"debug spawn: {prefab.name} could not be placed at {tile.Coordinates}");
+            }
+
             return;
         }
 
@@ -443,11 +475,20 @@ public class BattleManager : Singleton<BattleManager>
 
     private void HandleActionResolved(GameAction action, ActionContext ctx) => intentDirty = true;
 
+    [Tooltip("Looping battle track. Played through AudioManager, which survives the scene reload"
+             + " between levels so the music does not restart on each one.")]
+    [SerializeField] private AudioClip battleMusic;
+
     private void Start()
     {
         // Every board mutation resolves through here, so it is the one hook the intent refresh pass
         // needs beyond the per-character subscriptions Subscribe already sets up.
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += HandleActionResolved; }
+
+        // Handed to AudioManager rather than played by a scene AudioSource: this scene reloads on
+        // every level, and a scene-owned source restarts its track each time. PlayMusic is a no-op
+        // when the same clip is already running, so level two continues level one's music.
+        if (AudioManager.Instance != null) { AudioManager.Instance.PlayMusic(battleMusic); }
 
         // Before anything reads CurrentLevel. Does nothing when the player came here from the Main
         // Menu; starts a throwaway run when this scene was opened on its own.
@@ -780,36 +821,139 @@ public class BattleManager : Singleton<BattleManager>
     /// </summary>
     private void SpawnPlacement(EnemyPlacement placement)
     {
-        if (placement.prefab == null) { return; }
+        Spawn(placement.prefab, placement.cell, placement.deckOverride);
+    }
 
-        // Resolved per placement, inside the caller's loop rather than once for a whole wave: the
-        // sequence below is fully synchronous, so the second enemy of a wave sees the first one's
-        // claim and cannot be handed the same tile.
-        GridTile tile = GridManager.Instance.NearestFreeSpawnTile(placement.cell);
+    /// <summary>
+    /// Puts one enemy prefab on the board at (or near) `cell`, and returns whether it landed.
+    ///
+    /// The body SpawnPlacement used to hold, extracted so the debug panel can spawn without either
+    /// duplicating these steps or reaching `enemyParent`, which is private and serialized. Every step
+    /// here is load-bearing; see the comments on each.
+    /// </summary>
+    private bool Spawn(GameObject prefab, Vector2Int cell, List<CardData> deckOverride)
+    {
+        if (prefab == null) { return false; }
+
+        // Resolved per spawn, inside the caller's loop rather than once for a whole wave: the sequence
+        // below is fully synchronous, so the second enemy of a wave sees the first one's claim and
+        // cannot be handed the same tile.
+        GridTile tile = GridManager.Instance.NearestFreeSpawnTile(cell);
 
         // Before Instantiate: a board with no room left should cost no GameObject and no roster entry.
         if (tile == null)
         {
-            Debug.LogWarning($"{placement.prefab.name} not spawned: {placement.cell} is taken and "
-                             + "every border tile is occupied");
-            return;
+            Debug.LogWarning($"{prefab.name} not spawned: {cell} is taken and every border tile is occupied");
+            return false;
         }
 
-        GameObject enemyObject = Instantiate(placement.prefab, enemyParent);
+        GameObject enemyObject = Instantiate(prefab, enemyParent);
         Character enemy = enemyObject.GetComponent<Character>();
-        enemy.name = $"{placement.prefab.name} {tile.Coordinates.x},{tile.Coordinates.y}";
+        enemy.name = $"{prefab.name} {tile.Coordinates.x},{tile.Coordinates.y}";
 
-        if (placement.deckOverride != null && placement.deckOverride.Count > 0)
+        if (deckOverride != null && deckOverride.Count > 0)
         {
-            enemy.SetDeck(placement.deckOverride);
+            enemy.SetDeck(deckOverride);
         }
 
-        // The resolved cell, never placement.cell. PlaceOnGrid writes startCoordinates, and
+        // The resolved cell, never the requested one. PlaceOnGrid writes startCoordinates, and
         // Character.Start re-places itself from those at the end of the frame - handing it the
         // authored cell would quietly drag a relocated enemy back on top of whoever displaced it.
         enemy.PlaceOnGrid(tile.Coordinates);
 
         AddCharacter(enemy);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Debug-only spawn: drops one enemy prefab on the board at the nearest free tile to `cell`.
+    ///
+    /// Goes through the same Spawn the level's own roster and its waves use, so a debug body is
+    /// indistinguishable from an authored one - it takes a turn, it drops loot, it is on the roster.
+    /// Keeps the prefab's authored deck; a deck override is a level-authoring concept with nothing to
+    /// mean here.
+    ///
+    /// Returns false when the board had no room, so the caller can say so rather than leaving the
+    /// player wondering where the enemy went.
+    /// </summary>
+    public bool DebugSpawn(GameObject prefab, Vector2Int cell) => Spawn(prefab, cell, null);
+
+    /// <summary>
+    /// Debug-only summon: puts a totem or ally prefab on `tile` as though the active character had
+    /// played the card that summons it - but costing no energy and resolving no card.
+    ///
+    /// Goes through GridTile.SummonObject, which is the same primitive SummonAction uses, so the body
+    /// is placed, registered with the roster and re-placed correctly on its own Start exactly like a
+    /// summon from a real card. That method refuses an occupied tile by returning null, which is what
+    /// this reports as false.
+    ///
+    /// Runs the OnSummoned pass too, because equipment that reacts to a summon (a totem-health relic,
+    /// say) is part of what makes a summon behave normally - skipping it would make a debug totem
+    /// quietly weaker than a played one, which is the opposite of a useful test. What it deliberately
+    /// does NOT do is spend energy or apply a lifetime: the card owns those, and the point here is to
+    /// place one without paying.
+    /// </summary>
+    public bool DebugSummon(GameObject prefab, GridTile tile)
+    {
+        if (prefab == null || tile == null) { return false; }
+
+        Character summoned = tile.SummonObject(prefab);
+
+        if (summoned == null) { return false; }
+
+        Character source = ActiveCharacter;
+
+        if (source != null)
+        {
+            foreach (Status status in source.ActiveStatuses()) { status.OnSummoned(source, summoned); }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The prefab a debug spawn is waiting to place, or null. Consumed by the next tile click.
+    ///
+    /// Held here rather than on the debug panel because OnTileClicked is the one door for tile clicks
+    /// and it decides what a click meant - a panel that reached in to intercept clicks itself would be
+    /// the second thing deciding that, which is the arrangement this codebase spent effort avoiding.
+    /// </summary>
+    private GameObject armedDebugSpawn;
+
+    /// Whether the armed prefab should be placed as a SUMMON rather than as an enemy. The two
+    /// take different paths: an enemy goes through Spawn (nearest-free-tile resolution, enemyParent,
+    /// renaming), a totem through GridTile.SummonObject, which is the path a Summon card itself uses.
+    private bool armedDebugIsSummon;
+
+    public bool HasArmedDebugSpawn => armedDebugSpawn != null;
+
+    /// <summary>
+    /// Arms the next tile click to spawn `prefab`. The caller is expected to close whatever menu it was
+    /// in and tell the player to click - see DebugPanel, which puts the prompt on AimHintLabel.
+    /// </summary>
+    public void ArmDebugSpawn(GameObject prefab)
+    {
+        armedDebugSpawn = prefab;
+        armedDebugIsSummon = false;
+    }
+
+    /// <summary>
+    /// Arms the next tile click to SUMMON `prefab` - a totem or an ally - rather than spawn it as an
+    /// enemy.
+    /// </summary>
+    public void ArmDebugSummon(GameObject prefab)
+    {
+        armedDebugSpawn = prefab;
+        armedDebugIsSummon = true;
+    }
+
+    public void ClearDebugSpawnArm()
+    {
+        armedDebugSpawn = null;
+        armedDebugIsSummon = false;
+
+        if (AimHintLabel.Instance != null) { AimHintLabel.Instance.Hide(); }
     }
 
     /// <summary>
@@ -887,6 +1031,11 @@ public class BattleManager : Singleton<BattleManager>
         ClearStuckHover();
 
         if (Keyboard.current == null) { return; }
+
+        // Nothing below this fires while a modal owns the screen. Enter would otherwise end the
+        // turn and Space draw a card straight through an open reward panel, notification or pause
+        // menu - the pause menu is simply the first one obvious enough to make that unacceptable.
+        if (InputLocked) { return; }
 
         // Keyboard shortcut for the End Turn button, and the only other way out of PlayerActing -
         // nothing ends the turn on its own any more, so a scene whose button came unwired would
@@ -1064,12 +1213,52 @@ public class BattleManager : Singleton<BattleManager>
     /// Project/Apply a second time on a character who is about to be torn down anyway. A level-clear
     /// grant, which has no live Character left to equip, is the one path that reaches this and nothing
     /// else - see LootManager.OfferLevelClear.
+    ///
+    /// Enforces the same single-occupant rule Character.Equip does for every slot but Ring: any record
+    /// entry already in `item`'s slot is dropped before the new one is added. That has to happen here
+    /// rather than only at the live Equip call, because the level-clear path above never touches a live
+    /// Character at all - this is the only write the record ever gets for that reward.
     /// </summary>
     public void RecordRunEquipment(Character character, EquipmentData item)
     {
         if (character == null || item == null) { return; }
 
-        if (partyRecords.TryGetValue(character, out PartyMember record)) { record.equipment.Add(item); }
+        if (!partyRecords.TryGetValue(character, out PartyMember record)) { return; }
+
+        if (!EquipmentSlots.IsUnlimited(item.slot))
+        {
+            record.equipment.RemoveAll(existing => existing != null && existing.slot == item.slot);
+        }
+
+        record.equipment.Add(item);
+    }
+
+    /// <summary>
+    /// Takes one copy of a card back out of the run record - RecordRunCard's inverse.
+    ///
+    /// Exists for the debug panel, which is the only thing that ever un-grants: a run has no way to
+    /// lose a card it picked up. Without it a debug removal looks like it worked and is silently undone
+    /// at the next level, because SpawnParty rebuilds the deck from this record.
+    ///
+    /// Removes one copy rather than every match, matching how the deck holds duplicates.
+    /// </summary>
+    public void RemoveRunCard(Character character, CardData card)
+    {
+        if (character == null || card == null) { return; }
+
+        if (partyRecords.TryGetValue(character, out PartyMember record)) { record.deck.Remove(card); }
+    }
+
+    /// <summary>
+    /// Takes one copy of an item back out of the run record - RecordRunEquipment's inverse, and the
+    /// other half of what a debug unequip needs. Character.Unequip handles the live instance; this is
+    /// what stops SpawnParty handing the item straight back on the next level.
+    /// </summary>
+    public void RemoveRunEquipment(Character character, EquipmentData item)
+    {
+        if (character == null || item == null) { return; }
+
+        if (partyRecords.TryGetValue(character, out PartyMember record)) { record.equipment.Remove(item); }
     }
 
     private Character FirstPlayableCharacter()
@@ -1255,8 +1444,11 @@ public class BattleManager : Singleton<BattleManager>
             character.RestoreInnateCards();
 
             // Everyone draws, enemies included. Their cards are how they act at all now, so a goblin
-            // with an empty hand has nothing to choose between and can only Wait.
-            character.DrawCards(HandSize - character.Hand.Count);
+            // with an empty hand has nothing to choose between and can only Wait. BonusHandSize is a
+            // ring's "+1 card drawn each turn" - read here rather than baked into HandSize itself,
+            // since HandSize is BattleManager/LevelData's authored number and this is a per-character
+            // add-on.
+            character.DrawCards(HandSize + character.BonusHandSize - character.Hand.Count);
 
             character.TickCardTimers();
 
@@ -1658,9 +1850,10 @@ public class BattleManager : Singleton<BattleManager>
 
         RunManager run = RunManager.Instance;
 
-        // Show zeroed it and nothing else puts it back before the next scene loads - a frozen Main
-        // Menu is a hard lockup with no way out.
-        Time.timeScale = 1f;
+        // Whatever froze time - a notification, the pause menu - is dropped here, because none of
+        // it survives the load while TimeFreeze's count does. A frozen Main Menu is a hard lockup
+        // with no way out.
+        TimeFreeze.ReleaseAll();
 
         if (!victory)
         {

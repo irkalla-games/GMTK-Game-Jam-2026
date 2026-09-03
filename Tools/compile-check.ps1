@@ -123,17 +123,34 @@ function Compile-Project([string]$csprojPath, [string[]]$extraSources = @()) {
     $lines.Add("-out:`"$out`"")
     if ($defines) { $lines.Add("-define:$defines") }
 
+    # Skipped when missing, for the same staleness reason as the sources below.
     foreach ($r in $hintRefs) {
         $p = $r
         if (-not [System.IO.Path]::IsPathRooted($p)) { $p = Join-Path $root $p }
+        if (-not (Test-Path $p)) { continue }
         $lines.Add("-r:`"$p`"")
     }
+    # Every ProjectReference built above, fed back in as a -r:. Assembly-CSharp reaches
+    # Assembly-CSharp-firstpass this way, which is where DOTween's UI module extension methods live.
     foreach ($d in $projRefDlls) { $lines.Add("-r:`"$d`"") }
     # Includes out of the csproj are repo-relative; injected extras are already absolute.
+    #
+    # A missing file is skipped rather than passed to csc. The csproj is gitignored and only rewritten
+    # when the Unity Editor is focused, so it lists files DELETED since the last focus just as surely as
+    # it omits files added since - and csc turns each one into a CS2001 that buries whatever real
+    # diagnostic the run was for. This is the same staleness the extraSources sweep above corrects, in
+    # the other direction.
+    $stale = 0
+
     foreach ($s in $srcs) {
         $p = $s
         if (-not [System.IO.Path]::IsPathRooted($p)) { $p = Join-Path $root $p }
+        if (-not (Test-Path $p)) { $stale++; continue }
         $lines.Add("`"$p`"")
+    }
+
+    if ($stale -gt 0) {
+        Write-Host "  - $stale source(s) listed in the csproj no longer exist on disk (skipped)"
     }
 
     $rsp = Join-Path $env:TEMP "gmtk-compile-check-$name.rsp"
@@ -158,7 +175,22 @@ function Compile-Project([string]$csprojPath, [string[]]$extraSources = @()) {
     $built[$csprojPath] = $out
 }
 
-Compile-Project $proj
+# Runtime .cs under Assets/Scripts that Assembly-CSharp.csproj has not caught up with, for the same
+# reason the -IncludeEditor sweep below exists: the csproj is gitignored and only rewritten when the
+# Unity Editor is focused, so a script added since the last focus is invisible here - and a check that
+# silently skips a file it was asked about is worse than no check. Assets/Scripts/Editor is excluded
+# because it compiles into Assembly-CSharp-Editor, not this assembly.
+$runtimeSources = @()
+$scriptsDir = Join-Path $root 'Assets\Scripts'
+$scriptsEditorDir = Join-Path $scriptsDir 'Editor'
+
+if (Test-Path $scriptsDir) {
+    $runtimeSources = @(Get-ChildItem -Path $scriptsDir -Recurse -Filter '*.cs' -File |
+        Where-Object { -not $_.FullName.StartsWith($scriptsEditorDir, [System.StringComparison]::OrdinalIgnoreCase) } |
+        ForEach-Object { $_.FullName })
+}
+
+Compile-Project $proj $runtimeSources
 
 if ($IncludeEditor) {
     $editorProj = Join-Path $root 'Assembly-CSharp-Editor.csproj'

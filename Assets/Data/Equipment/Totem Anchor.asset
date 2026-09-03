@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e94bb0fc52e14d649a34b08966a09d2d, type: 3}
   m_Name: SummonHealthModifier
   m_EditorClassIdentifier: Assembly-CSharp::SummonHealthModifier
-  bonus: 7
+  bonus: 10
   totemsOnly: 1
 --- !u!114 &11400000
 MonoBehaviour:
@@ -31,6 +31,7 @@ MonoBehaviour:
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 2
   <requiredClass>k__BackingField: 1
+  <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
   - {fileID: -8637072470363726039}

@@ -183,21 +183,23 @@ public static class TutorialWiring
 
         TutorialPopup popup = Ensure<TutorialPopup>(root);
 
-        Sprite chrome = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+        // info_box: a dark fill inside a copper edge, sliced. It is the border AND the surface, so
+        // the outer rect is tinted white to show the art and the inner fill stops drawing at all.
+        Sprite chrome = SharpSkin.Load(SharpSkin.Panel);
 
         // Same two-nested-sliced-Images trick TooltipPanelWiring uses: the outer rect IS the border, and
         // its layout padding is what insets the fill by exactly BorderThickness on every side.
         RectTransform panel = EnsureChild((RectTransform)canvas.transform, "Panel");
         Centre(panel);
         panel.sizeDelta = new Vector2(PanelPalette.PanelWidth, panel.sizeDelta.y);
-        ConfigureImage(panel.gameObject, chrome, PanelPalette.PanelBorder, raycast: true);
+        ConfigureImage(panel.gameObject, chrome, Color.white, raycast: true);
         ConfigureVerticalLayout(panel.gameObject, PanelPalette.BorderThickness, PanelPalette.BorderThickness, 0f);
         ConfigureFitter(panel.gameObject);
 
         CanvasGroup group = Ensure<CanvasGroup>(panel.gameObject);
 
         RectTransform fill = EnsureChild(panel, "PanelFill");
-        ConfigureImage(fill.gameObject, chrome, PanelPalette.PanelFill, raycast: true);
+        ConfigureImage(fill.gameObject, null, Color.clear, raycast: true);
         ConfigureVerticalLayout(fill.gameObject, 0f, 0f, 0f);
 
         RectTransform header = EnsureChild(fill, "Header");
@@ -555,10 +557,18 @@ public static class TutorialWiring
     {
         Image image = Ensure<Image>(go);
 
+        // A null sprite CLEARS what was there and returns the Image to a flat colour, rather than
+        // leaving the previous one in place - this command has to be able to un-set what an earlier
+        // version of itself set.
         if (sprite != null)
         {
             image.sprite = sprite;
             image.type = Image.Type.Sliced;
+        }
+        else
+        {
+            image.sprite = null;
+            image.type = Image.Type.Simple;
         }
 
         image.color = color;

@@ -47,7 +47,9 @@ public static class PartySheetStyling
             return;
         }
 
-        Sprite chrome = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+        // info_box: a dark fill inside a copper edge, sliced. It is the border AND the surface, so
+        // the outer rect is tinted white to show the art and the inner fill stops drawing at all.
+        Sprite chrome = SharpSkin.Load(SharpSkin.Panel);
 
         if (!StyleRow(font))
         {
@@ -65,6 +67,10 @@ public static class PartySheetStyling
 
         AssetDatabase.SaveAssets();
 
+        // No scene edit here on purpose. PartySheetPanel used to hold its own serialized copies of
+        // column width and spacing, which this command had to write back - and which silently won over
+        // the prefab at runtime whenever the two drifted. Both are read straight off PanelPalette now,
+        // so the palette constant is the entire edit and there is nothing left to sync.
         Debug.Log("Party sheet styling: done - prefabs saved.");
     }
 
@@ -144,7 +150,7 @@ public static class PartySheetStyling
         RectTransform rootRect = (RectTransform)root.transform;
 
         rootRect.sizeDelta = new Vector2(PanelPalette.ColumnWidth, PanelPalette.ColumnHeight);
-        ConfigureImage(root, chrome, PanelPalette.PanelBorder);
+        ConfigureImage(root, chrome, Color.white);
         // The whole column is one child (ColumnFill) filling a FIXED-height root, unlike the tooltip's
         // outer panel - a ScrollRect needs a bounded viewport to clip against, so the column cannot be
         // left to grow with its content the way the tooltip panel does.
@@ -152,7 +158,7 @@ public static class PartySheetStyling
             expandWidth: true, expandHeight: true);
 
         Transform columnFill = FindOrMove(rootRect, rootRect, "ColumnFill");
-        ConfigureImage(columnFill.gameObject, chrome, PanelPalette.PanelFill);
+        ConfigureImage(columnFill.gameObject, null, Color.clear);
         ConfigureVerticalLayout(columnFill.gameObject, PanelPalette.SectionPaddingH, PanelPalette.SectionPaddingV,
             PanelPalette.RowSpacing, expandWidth: true, expandHeight: false);
 
@@ -166,7 +172,7 @@ public static class PartySheetStyling
         Transform portrait = FindOrMove(header, rootRect, "PortraitImage");
         Image portraitImage = portrait.GetComponent<Image>();
         if (portraitImage == null) { portraitImage = portrait.gameObject.AddComponent<Image>(); }
-        AddFixedSize(portrait.gameObject, 96f, 96f);
+        AddFixedSize(portrait.gameObject, PanelPalette.ColumnPortraitSize, PanelPalette.ColumnPortraitSize);
 
         Transform name = FindOrMove(header, rootRect, "NameLabel");
         TMP_Text nameText = GetOrAddText(name);
@@ -209,17 +215,41 @@ public static class PartySheetStyling
             expandHeight: false);
         AddFlexibleHeight(statusSection.gameObject);
 
-        Transform sectionLabel = FindOrMove(statusSection, rootRect, "SectionLabel");
+        // ---- Section header: [<] SECTION LABEL [>]. The label was a direct child of StatusSection
+        // before paging existed - FindOrMove relocates it into the new row on the first run and finds
+        // it there on every run after, so PartySheetColumn's serialized reference to it survives.
+        Transform sectionHeader = FindOrMove(statusSection, rootRect, "SectionHeader");
+        ConfigureHorizontalLayout(sectionHeader.gameObject, spacing: 8f, expandHeight: false);
+        sectionHeader.gameObject.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        AddFixedHeightFlexibleWidth(sectionHeader.gameObject, PanelPalette.PageArrowSize);
+
+        Button prevPageButton = EnsureArrowButton(sectionHeader, rootRect, "PrevPageButton", pointsLeft: true);
+
+        Transform sectionLabel = FindOrMove(sectionHeader, statusSection, "SectionLabel");
         TMP_Text sectionLabelText = GetOrAddText(sectionLabel);
         sectionLabelText.font = font;
         sectionLabelText.fontSize = PanelPalette.SectionLabelSize;
         sectionLabelText.characterSpacing = PanelPalette.SectionLabelSpacing;
         sectionLabelText.color = PanelPalette.LabelGrey;
         sectionLabelText.fontStyle = FontStyles.Bold | FontStyles.UpperCase;
-        sectionLabelText.alignment = TextAlignmentOptions.TopLeft;
+        sectionLabelText.alignment = TextAlignmentOptions.Center;
         sectionLabelText.textWrappingMode = TextWrappingModes.NoWrap;
         sectionLabelText.raycastTarget = false;
+
+        // Only ever a placeholder - PartySheetColumn.LayOutPage rewrites this on every page change.
         sectionLabelText.text = "Status Effects";
+        AddFlexibleWidth(sectionLabel.gameObject);
+
+        Button nextPageButton = EnsureArrowButton(sectionHeader, rootRect, "NextPageButton", pointsLeft: false);
+
+        SharpSkin.PruneChildren((RectTransform)sectionHeader, "PrevPageButton", "SectionLabel", "NextPageButton");
+
+        // Arrow, label, arrow - left to right. Only matters when migrating a prefab styled before the
+        // arrows existed, where SectionLabel is already child 0 and the two buttons get appended after
+        // it; a freshly built header is already in this order.
+        prevPageButton.transform.SetSiblingIndex(0);
+        sectionLabel.SetSiblingIndex(1);
+        nextPageButton.transform.SetSiblingIndex(2);
 
         Transform noneLabel = FindOrMove(statusSection, rootRect, "NoneLabel");
         TMP_Text noneLabelText = GetOrAddText(noneLabel);
@@ -264,6 +294,13 @@ public static class PartySheetStyling
         scrollRect.viewport = (RectTransform)viewport;
         scrollRect.content = statusParentRect;
 
+        // Header, then the empty-state line, then the scrolling list. Same migration hazard the header's
+        // own ordering note describes: SectionHeader is new, so on a prefab styled before paging existed
+        // it is appended after NoneLabel and ScrollArea rather than landing above them.
+        sectionHeader.SetSiblingIndex(0);
+        noneLabel.SetSiblingIndex(1);
+        scrollArea.SetSiblingIndex(2);
+
         PartySheetColumn column = root.GetComponent<PartySheetColumn>();
         SerializedObject so = new(column);
         so.FindProperty("portraitImage").objectReferenceValue = portraitImage;
@@ -275,12 +312,60 @@ public static class PartySheetStyling
         so.FindProperty("statusParent").objectReferenceValue = statusParentRect;
         so.FindProperty("scrollRoot").objectReferenceValue = scrollRect;
         so.FindProperty("noneLabel").objectReferenceValue = noneLabel.gameObject;
+        so.FindProperty("sectionLabel").objectReferenceValue = sectionLabelText;
+        so.FindProperty("prevPageButton").objectReferenceValue = prevPageButton;
+        so.FindProperty("nextPageButton").objectReferenceValue = nextPageButton;
         so.ApplyModifiedProperties();
+
+        // RectTransform sizes are serialized, so the prefab has to be made to settle before it is
+        // saved - otherwise uGUI's deferred pass runs against half-built state and those numbers are
+        // what land on disk. See SharpSkin.RebuildLayout.
+        SharpSkin.RebuildLayout(rootRect);
 
         PrefabUtility.SaveAsPrefabAsset(root, ColumnPrefabPath);
         PrefabUtility.UnloadPrefabContents(root);
 
         return true;
+    }
+
+    /// <summary>
+    /// One page arrow - a bare icon Button, no background plate: the section header is already inside
+    /// the column's chrome, and a plate around a 30px glyph reads as clutter at this size.
+    ///
+    /// page_arrow.png points left, so the "next" arrow is the same sprite mirrored on X rather than a
+    /// second asset. Scale, not rotation - a 180-degree rotation would also flip it vertically, which
+    /// on an asymmetric chevron is visible.
+    /// </summary>
+    private static Button EnsureArrowButton(Transform parent, Transform legacyParent, string buttonName, bool pointsLeft)
+    {
+        Transform arrow = FindOrMove(parent, legacyParent, buttonName);
+
+        Image image = arrow.GetComponent<Image>();
+        if (image == null) { image = arrow.gameObject.AddComponent<Image>(); }
+
+        SharpSkin.ApplySliced(image, SharpSkin.Arrow);
+        image.raycastTarget = true;
+        image.preserveAspect = true;
+
+        Button button = arrow.GetComponent<Button>();
+        if (button == null) { button = arrow.gameObject.AddComponent<Button>(); }
+
+        button.targetGraphic = image;
+
+        // SharpButtonTint writes background.color itself, so Unity's own ColorTint has to be off or the
+        // resting colour depends on which ran last - see SharpSkin.ApplyButton, which does the same.
+        button.transition = Selectable.Transition.None;
+
+        SharpButtonTint tint = SharpSkin.Ensure<SharpButtonTint>(arrow.gameObject);
+        tint.SetGraphics(image, null);
+        tint.Apply();
+
+        AddFixedSize(arrow.gameObject, PanelPalette.PageArrowSize, PanelPalette.PageArrowSize);
+
+        RectTransform rect = (RectTransform)arrow;
+        rect.localScale = new Vector3(pointsLeft ? 1f : -1f, 1f, 1f);
+
+        return button;
     }
 
     private static void StylePlainLabel(TMP_Text text, TMP_FontAsset font)
@@ -360,10 +445,18 @@ public static class PartySheetStyling
         Image image = go.GetComponent<Image>();
         if (image == null) { image = go.AddComponent<Image>(); }
 
+        // A null sprite CLEARS what was there and returns the Image to a flat colour, rather than
+        // leaving the previous one in place - this command has to be able to un-set what an earlier
+        // version of itself set.
         if (sprite != null)
         {
             image.sprite = sprite;
             image.type = Image.Type.Sliced;
+        }
+        else
+        {
+            image.sprite = null;
+            image.type = Image.Type.Simple;
         }
 
         image.color = color;
@@ -427,12 +520,32 @@ public static class PartySheetStyling
         element.flexibleHeight = 0f;
     }
 
+    /// <summary>
+    /// A row that spans its parent but never grows taller than `height` - the section header.
+    ///
+    /// Both flexible axes are set explicitly, and that is load-bearing on an object that also carries a
+    /// layout group: LayoutUtility skips any LayoutElement returning a negative value BEFORE it consults
+    /// layoutPriority, so a flexibleHeight left at the default -1 is not a losing bid, it is no bid at
+    /// all - and the HorizontalLayoutGroup on this same object answers instead. See CLAUDE.md; this is
+    /// how a row whose preferredHeight said 40 rendered at 118.5.
+    /// </summary>
+    private static void AddFixedHeightFlexibleWidth(GameObject go, float height)
+    {
+        LayoutElement element = go.GetComponent<LayoutElement>();
+        if (element == null) { element = go.AddComponent<LayoutElement>(); }
+
+        element.preferredHeight = height;
+        element.flexibleHeight = 0f;
+        element.flexibleWidth = 1f;
+    }
+
     private static void AddFlexibleWidth(GameObject go)
     {
         LayoutElement element = go.GetComponent<LayoutElement>();
         if (element == null) { element = go.AddComponent<LayoutElement>(); }
 
         element.flexibleWidth = 1f;
+        element.flexibleHeight = 0f;
     }
 
     private static void AddFlexibleHeight(GameObject go)
@@ -441,6 +554,12 @@ public static class PartySheetStyling
         if (element == null) { element = go.AddComponent<LayoutElement>(); }
 
         element.flexibleHeight = 1f;
+
+        // Explicit rather than left at -1 for the reason AddFixedHeightFlexibleWidth spells out: both
+        // callers (StatusSection, ScrollArea) also carry a layout group, so an unset axis here silently
+        // hands the answer to that group instead. 1 is what those groups already report, so this pins
+        // today's behaviour rather than changing it.
+        element.flexibleWidth = 1f;
     }
 
     private static void Stretch(RectTransform rect)

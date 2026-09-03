@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8f634d3affd9f74e9efbbf9da3ab0ab, type: 3}
+  m_Name: Zephyr Ring
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  <equipmentName>k__BackingField: Zephyr Ring
+  <description>k__BackingField: Movement cards reach 1 tile further.
+  <icon>k__BackingField: {fileID: 21300000, guid: 2bf6545eb4afa8f44ad8a806ab6ec1f7, type: 3}
+  <rarity>k__BackingField: 1
+  <requiredClass>k__BackingField: 0
+  <slot>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 0
+  <modifiers>k__BackingField:
+  - {fileID: 5556164077145046266}
+--- !u!114 &5556164077145046266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 134415d8e1fb16f4e88f12ab97e3c0dc, type: 3}
+  m_Name: CardTuningModifier
+  m_EditorClassIdentifier: Assembly-CSharp::CardTuningModifier
+  filter:
+    tags: 03000000
+    cards: []
+  modifiers:
+  - {fileID: 7857120742411385447}
+--- !u!114 &7857120742411385447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6ee09e8b72483a418040c6ce8eb90ac, type: 3}
+  m_Name: RangeModifier
+  m_EditorClassIdentifier: Assembly-CSharp::RangeModifier
+  minDelta: 0
+  maxDelta: 1
+  overrideShape: 0
+  shape: 0

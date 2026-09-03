@@ -27,10 +27,12 @@ MonoBehaviour:
   m_Name: Weaken Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Weaken Ring
-  <description>k__BackingField: The Weaken you apply cuts 1 deeper - your totems included.
+  <description>k__BackingField: The Weaken you apply cuts 1 deeper - your totems
+    included.
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 1
   <requiredClass>k__BackingField: 2
+  <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
   - {fileID: -5048316929138750051}

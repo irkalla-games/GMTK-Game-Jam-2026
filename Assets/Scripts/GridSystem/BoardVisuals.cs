@@ -30,8 +30,30 @@ using UnityEngine;
 public class BoardVisuals : MonoBehaviour
 {
     private const string BlockName = "Block";
+    private const string BackdropName = "Backdrop";
 
     private readonly List<GameObject> blocks = new();
+
+    [Header("Backdrop")]
+    [Tooltip("Colour directly behind the grid's centre.")]
+    [SerializeField] private Color glowCenterColor = new(0.32f, 0.34f, 0.42f, 1f);
+
+    [Tooltip("Colour the glow fades out to - matches BoardCamera's own background colour (both default "
+             + "to pure black) so the two meet without a visible seam once the glow has faded out.")]
+    [SerializeField] private Color glowEdgeColor = Color.black;
+
+    [Tooltip("World distance from the grid's centre at which the glow has fully faded to glowEdgeColor. "
+             + "Small on purpose - this is what keeps the light a contained pool around the board rather "
+             + "than washing out the whole screen.")]
+    [SerializeField] private float glowRadius = 9f;
+
+    [Tooltip("World-space width/height of the backdrop square, centred on the grid. Comfortably larger "
+             + "than BoardCamera's frustum ever gets (max ortho size 12, so up to ~24 tall) and than "
+             + "glowRadius, so every pixel out to the screen edge is settled at glowEdgeColor rather "
+             + "than a hard cutoff at the sprite's own border.")]
+    [SerializeField] private float backdropSize = 80f;
+
+    private GameObject backdrop;
 
     /// <summary>
     /// The footprint of everything built, including the cube skirt hanging below the front edge and
@@ -55,6 +77,10 @@ public class BoardVisuals : MonoBehaviour
         Clear();
 
         if (size.x <= 0 || size.y <= 0) { return; }
+
+        // Ahead of the tileset check below - the glow behind an unauthored board is still worth
+        // showing even though that board has no floor art to sit on top of it.
+        BuildBackdrop(GridManager.Instance.IsoToWorld(size.x, size.y) * 0.5f);
 
         // `!=` not `??` - a missing asset is a Unity fake-null. See CLAUDE.md.
         if (set == null || !set.IsUsable)
@@ -165,6 +191,74 @@ public class BoardVisuals : MonoBehaviour
         renderer.color = tint;
 
         blocks.Add(block);
+    }
+
+    /// <summary>
+    /// Places (or repositions, on a rebuild) the ambient glow behind the whole board, centred on
+    /// `centre` in world space. Kept as a single reused GameObject across rebuilds rather than one
+    /// torn down and respawned by Clear() alongside the blocks - a level reload just moves it.
+    /// </summary>
+    private void BuildBackdrop(Vector3 centre)
+    {
+        if (backdrop == null)
+        {
+            backdrop = new GameObject(BackdropName, typeof(SpriteRenderer));
+            backdrop.transform.SetParent(transform, false);
+
+            // Same reasoning as Spawn's block.layer line - the board camera culls by layer, not by
+            // sorting layer, and a backdrop left on Default would never be drawn.
+            backdrop.layer = gameObject.layer;
+
+            SpriteRenderer renderer = backdrop.GetComponent<SpriteRenderer>();
+            renderer.sprite = RadialGradientSprite();
+            renderer.sortingLayerName = SortingLayers.Background;
+
+            // Below every floor/wall block's order (CellSortingOrder is never negative), so the glow
+            // always sits behind the board regardless of how big it is.
+            renderer.sortingOrder = -10000;
+        }
+
+        backdrop.transform.position = new Vector3(centre.x, centre.y, 0f);
+        backdrop.transform.localScale = new Vector3(backdropSize, backdropSize, 1f);
+    }
+
+    /// <summary>
+    /// A soft radial gradient from glowCenterColor to glowEdgeColor, baked into a small texture rather
+    /// than tinted from a shared one - a renderer tint is a single uniform multiply, which cannot blend
+    /// between two independent colours the way this glow needs to.
+    ///
+    /// Normalised by glowRadius in world units rather than by the texture's own corner distance, so the
+    /// glow's size is a property of glowRadius alone and does not shift if backdropSize is ever tuned -
+    /// backdropSize only has to stay bigger than glowRadius, so the flat glowEdgeColor it fades into has
+    /// room to reach every edge of the screen.
+    /// </summary>
+    private Sprite RadialGradientSprite()
+    {
+        const int size = 128;
+
+        Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear,
+        };
+
+        Vector2 centrePixel = new((size - 1) / 2f, (size - 1) / 2f);
+        float worldPerPixel = backdropSize / size;
+        float radius = Mathf.Max(glowRadius, 0.01f);
+
+        for (int x = 0; x < size; x++)
+        {
+            for (int y = 0; y < size; y++)
+            {
+                float worldDistance = Vector2.Distance(new Vector2(x, y), centrePixel) * worldPerPixel;
+                float t = Mathf.Clamp01(worldDistance / radius);
+                texture.SetPixel(x, y, Color.Lerp(glowCenterColor, glowEdgeColor, t));
+            }
+        }
+
+        texture.Apply();
+
+        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 
     /// The union of every block renderer's bounds. Encapsulate from the first renderer rather than

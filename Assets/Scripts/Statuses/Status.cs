@@ -126,6 +126,18 @@ public abstract class Status
     public virtual int AppliedPotency(StatusType type) => 0;
 
     /// <summary>
+    /// How much this status adds to the carrier's energy refill each turn - a ring's "+1 energy each
+    /// turn". Summed by Character.BonusEnergy and folded into ResetEnergy, exactly like AppliedPotency.
+    /// </summary>
+    public virtual int BonusEnergy => 0;
+
+    /// <summary>
+    /// The hand-size counterpart to BonusEnergy - a ring's "+1 card drawn each turn". Summed by
+    /// Character.BonusHandSize, which BattleManager reads when it refills a hand up to HandSize.
+    /// </summary>
+    public virtual int BonusHandSize => 0;
+
+    /// <summary>
     /// Why this status stops its carrier doing anything at all, or null if it does not object. Frozen.
     ///
     /// A gate, not a notification, which is why it is not one of the OnX hooks. Those fire when

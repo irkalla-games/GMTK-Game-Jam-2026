@@ -31,6 +31,7 @@ MonoBehaviour:
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 0
   <requiredClass>k__BackingField: 0
+  <slot>k__BackingField: 2
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
   - {fileID: -6084113878368495311}

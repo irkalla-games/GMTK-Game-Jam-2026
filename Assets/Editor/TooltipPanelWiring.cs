@@ -68,27 +68,30 @@ public static class TooltipPanelWiring
             return;
         }
 
-        Sprite chrome = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+        // tooltip_box carries its own copper border and dark fill, so the panel is tinted WHITE to
+        // show the art as authored rather than recoloured through PanelPalette.
+        Sprite chrome = SharpSkin.Load(SharpSkin.PanelTight);
+        Sprite headerChrome = SharpSkin.Load(SharpSkin.Header);
 
-        // The outer rect IS the border - a sliced Image tinted PanelPalette.PanelBorder, with its own
-        // VerticalLayoutGroup padding equal to BorderThickness so PanelFill sits inset by exactly that
-        // much on every side. Two nested sliced Images sharing one built-in sprite rather than a custom
-        // baked ring: the corner radius on both then always matches, and nothing needs re-baking if
-        // PanelPalette's colours change - see PanelPalette's own doc comment for why this system keeps
-        // its styling in code rather than in an asset.
+        // The outer rect carries the whole panel: tooltip_box is a dark fill inside a one-pixel
+        // copper edge, sliced, so it is the border AND the surface. PanelFill survives only as the
+        // layout container it always also was, inset by BorderThickness on every side.
         Centre(panel);
         panel.sizeDelta = new Vector2(PanelPalette.PanelWidth, panel.sizeDelta.y);
-        ConfigureImage(panel.gameObject, chrome, PanelPalette.PanelBorder);
+        ConfigureImage(panel.gameObject, chrome, Color.white);
         ConfigureVerticalLayout(panel.gameObject, PanelPalette.BorderThickness, PanelPalette.BorderThickness, 0f,
             expandHeight: false);
         ConfigureFitter(panel.gameObject);
 
         RectTransform panelFill = EnsureChild(panel, PanelFillName);
-        ConfigureImage(panelFill.gameObject, chrome, PanelPalette.PanelFill);
+        // Now purely a layout container. The nested-Image trick that used to fake a border out of a
+        // flat sprite is redundant against art that already has one, and drawing a second copy of
+        // tooltip_box inside the first would put a copper line through the middle of the panel.
+        ConfigureImage(panelFill.gameObject, null, Color.clear);
         ConfigureVerticalLayout(panelFill.gameObject, 0f, 0f, 0f, expandHeight: false);
 
         RectTransform header = EnsureChild(panelFill, HeaderName);
-        ConfigureImage(header.gameObject, null, PanelPalette.HeaderFill);
+        ConfigureImage(header.gameObject, headerChrome, Color.white);
         ConfigureVerticalLayout(header.gameObject, PanelPalette.HeaderPaddingH, PanelPalette.HeaderPaddingV,
             0f, expandHeight: false);
 
@@ -184,10 +187,19 @@ public static class TooltipPanelWiring
 
         if (image == null) { image = go.AddComponent<Image>(); }
 
+        // A null sprite CLEARS whatever was there and returns the Image to a flat colour, rather
+        // than leaving the previous sprite in place. Idempotency cuts both ways: this command has
+        // to be able to un-set what an earlier version of itself set - PanelFill is exactly that
+        // case, having carried the chrome sprite until the Sharp GUI art replaced it.
         if (sprite != null)
         {
             image.sprite = sprite;
             image.type = Image.Type.Sliced;
+        }
+        else
+        {
+            image.sprite = null;
+            image.type = Image.Type.Simple;
         }
 
         image.color = color;

@@ -25,14 +25,29 @@ public class EquipmentViewer : MonoBehaviour
     /// minus the "let it fall through to CardPlayManager" case, since nothing here is ever a hand card.
     private Action<EquipmentData> onClick;
 
-    public void Setup(EquipmentData item, Action<EquipmentData> onChosen)
+    /// <summary>
+    /// `replaced` is what this pick would displace - the item already sitting in the same single-
+    /// occupant slot (Weapon/Armor/Hat/Boots), or null for an unlimited slot (Ring) or an empty one.
+    /// Appended onto the description rather than a dedicated label: this tile has no board presence
+    /// and no layout of its own worth risking a new child element over, and the skip button already
+    /// standing next to it is the decline.
+    /// </summary>
+    public void Setup(EquipmentData item, EquipmentData replaced, Action<EquipmentData> onChosen)
     {
         data = item;
         onClick = onChosen;
 
         if (icon != null) { icon.sprite = item != null ? item.icon : null; }
         if (nameLabel != null) { nameLabel.text = item != null ? item.equipmentName : string.Empty; }
-        if (descriptionLabel != null) { descriptionLabel.text = item != null ? item.description : string.Empty; }
+
+        if (descriptionLabel != null)
+        {
+            string description = item != null ? item.description : string.Empty;
+
+            descriptionLabel.text = replaced != null
+                ? $"{description}\n\nReplaces: {replaced.equipmentName}"
+                : description;
+        }
 
         if (button != null)
         {

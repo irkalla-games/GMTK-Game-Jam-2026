@@ -1,0 +1,453 @@
+{
+    "writtenUtc": "2026-09-03T02:13:21.5073609Z",
+    "items": [
+        {
+            "guid": "cb28d281a6db23d40a920ce38608486e",
+            "preview": "Cost -1",
+            "hash": "2a6d332b4fe626ed2ff7ab72ed7fac54c1ccf3bd",
+            "modifiers": [
+                {
+                    "modId": "3818380670549257136",
+                    "describe": "Cost -1",
+                    "children": [
+                        {
+                            "modId": "7083714963562615868",
+                            "describe": "Cost -1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "539a747d8bc65bc46bd8eade9b5d7e70",
+            "preview": "Area: Chebyshev 0-1",
+            "hash": "fe3656b3b8a736a19a894eff7f010a3e4f979dd6",
+            "modifiers": [
+                {
+                    "modId": "726748210371769247",
+                    "describe": "Area: Chebyshev 0-1",
+                    "children": [
+                        {
+                            "modId": "-9008905880171003165",
+                            "describe": "Area: Chebyshev 0-1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "6bde503f81c56f142885567f558b543f",
+            "preview": "Block +1 per grant",
+            "hash": "d1d7a4aa7878750a76f83df65d1cc6afe65bce28",
+            "modifiers": [
+                {
+                    "modId": "618780541392997710",
+                    "describe": "Block +1 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "a5f1ad9a6f7b32e4892c27e03079f2ec",
+            "preview": "Range +1",
+            "hash": "b4ada6c0a2e7902f5df8700a545827fb2e0829e2",
+            "modifiers": [
+                {
+                    "modId": "9050544749300768188",
+                    "describe": "Range +1",
+                    "children": [
+                        {
+                            "modId": "7433763091364241078",
+                            "describe": "Range +1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "d79d9c7f044e99546bbdcd46f1bf60e0",
+            "preview": "-1 damage taken",
+            "hash": "f4a201e38673a3fef387d1ce41ed9e61c4749ceb",
+            "modifiers": [
+                {
+                    "modId": "888824822953810669",
+                    "describe": "-1 damage taken",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "7bde568935c2bc64e817f19ee883b1de",
+            "preview": "+1 cards each turn",
+            "hash": "7776464c650c0fedec2654f763264cd40c51a0b8",
+            "modifiers": [
+                {
+                    "modId": "1934819906506109857",
+                    "describe": "+1 cards each turn",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "2608c7be7da3dc840a5501d17e1db021",
+            "preview": "+3 damage while below half health",
+            "hash": "e77c98e25bcec62fbb202ad4b9a52d0a5bf55f80",
+            "modifiers": [
+                {
+                    "modId": "8568243603543728403",
+                    "describe": "+3 damage while below half health",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "db96db7956dc2224297744e7b0caad6a",
+            "preview": "Attackers take 2 damage",
+            "hash": "e3fbb8566eb2565cc2f10674d1539cafa12386e5",
+            "modifiers": [
+                {
+                    "modId": "3220049292837479092",
+                    "describe": "Attackers take 2 damage",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "131e0a862d3d5364691b5022ab2dc9b7",
+            "preview": "Parry +1 per grant",
+            "hash": "8bed50d522cca4d427c8cdee04bfaac46e624225",
+            "modifiers": [
+                {
+                    "modId": "-6844785790823747336",
+                    "describe": "Parry +1 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "046860ea13c2f4d4eb6bc85ceeb7bdb3",
+            "preview": "+3",
+            "hash": "984712b4df32a5ccd7f62473785083c7eca2ac80",
+            "modifiers": [
+                {
+                    "modId": "-8236498819126017760",
+                    "describe": "+3",
+                    "children": [
+                        {
+                            "modId": "-1006906324956114204",
+                            "describe": "+3",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "af1dbbca5becf384e9a7dc7b4aab1d19",
+            "preview": "Kills grant 1 energy",
+            "hash": "b0afb9f9309d37163c1a9b5424997b283c68cbdd",
+            "modifiers": [
+                {
+                    "modId": "-3460003135338452183",
+                    "describe": "Kills grant 1 energy",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "6b61448a6b1a85043bb3aec047e976b2",
+            "preview": "+2 dmg, -1 taken",
+            "hash": "9325534158da84c80da67ee04bdfc9f70af1d369",
+            "modifiers": [
+                {
+                    "modId": "1782778179627086100",
+                    "describe": "+2 dmg, -1 taken",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "384357e58a665144b8e6243bf2779bce",
+            "preview": "Weaken you apply: +2 | Kills grant Strength 1",
+            "hash": "181758eb73a5d93eb6703ed192afb06562bfc94e",
+            "modifiers": [
+                {
+                    "modId": "-2197680824434118485",
+                    "describe": "Weaken you apply: +2",
+                    "children": []
+                },
+                {
+                    "modId": "-4643398525304920664",
+                    "describe": "Kills grant Strength 1",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "6add3031dbe4dc44aa64bed9dee48124",
+            "preview": "Cost -1",
+            "hash": "e378edb04557bb7a6b036c73fe7d26196df6e4ba",
+            "modifiers": [
+                {
+                    "modId": "-7275056591095002237",
+                    "describe": "Cost -1",
+                    "children": [
+                        {
+                            "modId": "4153026474079442799",
+                            "describe": "Cost -1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "e053f08dd4e77594182ccb5307e59386",
+            "preview": "Permanent Shield 2",
+            "hash": "19cfcfa8f3530374006c0adaf71b035eb449437e",
+            "modifiers": [
+                {
+                    "modId": "-8506841979682781575",
+                    "describe": "Permanent Shield 2",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "7fe436a4fc70d7b468666152ec19481a",
+            "preview": "Dodge +1 per grant",
+            "hash": "6c8f9186c14f32e3a6125ddefb46fb465855f1a5",
+            "modifiers": [
+                {
+                    "modId": "230769539244639324",
+                    "describe": "Dodge +1 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "1f8dc71acb2df6a42b6d297b0a3a0fc4",
+            "preview": "Cost -1",
+            "hash": "afbc8adfbbb70fa9518d7f0af8e388d8e529c299",
+            "modifiers": [
+                {
+                    "modId": "5840524128741585765",
+                    "describe": "Cost -1",
+                    "children": [
+                        {
+                            "modId": "6436193740148567954",
+                            "describe": "Cost -1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "694de4aa707485e4aa295f481130c4f1",
+            "preview": "Permanent Regeneration 2",
+            "hash": "7902ce7255ccde2b94234da53eae9e38d7c109cb",
+            "modifiers": [
+                {
+                    "modId": "4385464322254215299",
+                    "describe": "Permanent Regeneration 2",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "3b457afdbda824e4da5b5148ad3394a0",
+            "preview": "+1 energy, +1 cards each turn",
+            "hash": "0c6f09cf2d3f4abe0e3ef7c5e843cf46b52217c8",
+            "modifiers": [
+                {
+                    "modId": "9218621881995273280",
+                    "describe": "+1 energy, +1 cards each turn",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "1c712f8e0d0af794b8d05f34c31b5388",
+            "preview": "+3 damage while at full health",
+            "hash": "b8365e10c6f44423bd79ebdb7337a235d0875c3a",
+            "modifiers": [
+                {
+                    "modId": "6331326233893156822",
+                    "describe": "+3 damage while at full health",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "82d1448bcddc7d3488e8ed174c19d57b",
+            "preview": "Permanent Block 2",
+            "hash": "b3f9c4b6123509134e9eb77c8501304f00c3a810",
+            "modifiers": [
+                {
+                    "modId": "8969321099661361594",
+                    "describe": "Permanent Block 2",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "32b10e334a4b1cd4a9b7f0141bee8c80",
+            "preview": "+1 energy each turn",
+            "hash": "06dc594389fc4a648fb689e1b6ad2b8e2e7fe71a",
+            "modifiers": [
+                {
+                    "modId": "6534602296255291231",
+                    "describe": "+1 energy each turn",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "79a658d7ca03aa24e9ec0213a282c142",
+            "preview": "Permanent Shield 3 | Shield +1 per grant",
+            "hash": "819b7803b0cafb608f8be97616a1156156a3e357",
+            "modifiers": [
+                {
+                    "modId": "-5511067865609672603",
+                    "describe": "Permanent Shield 3",
+                    "children": []
+                },
+                {
+                    "modId": "8533047918303186147",
+                    "describe": "Shield +1 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "7041612277fdd0a4d9f804983b02d7f2",
+            "preview": "Permanent PoisonBlade 1",
+            "hash": "76fbf17f45b9b5df0719665549005ce5b54d72f2",
+            "modifiers": [
+                {
+                    "modId": "1731878329824847347",
+                    "describe": "Permanent PoisonBlade 1",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "586a2c7a7288e80469e4da1bd6f2bf60",
+            "preview": "Vulnerable you apply: +1",
+            "hash": "3494b73f05b80bf80e7fde43aa091269cb89f906",
+            "modifiers": [
+                {
+                    "modId": "4032050483251206510",
+                    "describe": "Vulnerable you apply: +1",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "d445cc9fc75c05e4180d7170c0e45ac2",
+            "preview": "+1 damage per Strength stack held",
+            "hash": "5a60398bf615f0731341a1f4f6d6196d548590f5",
+            "modifiers": [
+                {
+                    "modId": "4337339263793352919",
+                    "describe": "+1 damage per Strength stack held",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "d9425b662aef8424db22892387cce27b",
+            "preview": "Permanent Lifesteal 1",
+            "hash": "d0f680777e00769802fa4697f48291533937ee0f",
+            "modifiers": [
+                {
+                    "modId": "-3826258581685131776",
+                    "describe": "Permanent Lifesteal 1",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "fd782f182f028cf4e87fd2756788cd35",
+            "preview": "Poison +1 per grant",
+            "hash": "be96726ff48d34a98c5bf10f40599b9e87877c0e",
+            "modifiers": [
+                {
+                    "modId": "-6928115594443510871",
+                    "describe": "Poison +1 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "b200a37f711afa841b64a35bce00f201",
+            "preview": "Range +1",
+            "hash": "32743c628c20e45159c2a0ce905da28c905bd6b2",
+            "modifiers": [
+                {
+                    "modId": "5556164077145046266",
+                    "describe": "Range +1",
+                    "children": [
+                        {
+                            "modId": "7857120742411385447",
+                            "describe": "Range +1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "guid": "eb2d981e17702cd429478ce8aee66d84",
+            "preview": "+1 damage dealt",
+            "hash": "2ed377255a181671b7c240b58097136e97611361",
+            "modifiers": [
+                {
+                    "modId": "7883266174486464902",
+                    "describe": "+1 damage dealt",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "a13cfd4aa91ed014f976397f823dccea",
+            "preview": "Totems: +10 max health",
+            "hash": "63c87ebdde08ab702843f214aa8a56e6b6acc050",
+            "modifiers": [
+                {
+                    "modId": "-8637072470363726039",
+                    "describe": "Totems: +10 max health",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "bc731371c2971c742a551d54bca83e42",
+            "preview": "Shield +2 per grant",
+            "hash": "8f5e182ca3439e9e0cf980067e04d1b8e8353c17",
+            "modifiers": [
+                {
+                    "modId": "-6084113878368495311",
+                    "describe": "Shield +2 per grant",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "guid": "85512a7c3918a0d4988dc995919f24d9",
+            "preview": "Weaken you apply: +1",
+            "hash": "e7074ece678bcad8d7bccb79273af467a7286c2e",
+            "modifiers": [
+                {
+                    "modId": "-5048316929138750051",
+                    "describe": "Weaken you apply: +1",
+                    "children": []
+                }
+            ]
+        }
+    ]
+}

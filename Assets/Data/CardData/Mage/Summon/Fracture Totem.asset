@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Fracture Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: e93c54a92372f724bb2a74628fbee918, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 4bb83b63ae1f8284caf9c716b5bfab77, type: 2}

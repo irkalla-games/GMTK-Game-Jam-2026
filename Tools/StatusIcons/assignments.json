@@ -1,0 +1,26 @@
+{
+  "generatedUtc": "2026-09-03T22:09:00Z",
+  "assignments": [
+    {"type": 2, "status": "DoubleNextAttack", "icon": "PowerUp1"},
+    {"type": 3, "status": "Poison", "icon": "White Skull 2"},
+    {"type": 5, "status": "Shield", "icon": "White Shield 2"},
+    {"type": 7, "status": "Parry", "icon": "White Backward 2"},
+    {"type": 8, "status": "Rooted", "icon": "White Link"},
+    {"type": 9, "status": "DoubleShield", "icon": "White Helmet"},
+    {"type": 10, "status": "Dodge", "icon": "White Speed Boost"},
+    {"type": 11, "status": "Weaken", "icon": "White Water Droplet"},
+    {"type": 12, "status": "Taunt", "icon": "White Warning 2"},
+    {"type": 13, "status": "Summoned", "icon": "White Timer"},
+    {"type": 14, "status": "PoisonBlade", "icon": "White Potion 1"},
+    {"type": 15, "status": "Stealth", "icon": "White Site Off"},
+    {"type": 16, "status": "Vulnerable", "icon": "White Arrow"},
+    {"type": 17, "status": "GainMultiplier", "icon": "White Close 2"},
+    {"type": 18, "status": "Potency", "icon": "White Add"},
+    {"type": 19, "status": "TurnTick", "icon": "White Return 2"},
+    {"type": 20, "status": "Regeneration", "icon": "White Power Up 2"},
+    {"type": 21, "status": "Lifesteal", "icon": "White Heart 2"},
+    {"type": 22, "status": "FlatDamageDealt", "icon": "White Move Up"},
+    {"type": 23, "status": "FlatDamageTaken", "icon": "White Move Down"},
+    {"type": 24, "status": "GainBonus", "icon": "White Plus 2"}
+  ]
+}

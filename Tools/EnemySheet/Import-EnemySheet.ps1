@@ -1,12 +1,19 @@
 <#
 .SYNOPSIS
-    Diffs Docs/EnemySheets.xlsx against the enemy/boss/ally prefabs and writes
-    Tools/EnemySheet/enemies.json.
+    Diffs a roster design workbook against its prefabs and writes the matching work order -
+    Docs/EnemySheets.xlsx -> Tools/EnemySheet/enemies.json by default, or Docs/BossDesign.xlsx ->
+    Tools/BossSheet/bosses.json with -Domain Bosses.
 
 .DESCRIPTION
     Does NOT touch the Unity project. It only produces the work order; Assets/Editor/
-    EnemySheetImporter.cs reads that file and writes the prefabs, which is what keeps
-    PrefabUtility.EditPrefabContentsScope and SerializedObject writes Unity's business.
+    EnemySheetImporter.cs or BossSheetImporter.cs reads that file and writes the prefabs, which is what
+    keeps PrefabUtility.EditPrefabContentsScope and SerializedObject writes Unity's business.
+
+    This one script serves BOTH roster workbooks; everything that differs comes from Get-RosterDomain
+    in EnemySheet.Common.psm1. Tools/BossSheet/Import-BossSheet.ps1 is a forwarder passing
+    -Domain Bosses. Because each domain has its own roster, workbook and baseline, the two can never
+    queue a write for the same prefab - which is exactly why a boss's summoned enemy is a read-only row
+    on the Summoned tab rather than a body tab in the boss workbook.
 
     Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name, Role and Deck are synced by
     three-way merge, per column, exactly like Import-CardSheet.ps1: a column that changed only in the
@@ -24,15 +31,18 @@
     a tab with no matching prefab (should not happen - the export only ever writes one tab per
     discovered body) is skipped rather than guessed at.
 
+.PARAMETER Domain
+    Which roster workbook to read: Enemies (default) or Bosses.
+
 .PARAMETER WorkbookPath
-    Defaults to Docs/EnemySheets.xlsx at the repo root.
+    Overrides the domain's default workbook path.
 
 .PARAMETER OutputPath
-    Defaults to Tools/EnemySheet/enemies.json.
+    Overrides the domain's default work-order path.
 
 .PARAMETER FromCsv
-    Force reading the Docs/EnemySheets/*.csv mirror even though the workbook is readable. Normally
-    unnecessary - see the comment above the exclusive-open probe below.
+    Force reading the domain's CSV mirror even though the workbook is readable. Normally unnecessary -
+    see the comment above the exclusive-open probe below.
 
 .PARAMETER OnlyPrefab
     Only consider prefabs whose name matches one of these wildcard patterns.
@@ -42,6 +52,8 @@
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('Enemies', 'Bosses')]
+    [string]$Domain = 'Enemies',
     [string]$WorkbookPath,
     [string]$OutputPath,
     [switch]$FromCsv,
@@ -55,9 +67,11 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot  = Resolve-Path (Join-Path $scriptDir '..\..')
 Import-Module (Join-Path $scriptDir 'EnemySheet.Common.psm1') -Force -DisableNameChecking
 
-if (-not $WorkbookPath) { $WorkbookPath = Join-Path $repoRoot 'Docs\EnemySheets.xlsx' }
-if (-not $OutputPath)   { $OutputPath   = Join-Path $scriptDir 'enemies.json' }
-$csvDir = Join-Path $repoRoot 'Docs\EnemySheets'
+$rosterDomain = Get-RosterDomain -Name $Domain -RepoRoot $repoRoot
+
+if (-not $WorkbookPath) { $WorkbookPath = $rosterDomain.Workbook }
+if (-not $OutputPath)   { $OutputPath   = $rosterDomain.JsonPath }
+$csvDir = $rosterDomain.CsvDir
 
 $effectiveFromCsv = [bool]$FromCsv
 
@@ -71,7 +85,7 @@ if (-not $effectiveFromCsv -and (Test-Path -LiteralPath $WorkbookPath)) {
         $probe.Close()
     }
     catch {
-        Write-Host "$WorkbookPath cannot be read ($($_.Exception.Message.Trim())) - falling back to Docs/EnemySheets/*.csv for this sync." -ForegroundColor Yellow
+        Write-Host "$WorkbookPath cannot be read ($($_.Exception.Message.Trim())) - falling back to $($rosterDomain.CsvDirRel)/*.csv for this sync." -ForegroundColor Yellow
         $effectiveFromCsv = $true
     }
 }
@@ -91,7 +105,8 @@ Write-Host 'Reading assets...' -ForegroundColor Cyan
 
 $scriptGuids = Get-ScriptGuidIndex -RepoRoot $repoRoot
 $assetIndex  = Build-AssetIndex -RepoRoot $repoRoot -RelativeFolders @('Assets\Data', 'Assets\Prefabs') -ScriptGuidIndex $scriptGuids
-$roster      = Get-DiscoveredRoster -AssetIndex $assetIndex -RepoRoot $repoRoot
+$roster      = Get-DiscoveredRoster -AssetIndex $assetIndex -RepoRoot $repoRoot `
+    -Folders $rosterDomain.Folders -SummonsAsReference:$rosterDomain.SummonsAsReference
 
 $bodiesByPrefab = [ordered]@{}
 foreach ($name in $roster.BodyAssets.Keys) {
@@ -130,7 +145,7 @@ if ($effectiveFromCsv) {
 else {
     $pkg = Open-ExcelPackage -Path $WorkbookPath
     try {
-        $skip = @('PowerLevel', 'Roster', 'Enums', 'README')
+        $skip = Get-NonBodyTabNames
         foreach ($ws in @($pkg.Workbook.Worksheets)) {
             if ($skip -contains $ws.Name) { continue }
             $tab = Read-BodySheetTab -Worksheet $ws
@@ -148,7 +163,7 @@ Write-Host "  $($sheetRows.Count) body tab(s) read from the $(if ($effectiveFrom
 # Three-way merge, per body
 # ---------------------------------------------------------------------------------------------------
 
-$baseline = Read-EnemyBaseline -ToolDir $scriptDir
+$baseline = Read-EnemyBaseline -ToolDir $rosterDomain.ToolDir
 $mergeColumns = Get-EnemyMergeColumns
 
 $actions    = @()
@@ -165,7 +180,7 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
     }
 
     if (-not $sheetRows.ContainsKey($prefab)) {
-        $problems += "'$prefab' has no matching tab in the sheet - skipped. Run Export-EnemySheet.ps1 to add it."
+        $problems += "'$prefab' has no matching tab in the sheet - skipped. Run $($rosterDomain.ExportScriptName) to add it."
         continue
     }
 
@@ -220,7 +235,7 @@ foreach ($prefab in $bodiesByPrefab.Keys) {
 
     if ($null -eq $computedPower -and $body.PowerOnAsset -eq 0) {
         $problems += "'$prefab' has no Brandon's or Estimated Power Level yet - EncounterRoller can " +
-            'never draw it until one is authored (open Docs/EnemySheets.xlsx in Excel at least once ' +
+            "never draw it until one is authored (open $($rosterDomain.WorkbookRel) in Excel at least once " +
             'so a formula-only Estimated has something cached to read).'
     }
 
@@ -305,7 +320,7 @@ if ($unresolved.Count -gt 0) {
     foreach ($u in $unresolved) {
         Write-Host "    $($u.key): $((@($u.columns | ForEach-Object { $_.column })) -join ', ')" -ForegroundColor DarkGray
     }
-    Write-Host '    Run Export-EnemySheet.ps1 -Force -WriteBaseline to declare Unity correct and start tracking.' -ForegroundColor Red
+    Write-Host "    Run $($rosterDomain.ExportScriptName) -Force -WriteBaseline to declare Unity correct and start tracking." -ForegroundColor Red
 }
 
 if ($filtered -gt 0) { Write-Host "Prefabs excluded by -OnlyPrefab filter : $filtered" -ForegroundColor DarkGray }
@@ -320,5 +335,5 @@ if ($actions.Count -eq 0) {
 }
 else {
     Write-Host "Wrote $OutputPath" -ForegroundColor Green
-    Write-Host 'Now focus the Unity Editor and pick  Tools > Sync Enemies With Sheet' -ForegroundColor Cyan
+    Write-Host "Now focus the Unity Editor and pick  $($rosterDomain.SyncMenu)" -ForegroundColor Cyan
 }

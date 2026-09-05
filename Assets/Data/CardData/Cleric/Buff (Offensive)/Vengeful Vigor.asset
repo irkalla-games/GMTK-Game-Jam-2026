@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Apply Lifesteal 1.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 6997f065f63d45946be7a4693479d7ac, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: b425a39889a3aae4d9201b882b3cce16, type: 2}

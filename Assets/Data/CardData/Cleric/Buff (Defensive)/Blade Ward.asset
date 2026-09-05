@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Give 2 Block.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 9c044b65d406d284b9c8ea8bc3f175b4, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
   <effectEntries>k__BackingField:

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MoveAction : GameAction
@@ -16,6 +17,10 @@ public class MoveAction : GameAction
     /// A card may still redirect the cue - Teleport asking for a blink instead of a walk - through the
     /// same CardAnimation override table every other action reads; CueOverride.impactPrefab plays as
     /// an arrival VFX once the character has actually landed.
+    ///
+    /// A RequiresRoute card (Move 1/2) walks tile by tile rather than sliding straight to the
+    /// destination, so a Wall of Force forces a visible detour instead of being crossed in one tween -
+    /// see GridManager.Route. A teleport keeps the old single straight-line slide.
     /// </summary>
     public override IEnumerator Execute(ActionContext ctx)
     {
@@ -32,25 +37,47 @@ public class MoveAction : GameAction
             ? cardAnimation.For(cue)
             : new CueOverride { when = cue, play = cue };
 
+        bool routed = ctx.card != null && ctx.card.range.RequiresRoute
+            && ctx.card.range.Shape != RangeShape.Anywhere;
+
+        List<GridTile> steps = routed
+            ? GridManager.Instance.Route(ctx.source.Tile, destination, ctx.card.range.MaxDistance)
+            : new List<GridTile> { destination };
+
+        if (steps.Count == 0)
+        {
+            Debug.LogWarning($"{(ctx.source != null ? ctx.source.name : "somebody")} cannot move to "
+                             + $"{destination.Coordinates}: the way is blocked");
+            yield break;
+        }
+
+        float moveDuration = GridManager.Instance.MoveDuration;
+
         if (animation != null)
         {
-            animation.SetFacing(destination.transform.position);
+            animation.SetFacing(steps[0].transform.position);
 
-            // Held for exactly the tween's length rather than the walk clip's own, so the cycle runs
-            // for the whole slide and stops the moment the character lands.
+            // Held for the whole walk rather than one tween's length, so the cycle runs for every
+            // step and stops the moment the character lands on the final tile.
             if (entry.play != AnimationCue.None && entry.play != AnimationCue.Silent
                 && ActionManager.Instance != null)
             {
                 ActionManager.Instance.StartCoroutine(
-                    animation.Play(entry.play, entry.stateOverride, GridManager.Instance.MoveDuration));
+                    animation.Play(entry.play, entry.stateOverride, moveDuration * steps.Count));
             }
         }
 
-        // GridManager owns the move: it guards against occupied tiles, swaps occupancy, and tweens
-        // the character's transform. Going through Character.MoveTo alone would only swap references.
-        GridManager.Instance.MoveCharacter(ctx.source, destination);
+        foreach (GridTile step in steps)
+        {
+            if (animation != null) { animation.SetFacing(step.transform.position); }
 
-        yield return new WaitForSeconds(GridManager.Instance.MoveDuration);
+            // GridManager owns the move: it guards against occupied tiles, swaps occupancy, and
+            // tweens the character's transform. Going through Character.MoveTo alone would only swap
+            // references.
+            if (!GridManager.Instance.MoveCharacter(ctx.source, step)) { break; }
+
+            yield return new WaitForSeconds(moveDuration);
+        }
 
         if (entry.impactPrefab != null)
         {

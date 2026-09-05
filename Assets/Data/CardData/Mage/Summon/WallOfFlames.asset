@@ -25,7 +25,7 @@ MonoBehaviour:
   <rotatableAim>k__BackingField: 1
   <description>k__BackingField: Create a Wall of Flames, anything standing ontop
     will take 4 damage.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 78604f7ee8862fe4aa6b7c44779c89ce, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 95c95a165c35a5843bb12cfc813a1e5d, type: 2}

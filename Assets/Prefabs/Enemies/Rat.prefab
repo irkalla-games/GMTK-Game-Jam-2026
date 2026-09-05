@@ -684,7 +684,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: df94d1a8e1d8c13448e8720f4acbf71d, type: 2}
   - {fileID: 11400000, guid: df94d1a8e1d8c13448e8720f4acbf71d, type: 2}
   - {fileID: 11400000, guid: df94d1a8e1d8c13448e8720f4acbf71d, type: 2}
-  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
+  - {fileID: 11400000, guid: df94d1a8e1d8c13448e8720f4acbf71d, type: 2}
   - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
   <Health>k__BackingField: 9
 --- !u!95 &7130099151914716108
@@ -728,6 +728,11 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
   statusIconParent: {fileID: 4341252370176204906}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

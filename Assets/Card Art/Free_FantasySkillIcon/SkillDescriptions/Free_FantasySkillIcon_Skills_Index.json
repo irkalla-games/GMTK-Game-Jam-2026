@@ -1,0 +1,709 @@
+{
+    "schema":  "fantasy_skill_icon.index.v1",
+    "asset":  "Free_FantasySkillIcon",
+    "generatedUtc":  "2026-05-02T19:07:24.0432742Z",
+    "iconPathBase":  "Assets/Free_FantasySkillIcon",
+    "itemCount":  100,
+    "items":  [
+                  {
+                      "id":  "skill_assassin_01_silence_sever",
+                      "name":  "Silence Sever",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/01_silence_sever.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/01_silence_sever.png"
+                  },
+                  {
+                      "id":  "skill_assassin_02_raven_sever",
+                      "name":  "Raven Sever",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/02_raven_sever.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/02_raven_sever.png"
+                  },
+                  {
+                      "id":  "skill_assassin_03_widow_sever",
+                      "name":  "Widow Sever",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/03_widow_sever.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/03_widow_sever.png"
+                  },
+                  {
+                      "id":  "skill_assassin_04_umbral_sever",
+                      "name":  "Umbral Sever",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/04_umbral_sever.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/04_umbral_sever.png"
+                  },
+                  {
+                      "id":  "skill_assassin_05_crimson_sever",
+                      "name":  "Crimson Sever",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/05_crimson_sever.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/05_crimson_sever.png"
+                  },
+                  {
+                      "id":  "skill_assassin_06_silence_mark",
+                      "name":  "Silence Mark",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/06_silence_mark.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/06_silence_mark.png"
+                  },
+                  {
+                      "id":  "skill_assassin_07_raven_mark",
+                      "name":  "Raven Mark",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/07_raven_mark.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/07_raven_mark.png"
+                  },
+                  {
+                      "id":  "skill_assassin_08_widow_mark",
+                      "name":  "Widow Mark",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/08_widow_mark.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/08_widow_mark.png"
+                  },
+                  {
+                      "id":  "skill_assassin_09_umbral_mark",
+                      "name":  "Umbral Mark",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/09_umbral_mark.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/09_umbral_mark.png"
+                  },
+                  {
+                      "id":  "skill_assassin_10_crimson_mark",
+                      "name":  "Crimson Mark",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/10_crimson_mark.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/10_crimson_mark.png"
+                  },
+                  {
+                      "id":  "skill_assassin_11_silence_kiss",
+                      "name":  "Silence Kiss",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/11_silence_kiss.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/11_silence_kiss.png"
+                  },
+                  {
+                      "id":  "skill_assassin_12_raven_kiss",
+                      "name":  "Raven Kiss",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/12_raven_kiss.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/12_raven_kiss.png"
+                  },
+                  {
+                      "id":  "skill_assassin_13_widow_kiss",
+                      "name":  "Widow Kiss",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/13_widow_kiss.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/13_widow_kiss.png"
+                  },
+                  {
+                      "id":  "skill_assassin_14_umbral_kiss",
+                      "name":  "Umbral Kiss",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/14_umbral_kiss.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/14_umbral_kiss.png"
+                  },
+                  {
+                      "id":  "skill_assassin_15_crimson_kiss",
+                      "name":  "Crimson Kiss",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/15_crimson_kiss.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/15_crimson_kiss.png"
+                  },
+                  {
+                      "id":  "skill_assassin_16_silence_slip",
+                      "name":  "Silence Slip",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/16_silence_slip.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/16_silence_slip.png"
+                  },
+                  {
+                      "id":  "skill_assassin_17_raven_slip",
+                      "name":  "Raven Slip",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/17_raven_slip.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/17_raven_slip.png"
+                  },
+                  {
+                      "id":  "skill_assassin_18_widow_slip",
+                      "name":  "Widow Slip",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/18_widow_slip.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/18_widow_slip.png"
+                  },
+                  {
+                      "id":  "skill_assassin_19_umbral_slip",
+                      "name":  "Umbral Slip",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/19_umbral_slip.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/19_umbral_slip.png"
+                  },
+                  {
+                      "id":  "skill_assassin_20_crimson_slip",
+                      "name":  "Crimson Slip",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/20_crimson_slip.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/20_crimson_slip.png"
+                  },
+                  {
+                      "id":  "skill_assassin_21_silence_rupture",
+                      "name":  "Silence Rupture",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/21_silence_rupture.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/21_silence_rupture.png"
+                  },
+                  {
+                      "id":  "skill_assassin_22_raven_rupture",
+                      "name":  "Raven Rupture",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/22_raven_rupture.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/22_raven_rupture.png"
+                  },
+                  {
+                      "id":  "skill_assassin_23_widow_rupture",
+                      "name":  "Widow Rupture",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/23_widow_rupture.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/23_widow_rupture.png"
+                  },
+                  {
+                      "id":  "skill_assassin_24_umbral_rupture",
+                      "name":  "Umbral Rupture",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/24_umbral_rupture.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/24_umbral_rupture.png"
+                  },
+                  {
+                      "id":  "skill_assassin_25_crimson_rupture",
+                      "name":  "Crimson Rupture",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/25_crimson_rupture.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/25_crimson_rupture.png"
+                  },
+                  {
+                      "id":  "skill_assassin_26_silence_lattice",
+                      "name":  "Silence Lattice",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/26_silence_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/26_silence_lattice.png"
+                  },
+                  {
+                      "id":  "skill_assassin_27_raven_lattice",
+                      "name":  "Raven Lattice",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/27_raven_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/27_raven_lattice.png"
+                  },
+                  {
+                      "id":  "skill_assassin_28_widow_lattice",
+                      "name":  "Widow Lattice",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/28_widow_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/28_widow_lattice.png"
+                  },
+                  {
+                      "id":  "skill_assassin_29_umbral_lattice",
+                      "name":  "Umbral Lattice",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/29_umbral_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/29_umbral_lattice.png"
+                  },
+                  {
+                      "id":  "skill_assassin_30_crimson_lattice",
+                      "name":  "Crimson Lattice",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/30_crimson_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/30_crimson_lattice.png"
+                  },
+                  {
+                      "id":  "skill_assassin_31_silence_shroud",
+                      "name":  "Silence Shroud",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/31_silence_shroud.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/31_silence_shroud.png"
+                  },
+                  {
+                      "id":  "skill_assassin_32_raven_shroud",
+                      "name":  "Raven Shroud",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/32_raven_shroud.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/32_raven_shroud.png"
+                  },
+                  {
+                      "id":  "skill_assassin_33_widow_shroud",
+                      "name":  "Widow Shroud",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/33_widow_shroud.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/33_widow_shroud.png"
+                  },
+                  {
+                      "id":  "skill_assassin_34_umbral_shroud",
+                      "name":  "Umbral Shroud",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/34_umbral_shroud.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/34_umbral_shroud.png"
+                  },
+                  {
+                      "id":  "skill_assassin_35_crimson_shroud",
+                      "name":  "Crimson Shroud",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/35_crimson_shroud.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/35_crimson_shroud.png"
+                  },
+                  {
+                      "id":  "skill_assassin_36_silence_window",
+                      "name":  "Silence Window",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/36_silence_window.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/36_silence_window.png"
+                  },
+                  {
+                      "id":  "skill_assassin_37_raven_window",
+                      "name":  "Raven Window",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/37_raven_window.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/37_raven_window.png"
+                  },
+                  {
+                      "id":  "skill_assassin_38_widow_window",
+                      "name":  "Widow Window",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/38_widow_window.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/38_widow_window.png"
+                  },
+                  {
+                      "id":  "skill_assassin_39_umbral_window",
+                      "name":  "Umbral Window",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/39_umbral_window.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/39_umbral_window.png"
+                  },
+                  {
+                      "id":  "skill_assassin_40_crimson_window",
+                      "name":  "Crimson Window",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/40_crimson_window.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/40_crimson_window.png"
+                  },
+                  {
+                      "id":  "skill_assassin_41_silence_pin",
+                      "name":  "Silence Pin",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/41_silence_pin.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/41_silence_pin.png"
+                  },
+                  {
+                      "id":  "skill_assassin_42_raven_pin",
+                      "name":  "Raven Pin",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/42_raven_pin.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/42_raven_pin.png"
+                  },
+                  {
+                      "id":  "skill_assassin_43_widow_pin",
+                      "name":  "Widow Pin",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/43_widow_pin.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/43_widow_pin.png"
+                  },
+                  {
+                      "id":  "skill_assassin_44_umbral_pin",
+                      "name":  "Umbral Pin",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/44_umbral_pin.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/44_umbral_pin.png"
+                  },
+                  {
+                      "id":  "skill_assassin_45_crimson_pin",
+                      "name":  "Crimson Pin",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/45_crimson_pin.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/45_crimson_pin.png"
+                  },
+                  {
+                      "id":  "skill_assassin_46_silence_vanish",
+                      "name":  "Silence Vanish",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/46_silence_vanish.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/46_silence_vanish.png"
+                  },
+                  {
+                      "id":  "skill_assassin_47_raven_vanish",
+                      "name":  "Raven Vanish",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/47_raven_vanish.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/47_raven_vanish.png"
+                  },
+                  {
+                      "id":  "skill_assassin_48_widow_vanish",
+                      "name":  "Widow Vanish",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/48_widow_vanish.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/48_widow_vanish.png"
+                  },
+                  {
+                      "id":  "skill_assassin_49_umbral_vanish",
+                      "name":  "Umbral Vanish",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/49_umbral_vanish.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/49_umbral_vanish.png"
+                  },
+                  {
+                      "id":  "skill_assassin_50_crimson_vanish",
+                      "name":  "Crimson Vanish",
+                      "category":  "assassin",
+                      "icon":  "SkillIcon/assassin/50_crimson_vanish.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/assassin/50_crimson_vanish.png"
+                  },
+                  {
+                      "id":  "skill_cleric_01_remedy_seal",
+                      "name":  "Remedy Seal",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/01_remedy_seal.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/01_remedy_seal.png"
+                  },
+                  {
+                      "id":  "skill_cleric_02_teal_seal",
+                      "name":  "Teal Seal",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/02_teal_seal.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/02_teal_seal.png"
+                  },
+                  {
+                      "id":  "skill_cleric_03_faith_seal",
+                      "name":  "Faith Seal",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/03_faith_seal.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/03_faith_seal.png"
+                  },
+                  {
+                      "id":  "skill_cleric_04_halo_seal",
+                      "name":  "Halo Seal",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/04_halo_seal.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/04_halo_seal.png"
+                  },
+                  {
+                      "id":  "skill_cleric_05_wardlight_seal",
+                      "name":  "Wardlight Seal",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/05_wardlight_seal.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/05_wardlight_seal.png"
+                  },
+                  {
+                      "id":  "skill_cleric_06_remedy_lantern",
+                      "name":  "Remedy Lantern",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/06_remedy_lantern.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/06_remedy_lantern.png"
+                  },
+                  {
+                      "id":  "skill_cleric_07_teal_lantern",
+                      "name":  "Teal Lantern",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/07_teal_lantern.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/07_teal_lantern.png"
+                  },
+                  {
+                      "id":  "skill_cleric_08_faith_lantern",
+                      "name":  "Faith Lantern",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/08_faith_lantern.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/08_faith_lantern.png"
+                  },
+                  {
+                      "id":  "skill_cleric_09_halo_lantern",
+                      "name":  "Halo Lantern",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/09_halo_lantern.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/09_halo_lantern.png"
+                  },
+                  {
+                      "id":  "skill_cleric_10_wardlight_lantern",
+                      "name":  "Wardlight Lantern",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/10_wardlight_lantern.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/10_wardlight_lantern.png"
+                  },
+                  {
+                      "id":  "skill_cleric_11_remedy_lattice",
+                      "name":  "Remedy Lattice",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/11_remedy_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/11_remedy_lattice.png"
+                  },
+                  {
+                      "id":  "skill_cleric_12_teal_lattice",
+                      "name":  "Teal Lattice",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/12_teal_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/12_teal_lattice.png"
+                  },
+                  {
+                      "id":  "skill_cleric_13_faith_lattice",
+                      "name":  "Faith Lattice",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/13_faith_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/13_faith_lattice.png"
+                  },
+                  {
+                      "id":  "skill_cleric_14_halo_lattice",
+                      "name":  "Halo Lattice",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/14_halo_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/14_halo_lattice.png"
+                  },
+                  {
+                      "id":  "skill_cleric_15_wardlight_lattice",
+                      "name":  "Wardlight Lattice",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/15_wardlight_lattice.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/15_wardlight_lattice.png"
+                  },
+                  {
+                      "id":  "skill_cleric_16_remedy_ward",
+                      "name":  "Remedy Ward",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/16_remedy_ward.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/16_remedy_ward.png"
+                  },
+                  {
+                      "id":  "skill_cleric_17_teal_ward",
+                      "name":  "Teal Ward",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/17_teal_ward.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/17_teal_ward.png"
+                  },
+                  {
+                      "id":  "skill_cleric_18_faith_ward",
+                      "name":  "Faith Ward",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/18_faith_ward.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/18_faith_ward.png"
+                  },
+                  {
+                      "id":  "skill_cleric_19_halo_ward",
+                      "name":  "Halo Ward",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/19_halo_ward.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/19_halo_ward.png"
+                  },
+                  {
+                      "id":  "skill_cleric_20_wardlight_ward",
+                      "name":  "Wardlight Ward",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/20_wardlight_ward.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/20_wardlight_ward.png"
+                  },
+                  {
+                      "id":  "skill_cleric_21_remedy_pulse",
+                      "name":  "Remedy Pulse",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/21_remedy_pulse.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/21_remedy_pulse.png"
+                  },
+                  {
+                      "id":  "skill_cleric_22_teal_pulse",
+                      "name":  "Teal Pulse",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/22_teal_pulse.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/22_teal_pulse.png"
+                  },
+                  {
+                      "id":  "skill_cleric_23_faith_pulse",
+                      "name":  "Faith Pulse",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/23_faith_pulse.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/23_faith_pulse.png"
+                  },
+                  {
+                      "id":  "skill_cleric_24_halo_pulse",
+                      "name":  "Halo Pulse",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/24_halo_pulse.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/24_halo_pulse.png"
+                  },
+                  {
+                      "id":  "skill_cleric_25_wardlight_pulse",
+                      "name":  "Wardlight Pulse",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/25_wardlight_pulse.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/25_wardlight_pulse.png"
+                  },
+                  {
+                      "id":  "skill_cleric_26_remedy_crossing",
+                      "name":  "Remedy Crossing",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/26_remedy_crossing.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/26_remedy_crossing.png"
+                  },
+                  {
+                      "id":  "skill_cleric_27_teal_crossing",
+                      "name":  "Teal Crossing",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/27_teal_crossing.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/27_teal_crossing.png"
+                  },
+                  {
+                      "id":  "skill_cleric_28_faith_crossing",
+                      "name":  "Faith Crossing",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/28_faith_crossing.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/28_faith_crossing.png"
+                  },
+                  {
+                      "id":  "skill_cleric_29_halo_crossing",
+                      "name":  "Halo Crossing",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/29_halo_crossing.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/29_halo_crossing.png"
+                  },
+                  {
+                      "id":  "skill_cleric_30_wardlight_crossing",
+                      "name":  "Wardlight Crossing",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/30_wardlight_crossing.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/30_wardlight_crossing.png"
+                  },
+                  {
+                      "id":  "skill_cleric_31_remedy_tether",
+                      "name":  "Remedy Tether",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/31_remedy_tether.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/31_remedy_tether.png"
+                  },
+                  {
+                      "id":  "skill_cleric_32_teal_tether",
+                      "name":  "Teal Tether",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/32_teal_tether.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/32_teal_tether.png"
+                  },
+                  {
+                      "id":  "skill_cleric_33_faith_tether",
+                      "name":  "Faith Tether",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/33_faith_tether.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/33_faith_tether.png"
+                  },
+                  {
+                      "id":  "skill_cleric_34_halo_tether",
+                      "name":  "Halo Tether",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/34_halo_tether.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/34_halo_tether.png"
+                  },
+                  {
+                      "id":  "skill_cleric_35_wardlight_tether",
+                      "name":  "Wardlight Tether",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/35_wardlight_tether.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/35_wardlight_tether.png"
+                  },
+                  {
+                      "id":  "skill_cleric_36_remedy_rain",
+                      "name":  "Remedy Rain",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/36_remedy_rain.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/36_remedy_rain.png"
+                  },
+                  {
+                      "id":  "skill_cleric_37_teal_rain",
+                      "name":  "Teal Rain",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/37_teal_rain.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/37_teal_rain.png"
+                  },
+                  {
+                      "id":  "skill_cleric_38_faith_rain",
+                      "name":  "Faith Rain",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/38_faith_rain.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/38_faith_rain.png"
+                  },
+                  {
+                      "id":  "skill_cleric_39_halo_rain",
+                      "name":  "Halo Rain",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/39_halo_rain.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/39_halo_rain.png"
+                  },
+                  {
+                      "id":  "skill_cleric_40_wardlight_rain",
+                      "name":  "Wardlight Rain",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/40_wardlight_rain.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/40_wardlight_rain.png"
+                  },
+                  {
+                      "id":  "skill_cleric_41_remedy_anchor",
+                      "name":  "Remedy Anchor",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/41_remedy_anchor.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/41_remedy_anchor.png"
+                  },
+                  {
+                      "id":  "skill_cleric_42_teal_anchor",
+                      "name":  "Teal Anchor",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/42_teal_anchor.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/42_teal_anchor.png"
+                  },
+                  {
+                      "id":  "skill_cleric_43_faith_anchor",
+                      "name":  "Faith Anchor",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/43_faith_anchor.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/43_faith_anchor.png"
+                  },
+                  {
+                      "id":  "skill_cleric_44_halo_anchor",
+                      "name":  "Halo Anchor",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/44_halo_anchor.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/44_halo_anchor.png"
+                  },
+                  {
+                      "id":  "skill_cleric_45_wardlight_anchor",
+                      "name":  "Wardlight Anchor",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/45_wardlight_anchor.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/45_wardlight_anchor.png"
+                  },
+                  {
+                      "id":  "skill_cleric_46_remedy_absolution",
+                      "name":  "Remedy Absolution",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/46_remedy_absolution.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/46_remedy_absolution.png"
+                  },
+                  {
+                      "id":  "skill_cleric_47_teal_absolution",
+                      "name":  "Teal Absolution",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/47_teal_absolution.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/47_teal_absolution.png"
+                  },
+                  {
+                      "id":  "skill_cleric_48_faith_absolution",
+                      "name":  "Faith Absolution",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/48_faith_absolution.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/48_faith_absolution.png"
+                  },
+                  {
+                      "id":  "skill_cleric_49_halo_absolution",
+                      "name":  "Halo Absolution",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/49_halo_absolution.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/49_halo_absolution.png"
+                  },
+                  {
+                      "id":  "skill_cleric_50_wardlight_absolution",
+                      "name":  "Wardlight Absolution",
+                      "category":  "cleric",
+                      "icon":  "SkillIcon/cleric/50_wardlight_absolution.png",
+                      "simplifiedIcon":  "SkillIcon_Simplified/cleric/50_wardlight_absolution.png"
+                  }
+              ]
+}

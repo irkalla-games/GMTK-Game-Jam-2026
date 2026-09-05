@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Heal 5 and gain 3 Strength.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: f1b74e68b14683d4bb5a55c5c64a8703, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}

@@ -24,7 +24,7 @@ MonoBehaviour:
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Shackle Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 22f6a469c7380a046a86611182d69117, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 4843bde5ff9410248b925940e698204b, type: 2}

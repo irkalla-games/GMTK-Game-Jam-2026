@@ -24,7 +24,7 @@ MonoBehaviour:
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Tower Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: a7d30083732dfd24f89f9ac32a96b64c, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 67493a05afd63804db211121d5d02613, type: 2}

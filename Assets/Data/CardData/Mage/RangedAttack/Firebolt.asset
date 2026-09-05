@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Deal 5 damage.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: fa657ae5e0e9cdc47a33994d4080836f, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
   <effectEntries>k__BackingField:

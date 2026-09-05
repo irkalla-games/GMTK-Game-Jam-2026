@@ -55,6 +55,11 @@ public class Board
     public bool IsWalkable(Vector2Int cell) =>
         cells.Contains(cell) && !occupants.ContainsKey(cell) && !blocked.Contains(cell);
 
+    /// A tile effect refuses entry here - a Wall of Force. Separate from IsWalkable because Routes
+    /// needs to tell "a wall" apart from "a body": a route may cross an occupied tile, just not land
+    /// on one, but a wall stops it outright either way.
+    public bool IsBlocked(Vector2Int cell) => blocked.Contains(cell);
+
     public bool IsEnemyOf(Vector2Int cell, PlayableCharacter affiliation) =>
         occupants.TryGetValue(cell, out PlayableCharacter occupant) && Character.AreEnemies(occupant, affiliation);
 
@@ -69,12 +74,14 @@ public class Board
     }
 
     /// <summary>
-    /// Step counts from `start` to every tile reachable within maxSteps, walking only empty tiles.
-    /// BFS rather than A* - the boards are tiny and this is twenty lines.
+    /// Step counts from `start` to every tile a walker can reach within maxSteps. Only a wall stops a
+    /// route - a body is walked past, not around, because MoveRefusal already refuses landing on one
+    /// and treating an ally as a wall would jam a column of enemies solid in a corridor. BFS rather
+    /// than A* - the boards are tiny and this is twenty lines.
     ///
     /// `start` itself is included at distance 0 even though it is occupied by the walker.
     /// </summary>
-    public Dictionary<Vector2Int, int> Flood(Vector2Int start, int maxSteps)
+    public Dictionary<Vector2Int, int> Routes(Vector2Int start, int maxSteps)
     {
         Dictionary<Vector2Int, int> distance = new() { [start] = 0 };
         Queue<Vector2Int> frontier = new();
@@ -91,7 +98,10 @@ public class Board
             {
                 Vector2Int neighbour = cell + step;
 
-                if (!IsWalkable(neighbour) || distance.ContainsKey(neighbour)) { continue; }
+                if (!Exists(neighbour) || IsBlocked(neighbour) || distance.ContainsKey(neighbour))
+                {
+                    continue;
+                }
 
                 distance[neighbour] = next;
                 frontier.Enqueue(neighbour);
@@ -163,7 +173,7 @@ public class Board
     }
 
     /// <summary>
-    /// Walks backwards from `goal` to `start` through a Flood result, returning the steps to take in
+    /// Walks backwards from `goal` to `start` through a Routes result, returning the steps to take in
     /// order and excluding the start tile. Empty if goal was never reached.
     ///
     /// The path is what gets stored on an Intent rather than just the destination - a blocked move

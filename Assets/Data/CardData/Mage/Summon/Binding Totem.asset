@@ -24,7 +24,7 @@ MonoBehaviour:
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Binding Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 62ff1a022bd47c64aa8fcbe6478563b5, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 928d31f7044a02c4bb19c4e98a82a4bb, type: 2}

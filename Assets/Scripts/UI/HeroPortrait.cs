@@ -35,7 +35,7 @@ public class HeroPortrait : MonoBehaviour
     [SerializeField] private TMP_Text healthText;
 
     [Header("Energy pips")]
-    [Tooltip("Pooled to Hero.MaxEnergy - see RefreshPips.")]
+    [Tooltip("Pooled to Hero.EnergyCapacity, or further if Hero.Energy exceeds it - see RefreshPips.")]
     [SerializeField] private RectTransform pipParent;
 
     [SerializeField] private Image pipPrefab;
@@ -49,6 +49,22 @@ public class HeroPortrait : MonoBehaviour
     [SerializeField] private float pipSize = 14f;
 
     [SerializeField] private float pipSpacing = 3f;
+
+    [Tooltip("X glyph laid over a spent pip. Null is tolerated - no cross is built and a spent pip "
+             + "just dims, the old look.")]
+    [SerializeField] private Sprite pipSpentSprite;
+
+    [SerializeField] private Color pipSpentCrossColor = new(0.75f, 0.78f, 0.82f, 0.85f);
+
+    [Tooltip("How much larger an unspent pip renders than a spent one - PlacePip's own job, not a "
+             + "separate scale tween, since the slot pitch already keeps the column from jumping.")]
+    [SerializeField] private float availablePipScale = 1.25f;
+
+    [Tooltip("Seconds for one full breathe in and out of the available pips - same shared-clock idiom "
+             + "DamagePreviewFill and AuraPulse use, so every hero's pips crest together.")]
+    [SerializeField] private float pipPulsePeriod = 1.4f;
+
+    [SerializeField] private float pipPulseMinAlpha = 0.75f;
 
     [Header("Status row")]
     [Tooltip("Chips are positioned inside this in a single left-to-right row - capped by maxChips, so "
@@ -80,6 +96,14 @@ public class HeroPortrait : MonoBehaviour
     private readonly List<(StatusType type, int stacks, Status live, int carried)> activeStatuses = new();
 
     private readonly List<Image> pips = new();
+
+    /// Index-parallel with pips; an entry is null when pipSpentSprite is unassigned, or the pip it
+    /// belongs to predates that build (PipAt only ever appends, never backfills).
+    private readonly List<Image> pipCrosses = new();
+
+    /// How many leading pips Update should pulse - set once by RefreshPips and read every frame,
+    /// rather than recomputed there, since Update has no reason to touch Hero at all.
+    private int availablePips;
 
     /// Each held by direct reference and killed before being replaced, never by DOTween's id/target
     /// search - the same ownership convention CardViewer's own scaleTween/positionTween pair uses, so
@@ -144,7 +168,12 @@ public class HeroPortrait : MonoBehaviour
     /// TurnAdvanced/StatsChanged refresh does not need to re-touch art and name every time.
     public void Refresh(StatusIcons icons, Glossary glossary, int maxChips, Canvas canvas)
     {
-        if (Hero == null) { return; }
+        if (Hero == null)
+        {
+            // Otherwise an unbound portrait keeps pulsing whatever it last showed.
+            availablePips = 0;
+            return;
+        }
 
         int shield = HealthBarFill.Apply(healthFill, shieldFill, Hero);
 
@@ -179,17 +208,53 @@ public class HeroPortrait : MonoBehaviour
         scaleTween = Rect.DOScale(scale, duration);
     }
 
+    /// Breathes the available pips' alpha on the shared Time.time clock - the same idiom
+    /// DamagePreviewFill and AuraPulse use, so every hero's pips crest in phase rather than drifting
+    /// out of sync with each other. Spent pips are untouched here; RefreshPips owns their colour.
+    private void Update()
+    {
+        if (availablePips <= 0) { return; }
+
+        float cycle = Mathf.Max(pipPulsePeriod, 0.01f);
+        float bump = (Mathf.Sin(Time.time * Mathf.PI * 2f / cycle) + 1f) * 0.5f;
+
+        Color c = pipFilledColor;
+        c.a *= Mathf.Lerp(pipPulseMinAlpha, 1f, bump);
+
+        for (int i = 0; i < availablePips && i < pips.Count; i++)
+        {
+            if (pips[i] != null) { pips[i].color = c; }
+        }
+    }
+
+    /// <summary>
+    /// Draws Hero.EnergyCapacity pips, or more if Energy is temporarily above it (GainEnergy is
+    /// deliberately uncapped - see Character.EnergyCapacity) so a card that grants energy past the
+    /// pool is never invisible here. Spent pips (index >= Hero.Energy) dim and gain a cross; the rest
+    /// are left for Update to pulse.
+    /// </summary>
     private void RefreshPips()
     {
         if (pipPrefab == null || pipParent == null) { return; }
 
-        int max = Mathf.Max(0, Hero.MaxEnergy);
+        int max = Mathf.Max(Hero.EnergyCapacity, Hero.Energy);
+        availablePips = Mathf.Clamp(Hero.Energy, 0, max);
 
         for (int i = 0; i < max; i++)
         {
+            bool spent = i >= Hero.Energy;
+
             Image pip = PipAt(i);
-            pip.color = i < Hero.Energy ? pipFilledColor : pipEmptyColor;
-            PlacePip((RectTransform)pip.transform, i);
+            pip.color = spent ? pipEmptyColor : pipFilledColor;
+            PlacePip((RectTransform)pip.transform, i, spent);
+
+            Image cross = pipCrosses[i];
+
+            if (cross != null)
+            {
+                cross.enabled = spent;
+                cross.color = pipSpentCrossColor;
+            }
         }
 
         for (int i = max; i < pips.Count; i++) { pips[i].gameObject.SetActive(false); }
@@ -197,23 +262,59 @@ public class HeroPortrait : MonoBehaviour
 
     private Image PipAt(int index)
     {
-        while (pips.Count <= index) { pips.Add(Instantiate(pipPrefab, pipParent)); }
+        while (pips.Count <= index)
+        {
+            Image pip = Instantiate(pipPrefab, pipParent);
+            pips.Add(pip);
+            pipCrosses.Add(BuildCross(pip));
+        }
 
         pips[index].gameObject.SetActive(true);
 
         return pips[index];
     }
 
+    /// One cross child per pooled pip, built once alongside it in PipAt - stretched to fill so it
+    /// tracks the pip's own size and scale with no placement math of its own. Starts disabled;
+    /// RefreshPips is the only thing that turns it on. Returns null when pipSpentSprite is unassigned,
+    /// which RefreshPips treats as "no cross, dim only" - the old look.
+    private Image BuildCross(Image pip)
+    {
+        if (pipSpentSprite == null) { return null; }
+
+        GameObject go = new("Cross", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.layer = pip.gameObject.layer; // SetParent does not carry the layer onto a fresh GameObject.
+        go.transform.SetParent(pip.transform, false);
+
+        RectTransform rect = (RectTransform)go.transform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Image cross = go.GetComponent<Image>();
+        cross.sprite = pipSpentSprite;
+        cross.preserveAspect = true;
+        cross.raycastTarget = false;
+        cross.enabled = false;
+
+        return cross;
+    }
+
     /// Bottom-to-top, one column - pipParent anchors just above the health text beside the bar, and pips
     /// stack upward from there so the first pip sits closest to the text. Unlike StatusChip's row this
-    /// never needs to wrap sideways.
-    private void PlacePip(RectTransform rect, int index)
+    /// never needs to wrap sideways. Pivot is the pip's own centre rather than its bottom edge so
+    /// availablePipScale grows a pip symmetrically about its slot instead of upward off the slot below
+    /// it; the slot pitch (pipSize + pipSpacing) stays fixed regardless of scale, so the column never
+    /// jumps as energy is spent.
+    private void PlacePip(RectTransform rect, int index, bool spent)
     {
         rect.anchorMin = new Vector2(0.5f, 0f);
         rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
         rect.sizeDelta = new Vector2(pipSize, pipSize);
-        rect.anchoredPosition = new Vector2(0f, index * (pipSize + pipSpacing));
+        rect.anchoredPosition = new Vector2(0f, index * (pipSize + pipSpacing) + pipSize * 0.5f);
+        rect.localScale = Vector3.one * (spent ? 1f : availablePipScale);
     }
 
     /// <summary>

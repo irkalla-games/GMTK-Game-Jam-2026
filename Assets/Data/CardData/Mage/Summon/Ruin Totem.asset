@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Ruin Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 64d7edd73c4681e4c85aeb8ad76a8e0b, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 4af6803836ba7a94ca6361d496d2046b, type: 2}

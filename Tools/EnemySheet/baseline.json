@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-08-27T08:14:50.4242319Z",
+    "writtenUtc":  "2026-09-05T08:45:46.5260857Z",
     "bodies":  [
                    {
                        "guid":  "eaade4b777fd45447af03588cf3692e5",
@@ -15,119 +15,15 @@
                                    }
                    },
                    {
-                       "guid":  "fae9e0d8df06f744cb3eed28f98bb54f",
-                       "columns":  {
-                                       "DisplayName":  "Black Knight",
-                                       "Health":  "120",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Strongest",
-                                       "LootTable":  "BlackKnightDrop",
-                                       "Deck":  "DreadCleave|DreadCleave|BlackGuard|CallTheDamned|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "e58fd978e913eea4699c373a33b5e08b",
-                       "columns":  {
-                                       "DisplayName":  "Evil King",
-                                       "Health":  "140",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Strongest",
-                                       "LootTable":  "EvilKingDrop",
-                                       "Deck":  "ExecutionersBlow|ExecutionersBlow|RoyalGuard|RoyalGuard|RoyalCommand|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "e6c2dbc2feb811c4dbfea4d90220a6a5",
-                       "columns":  {
-                                       "DisplayName":  "Evil Knight",
-                                       "Health":  "130",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Closest",
-                                       "LootTable":  "EvilKnightDrop",
-                                       "Deck":  "Riposte|Riposte|ShieldBash|ShieldBash|Rally|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "51a9fe976e746be4385a09a12bb4cc36",
-                       "columns":  {
-                                       "DisplayName":  "Evil Wizard",
-                                       "Health":  "90",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Weakest",
-                                       "LootTable":  "EvilWizardDrop",
-                                       "Deck":  "DarkBolt|DarkBolt|ShadowWard|ShadowWard|SummonImp|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "8a02da994bf78784c901145a07a767e4",
-                       "columns":  {
-                                       "DisplayName":  "Dread Sorcerer",
-                                       "Health":  "95",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Furthest",
-                                       "LootTable":  "EvilWizard2Drop",
-                                       "Deck":  "ArcaneLance|ArcaneLance|VoidBarrier|VoidBarrier|CallTheSwarm|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "e47742cc0b6bff34d80516b86f0ed93e",
-                       "columns":  {
-                                       "DisplayName":  "Emberlord",
-                                       "Health":  "100",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Strongest",
-                                       "LootTable":  "EvilWizard3Drop",
-                                       "Deck":  "MeteorFall|MeteorFall|EmberShroud|EmberShroud|ConjureOoze|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "f5f2a9fce9bdff34a958576185c3c68b",
-                       "columns":  {
-                                       "DisplayName":  "Reaper",
-                                       "Health":  "110",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Weakest",
-                                       "LootTable":  "ReaperDrop",
-                                       "Deck":  "SoulReap|SoulReap|DeathsToll|DeathsToll|RaiseDead|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
-                       "guid":  "8d47800381e9665459f3b0826adf6b76",
-                       "columns":  {
-                                       "DisplayName":  "Reinforced Golem",
-                                       "Health":  "150",
-                                       "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Closest",
-                                       "LootTable":  "ReinforcedGolemDrop",
-                                       "Deck":  "SeismicSlam|SeismicSlam|StoneSkin|StoneSkin|SplinterOff|MoveInnate|MoveInnate",
-                                       "Role":  "None"
-                                   }
-                   },
-                   {
                        "guid":  "51cc0c0b40e7b264ebdf1dc4594559a6",
                        "columns":  {
                                        "DisplayName":  "Bat",
                                        "Health":  "15",
-                                       "ActionsPerTurn":  "2",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "DrainBite|DrainBite|DrainBite|DrainBite|MoveInnate",
+                                       "Deck":  "Bite|Bite|Bite|Bite|MoveInnate2",
                                        "Role":  "Both"
                                    }
                    },
@@ -135,12 +31,12 @@
                        "guid":  "f80d9dc6173669245bd4782952cd1667",
                        "columns":  {
                                        "DisplayName":  "Crab",
-                                       "Health":  "18",
+                                       "Health":  "40",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "PincerGrip|PincerGrip|PincerGrip|MoveInnate|MoveInnate",
+                                       "Deck":  "ClawAttack|ClawAttack|ClawAttack|ClawAttack|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -148,7 +44,7 @@
                        "guid":  "e40f592bea6dbd64693626dad514798b",
                        "columns":  {
                                        "DisplayName":  "Ranger",
-                                       "Health":  "10",
+                                       "Health":  "15",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
                                        "Targeting":  "RangerTargeting",
@@ -166,7 +62,7 @@
                                        "Brain":  "Ranger",
                                        "Targeting":  "Furthest",
                                        "LootTable":  "",
-                                       "Deck":  "WitheringGaze|WitheringGaze|WitheringGaze|MoveInnate|MoveInnate",
+                                       "Deck":  "WitheringGaze|WitheringGaze|WitheringGaze|WitheringGaze|MoveInnate",
                                        "Role":  "Backline"
                                    }
                    },
@@ -179,7 +75,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "Backstab|Backstab|Backstab|MoveInnate|MoveInnate",
+                                       "Deck":  "Backstab|Backstab|Backstab|Backstab|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -192,7 +88,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|MoveInnate|MoveInnate",
+                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|BoulderSmash|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -205,7 +101,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "",
-                                       "Deck":  "HeavySwing|HeavySwing|HeavySwing|MoveInnate|MoveInnate",
+                                       "Deck":  "HeavySwing|HeavySwing|HeavySwing|HeavySwing|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -218,7 +114,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "QuickCut|QuickCut|QuickCut|MoveInnate|MoveInnate",
+                                       "Deck":  "QuickCut|QuickCut|QuickCut|QuickCut|MoveInnate",
                                        "Role":  "Backline"
                                    }
                    },
@@ -231,7 +127,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Chomp|Chomp|Chomp|MoveInnate|MoveInnate",
+                                       "Deck":  "Chomp|Chomp|Chomp|Chomp|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -244,7 +140,7 @@
                                        "Brain":  "Ranger",
                                        "Targeting":  "Closest",
                                        "LootTable":  "PoisonSkeleton",
-                                       "Deck":  "SporeCloud|SporeCloud|SporeCloud|MoveInnate|MoveInnate",
+                                       "Deck":  "SporeCloud|SporeCloud|SporeCloud|SporeCloud|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -257,7 +153,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Roll|Roll|Roll|MoveInnate|MoveInnate",
+                                       "Deck":  "Roll|Roll|Roll|Roll|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -270,7 +166,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "PoisonSkeleton",
-                                       "Deck":  "PlagueBite|PlagueBite|PlagueBite|MoveInnate|MoveInnate",
+                                       "Deck":  "PlagueBite|PlagueBite|PlagueBite|PlagueBite|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -283,7 +179,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "Gnaw|Gnaw|Gnaw|MoveInnate|MoveInnate",
+                                       "Deck":  "Gnaw|Gnaw|Gnaw|Gnaw|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -291,12 +187,12 @@
                        "guid":  "909b3cba860296d47997ee7846ec93f8",
                        "columns":  {
                                        "DisplayName":  "Skeleton",
-                                       "Health":  "16",
+                                       "Health":  "25",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate|MoveInnate",
+                                       "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -304,7 +200,7 @@
                        "guid":  "d1b7793de9d268945bdf70cf0af39a94",
                        "columns":  {
                                        "DisplayName":  "Skeleton Warrior",
-                                       "Health":  "25",
+                                       "Health":  "35",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "WarriorTargeting",
@@ -322,7 +218,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Random",
                                        "LootTable":  "",
-                                       "Deck":  "BoneChill|BoneChill|BoneChill|MoveInnate|MoveInnate",
+                                       "Deck":  "BoneChill|BoneChill|BoneChill|BoneChill|MoveInnate",
                                        "Role":  "Backline"
                                    }
                    },
@@ -335,7 +231,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "Engulf|Engulf|Engulf|MoveInnate|MoveInnate",
+                                       "Deck":  "Engulf|Engulf|Engulf|Engulf|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -348,7 +244,7 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "SpikeBurst|SpikeBurst|SpikeBurst|MoveInnate|MoveInnate",
+                                       "Deck":  "SpikeBurst|SpikeBurst|SpikeBurst|SpikeBurst|MoveInnate",
                                        "Role":  "Frontline"
                                    }
                    },
@@ -361,8 +257,21 @@
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|MoveInnate|MoveInnate",
+                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|LifeLeech|MoveInnate",
                                        "Role":  "Backline"
+                                   }
+                   },
+                   {
+                       "guid":  "4cb5e72728f8d3143a2397b50dff133f",
+                       "columns":  {
+                                       "DisplayName":  "Brittle Skeleton",
+                                       "Health":  "1",
+                                       "ActionsPerTurn":  "1",
+                                       "Brain":  "Warrior",
+                                       "Targeting":  "Closest",
+                                       "LootTable":  "",
+                                       "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate|MoveInnate",
+                                       "Role":  "Frontline"
                                    }
                    }
                ]

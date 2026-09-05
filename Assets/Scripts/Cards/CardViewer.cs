@@ -248,11 +248,36 @@ public class CardViewer : MonoBehaviour
     /// strikes: you lose the digit, not the card.
     private TMP_Text rangeDigit;
 
+    /// What `image` shows, how it is tinted and drawn when the card carries no art of its own - read
+    /// off the prefab's own placeholder hatch in Awake rather than hardcoded, so the artless look
+    /// stays whatever CardFaceV2Builder authored it as. drawMode and localScale are cached because
+    /// ApplyArt switches `image` to Simple mode for real art (see below) and has to be able to put the
+    /// Sliced placeholder back exactly as it was.
+    private Sprite artPlaceholderSprite;
+    private Color artPlaceholderColor;
+    private SpriteDrawMode artPlaceholderDrawMode;
+    private Vector3 artPlaceholderLocalScale;
+
+    /// The art window's own size in world units, read from `image` in Awake - real card art is scaled
+    /// (never cropped) to fit entirely inside this box. Read from the prefab rather than hardcoded so
+    /// CardArtWindowResize can change the window's proportions without any runtime code needing to
+    /// know the new numbers. See ApplyArt and CardArt.ContainScale.
+    private Vector2 artWindowSize = Vector2.one;
+
     private void Awake()
     {
         // The root collider is the thing OnMouseEnter already fires from, so an unassigned field means
         // the obvious answer rather than no tooltip at all.
         if (hitbox == null) { hitbox = GetComponent<Collider2D>(); }
+
+        if (image != null)
+        {
+            artPlaceholderSprite = image.sprite;
+            artPlaceholderColor = image.color;
+            artPlaceholderDrawMode = image.drawMode;
+            artPlaceholderLocalScale = image.transform.localScale;
+            artWindowSize = ArtWindowSize(image);
+        }
 
         // Found rather than serialized: a card is eleven renderers deep and listing them all in the
         // Inspector would mean a new child silently escaping the grey-out. The border is the one
@@ -556,7 +581,7 @@ public class CardViewer : MonoBehaviour
         description.text = glossary != null ? glossary.Tag(card.description) : card.description;
 
         cost.text = card.cost.ToString();
-        image.sprite = card.image;
+        ApplyArt();
 
         ApplyRange();
         ApplyStripe();
@@ -567,6 +592,69 @@ public class CardViewer : MonoBehaviour
             areaIconRenderer.sprite = icon;
             ApplyAreaIconScale(icon);
         }
+    }
+
+    /// <summary>
+    /// Shows the card's own art, scaled to fit entirely inside the window with no cropping - see
+    /// CardArt.ContainScale - or falls back to the prefab's placeholder hatch (and its dark tint,
+    /// Sliced to fill the window) for a card that has none yet, the same look every card has today.
+    ///
+    /// Real art switches `image` to Simple draw mode: Sliced always stretches its sprite to fill
+    /// `size` exactly, which is precisely the distortion/cropping a contain-fit is trying to avoid, so
+    /// the fit has to be expressed as a transform scale instead - the same trick ApplyAreaIconScale
+    /// uses for the area glyph. Falling back to the placeholder restores its original draw mode and
+    /// scale exactly as cached in Awake, since they are the two things this method changes.
+    ///
+    /// Also updates spriteRestColors for `image`, exactly as ApplyStripe does for the audience bar:
+    /// SetPlayable restores every sprite's colour from that cache, and without this an unaffordable
+    /// card regaining playability would restore the hatch's black tint over real art the first time it
+    /// happened rather than showing the art itself.
+    /// </summary>
+    private void ApplyArt()
+    {
+        if (image == null) { return; }
+
+        bool hasArt = card.image != null;
+
+        if (hasArt)
+        {
+            image.drawMode = SpriteDrawMode.Simple;
+            image.sprite = card.image;
+            image.color = Color.white;
+
+            float scale = CardArt.ContainScale(card.image, artWindowSize);
+            image.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+        else
+        {
+            image.drawMode = artPlaceholderDrawMode;
+            image.sprite = artPlaceholderSprite;
+            image.color = artPlaceholderColor;
+            image.transform.localScale = artPlaceholderLocalScale;
+        }
+
+        int index = sprites.IndexOf(image);
+
+        if (index >= 0) { spriteRestColors[index] = image.color; }
+    }
+
+    /// The art window's own size in world units - `image.size` for the Sliced draw mode the card face
+    /// actually uses, or the sprite's own bounds as a fallback for a Simple renderer, which has no
+    /// independent size of its own.
+    private static Vector2 ArtWindowSize(SpriteRenderer renderer)
+    {
+        if (renderer.drawMode != SpriteDrawMode.Simple && renderer.size.x > 0f && renderer.size.y > 0f)
+        {
+            return renderer.size;
+        }
+
+        if (renderer.sprite != null)
+        {
+            Vector3 bounds = renderer.sprite.bounds.size;
+            return new Vector2(bounds.x, bounds.y);
+        }
+
+        return Vector2.one;
     }
 
     /// <summary>

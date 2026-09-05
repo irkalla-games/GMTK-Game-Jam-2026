@@ -24,7 +24,7 @@ MonoBehaviour:
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Venomblade Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 4cb2da1186d392141b10d96afd4c8c7f, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: e094161cf47dba24c86eaed8ac596d11, type: 2}

@@ -443,7 +443,7 @@ MonoBehaviour:
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 1
-  powerLevel: 2
+  powerLevel: 0.68
   isBoss: 0
   characterClass: 0
   displayName: Brittle Skeleton

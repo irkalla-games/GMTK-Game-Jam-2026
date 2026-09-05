@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Heal 3 and draw a card.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 4bad57dc8beaf0541b4e5a0c852b3f60, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: a48f91b26ba42bb429c21cc6cbe3d595, type: 2}

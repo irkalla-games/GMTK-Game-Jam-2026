@@ -24,7 +24,7 @@ MonoBehaviour:
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Summon a Whetstone Totem.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 7d70fa5fbbaf6a141a1f9be1627fa978, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 8b48c7703c5acc54685aaaeaacbfb168, type: 2}

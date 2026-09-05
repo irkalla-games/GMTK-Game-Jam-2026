@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 07000000
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Heal 10.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: a80a0329e606b1444b458f986f50bfbd, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 745a5e7dbc474ea44bacba8f994db823, type: 2}
   <effectEntries>k__BackingField:

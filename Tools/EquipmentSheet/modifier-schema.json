@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "writtenUtc": "2026-09-03T00:12:32.1974697Z",
+    "writtenUtc": "2026-09-05T17:06:43.4022440Z",
     "unityVersion": "6000.5.4f1",
     "types": [
         {
@@ -829,6 +829,21 @@
                     "truncated": false
                 },
                 {
+                    "path": "entry.area.radius.requiresRoute",
+                    "serializedPath": "entry.area.radius.requiresRoute",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Movement only: the target must be reachable by walking within Max Distance steps, so a Wall of Force blocks the way. Off for teleports and for every non-movement card.",
+                    "truncated": false
+                },
+                {
                     "path": "entry.area.pattern",
                     "serializedPath": "entry.area.pattern",
                     "kind": "object",
@@ -1001,6 +1016,21 @@
                     "isFlags": false,
                     "objectType": "",
                     "tooltip": "Furthest tile that may be clicked. Ignored by Anywhere and SelfTile.",
+                    "truncated": false
+                },
+                {
+                    "path": "area.radius.requiresRoute",
+                    "serializedPath": "area.radius.requiresRoute",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Movement only: the target must be reachable by walking within Max Distance steps, so a Wall of Force blocks the way. Off for teleports and for every non-movement card.",
                     "truncated": false
                 },
                 {

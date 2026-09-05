@@ -380,6 +380,14 @@ public class Card
             return $"{where} is out of range ({range})";
         }
 
+        // A walking move needs an unbroken route, not just a target in range - a teleport (Anywhere,
+        // or RequiresRoute left off) skips this and reaches straight through whatever is in between.
+        if (range.RequiresRoute && range.Shape != RangeShape.Anywhere)
+        {
+            string routeRefusal = GridManager.RouteRefusal(source, target, range.MaxDistance);
+            if (routeRefusal != null) { return routeRefusal; }
+        }
+
         string lockRefusal = LockRefusal();
         if (lockRefusal != null) { return lockRefusal; }
 
@@ -449,6 +457,14 @@ public class Card
         {
             string where = target != null ? target.Coordinates.ToString() : "nowhere";
             return $"{where} is out of range ({range})";
+        }
+
+        // A wall dropped after this Move locked can still cut the route off - checked here too so a
+        // player can wall off a committed enemy move, rather than it silently whiffing in MoveAction.
+        if (range.RequiresRoute && range.Shape != RangeShape.Anywhere)
+        {
+            string routeRefusal = GridManager.RouteRefusal(source, target, range.MaxDistance);
+            if (routeRefusal != null) { return routeRefusal; }
         }
 
         return LockRefusal();
@@ -530,6 +546,66 @@ public class Card
 
         return landed;
     }
+
+    /// <summary>
+    /// The shape every damage-dealing entry on this card threatens, aimed as it would be if played on
+    /// `target` - what BattleManager.Execute flashes red under an enemy's attack so the area being hit
+    /// is legible rather than inferred from scattered damage numbers.
+    ///
+    /// The third corner of a set. AreaFootprint is raw geometry for any effect and filters nothing;
+    /// DamageFootprint is damage entries filtered by Refusal on *every* tile, so bare ground drops out
+    /// with the friendly bodies. This keeps the ground - that is the whole point of showing a shape -
+    /// and asks Refusal only of tiles somebody is standing on. See Threatens.
+    ///
+    /// Unlike AreaFootprint it includes a Single entry's aim tile, which is what makes a plain
+    /// single-target swing light the one tile it lands on.
+    ///
+    /// Looks only at DamageEffect entries, so a Move or a Summon answers empty on its own and the
+    /// caller needs no IntentKind check - while a Summon that also deals damage correctly lights up.
+    /// </summary>
+    public IEnumerable<GridTile> DamageArea(Character source, GridTile target)
+    {
+        HashSet<GridTile> area = new();
+
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect is not DamageEffect) { continue; }
+
+            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            if (aim == null) { continue; }
+
+            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+            {
+                if (Threatens(source, aim, entry)) { area.Add(aim); }
+                continue;
+            }
+
+            foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant))
+            {
+                if (Threatens(source, tile, entry)) { area.Add(tile); }
+            }
+        }
+
+        return area;
+    }
+
+    /// <summary>
+    /// Whether `tile` is worth showing as threatened by `entry`.
+    ///
+    /// Bare ground always is, and that is the one case DamageFootprint drops which this has to keep - an
+    /// area card whose empty tiles went dark would show no shape at all. A tile with a body on it counts
+    /// only if the entry would really land on them, so an attacker's own ally standing inside a fireball
+    /// stays dark unless DamageEffect.canHitAllies is on.
+    ///
+    /// The occupancy guard is what separates the two refusals RefuseByAudience returns through one
+    /// value - "there is nobody there" for ground and "is on your own side" for a friendly - without
+    /// restating the audience rules here. Friendly totems fall out for free: they are Characters
+    /// occupying a tile, so the same question already covers them.
+    /// </summary>
+    private static bool Threatens(Character source, GridTile tile, CardEffectEntry entry) =>
+        tile != null && (tile.Occupant == null || entry.effect.Refusal(source, tile) == null);
 
     /// <summary>
     /// Health each character in this card's damage footprint would actually lose if it were played on

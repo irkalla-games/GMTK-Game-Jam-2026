@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Shared plumbing for the enemy design workbook: enum tables specific to enemies, the power-weight
+    Shared plumbing for the roster design workbooks: enum tables specific to bodies, the power-weight
     schema, and the numeric fact extraction that turns a deck of CardData assets into a scoreable block.
 
 .DESCRIPTION
@@ -8,6 +8,11 @@
     YAML a second time - the .asset/.prefab reader, the GUID resolver and Get-CardRecord/
     Get-EffectDescriptor/Get-TotemProjection are all reused verbatim. This module only adds what is
     specific to bodies (Character/Totem prefabs) rather than cards.
+
+    This is the engine behind BOTH roster workbooks - Docs/EnemySheets.xlsx (enemies + the ally) and
+    Docs/BossDesign.xlsx (the bosses). The two differ only in the Get-RosterDomain descriptor below;
+    Tools/BossSheet holds no logic of its own, just two forwarders into Export-/Import-EnemySheet.ps1.
+    The module keeps the EnemySheet name because Tools/LevelSheet imports it by that path.
 
     Read-only with respect to the Unity project, same guarantee as CardSheet.Common.
 #>
@@ -263,6 +268,103 @@ function Get-PoisonTotal {
     return [int](($Stacks * ($Stacks + 1)) / 2)
 }
 
+# ---------------------------------------------------------------------------------------------------
+# Roster domains.
+#
+# Two workbooks are driven by this one engine - Docs/EnemySheets.xlsx (enemies + the ally) and
+# Docs/BossDesign.xlsx (the bosses). Everything that differs between them lives HERE, in one
+# descriptor, rather than being threaded through as a dozen loose parameters: Export-EnemySheet.ps1 and
+# Import-EnemySheet.ps1 take a -Domain name and read every path, label and folder filter off it, and
+# Tools/BossSheet's two scripts are thin forwarders that pass -Domain Bosses. A third roster would be
+# a new entry in this function and nothing else.
+#
+# ToolDir is carried here rather than derived from $PSScriptRoot/$MyInvocation, because the boss
+# scripts forward INTO Tools/EnemySheet - deriving it would put bosses.json and the boss baseline in
+# the enemy tool's folder, silently sharing the enemy baseline and defeating the whole split.
+# ---------------------------------------------------------------------------------------------------
+
+function Get-RosterDomain {
+    <#
+        .SYNOPSIS
+            Everything that differs between the enemy workbook and the boss workbook, as one object.
+
+        .PARAMETER Name
+            'Enemies' or 'Bosses'.
+
+        .PARAMETER RepoRoot
+            Repository root; the *Rel fields are resolved against it into absolute paths.
+    #>
+    param(
+        [ValidateSet('Enemies', 'Bosses')]
+        [string]$Name,
+        [string]$RepoRoot
+    )
+
+    $domains = @{
+        Enemies = [ordered]@{
+            Name = 'Enemies'
+            # Allies ride along with the enemies: SkeletonAlly is not a boss, and it is the only one.
+            Folders            = @('Enemies', 'Allies')
+            SummonsAsReference = $false
+            WorkbookRel        = 'Docs\EnemySheets.xlsx'
+            CsvDirRel          = 'Docs\EnemySheets'
+            ToolDirRel         = 'Tools\EnemySheet'
+            JsonName           = 'enemies.json'
+            Title              = 'Enemy Design Workbook'
+            BodyLabel          = 'Enemy Name'
+            BodyNoun           = 'enemy'
+            SyncMenu           = 'Tools > Sync Enemies With Sheet'
+            RefreshMenu        = 'Tools > Enemies > Refresh Sheet From Unity'
+            ExportScriptName   = 'Export-EnemySheet.ps1'
+            ImportScriptName   = 'Import-EnemySheet.ps1'
+            # $null = this workbook owns its own PowerLevel weights.
+            PowerLevelSourceRel = $null
+        }
+        Bosses = [ordered]@{
+            Name = 'Bosses'
+            Folders            = @('Bosses')
+            SummonsAsReference = $true
+            WorkbookRel        = 'Docs\BossDesign.xlsx'
+            CsvDirRel          = 'Docs\BossDesign'
+            ToolDirRel         = 'Tools\BossSheet'
+            JsonName           = 'bosses.json'
+            Title              = 'Boss Design Workbook'
+            BodyLabel          = 'Boss Name'
+            BodyNoun           = 'boss'
+            SyncMenu           = 'Tools > Sync Bosses With Sheet'
+            RefreshMenu        = 'Tools > Bosses > Refresh Sheet From Unity'
+            ExportScriptName   = 'Export-BossSheet.ps1'
+            ImportScriptName   = 'Import-BossSheet.ps1'
+            # Boss power is only meaningful on the same scale as enemy power, so the pw_* weights are
+            # mirrored from the enemy workbook on every export rather than authored twice.
+            PowerLevelSourceRel = 'Docs\EnemySheets.xlsx'
+        }
+    }
+
+    $d = [pscustomobject]$domains[$Name]
+
+    if ($RepoRoot) {
+        Add-Member -InputObject $d -NotePropertyName 'Workbook' -NotePropertyValue (Join-Path $RepoRoot $d.WorkbookRel)
+        Add-Member -InputObject $d -NotePropertyName 'CsvDir'   -NotePropertyValue (Join-Path $RepoRoot $d.CsvDirRel)
+        Add-Member -InputObject $d -NotePropertyName 'ToolDir'  -NotePropertyValue (Join-Path $RepoRoot $d.ToolDirRel)
+        Add-Member -InputObject $d -NotePropertyName 'JsonPath' -NotePropertyValue (Join-Path (Join-Path $RepoRoot $d.ToolDirRel) $d.JsonName)
+
+        $powerSource = $null
+        if ($d.PowerLevelSourceRel) { $powerSource = Join-Path $RepoRoot $d.PowerLevelSourceRel }
+        Add-Member -InputObject $d -NotePropertyName 'PowerLevelSource' -NotePropertyValue $powerSource
+    }
+
+    return $d
+}
+
+function Get-NonBodyTabNames {
+    <# Every worksheet that is NOT a body tab. Read-BodySheetTab already self-guards by requiring a GUID
+       row, so this is belt-and-braces - but it is also the list three separate loops iterate to decide
+       what to preserve or diff, and having one copy is what stops a new tab being added to two of them
+       and forgotten in the third. #>
+    return @('PowerLevel', 'Roster', 'Enums', 'README', 'Summoned')
+}
+
 function Get-AllCharacterPrefabNames {
     <#
         .SYNOPSIS
@@ -293,8 +395,8 @@ function Get-AllCharacterPrefabNames {
 function Get-DiscoveredRoster {
     <#
         .SYNOPSIS
-            Every prefab the enemy workbook covers: the primary roster (Enemies/Bosses/Allies, minus
-            Tutorial variants), plus whatever their decks summon that is not already in it.
+            Every prefab one workbook covers: the primary roster (the -Folders set, minus Tutorial
+            variants), plus whatever their decks summon that is not already in it.
 
         .DESCRIPTION
             Shared between Export-EnemySheet.ps1 and Import-EnemySheet.ps1 so the two scripts can never
@@ -304,19 +406,39 @@ function Get-DiscoveredRoster {
             The summon pass repeats to a fixed point (a newly-discovered body might itself summon
             something not yet seen) rather than walking a real dependency graph - see the header comment
             in Write-EnemyWorkbook.ps1 for why that is safe with the data this project actually has.
+
+        .PARAMETER Folders
+            Which Assets/Prefabs/<folder> sets make up the primary roster. This is the ONLY seam that
+            splits the enemy workbook from the boss one - everything downstream is folder-agnostic.
+
+        .PARAMETER SummonsAsReference
+            Return summoned CHARACTER prefabs in a third bucket instead of adding them to the roster.
+            The boss workbook needs this: seven of the eight bosses summon a plain enemy, and that
+            enemy's tab is owned by Docs/EnemySheets.xlsx. Given a tab of its own here it would be
+            written by BOTH importers, from two independent baselines, on every sync - so it gets a
+            row on the read-only Summoned tab instead, which carries its pow_* cell and nothing else.
+            Totem discovery is unaffected: a totem has no prefab-side fields either tool writes.
     #>
-    param($AssetIndex, [string]$RepoRoot)
+    param(
+        $AssetIndex,
+        [string]$RepoRoot,
+        [string[]]$Folders = @('Enemies', 'Bosses', 'Allies'),
+        [switch]$SummonsAsReference
+    )
+
+    $folderPattern = '[\\/]Prefabs[\\/](' + (($Folders | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')[\\/]'
 
     $bodyAssets = [ordered]@{}
     foreach ($p in $AssetIndex.All) {
         if ($p.Type -ne 'Prefab') { continue }
-        if ($p.Path -notmatch '[\\/]Prefabs[\\/](Enemies|Bosses|Allies)[\\/]') { continue }
+        if ($p.Path -notmatch $folderPattern) { continue }
         if ($p.Path -match '[\\/]Tutorial[\\/]') { continue }
         if ($null -eq (Get-PrefabComponent -Asset $p -TypeName 'Character')) { continue }
         $bodyAssets[$p.Name] = $p
     }
 
     $totemAssets = [ordered]@{}
+    $referenceAssets = [ordered]@{}
     for ($pass = 0; $pass -lt 4; $pass++) {
         $added = $false
         foreach ($p in @($bodyAssets.Values)) {
@@ -332,14 +454,22 @@ function Get-DiscoveredRoster {
                     $target = Resolve-AssetReference -Reference $targetRef -AssetIndex $AssetIndex
                     if ($null -eq $target) { continue }
                     if ($bodyAssets.Contains($target.Name) -or $totemAssets.Contains($target.Name)) { continue }
+                    if ($referenceAssets.Contains($target.Name)) { continue }
 
                     if ($null -ne (Get-PrefabComponent -Asset $target -TypeName 'Totem')) {
                         $totemAssets[$target.Name] = $target
                         $added = $true
                     }
                     elseif ($null -ne (Get-PrefabComponent -Asset $target -TypeName 'Character')) {
-                        $bodyAssets[$target.Name] = $target
-                        $added = $true
+                        if ($SummonsAsReference) {
+                            # Deliberately does NOT set $added - a reference body is not walked for its
+                            # own summons. It gets one power number on the Summoned tab, not a deck.
+                            $referenceAssets[$target.Name] = $target
+                        }
+                        else {
+                            $bodyAssets[$target.Name] = $target
+                            $added = $true
+                        }
                     }
                 }
             }
@@ -347,7 +477,11 @@ function Get-DiscoveredRoster {
         if (-not $added) { break }
     }
 
-    return [pscustomobject]@{ BodyAssets = $bodyAssets; TotemAssets = $totemAssets }
+    return [pscustomobject]@{
+        BodyAssets      = $bodyAssets
+        TotemAssets     = $totemAssets
+        ReferenceAssets = $referenceAssets
+    }
 }
 
 # ---------------------------------------------------------------------------------------------------

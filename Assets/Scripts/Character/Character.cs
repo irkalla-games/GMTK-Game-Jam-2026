@@ -392,6 +392,10 @@ public class Character : MonoBehaviour
     /// CharacterAnimator's flinch does not play on it - that contract stays exactly as it is - but a
     /// damage-number popup still wants to say "this landed for nothing" instead of showing nothing at
     /// all, which is the whole reason this is a second event rather than a change to Damaged.
+    ///
+    /// A hit that arrives at zero counts too. An attack Weaken already cut to nothing never reaches the
+    /// mitigation pipeline at all, so TakeDamage raises this from its guard clause instead - same
+    /// number, same reason. An arrow that visibly flew has to report something when it lands.
     /// </summary>
     public event Action<Character, int> DamageRegistered;
 
@@ -486,7 +490,7 @@ public class Character : MonoBehaviour
 
     public void ResetEnergy()
     {
-        Energy = maxEnergy + BonusEnergy;
+        Energy = EnergyCapacity;
         RaiseStatsChanged();
     }
 
@@ -506,6 +510,15 @@ public class Character : MonoBehaviour
             return total;
         }
     }
+
+    /// <summary>
+    /// The pool a turn refills to: the authored maximum plus everything equipment and auras add. Every
+    /// readout answering "how much energy does this character have" wants this, not MaxEnergy - the
+    /// pip column and the party sheet both used to quote the bare authored number and hide a ring's
+    /// +1. Energy itself can still exceed this (GainEnergy is uncapped on purpose); a view that has to
+    /// draw one slot per point takes Max(EnergyCapacity, Energy).
+    /// </summary>
+    public int EnergyCapacity => maxEnergy + BonusEnergy;
 
     /// <summary>
     /// The hand-size counterpart to BonusEnergy - a ring's "+1 card drawn each turn". Read by
@@ -570,7 +583,20 @@ public class Character : MonoBehaviour
     /// </summary>
     public void TakeDamage(int amount, Character attacker = null, int bounces = 0)
     {
-        if (amount <= 0) { return; }
+        // A swing that arrives already blunted to nothing - Weaken took the whole of it off in
+        // ComputeOutgoingDamage before it ever left the attacker. It still reports a hit for 0, the
+        // same as a hit Parry or Shield eats does further down: the arrow visibly flew and landed, so
+        // saying nothing at all reads as the game having dropped the attack rather than as the debuff
+        // having worked. That distinction is the whole lesson of the tutorial's Sap step.
+        //
+        // Returns above ComputeIncomingDamage on purpose. A hit with nothing left in it must not spend
+        // a Block, Shield, Parry or Dodge charge - there is nothing there for a defense to prevent, and
+        // burning one here would let a fully weakened attacker strip a target's guard for free.
+        if (amount <= 0)
+        {
+            DamageRegistered?.Invoke(this, 0);
+            return;
+        }
 
         DamageInfo info = ComputeIncomingDamage(amount, attacker, shouldConsume: true);
 

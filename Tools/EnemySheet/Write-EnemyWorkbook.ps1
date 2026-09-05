@@ -107,7 +107,10 @@ function Write-EnemyWorkbook {
         $PreservedWeights,    # hashtable: pw_* name -> current Value, read back from the old workbook
         $PreservedRangeRows,  # array of @(Range, Power) pairs, same idea
         $Preserved,       # hashtable: Prefab -> @{ Brandon = ...; Notes = ... }
-        [string]$RepoRoot
+        [string]$RepoRoot,
+        $Domain,              # Get-RosterDomain result - every label and path that differs per workbook
+        $SummonedReferences,  # array of @{ Prefab; Power; SummonedBy } - bodies owned by the OTHER workbook
+        [switch]$PowerLevelLocked
     )
 
     $dir = Split-Path -Parent $WorkbookPath
@@ -118,16 +121,27 @@ function Write-EnemyWorkbook {
 
     $pkg = Open-ExcelPackage -Path $WorkbookPath -Create
 
-    $allNames = @($Bodies | ForEach-Object { $_.Prefab }) + @($Totems | ForEach-Object { $_.Prefab })
+    $summoned = @($SummonedReferences)
 
-    Add-PowerLevelSheet -Package $pkg -PreservedWeights $PreservedWeights -PreservedRangeRows $PreservedRangeRows
+    # A summoned body's pow_* cell lives on the Summoned tab rather than a tab of its own, but it is the
+    # same name in the same workbook scope - so Add-BodySheet's =pow_<Target> branch cannot tell the
+    # difference, and needs no special case.
+    $allNames = @($Bodies | ForEach-Object { $_.Prefab }) + @($Totems | ForEach-Object { $_.Prefab }) +
+                @($summoned | ForEach-Object { $_.Prefab })
 
-    # Named ranges (list_Brain, list_Targeting, list_EnemyCard, ...) have to exist before any body tab
-    # references them in a dropdown - same ordering Write-CardWorkbook.ps1 already follows.
+    Add-PowerLevelSheet -Package $pkg -PreservedWeights $PreservedWeights -PreservedRangeRows $PreservedRangeRows `
+        -Locked:$PowerLevelLocked -LockedSource $Domain.PowerLevelSourceRel
+
+    # Named ranges (list_Brain, list_Targeting, list_EnemyCard, pow_*, ...) have to exist before any body
+    # tab references them in a dropdown or a formula - same ordering Write-CardWorkbook.ps1 follows.
     Add-EnumsSheet -Package $pkg -EnemyCardNames $EnemyCardNames -LootNames $LootNames -TargetingNames $TargetingNames -Bodies $Bodies -Totems $Totems
 
+    if ($summoned.Count -gt 0) {
+        Add-SummonedSheet -Package $pkg -SummonedReferences $summoned -Domain $Domain
+    }
+
     foreach ($body in $Bodies) {
-        Add-BodySheet -Package $pkg -Body $body -Preserved $Preserved -AllPowerNames $allNames
+        Add-BodySheet -Package $pkg -Body $body -Preserved $Preserved -AllPowerNames $allNames -Domain $Domain
     }
 
     foreach ($totem in $Totems) {
@@ -135,9 +149,9 @@ function Write-EnemyWorkbook {
     }
 
     Add-RosterSheet -Package $pkg -Bodies $Bodies
-    Add-ReadmeSheet -Package $pkg
+    Add-ReadmeSheet -Package $pkg -Domain $Domain -HasSummoned ($summoned.Count -gt 0) -PowerLevelLocked:$PowerLevelLocked
 
-    Set-SheetOrder -Package $pkg -Bodies $Bodies -Totems $Totems
+    Set-SheetOrder -Package $pkg -Bodies $Bodies -Totems $Totems -HasSummoned ($summoned.Count -gt 0)
 
     Close-ExcelPackage $pkg
 }
@@ -154,19 +168,39 @@ function Add-PowerLevelSheet {
         still owns the row order, the set of weights that exist and their "why" notes - only the Value
         column is ever overridden by what is already on disk, and only for a name that already has an
         entry there, so a weight added to the code later still appears with its coded starting value.
+
+        -Locked flips where "already on disk" means: the caller passes the OTHER workbook's values, and
+        this tab becomes a read-only mirror of them. Boss power is only meaningful on the same scale as
+        enemy power, so Docs/BossDesign.xlsx does not get its own tuning surface - editing this tab
+        there does nothing and is snapped back on the next export, which the banner says out loud
+        because a silently-reverted edit is the worst possible version of that.
     #>
-    param($Package, $PreservedWeights, $PreservedRangeRows)
+    param(
+        $Package, $PreservedWeights, $PreservedRangeRows,
+        [switch]$Locked, [string]$LockedSource
+    )
 
     $ws = $Package.Workbook.Worksheets.Add('PowerLevel')
 
-    $ws.Cells['A1'].Value = 'Term'
-    $ws.Cells['B1'].Value = 'Value'
-    $ws.Cells['C1'].Value = 'What this counts'
-    $ws.Cells['A1:C1'].Style.Font.Bold = $true
+    # Row 1 is the banner when locked, so everything below shifts by one. Nothing reads this tab by row
+    # number - the weights are reached through their pw_* named cells - so the shift is free.
+    $top = 1
+    if ($Locked) {
+        $ws.Cells[1, 1].Value = "READ-ONLY - mirrored from $LockedSource on every export. Edit the weights THERE; " +
+                                'anything typed here is discarded on the next sync.'
+        $ws.Cells[1, 1].Style.Font.Bold = $true
+        $ws.Cells[1, 1].Style.Font.Color.SetColor([System.Drawing.Color]::FromArgb(150, 40, 40))
+        $top = 2
+    }
+
+    $ws.Cells[$top, 1].Value = 'Term'
+    $ws.Cells[$top, 2].Value = 'Value'
+    $ws.Cells[$top, 3].Value = 'What this counts'
+    $ws.Cells[$top, 1, $top, 3].Style.Font.Bold = $true
 
     $weights = @(Get-PowerWeightDefaults)
     for ($i = 0; $i -lt $weights.Count; $i++) {
-        $r = $i + 2
+        $r = $top + 1 + $i
         $wname = $weights[$i][0]
         $wvalue = [double]$weights[$i][1]
         if ($null -ne $PreservedWeights -and $PreservedWeights.ContainsKey($wname)) { $wvalue = [double]$PreservedWeights[$wname] }
@@ -177,15 +211,20 @@ function Add-PowerLevelSheet {
         Add-NamedCell -Package $Package -Worksheet $ws -Name $wname -Address "B$r"
     }
 
-    $ws.Cells['B2:B200'].Style.Numberformat.Format = '0.00'
+    $ws.Cells["B$($top + 1):B200"].Style.Numberformat.Format = '0.00'
     $ws.Column(1).Width = 20
     $ws.Column(2).Width = 11
     $ws.Column(3).Width = 90
     $ws.Column(3).Style.WrapText = $true
-    $ws.View.FreezePanes(2, 1)
+    $ws.View.FreezePanes($top + 1, 1)
 
-    $note = $weights.Count + 3
-    $ws.Cells[$note, 1].Value = 'Edit the Value column - every body tab and the Roster tab recalculate. Nothing here is baked into the export script.'
+    $note = $top + $weights.Count + 2
+    $ws.Cells[$note, 1].Value = if ($Locked) {
+        "Read-only. These weights are whatever $LockedSource holds - retune them there and re-sync, so both workbooks keep scoring on one scale."
+    }
+    else {
+        'Edit the Value column - every body tab and the Roster tab recalculate. Nothing here is baked into the export script.'
+    }
     $ws.Cells[$note, 1].Style.Font.Italic = $true
 
     # Range Power - looked up per exact value (VLOOKUP approximate match) rather than a per-tile rate,
@@ -222,12 +261,12 @@ function Add-PowerLevelSheet {
 # ---------------------------------------------------------------------------------------------------
 
 function Add-BodySheet {
-    param($Package, $Body, [hashtable]$Preserved, [string[]]$AllPowerNames)
+    param($Package, $Body, [hashtable]$Preserved, [string[]]$AllPowerNames, $Domain)
 
     $row = $script:BodyRow
     $ws = $Package.Workbook.Worksheets.Add($Body.Prefab)
 
-    $ws.Cells[$row.EnemyName, 1].Value = 'Enemy Name'
+    $ws.Cells[$row.EnemyName, 1].Value = if ($Domain) { $Domain.BodyLabel } else { 'Enemy Name' }
     $ws.Cells[$row.EnemyName, 2].Value = $Body.Prefab
     $ws.Cells[$row.Boss, 1].Value = 'Boss'
     $ws.Cells[$row.Boss, 2].Value = if ($Body.Boss) { 'Yes' } else { 'No' }
@@ -624,6 +663,67 @@ function Add-RosterSheet {
 }
 
 # ---------------------------------------------------------------------------------------------------
+# Summoned - pow_* cells for bodies this workbook does not own
+# ---------------------------------------------------------------------------------------------------
+
+function Add-SummonedSheet {
+    <#
+        .SYNOPSIS
+            One row per body summoned by this workbook's roster but owned by the other workbook.
+
+        .DESCRIPTION
+            Seven of the eight bosses summon a plain enemy, and Summon Power on a body tab is a live
+            =pow_<Prefab> reference to that body's own power cell. Excel names are workbook-scoped, so
+            in a bosses-only workbook those seven references would have no target.
+
+            Giving each summoned enemy a real tab here would fix the formula and break something worse:
+            the same prefab would then be described by two workbooks with two independent baselines, and
+            both importers would queue writes for it on every sync. So it gets a power number and
+            nothing else - and deliberately NO 'GUID' row, which is what makes Read-BodySheetTab return
+            $null for this sheet and every reader skip it without needing to know it exists.
+
+            The Power column is a snapshot taken at export time from the owning workbook (or, failing
+            that, the prefab's own Character.powerLevel). It refreshes on every sync, so it is never
+            more stale than the last time the two tools were run.
+    #>
+    param($Package, $SummonedReferences, $Domain)
+
+    $ws = $Package.Workbook.Worksheets.Add('Summoned')
+
+    $source = if ($Domain -and $Domain.PowerLevelSourceRel) { $Domain.PowerLevelSourceRel } else { 'the other roster workbook' }
+
+    $ws.Cells[1, 1].Value = "READ-ONLY - bodies summoned by this workbook's roster but owned by $source. " +
+                            'Refreshed on every export; edit them there.'
+    $ws.Cells[1, 1].Style.Font.Bold = $true
+    $ws.Cells[1, 1].Style.Font.Color.SetColor([System.Drawing.Color]::FromArgb(150, 40, 40))
+
+    $ws.Cells[2, 1].Value = 'Prefab'
+    $ws.Cells[2, 2].Value = 'Power'
+    $ws.Cells[2, 3].Value = 'Summoned by'
+    $ws.Cells[2, 1, 2, 3].Style.Font.Bold = $true
+
+    $r = 3
+    foreach ($ref in @($SummonedReferences | Sort-Object Prefab)) {
+        $ws.Cells[$r, 1].Value = $ref.Prefab
+        $ws.Cells[$r, 2].Value = [double]$ref.Power
+        $ws.Cells[$r, 2].Style.Numberformat.Format = '0.000'
+        $ws.Cells[$r, 3].Value = (@($ref.SummonedBy) -join ', ')
+
+        # The whole point of this tab: the same pow_<Prefab> name a real body tab would have registered,
+        # so Add-BodySheet's summon branch resolves without knowing where the cell lives.
+        Add-NamedCell -Package $Package -Worksheet $ws -Name "pow_$($ref.Prefab)" -Address "B$r"
+        $r++
+    }
+
+    $ws.Cells[2, 1, ($r - 1), 3].Style.Fill.PatternType = [OfficeOpenXml.Style.ExcelFillStyle]::Solid
+    $ws.Cells[2, 1, ($r - 1), 3].Style.Fill.BackgroundColor.SetColor([System.Drawing.Color]::FromArgb(242, 242, 242))
+
+    $ws.Column(1).Width = 22
+    $ws.Column(2).Width = 11
+    $ws.Column(3).Width = 46
+}
+
+# ---------------------------------------------------------------------------------------------------
 # Enums - dropdown sources
 # ---------------------------------------------------------------------------------------------------
 
@@ -666,21 +766,48 @@ function Add-EnumsSheet {
 # ---------------------------------------------------------------------------------------------------
 
 function Add-ReadmeSheet {
-    param($Package)
+    param($Package, $Domain, [bool]$HasSummoned, [switch]$PowerLevelLocked)
 
     $ws = $Package.Workbook.Worksheets.Add('README')
 
+    $title    = if ($Domain) { $Domain.Title } else { 'Enemy Design Workbook' }
+    $noun     = if ($Domain) { $Domain.BodyNoun } else { 'enemy' }
+    $syncMenu = if ($Domain) { $Domain.SyncMenu } else { 'Tools > Sync Enemies With Sheet' }
+    $refresh  = if ($Domain) { $Domain.RefreshMenu } else { 'Tools > Enemies > Refresh Sheet From Unity' }
+    $powerSrc = if ($Domain -and $Domain.PowerLevelSourceRel) { $Domain.PowerLevelSourceRel } else { '' }
+
+    $coverage = if ($noun -eq 'boss') {
+        'One tab per boss and totem, all built from the actual prefabs and cards under Assets/Prefabs/Bosses and Assets/Data/CardData/Enemy - this workbook only READS them today. Ordinary enemies and the ally live in Docs/EnemySheets.xlsx instead.'
+    }
+    else {
+        'One tab per enemy, ally and totem, all built from the actual prefabs and cards under Assets/Prefabs and Assets/Data/CardData/Enemy - this workbook only READS them today. Bosses live in Docs/BossDesign.xlsx instead.'
+    }
+
+    $powerLevelLine = if ($PowerLevelLocked) {
+        "READ-ONLY here - the pw_* weights are mirrored from $powerSrc on every export so both workbooks score on one scale. Retune them there; anything typed on that tab here is discarded on the next sync."
+    }
+    else {
+        'The tuning surface. Every pw_* weight here is a named cell - change one and every body tab and Roster recalculate immediately, no re-export needed.'
+    }
+
     $lines = @(
-        @('Enemy Design Workbook', 'title'),
+        @($title, 'title'),
         @('', ''),
-        @('One tab per enemy, boss, ally and totem, all built from the actual prefabs and cards under Assets/Prefabs and Assets/Data/CardData/Enemy - this workbook only READS them today.', ''),
+        @($coverage, ''),
         @('', ''),
         @('The tabs', 'head'),
-        @('PowerLevel', 'The tuning surface. Every pw_* weight here is a named cell - change one and every body tab and Roster recalculate immediately, no re-export needed.'),
+        @('PowerLevel', $powerLevelLine),
         @('One tab per body', 'Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck mirror the prefab''s Character component. Card Facts below the deck strip are read from each card''s own CardData/CardEffect assets - edit a card''s numbers on Docs/CardDesign.xlsx, not here.'),
         @('One tab per totem', 'A totem has no health or deck - Totem Power is its auras and reactions, weighted the same way a body''s Card Power is.'),
         @('Roster', 'Every body side by side, sorted by name, so you can see how they stack up. Fully formula-driven off the individual tabs.'),
-        @('Enums', 'Dropdown sources for Brain, Targeting, Loot Table and Deck cells.'),
+        @('Enums', 'Dropdown sources for Brain, Targeting, Loot Table and Deck cells.')
+    )
+
+    if ($HasSummoned) {
+        $lines += , @('Summoned', "Read-only. Bodies this roster summons but does not own - their power only, so Summon Power on a body tab has something to point at. Their real tabs are in $powerSrc; edit them there.")
+    }
+
+    $lines += @(
         @('', ''),
         @('Reading a body tab', 'head'),
         @('Brandon''s Power Level', 'Hand-authored ground truth - type in what a body feels like it should be worth. Preserved across re-exports.'),
@@ -690,13 +817,14 @@ function Add-ReadmeSheet {
         @('Summon Power', 'A live reference to the summoned body''s (or totem''s) own power cell, scaled down if its lifetime is shorter than pw_SummonHorizon.'),
         @('', ''),
         @('Syncing back to Unity', 'head'),
-        @('One button', 'In Unity: Tools > Sync Enemies With Sheet. Applies your edits to Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck to the matching prefab, then refreshes this workbook so anything changed in the Inspector shows up here too.'),
+        @('One button', "In Unity: $syncMenu. Applies your edits to Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck to the matching prefab, then refreshes this workbook so anything changed in the Inspector shows up here too."),
         @('Deck', 'One card name per column, left to right, no gaps - the first blank cell ends the deck. Duplicates are fine and expected (four Enemy Slash cards is four cells). Pick names from the dropdown so a typo cannot silently drop a card.'),
         @('Brandon''s Power Level and Notes', 'Never sync anywhere - they are authored HERE and preserved across every re-export.'),
         @('Card Facts, Card Power, averages, Roster', 'Never hand-edit - fully derived from the prefab and its cards, rebuilt on every export.'),
         @('Effective Power and Boss', 'Not sheet columns you edit directly - Effective Power (Brandon''s if set, else Estimated) and Boss (which folder the prefab lives in) are written to Character.powerLevel/isBoss one-way, every sync, regardless of whether anything else on the tab changed. A body with neither Brandon''s nor a usable Estimated result is skipped with a warning and can never be drawn by EncounterRoller.'),
         @('If both sides changed', 'That body is left alone on BOTH sides and named in the Unity console, the same conflict rule Docs/CardDesign.xlsx follows. Make them agree, or change only one, then sync again.'),
-        @('Regenerating without syncing', 'Tools > Enemies > Refresh Sheet From Unity discards any sheet edit that has not been synced yet - only for when the sheet is known to be wrong.')
+        @('Regenerating without syncing', "$refresh discards any sheet edit that has not been synced yet - only for when the sheet is known to be wrong."),
+        @('The other roster workbook', 'Enemies, the ally and bosses are two separate workbooks driven by the same engine - Docs/EnemySheets.xlsx and Docs/BossDesign.xlsx - each with its own baseline and its own sync button. A prefab belongs to exactly one of them, decided by which folder it sits in under Assets/Prefabs.')
     )
 
     $r = 1
@@ -723,10 +851,12 @@ function Add-ReadmeSheet {
 }
 
 function Set-SheetOrder {
-    param($Package, $Bodies, $Totems)
+    param($Package, $Bodies, $Totems, [bool]$HasSummoned)
 
     $order = @('README', 'PowerLevel', 'Roster') + @($Bodies | Sort-Object Prefab | ForEach-Object { $_.Prefab }) +
-             @($Totems | Sort-Object Prefab | ForEach-Object { $_.Prefab }) + @('Enums')
+             @($Totems | Sort-Object Prefab | ForEach-Object { $_.Prefab })
+    if ($HasSummoned) { $order += 'Summoned' }
+    $order += 'Enums'
 
     foreach ($name in $order) {
         $ws = $Package.Workbook.Worksheets[$name]

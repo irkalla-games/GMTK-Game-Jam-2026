@@ -93,6 +93,13 @@ public static class PartySheetStyling
         Transform icon = FindOrMove(rootRect, rootRect, "Icon");
         Image iconImage = icon.GetComponent<Image>();
         if (iconImage == null) { iconImage = icon.gameObject.AddComponent<Image>(); }
+
+        // Belt and braces against the squashing AddFixedSize's minimum now prevents: the status sprites
+        // are square and so is the box, so this changes nothing today. It changes the failure mode - a
+        // box that somehow ends up non-square letterboxes the glyph rather than stretching it, which is
+        // the difference between an icon that looks small and one that looks wrong.
+        iconImage.preserveAspect = true;
+
         AddFixedSize(icon.gameObject, 36f, 36f);
 
         Transform textStack = FindOrMove(rootRect, rootRect, "TextStack");
@@ -500,22 +507,44 @@ public static class PartySheetStyling
         fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
     }
 
+    /// <summary>
+    /// A genuinely fixed size - minimum as well as preferred.
+    ///
+    /// Setting the minimum is load-bearing, and for the same reason the flexible axes below are. A
+    /// preferred width is only what an element would *like*; when a HorizontalLayoutGroup with
+    /// childControlWidth cannot fit every child's preferred width, it compresses them toward their
+    /// minimums. LayoutUtility skips a LayoutElement returning a negative value BEFORE it consults
+    /// layoutPriority, so a minWidth left at -1 is not a low bid, it is no bid - and the Image on the
+    /// same object answers instead, with a minimum of 0. The icon was therefore free to be squeezed to
+    /// nothing.
+    ///
+    /// That is what made StatusDetailRow's icons disagree row to row: how far each was squeezed depended
+    /// on how wide its neighbouring text wanted to be, so a status with a long description got a
+    /// narrower icon than one with a short description, the text after it started further left, and -
+    /// because the Image is not preserveAspect - the glyph inside was horizontally squashed to match.
+    /// Three symptoms, one missing minimum. See CLAUDE.md, "Checking that a UI change actually landed".
+    /// </summary>
     private static void AddFixedSize(GameObject go, float width, float height)
     {
         LayoutElement element = go.GetComponent<LayoutElement>();
         if (element == null) { element = go.AddComponent<LayoutElement>(); }
 
+        element.minWidth = width;
+        element.minHeight = height;
         element.preferredWidth = width;
         element.preferredHeight = height;
         element.flexibleWidth = 0f;
         element.flexibleHeight = 0f;
     }
 
+    /// Fixed on one axis only, and pinned at the minimum for the reason AddFixedSize spells out - a
+    /// preferred height alone still compresses when the column runs short of room.
     private static void AddFixedHeight(GameObject go, float height)
     {
         LayoutElement element = go.GetComponent<LayoutElement>();
         if (element == null) { element = go.AddComponent<LayoutElement>(); }
 
+        element.minHeight = height;
         element.preferredHeight = height;
         element.flexibleHeight = 0f;
     }

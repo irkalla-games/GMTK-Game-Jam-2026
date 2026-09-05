@@ -22,9 +22,10 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Remove all Poison from an ally and afflict the nearest
     enemy with it.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 4e6f416a77aff454bb8459f85695af7d, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: c7fce811f945e3644bef96f07112fb08, type: 2}

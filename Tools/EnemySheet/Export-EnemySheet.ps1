@@ -1,51 +1,71 @@
 <#
 .SYNOPSIS
-    Builds Docs/EnemySheets.xlsx from the enemy/boss/ally prefabs and their decks.
+    Builds a roster design workbook from character prefabs and their decks - Docs/EnemySheets.xlsx by
+    default, or Docs/BossDesign.xlsx with -Domain Bosses.
 
 .DESCRIPTION
     Read-only against the Unity project, same guarantee Export-CardSheet.ps1 makes: it parses
     Assets/Prefabs/**/*.prefab and Assets/Data/CardData/**/*.asset and writes only into Docs/. Safe to
     run at any time, including with the Editor open.
 
-    The everyday sync (Tools > Sync Enemies With Sheet in Unity) runs Import-EnemySheet.ps1 first to
-    apply sheet edits to the prefabs, then this script to refresh the sheet from the result - so running
-    this on its own only makes sense to pick up a change made directly in the Inspector, or to preview
-    what the sheet would look like. Health/Actions/Brain/Targeting/Loot Table/Deck are the synced
-    fields; Brandon's Power Level and Notes are the two fields this workbook treats as authored IN the
-    sheet and preserves across every re-export, the same way Export-CardSheet.ps1 preserves the Ideas
-    tabs and card Notes column.
+    This one script drives BOTH roster workbooks. Everything that differs between them - which
+    Assets/Prefabs folders make up the roster, the workbook and CSV paths, the tool folder holding the
+    baseline, every label and menu name in the README - comes from Get-RosterDomain in
+    EnemySheet.Common.psm1. Tools/BossSheet/Export-BossSheet.ps1 is a forwarder that passes
+    -Domain Bosses and nothing else.
 
-    Roster discovery: the primary roster is every non-Tutorial prefab under Assets/Prefabs/Enemies,
-    Assets/Prefabs/Bosses and Assets/Prefabs/Allies that carries a Character component. A second pass
-    (repeated to a fixed point, since a newly-discovered body might itself summon something not yet
-    seen) walks every deck for Summon cards and adds whatever they summon - a Totem prefab, or another
-    Character body outside the primary folders - so a boss's summoned totem gets scored too.
+    The everyday sync (Tools > Sync Enemies With Sheet, or Tools > Sync Bosses With Sheet) runs the
+    matching Import script first to apply sheet edits to the prefabs, then this script to refresh the
+    sheet from the result - so running this on its own only makes sense to pick up a change made
+    directly in the Inspector, or to preview what the sheet would look like.
+    Health/Actions/Brain/Targeting/Loot Table/Deck are the synced fields; Brandon's Power Level and
+    Notes are the two fields this workbook treats as authored IN the sheet and preserves across every
+    re-export, the same way Export-CardSheet.ps1 preserves the Ideas tabs and card Notes column.
+
+    Roster discovery: the primary roster is every non-Tutorial prefab carrying a Character component
+    under the domain's folders - Enemies + Allies, or Bosses. A second pass (repeated to a fixed point,
+    since a newly-discovered body might itself summon something not yet seen) walks every deck for
+    Summon cards and adds whatever they summon, so a boss's summoned totem gets scored too. For the
+    boss domain a summoned CHARACTER is the one exception: it belongs to the enemy workbook, so it
+    lands on the read-only Summoned tab carrying its pow_* cell instead of getting a tab of its own -
+    see Get-DiscoveredRoster's -SummonsAsReference.
+
+.PARAMETER Domain
+    Which roster workbook to build: Enemies (default) or Bosses.
 
 .PARAMETER WorkbookPath
-    Defaults to Docs/EnemySheets.xlsx at the repo root.
+    Overrides the domain's default workbook path.
 
 .PARAMETER NoCsvMirror
-    Skip writing Docs/EnemySheets/*.csv. The mirror exists so git diffs of the workbook are readable,
-    and is what Import-EnemySheet.ps1 reads when the workbook itself is open in Excel.
+    Skip writing the Docs/<domain>/*.csv mirror. It exists so git diffs of the workbook are readable,
+    and is what the Import script reads when the workbook itself is open in Excel.
 
 .PARAMETER WriteBaseline
-    Record the state both sides now agree on into baseline.json. Passed by the sync (Tools > Sync
-    Enemies With Sheet), which has just made them agree. Running the export on its own does NOT move
-    the baseline, because on its own it has not reconciled anything.
+    Record the state both sides now agree on into the domain's baseline.json. Passed by the sync, which
+    has just made them agree. Running the export on its own does NOT move the baseline, because on its
+    own it has not reconciled anything.
 
 .PARAMETER Force
     Rebuild the sheet even though it holds edits that have not reached the prefabs, discarding them.
     Without this the export refuses rather than silently overwriting your work.
+
+.PARAMETER SeedPreservedFrom
+    One-time migration: also read Brandon's Power Level and Notes out of the given workbook for any tab
+    this one owns. Used once when bosses were split out of Docs/EnemySheets.xlsx, so the hand-authored
+    ground truth followed them into the new workbook instead of starting blank.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File Tools/EnemySheet/Export-EnemySheet.ps1
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('Enemies', 'Bosses')]
+    [string]$Domain = 'Enemies',
     [string]$WorkbookPath,
     [switch]$NoCsvMirror,
     [switch]$WriteBaseline,
-    [switch]$Force
+    [switch]$Force,
+    [string]$SeedPreservedFrom
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,8 +80,14 @@ if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
 }
 Import-Module ImportExcel -DisableNameChecking
 
-if (-not $WorkbookPath) { $WorkbookPath = Join-Path $repoRoot 'Docs\EnemySheets.xlsx' }
-$csvDir = Join-Path $repoRoot 'Docs\EnemySheets'
+$rosterDomain = Get-RosterDomain -Name $Domain -RepoRoot $repoRoot
+
+if (-not $WorkbookPath) { $WorkbookPath = $rosterDomain.Workbook }
+$csvDir = $rosterDomain.CsvDir
+
+if ($SeedPreservedFrom -and -not [IO.Path]::IsPathRooted($SeedPreservedFrom)) {
+    $SeedPreservedFrom = Join-Path $repoRoot $SeedPreservedFrom
+}
 
 # Same exclusive-open probe Export-CardSheet.ps1 uses, for the same reason: this rewrites the whole
 # workbook, so a copy held open in Excel would otherwise surface as a raw sharing violation after all
@@ -90,11 +116,13 @@ $assetIndex  = Build-AssetIndex -RepoRoot $repoRoot -RelativeFolders @('Assets\D
 # Roster discovery
 # ---------------------------------------------------------------------------------------------------
 
-$roster = Get-DiscoveredRoster -AssetIndex $assetIndex -RepoRoot $repoRoot
+$roster = Get-DiscoveredRoster -AssetIndex $assetIndex -RepoRoot $repoRoot `
+    -Folders $rosterDomain.Folders -SummonsAsReference:$rosterDomain.SummonsAsReference
 $bodyAssets = $roster.BodyAssets
 $totemAssets = $roster.TotemAssets
+$referenceAssets = $roster.ReferenceAssets
 
-Write-Host "  $($bodyAssets.Count) bodies, $($totemAssets.Count) totems"
+Write-Host "  $($bodyAssets.Count) bodies, $($totemAssets.Count) totems, $($referenceAssets.Count) summoned references"
 
 # ---------------------------------------------------------------------------------------------------
 # Build the full record for every body and totem - deck cards resolved into facts.
@@ -185,7 +213,7 @@ function Get-ExistingBodyPreserved {
     catch { Write-Warning "Could not open the existing workbook to preserve Brandon's/Notes: $($_.Exception.Message)"; return $preserved }
 
     try {
-        $skip = @('PowerLevel', 'Roster', 'Enums', 'README')
+        $skip = Get-NonBodyTabNames
         foreach ($ws in @($pkg.Workbook.Worksheets)) {
             if ($skip -contains $ws.Name) { continue }
 
@@ -215,6 +243,20 @@ function Get-ExistingBodyPreserved {
 
 $preserved = Get-ExistingBodyPreserved -WorkbookPath $WorkbookPath -Bodies $bodies
 Write-Host "  Preserved Brandon's/Notes for $($preserved.Count) tab(s) from the existing workbook"
+
+# One-time migration hook: bodies moving between workbooks would otherwise arrive with a blank
+# Brandon's Power Level, silently throwing away hand-authored ground truth. Only fills gaps - anything
+# this workbook already holds for a tab wins, so re-running it can never clobber newer numbers.
+if ($SeedPreservedFrom) {
+    $seed = Get-ExistingBodyPreserved -WorkbookPath $SeedPreservedFrom -Bodies $bodies
+    $seeded = 0
+    foreach ($key in $seed.Keys) {
+        if ($preserved.ContainsKey($key)) { continue }
+        $preserved[$key] = $seed[$key]
+        $seeded++
+    }
+    Write-Host "  Seeded Brandon's/Notes for $seeded tab(s) from $SeedPreservedFrom" -ForegroundColor Cyan
+}
 
 # ---------------------------------------------------------------------------------------------------
 # Preserve the PowerLevel tab - both the pw_* weights and the Range Power table - the same way
@@ -260,8 +302,27 @@ function Get-ExistingPowerLevelValues {
     return $result
 }
 
-$existingPowerLevel = Get-ExistingPowerLevelValues -WorkbookPath $WorkbookPath
-Write-Host "  Preserved $($existingPowerLevel.Weights.Count) PowerLevel weight(s) and $($existingPowerLevel.RangeRows.Count) Range Power row(s) from the existing workbook"
+# A domain with PowerLevelSource does not own its weights: it mirrors the other workbook's, so boss
+# and enemy Estimated Power stay on one scale rather than drifting into two incomparable numbers. Its
+# own PowerLevel tab is rebuilt read-only from that source on every export, which is why this reads the
+# SOURCE workbook rather than $WorkbookPath - anything typed on the mirrored tab is discarded, and
+# Add-PowerLevelSheet's banner says so.
+$powerLevelLocked = [bool]$rosterDomain.PowerLevelSource
+$powerLevelFrom = if ($powerLevelLocked) { $rosterDomain.PowerLevelSource } else { $WorkbookPath }
+
+if ($powerLevelLocked -and -not (Test-Path -LiteralPath $powerLevelFrom)) {
+    Write-Warning ("$($rosterDomain.PowerLevelSourceRel) does not exist yet, so this workbook's PowerLevel " +
+        'weights fall back to the coded defaults. Run the enemy export first and re-run this to put ' +
+        'both workbooks on the same scale.')
+}
+
+$existingPowerLevel = Get-ExistingPowerLevelValues -WorkbookPath $powerLevelFrom
+if ($powerLevelLocked) {
+    Write-Host "  Mirrored $($existingPowerLevel.Weights.Count) PowerLevel weight(s) and $($existingPowerLevel.RangeRows.Count) Range Power row(s) from $($rosterDomain.PowerLevelSourceRel)"
+}
+else {
+    Write-Host "  Preserved $($existingPowerLevel.Weights.Count) PowerLevel weight(s) and $($existingPowerLevel.RangeRows.Count) Range Power row(s) from the existing workbook"
+}
 
 # ---------------------------------------------------------------------------------------------------
 # Refuse to discard unsynced sheet edits
@@ -273,7 +334,7 @@ Write-Host "  Preserved $($existingPowerLevel.Weights.Count) PowerLevel weight(s
 # ---------------------------------------------------------------------------------------------------
 
 if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
-    $baseline = Read-EnemyBaseline -ToolDir $scriptDir
+    $baseline = Read-EnemyBaseline -ToolDir $rosterDomain.ToolDir
     $mergeColumns = Get-EnemyMergeColumns
 
     $byGuid = @{}
@@ -286,7 +347,7 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
 
     if ($null -ne $pkg) {
         try {
-            $skip = @('PowerLevel', 'Roster', 'Enums', 'README')
+            $skip = Get-NonBodyTabNames
             foreach ($ws in @($pkg.Workbook.Worksheets)) {
                 if ($skip -contains $ws.Name) { continue }
                 $tab = Read-BodySheetTab -Worksheet $ws
@@ -323,9 +384,55 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
 
         throw ("The sheet holds $($pending.Count) edit(s) that have not reached the prefabs. Rebuilding it " +
                "now would discard them:`n  " + ($shown -join "`n  ") + $more +
-               "`n`nRun the sync instead - Tools > Sync Enemies With Sheet in Unity - which applies these " +
+               "`n`nRun the sync instead - $($rosterDomain.SyncMenu) in Unity - which applies these " +
                "first and then refreshes the sheet. Pass -Force to overwrite them anyway.")
     }
+}
+
+# ---------------------------------------------------------------------------------------------------
+# Summoned references - bodies this roster summons but the OTHER workbook owns.
+#
+# Only the boss domain produces these (Get-DiscoveredRoster -SummonsAsReference). Each needs one number:
+# the power its own workbook resolved for it. Preference order, most authoritative first:
+#
+#   1. The owning workbook's Effective Power - Brandon's if authored, else its cached Estimated. Exactly
+#      what that workbook's own sync writes to Character.powerLevel, so the two agree by construction.
+#   2. The prefab's Character.powerLevel. Covers a workbook that has never been opened in Excel (so has
+#      no cached Estimated) but whose last sync did write the field.
+#   3. Zero, loudly - the same failure Write-EnemyWorkbook.ps1 reports for an unresolvable summon.
+# ---------------------------------------------------------------------------------------------------
+
+$summonedReferences = @()
+if ($referenceAssets.Count -gt 0) {
+    $ownerPreserved = @{}
+    if ($rosterDomain.PowerLevelSource -and (Test-Path -LiteralPath $rosterDomain.PowerLevelSource)) {
+        # -Bodies is the match-by-DisplayName fallback's input; the reference prefabs are matched by tab
+        # name, which is all that is needed here, so an empty list is correct rather than lazy.
+        $ownerPreserved = Get-ExistingBodyPreserved -WorkbookPath $rosterDomain.PowerLevelSource -Bodies @()
+    }
+
+    foreach ($name in $referenceAssets.Keys) {
+        $refBody = Get-CharacterBody -Asset $referenceAssets[$name] -AssetIndex $assetIndex
+
+        $power = $null
+        if ($ownerPreserved.ContainsKey($name)) {
+            $power = Get-SheetEffectivePower -SheetRow ([pscustomobject]$ownerPreserved[$name])
+        }
+        if ($null -eq $power -and $refBody.PowerOnAsset -gt 0) { $power = [double]$refBody.PowerOnAsset }
+        if ($null -eq $power) {
+            $power = 0.0
+            Write-Warning ("$name is summoned by this roster but has no power in $($rosterDomain.PowerLevelSourceRel) " +
+                'and none on its prefab - scored as 0. Sync that workbook first.')
+        }
+
+        $summonedBy = @($bodies | Where-Object {
+            @($_.Deck | ForEach-Object { $_.SummonTarget }) -contains $name
+        } | ForEach-Object { $_.Prefab })
+
+        $summonedReferences += [pscustomobject]@{ Prefab = $name; Power = $power; SummonedBy = $summonedBy }
+    }
+
+    Write-Host "  $($summonedReferences.Count) summoned reference(s) scored from $($rosterDomain.PowerLevelSourceRel)"
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -337,7 +444,8 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
 Write-EnemyWorkbook -WorkbookPath $WorkbookPath -Bodies $bodies -Totems $totems `
     -EnemyCardNames $enemyCardNames -LootNames $lootNames -TargetingNames $targetingNames `
     -PreservedWeights $existingPowerLevel.Weights -PreservedRangeRows $existingPowerLevel.RangeRows `
-    -Preserved $preserved -RepoRoot $repoRoot
+    -Preserved $preserved -RepoRoot $repoRoot `
+    -Domain $rosterDomain -SummonedReferences $summonedReferences -PowerLevelLocked:$powerLevelLocked
 
 # ---------------------------------------------------------------------------------------------------
 # CSV mirror - a flat projection, not a per-tab dump. Roster.csv carries every synced field plus the
@@ -371,7 +479,7 @@ if (-not $NoCsvMirror) {
             }
             else {
                 Write-Warning ("$($b.Prefab) has neither a Brandon's Power Level nor a cached Estimated " +
-                    "Power Level (open Docs/EnemySheets.xlsx in Excel at least once to populate the " +
+                    "Power Level (open $($rosterDomain.WorkbookRel) in Excel at least once to populate the " +
                     "latter) - EncounterRoller will never be able to draw it.")
             }
         }
@@ -417,11 +525,20 @@ if (-not $NoCsvMirror) {
     }
     $totemRows | Export-Csv -LiteralPath (Join-Path $csvDir 'Totems.csv') -NoTypeInformation -Encoding utf8
 
-    Write-Host 'CSV mirror written to Docs/EnemySheets/' -ForegroundColor DarkGray
+    if ($summonedReferences.Count -gt 0) {
+        $summonedReferences | Sort-Object Prefab | ForEach-Object {
+            [pscustomobject][ordered]@{
+                Prefab = $_.Prefab; Power = $_.Power; SummonedBy = (@($_.SummonedBy) -join '; ')
+            }
+        } | Export-Csv -LiteralPath (Join-Path $csvDir 'Summoned.csv') -NoTypeInformation -Encoding utf8
+    }
+
+    Write-Host "CSV mirror written to $($rosterDomain.CsvDirRel)" -ForegroundColor DarkGray
 }
 
 if ($WriteBaseline) {
-    Write-EnemyBaseline -ToolDir $scriptDir -Bodies $bodies
+    # Only $bodies - a summoned reference has no tab, no baseline entry and no sheet edits to arbitrate.
+    Write-EnemyBaseline -ToolDir $rosterDomain.ToolDir -Bodies $bodies
     Write-Host "Baseline recorded ($($bodies.Count) bodies)" -ForegroundColor DarkGray
 }
 

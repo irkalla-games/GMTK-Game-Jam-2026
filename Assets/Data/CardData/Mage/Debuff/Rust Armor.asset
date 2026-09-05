@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Apply Vulnerable.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 980c1332a84edf84c9fb0899785b82fe, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: d96f92b498b41174c8c02c1ba9bf1642, type: 2}

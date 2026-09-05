@@ -100,9 +100,12 @@ public static class HeroPortraitResizeWiring
 
         // Beside the bar rather than below it. HealthText sits level with HealthBarBg (bar centre y -27)
         // just past its right edge (52.5) - "right next to" the bar rather than tucked under it. PipParent
-        // anchors the column's bottom just above the text, and pips stack upward from there (3 pips span
-        // y -15..28), which is what makes the whole side column read noticeably higher than the bar it
-        // sits beside instead of hanging below it. Leaves the chip row as the only thing below the bar.
+        // anchors the column's bottom just above the text, and pips stack upward from there - four pips
+        // now span roughly y -15..51 at x 62..78 (pipSpacing 4 rather than 2, so an available pip at
+        // availablePipScale 1.25 - a 13-unit pip renders 16.25 tall - clears its neighbour instead of
+        // touching it), which is what makes the whole side column read noticeably higher than the bar it
+        // sits beside instead of hanging below it, with room for roughly 10 pips before the column reaches
+        // the panel top. Leaves the chip row as the only thing below the bar.
         SetRect(rootRect, "HealthText", new Vector2(70f, -27f), new Vector2(36f, 16f));
         SetRect(rootRect, "PipParent", new Vector2(70f, -15f), Vector2.zero);
 
@@ -112,7 +115,7 @@ public static class HeroPortraitResizeWiring
         HeroPortrait portrait = root.GetComponent<HeroPortrait>();
         SerializedObject so = new(portrait);
         so.FindProperty("pipSize").floatValue = 13f;
-        so.FindProperty("pipSpacing").floatValue = 2f;
+        so.FindProperty("pipSpacing").floatValue = 4f;
         so.FindProperty("chipSize").floatValue = 42f;
         so.FindProperty("chipSpacing").floatValue = 3f;
         so.ApplyModifiedProperties();

@@ -1705,6 +1705,14 @@ public class BattleManager : Singleton<BattleManager>
         // DiscardPlayed, matching CardPlayManager: an enemy resolving its intent is playing a card, so
         // a Rebound one should come back to its hand exactly as it would for a hero.
         enemy.DiscardPlayed(step.card);
+
+        // Below the refusal above, so a fizzled plan never looks like a landed hit, and above
+        // ResolveEffects so occupancy is still the pre-damage board - a body this attack kills should
+        // light up rather than wink out. Fired on the same frame as the damage rather than leading it,
+        // so the enemy turn keeps its pacing. DamageArea answers empty for a Move or a Summon, which is
+        // why there is no IntentKind check here.
+        foreach (GridTile hit in step.card.DamageArea(enemy, tile)) { hit.FlashThreat(); }
+
         step.card.ResolveEffects(enemy, tile);
 
         // The one place the pattern is spent. Only attacks, and only ones that really went off - the

@@ -301,7 +301,12 @@ MonoBehaviour:
   pipFilledColor: {r: 0.22, g: 0.514, b: 0.863, a: 1}
   pipEmptyColor: {r: 0.22, g: 0.514, b: 0.863, a: 0.25}
   pipSize: 13
-  pipSpacing: 2
+  pipSpacing: 4
+  pipSpentSprite: {fileID: 21300000, guid: 4e966575922f83b44b6d54a853ba5c7d, type: 3}
+  pipSpentCrossColor: {r: 0.75, g: 0.78, b: 0.82, a: 0.85}
+  availablePipScale: 1.25
+  pipPulsePeriod: 1.4
+  pipPulseMinAlpha: 0.75
   chipParent: {fileID: 7229510570911843519}
   chipPrefab: {fileID: 4100000000000000005, guid: ea637836a96b4af6b4759b7f91418cd1, type: 3}
   chipSize: 42

@@ -708,7 +708,7 @@ MonoBehaviour:
   portrait: {fileID: 0}
   actionPoints: 2
   brain: 3
-  targetingPattern: {fileID: 11400000, guid: b2c9517396392df42b542b4baef42055, type: 2}
+  targetingPattern: {fileID: 11400000, guid: 3ac066d439ac474c987565a641fa10da, type: 2}
   startCoordinates: {x: 4, y: 4}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   lootTable: {fileID: 11400000, guid: 40b8e740f4fa3e541981b795f81b0e83, type: 2}
@@ -767,6 +767,10 @@ MonoBehaviour:
     gap: 6
     color: {r: 1, g: 1, b: 1, a: 1}
     size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 4341252370176204906}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

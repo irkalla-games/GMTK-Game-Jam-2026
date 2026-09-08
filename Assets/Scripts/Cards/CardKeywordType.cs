@@ -32,4 +32,20 @@ public enum CardKeywordType
     /// where the two part ways.
     /// </summary>
     Rebound = 4,
+
+    /// <summary>
+    /// Freezing the holder while it is committed to this card knocks the card out for `magnitude`
+    /// turns - see BattleManager's frozen branch in EnemyResolve and Card.Interrupt.
+    ///
+    /// The point is that Frozen stops being "one lost swing" against a boss whose threat is a single
+    /// telegraphed card. Denying the Evil Knight's Burst Call for a turn is worth far more than
+    /// denying it a 6-damage poke, and this is what lets a player read the intent row and spend a
+    /// Freeze on the summon specifically.
+    ///
+    /// Only the card the holder had actually committed to is hit, never every Interruptible card in
+    /// hand: the lock is on the plan (Character.LockedPlan), so a boss cycling debuffs loses the one
+    /// it was winding up and keeps the rest. Carries its own countdown rather than borrowing
+    /// Cooldown's, so a card can be interruptible without also being on a cooldown of its own.
+    /// </summary>
+    Interruptible = 5,
 }

@@ -544,6 +544,111 @@ function Read-BodySheetTab {
     }
 }
 
+function Resolve-SheetPair {
+    <#
+        .SYNOPSIS
+            Collapses a body tab's value and a Roster row's value for the same field into ONE sheet-side
+            value, before Resolve-ThreeWay ever compares "the sheet" against the asset. Same verdict
+            vocabulary and reasoning as Resolve-ThreeWay, one layer up: the Roster tab is a second place
+            to type the same field, so a column can now disagree with ITSELF across the two tabs, exactly
+            the way it could already disagree between Unity and "the sheet" as a whole.
+
+        .PARAMETER Roster
+            $null when there is no Roster row for this GUID to compare against - the -FromCsv fallback
+            path has no separate Roster read at all, so every caller on that path passes $null here and
+            gets 'agree'/$BodyTab back unconditionally, same as before this feature existed.
+
+        .OUTPUTS
+            A [pscustomobject] with .Verdict (agree | takeBodyTab | takeRoster | sheetConflict |
+            noBaseline) and .Value - the collapsed value to hand to Resolve-ThreeWay as its -Sheet arg.
+            sheetConflict/noBaseline still carry a .Value (the body tab's, arbitrarily) so a caller that
+            chooses to proceed anyway - Get-ExistingBodyPreserved does, for Brandon's, leaving the actual
+            block to Export-EnemySheet.ps1's unsynced-edits guard - has something usable rather than $null.
+    #>
+    param($Baseline, $BodyTab, $Roster, [bool]$HasBaselineEntry)
+
+    if ($null -eq $Roster) { return [pscustomobject]@{ Verdict = 'agree'; Value = $BodyTab } }
+
+    $t = ConvertTo-Comparable $BodyTab
+    $r = ConvertTo-Comparable $Roster
+
+    if ($t -eq $r) { return [pscustomobject]@{ Verdict = 'agree'; Value = $BodyTab } }
+
+    if (-not $HasBaselineEntry) { return [pscustomobject]@{ Verdict = 'noBaseline'; Value = $BodyTab } }
+
+    $b = ConvertTo-Comparable $Baseline
+
+    if ($r -eq $b) { return [pscustomobject]@{ Verdict = 'takeBodyTab'; Value = $BodyTab } }
+    if ($t -eq $b) { return [pscustomobject]@{ Verdict = 'takeRoster'; Value = $Roster } }
+
+    return [pscustomobject]@{ Verdict = 'sheetConflict'; Value = $BodyTab }
+}
+
+function Read-RosterSheetTab {
+    <#
+        .SYNOPSIS
+            Every row of the Roster tab, keyed by GUID - the sheet-side input for a bulk retune or
+            rename. $null if the worksheet does not exist, is empty, or has no GUID column at all (an
+            old workbook from before this feature).
+
+        .DESCRIPTION
+            The Roster tab is a flat header/row table (one row per body), unlike a body tab's label:value
+            block - so this finds columns by their ROW 1 header text rather than scanning column A the
+            way Read-BodySheetTab does. Same "find by label, never by position" rule as that reader,
+            applied to the other axis.
+
+            A row whose GUID column is blank or repeats a GUID already seen is skipped with a warning -
+            not a body Import-EnemySheet.ps1 could safely apply a rename or retune to, since it would
+            have no way to tell which prefab that row means.
+    #>
+    param($Worksheet)
+
+    if ($null -eq $Worksheet -or $null -eq $Worksheet.Dimension) { return $null }
+
+    $lastRow = $Worksheet.Dimension.End.Row
+    $lastCol = $Worksheet.Dimension.End.Column
+
+    $headers = @{}
+    for ($c = 1; $c -le $lastCol; $c++) {
+        $label = ([string]$Worksheet.Cells[1, $c].Text).Trim()
+        if ($label -ne '') { $headers[$label] = $c }
+    }
+
+    if (-not $headers.ContainsKey('GUID')) { return $null }
+
+    $get = {
+        param($r, $key)
+        if ($headers.ContainsKey($key)) { ([string]$Worksheet.Cells[$r, $headers[$key]].Text).Trim() }
+        else { '' }
+    }
+
+    $rows = [ordered]@{}
+    for ($r = 2; $r -le $lastRow; $r++) {
+        $guid = & $get $r 'GUID'
+        if ($guid -eq '') { continue }
+        if ($rows.Contains($guid)) {
+            Write-Warning "Roster tab row $r repeats GUID $guid (row $($rows[$guid].Row) already claimed it) - both skipped."
+            continue
+        }
+
+        $rows[$guid] = [pscustomobject]@{
+            Row            = $r
+            Guid           = $guid
+            Name           = & $get $r 'Name'
+            DisplayName    = & $get $r 'Display Name'
+            Health         = & $get $r 'Health'
+            ActionsPerTurn = & $get $r 'Actions'
+            Brain          = & $get $r 'Brain'
+            Targeting      = & $get $r 'Targeting'
+            LootTable      = & $get $r 'Loot Table'
+            Role           = & $get $r 'Role'
+            Brandon        = & $get $r "Brandon's"
+        }
+    }
+
+    return $rows
+}
+
 function Get-EnemyMergeColumns {
     <# The columns a three-way merge arbitrates - Deck is one column here even though it is several
        cells on the sheet, compared as one joined string so a reorder or a single swapped card reads as
@@ -614,6 +719,34 @@ function Get-EnemyMergeRow {
     }
 }
 
+function Test-EnemyRenameCandidate {
+    <#
+        .SYNOPSIS
+            $null if a Roster-tab rename is safe to queue; otherwise a human-readable reason it is not.
+
+        .DESCRIPTION
+            A prefab's name is also its worksheet name, its pow_<Name> workbook-scoped named cell, and -
+            via AssetDatabase.RenameAsset - its file name, so a bad one does not just look wrong, it
+            corrupts the next export or collides with something real. Checked here, before anything is
+            queued, rather than left for Unity to discover: a typo should show up as a "problem" in the
+            console, not a half-applied rename.
+
+            Does NOT account for two bodies swapping names in the same sync (A -> B and B -> A at once) -
+            the second of the pair sees the first's OLD name as still taken and is rejected. Rare enough,
+            and cheap enough to work around (rename one to a scratch name first, sync, then rename it
+            again), that this stays a single pass rather than a batch-aware one.
+    #>
+    param([string]$NewName, [hashtable]$AllNames, [hashtable]$UsedThisBatch)
+
+    if ([string]::IsNullOrWhiteSpace($NewName)) { return 'name is blank' }
+    if ($NewName -match '[:\\/?*\[\]]') { return 'name contains a character an Excel worksheet name cannot hold (: \ / ? * [ ])' }
+    if ($NewName.Length -gt 31) { return 'name is longer than 31 characters - the Excel worksheet-name limit' }
+    if ($AllNames.ContainsKey($NewName)) { return "'$NewName' is already the name of another prefab" }
+    if ($UsedThisBatch.ContainsKey($NewName)) { return "'$NewName' is already claimed by another rename in this same sync" }
+
+    return $null
+}
+
 function Get-EnemyBaselinePath {
     param([string]$ToolDir)
     return (Join-Path $ToolDir 'baseline.json')
@@ -652,9 +785,18 @@ function Read-EnemyBaseline {
 }
 
 function Write-EnemyBaseline {
-    <# Records the state both sides now agree on. Called only after a successful sync, same rule
-       Write-Baseline follows for cards. #>
-    param([string]$ToolDir, $Bodies)   # each needs .Guid plus what Get-EnemyMergeRow reads
+    <#
+        Records the state both sides now agree on. Called only after a successful sync, same rule
+        Write-Baseline follows for cards.
+
+        Name and Brandon are folded in here rather than through Get-EnemyMergeRow: Name has no
+        Get-CharacterBody column to merge-arbitrate against (it IS the asset's identity, not a field ON
+        it) and Brandon's Power Level is never an asset field at all, only ever typed in the sheet - so
+        neither fits the "current asset side of the merge" Get-EnemyMergeRow exists to produce. Both are
+        available here directly: $b.Prefab is the body's current name, and -Preserved is whatever
+        Get-ExistingBodyPreserved just resolved as this body's Brandon's.
+    #>
+    param([string]$ToolDir, $Bodies, [hashtable]$Preserved = @{})   # each body needs .Guid plus what Get-EnemyMergeRow reads
 
     $rows = @()
     foreach ($b in @($Bodies)) {
@@ -663,6 +805,12 @@ function Write-EnemyBaseline {
         $cols = Get-EnemyMergeRow -Body $b
         $comparable = [ordered]@{}
         foreach ($k in $cols.Keys) { $comparable[$k] = ConvertTo-Comparable $cols[$k] }
+
+        $comparable['Name'] = ConvertTo-Comparable $b.Prefab
+
+        $pv = $null
+        if ($Preserved.ContainsKey($b.Guid)) { $pv = $Preserved[$b.Guid] }
+        $comparable['Brandon'] = ConvertTo-Comparable $(if ($pv) { $pv.Brandon } else { '' })
 
         $rows += [ordered]@{ guid = $b.Guid; columns = $comparable }
     }

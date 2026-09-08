@@ -20,16 +20,28 @@ MonoBehaviour:
   - turn: 2
     enemies:
     - prefab: {fileID: 1505060705099608387, guid: e7a0dc478496d9c44990d84e064945aa, type: 3}
-      cell: {x: 2, y: 3}
+      cell: {x: 0, y: 3}
       deckOverride: []
   - turn: 3
     enemies:
     - prefab: {fileID: 1505060705099608387, guid: e7a0dc478496d9c44990d84e064945aa, type: 3}
       cell: {x: 2, y: 4}
       deckOverride: []
+  encounterBudget:
+    frontlinePower: 0
+    backlinePower: 0
+    anyPower: 0
+    bossFrontlinePower: 0
+    bossBacklinePower: 0
+    reinforcementPower: 0
+    maxPowerPerEnemy: 0
+    maxPowerPerWave: 0
+    waveInterval: 0
+    waveIntervalJitter: 0
+    poolFilter: []
   partySpawnCells:
-  - {x: 2, y: 2}
   - {x: 1, y: 2}
+  - {x: 2, y: 2}
   boardSize: {x: 3, y: 6}
   turnsToSurvive: 3
   handSize: 3

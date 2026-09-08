@@ -16,24 +16,8 @@ MonoBehaviour:
   description: Debug testbed deck - every totem for this class.
   forClass: 8
   cards:
-  - {fileID: 11400000, guid: 01e630d4f30206f499a5038a0e474c92, type: 2}
-  - {fileID: 11400000, guid: b5992955f6f71d249bd207dc483e4566, type: 2}
-  - {fileID: 11400000, guid: f6d1fbe1cfdd0314f9969e1457bfebe1, type: 2}
-  - {fileID: 11400000, guid: b6d8d70794292df43a53dfecffd26dfe, type: 2}
-  - {fileID: 11400000, guid: fc0f1d24759b3b14abe50392a23bf382, type: 2}
-  - {fileID: 11400000, guid: 30dc9807bee5a3a47a453cded652caa6, type: 2}
-  - {fileID: 11400000, guid: f1df2170a944fd34785c7e3569efd815, type: 2}
-  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
-  - {fileID: 11400000, guid: ffeb8d4fdf2a22347bff2bd9386b9ad2, type: 2}
-  - {fileID: 11400000, guid: c7f19fb3cbfb9a248ad705b8c085d11b, type: 2}
-  - {fileID: 11400000, guid: 857b5633079b7f441b430a95dd0a2398, type: 2}
-  - {fileID: 11400000, guid: 6f8d325e11962dd419a639a3bb29700e, type: 2}
-  - {fileID: 11400000, guid: c5d25d3eaabd87644b8f9bf160b035f4, type: 2}
-  - {fileID: 11400000, guid: 70e2ee5aa2fd4ba448e932a7ae09ed85, type: 2}
-  - {fileID: 11400000, guid: 51382dd5fb68f1c42b8c120d2112eb72, type: 2}
-  - {fileID: 11400000, guid: 363d14991cd36564ca3dc5e550c81bc5, type: 2}
-  - {fileID: 11400000, guid: a64ccfc5863ffd94c895f94fef7b38b2, type: 2}
-  - {fileID: 11400000, guid: 6f82a9f8e2605c94a9a47f945999e665, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   - {fileID: 11400000, guid: 400da0a1fb8039847bb2c4bfc31f38d7, type: 2}
+  - {fileID: 11400000, guid: b0de35f4e0b135845b19e60120fd3205, type: 2}
   locked: 0
   unlockId: 

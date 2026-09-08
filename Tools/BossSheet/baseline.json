@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-09-05T08:30:17.1314740Z",
+    "writtenUtc":  "2026-09-08T08:44:54.1257421Z",
     "bodies":  [
                    {
                        "guid":  "fae9e0d8df06f744cb3eed28f98bb54f",
@@ -7,11 +7,13 @@
                                        "DisplayName":  "Black Knight",
                                        "Health":  "150",
                                        "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Strongest",
+                                       "Brain":  "Warrior",
+                                       "Targeting":  "StrongestIgnoreTotem",
                                        "LootTable":  "BlackKnightDrop",
-                                       "Deck":  "DreadCleave|DreadCleave|BlackGuard|CallTheDamned|MoveInnate",
-                                       "Role":  "None"
+                                       "Deck":  "DreadCleave|DreadCleave|BlackGuard|BlackGuard|MoveInnate",
+                                       "Role":  "None",
+                                       "Name":  "BlackKnight",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -20,11 +22,13 @@
                                        "DisplayName":  "Evil King",
                                        "Health":  "140",
                                        "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
+                                       "Brain":  "Ranger",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "EvilKingDrop",
                                        "Deck":  "ExecutionersBlow|ExecutionersBlow|RoyalGuard|RoyalGuard|RoyalCommand|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Role":  "None",
+                                       "Name":  "EvilKing",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -37,7 +41,9 @@
                                        "Targeting":  "Closest",
                                        "LootTable":  "EvilKnightDrop",
                                        "Deck":  "Riposte|Riposte|ShieldBash|ShieldBash|Rally|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Role":  "None",
+                                       "Name":  "EvilKnight",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -47,10 +53,12 @@
                                        "Health":  "90",
                                        "ActionsPerTurn":  "2",
                                        "Brain":  "Summoner",
-                                       "Targeting":  "Weakest",
+                                       "Targeting":  "Strongest",
                                        "LootTable":  "EvilWizardDrop",
-                                       "Deck":  "DarkBolt|DarkBolt|ShadowWard|ShadowWard|SummonImp|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Deck":  "DarkBolt|DarkBolt|ShadowWard|ShadowWard|SummonImp|TeleportInnate|TeleportInnate",
+                                       "Role":  "None",
+                                       "Name":  "EvilWizard",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -60,23 +68,27 @@
                                        "Health":  "95",
                                        "ActionsPerTurn":  "2",
                                        "Brain":  "Summoner",
-                                       "Targeting":  "Furthest",
+                                       "Targeting":  "Totem20Furthest",
                                        "LootTable":  "EvilWizard2Drop",
-                                       "Deck":  "ArcaneLance|ArcaneLance|VoidBarrier|VoidBarrier|CallTheSwarm|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Deck":  "ArcaneLance|ArcaneLance|VoidBarrier|VoidBarrier|CallTheSwarm|TeleportInnate|TeleportInnate",
+                                       "Role":  "None",
+                                       "Name":  "EvilWizard2",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "e47742cc0b6bff34d80516b86f0ed93e",
                        "columns":  {
                                        "DisplayName":  "Emberlord",
-                                       "Health":  "100",
+                                       "Health":  "60",
                                        "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
+                                       "Brain":  "Ranger",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "EvilWizard3Drop",
-                                       "Deck":  "MeteorFall|MeteorFall|EmberShroud|EmberShroud|ConjureOoze|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Deck":  "MeteorFall|MeteorFall|MeteorFall|TeleportInnate|TeleportInnate",
+                                       "Role":  "None",
+                                       "Name":  "EvilWizard3",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -85,11 +97,13 @@
                                        "DisplayName":  "Reaper",
                                        "Health":  "110",
                                        "ActionsPerTurn":  "2",
-                                       "Brain":  "Summoner",
-                                       "Targeting":  "Weakest",
+                                       "Brain":  "Warrior",
+                                       "Targeting":  "Totem20Random",
                                        "LootTable":  "ReaperDrop",
-                                       "Deck":  "SoulReap|SoulReap|DeathsToll|DeathsToll|RaiseDead|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Deck":  "SoulReap|DeathsToll|SoulSwap|GraveTithe|SoulDrain|TeleportInnate|TeleportInnate",
+                                       "Role":  "None",
+                                       "Name":  "Reaper",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -99,10 +113,12 @@
                                        "Health":  "150",
                                        "ActionsPerTurn":  "2",
                                        "Brain":  "Summoner",
-                                       "Targeting":  "Closest",
+                                       "Targeting":  "ClosestIgnoreTotem",
                                        "LootTable":  "ReinforcedGolemDrop",
                                        "Deck":  "SeismicSlam|SeismicSlam|StoneSkin|StoneSkin|SplinterOff|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Role":  "None",
+                                       "Name":  "ReinforcedGolem",
+                                       "Brandon":  "2"
                                    }
                    }
                ]

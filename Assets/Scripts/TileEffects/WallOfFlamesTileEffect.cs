@@ -1,10 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// A patch of fire. Damages whoever is standing on the tile at the end of the player turn, bypassing
-/// every defense - the same TakeUnblockableDamage Poison bites with, since this is something the tile
-/// is doing to you, not an attack any Shield/Block/Parry was ever raised against. Does not refuse
-/// entry - standing in flames is legal, it just costs you.
+/// A patch of fire. Damages whoever is standing on the tile at the end of the round - after the
+/// enemies have moved, see BattleManager.RunBattle - bypassing every defense - the same
+/// TakeUnblockableDamage Poison bites with, since this is something the tile is doing to you, not
+/// an attack any Shield/Block/Parry was ever raised against. Does not refuse entry - standing in
+/// flames is legal, it just costs you.
 /// </summary>
 public class WallOfFlamesTileEffect : TileEffect
 {

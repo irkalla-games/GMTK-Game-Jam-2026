@@ -298,9 +298,33 @@ public class Card
     /// Dormant keyword at all.
     public int DormantRemaining => Keyword(CardKeywordType.Dormant)?.remaining ?? 0;
 
-    /// The number a face-up card badge should show - whichever lock is currently longer, since a card
-    /// carrying both is held by whichever one has not run out yet. 0 means fully unlocked.
-    public int LockedTurns => Mathf.Max(CooldownRemaining, DormantRemaining);
+    /// Turns left on a lock a Freeze knocked into this card, or 0 if it is not interrupted. Its own
+    /// counter rather than Cooldown's, so an Interruptible card needs no Cooldown of its own.
+    public int InterruptedRemaining => Keyword(CardKeywordType.Interruptible)?.remaining ?? 0;
+
+    /// The number a face-up card badge should show - whichever lock is currently longest, since a card
+    /// carrying several is held by whichever has not run out yet. 0 means fully unlocked.
+    public int LockedTurns =>
+        Mathf.Max(InterruptedRemaining, Mathf.Max(CooldownRemaining, DormantRemaining));
+
+    /// <summary>
+    /// Knocks this card out for its Interruptible magnitude because its holder was frozen while
+    /// committed to it. No-op on a card that never declared Interruptible, so the caller can offer
+    /// every card in a locked plan without filtering first.
+    ///
+    /// Returns true only when a lock was actually applied, which is what lets BattleManager log the
+    /// interruption rather than guessing that one happened.
+    /// </summary>
+    public bool Interrupt()
+    {
+        CardKeyword interruptible = Keyword(CardKeywordType.Interruptible);
+
+        if (interruptible == null || interruptible.magnitude <= 0) { return false; }
+
+        interruptible.remaining = interruptible.magnitude;
+
+        return true;
+    }
 
     /// True if this card's effects include one of this type - how the enemy brain tells a Summon card
     /// apart from a Move card, since both are only legal on an empty tile.
@@ -313,20 +337,26 @@ public class Card
     private string LockRefusal()
     {
         if (DormantRemaining > 0) { return $"dormant for {DormantRemaining} more turn(s)"; }
+        if (InterruptedRemaining > 0) { return $"interrupted for {InterruptedRemaining} more turn(s)"; }
         if (CooldownRemaining > 0) { return $"needs {CooldownRemaining} more turn(s) to recharge"; }
         return null;
     }
 
     /// <summary>
-    /// Ticks every timed keyword (Cooldown, Dormant) down by one round. Called once per round for
-    /// every card a character owns, regardless of which pile it is sitting in - a card recharges, or
-    /// wakes up, whether or not it is in hand.
+    /// Ticks every timed keyword (Cooldown, Dormant, Interruptible) down by one round. Called once per
+    /// round for every card a character owns, regardless of which pile it is sitting in - a card
+    /// recharges, wakes up, or shakes off an interruption whether or not it is in hand.
     /// </summary>
     public void TickTimers()
     {
         foreach (CardKeyword keyword in keywords)
         {
-            if (keyword.type != CardKeywordType.Cooldown && keyword.type != CardKeywordType.Dormant) { continue; }
+            if (keyword.type != CardKeywordType.Cooldown
+                && keyword.type != CardKeywordType.Dormant
+                && keyword.type != CardKeywordType.Interruptible)
+            {
+                continue;
+            }
 
             if (keyword.remaining > 0) { keyword.remaining--; }
         }

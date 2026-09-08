@@ -16,35 +16,35 @@ MonoBehaviour:
   <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
-    minDistance: 1
-    maxDistance: 1
+    minDistance: 2
+    maxDistance: 4
   <requiredClass>k__BackingField: 0
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 3 damage. Apply Weaken.
+  <description>k__BackingField: Deal 1 damage and apply Weaken to everything within 1 tile.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 2b3919664f29705438c0b427d91e208c, type: 2}
+  - effect: {fileID: 11400000, guid: 894788a7c2284a7bbab8841b42d5bfb6, type: 2}
     aimsAt: 0
     area:
-      kind: 0
+      kind: 1
       radius:
-        shape: 0
+        shape: 1
         minDistance: 0
-        maxDistance: 0
+        maxDistance: 1
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
   - effect: {fileID: 11400000, guid: fdf8e59b34a6463478b37ed552bf8e09, type: 2}
     aimsAt: 0
     area:
-      kind: 0
+      kind: 1
       radius:
-        shape: 0
+        shape: 1
         minDistance: 0
-        maxDistance: 0
+        maxDistance: 1
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0

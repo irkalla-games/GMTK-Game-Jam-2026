@@ -46,7 +46,12 @@ public abstract class EnemyBrain
     /// itself lapses (the card stopped being legal anywhere). While a lock is held, BattleManager asks
     /// Reaim instead, which keeps the same card but re-aims it live. Also what runs as a last resort in
     /// EnemyResolve if the lock has lapsed by the time this enemy's action point comes up.
-    public abstract Intent Decide(Character self, Board board);
+    ///
+    /// `spent` names cards an earlier step of the same forecast already committed to - see
+    /// BattleManager.DecidePlan - so a second action point does not pick the same card a first one
+    /// already used. Null (the default) means nothing is excluded, which is every call site outside
+    /// a multi-step forecast.
+    public abstract Intent Decide(Character self, Board board, IReadOnlyList<Card> spent = null);
 
     /// <summary>
     /// Re-aims a card this character already committed to earlier this turn, at the board as it
@@ -56,7 +61,8 @@ public abstract class EnemyBrain
     ///
     /// Returns Intent.Wait() when `card` cannot be aimed at anything at all right now - out of range,
     /// blocked, refused - which is the caller's signal to fall through to a fresh Decide instead of
-    /// standing still on a dead lock.
+    /// standing still on a dead lock. Needs no `spent` filter of its own: `only` already narrows every
+    /// helper below to this one card, which by construction was never excluded.
     /// </summary>
     public Intent Reaim(Character self, Card card, IntentKind kind, Board board)
     {
@@ -89,9 +95,10 @@ public abstract class EnemyBrain
     }
 
     /// Where this kind of enemy wants to stand, given who the current TargetPriority points at. Null
-    /// when there is nobody left to point at, which is a Wait rather than a scoreless wander.
+    /// when there is nobody left to point at, which is a Wait rather than a scoreless wander. `spent`
+    /// is threaded through to LongestReach for the brains that use it (Ranger) - see IsAvailable.
     protected abstract System.Func<Vector2Int, int> MoveScore(
-        Character self, TargetPriority priority, Board board);
+        Character self, TargetPriority priority, Board board, IReadOnlyList<Card> spent = null);
 
     /// The character the current priority names, out of everyone alive on the other side. The move's
     /// destination and the attack's victim are the same question - see TargetSelector.
@@ -101,6 +108,24 @@ public abstract class EnemyBrain
     protected static bool TryQuarry(Character self, TargetPriority priority, out Character quarry) =>
         TargetSelector.TryPick(
             priority, self, TargetSelector.LivingEnemiesOf(self), out quarry);
+
+    /// Whether `card` is a candidate to play: matches `only` if one was named, and is not one of
+    /// `spent` - a card an earlier step of the same multi-action forecast already committed to. The
+    /// one predicate every hand-scanning helper below filters on.
+    private static bool IsAvailable(Card card, Card only, IReadOnlyList<Card> spent)
+    {
+        if (only != null && card != only) { return false; }
+
+        if (spent != null)
+        {
+            foreach (Card used in spent)
+            {
+                if (used == card) { return false; }
+            }
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// The best card this character could play at something on the other side, or none.
@@ -127,7 +152,8 @@ public abstract class EnemyBrain
     /// area card at its taunter still prefers the tile that also splashes somebody else.
     /// </summary>
     protected static bool TryFindAttack(
-        Character self, TargetPriority priority, out Intent intent, Card only = null)
+        Character self, TargetPriority priority, out Intent intent, Card only = null,
+        IReadOnlyList<Card> spent = null)
     {
         intent = Intent.Wait();
 
@@ -138,7 +164,7 @@ public abstract class EnemyBrain
 
         foreach (Card card in self.Hand)
         {
-            if (only != null && card != only) { continue; }
+            if (!IsAvailable(card, only, spent)) { continue; }
 
             foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
             {
@@ -227,7 +253,7 @@ public abstract class EnemyBrain
     /// </summary>
     protected static bool TryFindMove(
         Character self, System.Func<Vector2Int, int> score, out Intent intent,
-        Card only = null, bool allowLateral = false)
+        Card only = null, bool allowLateral = false, IReadOnlyList<Card> spent = null)
     {
         intent = Intent.Wait();
 
@@ -239,7 +265,7 @@ public abstract class EnemyBrain
         // wins - unchanged from the single-pass behaviour this replaces.
         int best = anchor;
 
-        foreach ((Card card, GridTile tile) in CandidateMoves(self, only))
+        foreach ((Card card, GridTile tile) in CandidateMoves(self, only, spent))
         {
             int value = score(tile.Coordinates);
 
@@ -257,7 +283,7 @@ public abstract class EnemyBrain
         // asked (BattleManager.LateUpdate asks it every dirty frame and only repaints on a change).
         GridTile lateral = null;
 
-        foreach ((Card card, GridTile tile) in CandidateMoves(self, only))
+        foreach ((Card card, GridTile tile) in CandidateMoves(self, only, spent))
         {
             if (score(tile.Coordinates) != anchor) { continue; }
             if (lateral != null && !GridManager.IsEarlier(tile.Coordinates, lateral.Coordinates))
@@ -275,11 +301,12 @@ public abstract class EnemyBrain
     /// Every (card, tile) this character could legally stand on right now - a Move card in hand, a
     /// tile within its range, empty, and not refused for any other reason. The shared filter behind
     /// both of TryFindMove's passes.
-    private static IEnumerable<(Card card, GridTile tile)> CandidateMoves(Character self, Card only)
+    private static IEnumerable<(Card card, GridTile tile)> CandidateMoves(
+        Character self, Card only, IReadOnlyList<Card> spent = null)
     {
         foreach (Card card in self.Hand)
         {
-            if (only != null && card != only) { continue; }
+            if (!IsAvailable(card, only, spent)) { continue; }
 
             foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
             {
@@ -299,7 +326,8 @@ public abstract class EnemyBrain
     /// like anything else out of range or otherwise illegal, so this just returns false on its own
     /// during the cooldown window.
     /// </summary>
-    protected static bool TryFindSummon(Character self, out Intent intent, Card only = null)
+    protected static bool TryFindSummon(
+        Character self, out Intent intent, Card only = null, IReadOnlyList<Card> spent = null)
     {
         intent = Intent.Wait();
 
@@ -310,7 +338,7 @@ public abstract class EnemyBrain
 
         foreach (Card card in self.Hand)
         {
-            if (only != null && card != only) { continue; }
+            if (!IsAvailable(card, only, spent)) { continue; }
             if (!card.HasEffect<SummonEffect>()) { continue; }
 
             foreach (GridTile tile in GridManager.Instance.GetTilesInRange(self.Tile, card.range))
@@ -334,12 +362,14 @@ public abstract class EnemyBrain
     /// aimed. A splash card does not need to be clicked as close as its plain range suggests; the
     /// blast covers the rest of the gap, which is what keeps a Ranger holding one from walking in
     /// closer than it actually has to.
-    protected static int LongestReach(Character self)
+    protected static int LongestReach(Character self, IReadOnlyList<Card> spent = null)
     {
         int longest = 1;
 
         foreach (Card card in self.Hand)
         {
+            if (!IsAvailable(card, null, spent)) { continue; }
+
             longest = Mathf.Max(longest, card.range.MaxDistance + card.WidestAreaReach());
         }
 
@@ -354,27 +384,27 @@ public abstract class EnemyBrain
 /// </summary>
 public class WarriorBrain : EnemyBrain
 {
-    public override Intent Decide(Character self, Board board)
+    public override Intent Decide(Character self, Board board, IReadOnlyList<Card> spent = null)
     {
         TargetPriority priority = self.CurrentPriority;
 
         // Attack first. Cheapest to check and always better than repositioning.
-        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
+        if (TryFindAttack(self, priority, out Intent attack, spent: spent)) { return attack; }
 
         // Opportunistic: reinforce only when there is nothing to swing at. A body whose summoning is
         // the point of it wants SummonerBrain instead, which asks this first.
-        if (TryFindSummon(self, out Intent summon)) { return summon; }
+        if (TryFindSummon(self, out Intent summon, spent: spent)) { return summon; }
 
         // Otherwise get closer to whoever the current priority names. allowLateral: true - this is the
         // last thing a warrior tries, so a boxed-in one shuffles rather than standing frozen.
-        System.Func<Vector2Int, int> score = MoveScore(self, priority, board);
+        System.Func<Vector2Int, int> score = MoveScore(self, priority, board, spent);
 
-        return score != null && TryFindMove(self, score, out Intent move, allowLateral: true)
+        return score != null && TryFindMove(self, score, out Intent move, allowLateral: true, spent: spent)
             ? move : Intent.Wait();
     }
 
     protected override System.Func<Vector2Int, int> MoveScore(
-        Character self, TargetPriority priority, Board board)
+        Character self, TargetPriority priority, Board board, IReadOnlyList<Card> spent = null)
     {
         if (!TryQuarry(self, priority, out Character quarry)) { return null; }
 
@@ -398,27 +428,30 @@ public class WarriorBrain : EnemyBrain
 /// </summary>
 public class RangerBrain : EnemyBrain
 {
-    public override Intent Decide(Character self, Board board)
+    public override Intent Decide(Character self, Board board, IReadOnlyList<Card> spent = null)
     {
         TargetPriority priority = self.CurrentPriority;
 
         // Reinforcing comes first, ahead of even shooting - a ranger that can call in backup does it
         // on cooldown, not only when it has nothing better to do.
-        if (TryFindSummon(self, out Intent summon)) { return summon; }
+        if (TryFindSummon(self, out Intent summon, spent: spent)) { return summon; }
 
-        System.Func<Vector2Int, int> score = MoveScore(self, priority, board);
+        System.Func<Vector2Int, int> score = MoveScore(self, priority, board, spent);
         bool threatened = board.HasAdjacentEnemy(self.Tile.Coordinates, self.Affiliation);
 
         // Cornered comes first: back off before taking a shot, unless there is nowhere to back off
         // to. allowLateral stays false here on purpose - a lateral "retreat" is not really one, and
         // with nothing to actually gain from moving this must fall through to the shot below rather
         // than spend the action point shuffling sideways instead of firing.
-        if (threatened && score != null && TryFindMove(self, score, out Intent retreat)) { return retreat; }
+        if (threatened && score != null && TryFindMove(self, score, out Intent retreat, spent: spent))
+        {
+            return retreat;
+        }
 
-        if (TryFindAttack(self, priority, out Intent shot)) { return shot; }
+        if (TryFindAttack(self, priority, out Intent shot, spent: spent)) { return shot; }
 
         // Last resort, so a boxed-in ranger shuffles rather than freezing.
-        return score != null && TryFindMove(self, score, out Intent reposition, allowLateral: true)
+        return score != null && TryFindMove(self, score, out Intent reposition, allowLateral: true, spent: spent)
             ? reposition : Intent.Wait();
     }
 
@@ -434,11 +467,11 @@ public class RangerBrain : EnemyBrain
     /// not a walking distance, and a shot is not a walk - `board` goes unused here for that reason.
     /// </summary>
     protected override System.Func<Vector2Int, int> MoveScore(
-        Character self, TargetPriority priority, Board board)
+        Character self, TargetPriority priority, Board board, IReadOnlyList<Card> spent = null)
     {
         if (!TryQuarry(self, priority, out Character quarry)) { return null; }
 
-        int reach = LongestReach(self);
+        int reach = LongestReach(self, spent);
         Vector2Int mark = quarry.Tile.Coordinates;
 
         return cell =>
@@ -467,17 +500,17 @@ public class RangerBrain : EnemyBrain
 /// </summary>
 public class SummonerBrain : EnemyBrain
 {
-    public override Intent Decide(Character self, Board board)
+    public override Intent Decide(Character self, Board board, IReadOnlyList<Card> spent = null)
     {
         TargetPriority priority = self.CurrentPriority;
 
-        if (TryFindSummon(self, out Intent summon)) { return summon; }
+        if (TryFindSummon(self, out Intent summon, spent: spent)) { return summon; }
 
-        if (TryFindAttack(self, priority, out Intent attack)) { return attack; }
+        if (TryFindAttack(self, priority, out Intent attack, spent: spent)) { return attack; }
 
-        System.Func<Vector2Int, int> score = MoveScore(self, priority, board);
+        System.Func<Vector2Int, int> score = MoveScore(self, priority, board, spent);
 
-        return score != null && TryFindMove(self, score, out Intent move, allowLateral: true)
+        return score != null && TryFindMove(self, score, out Intent move, allowLateral: true, spent: spent)
             ? move : Intent.Wait();
     }
 
@@ -485,7 +518,7 @@ public class SummonerBrain : EnemyBrain
     /// field rather than a straight line. A summoner that could not reach anyone would otherwise
     /// stand still while its adds did all the walking.
     protected override System.Func<Vector2Int, int> MoveScore(
-        Character self, TargetPriority priority, Board board)
+        Character self, TargetPriority priority, Board board, IReadOnlyList<Card> spent = null)
     {
         if (!TryQuarry(self, priority, out Character quarry)) { return null; }
 

@@ -665,7 +665,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 26
+  maxHealth: 35
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 1
@@ -676,7 +676,7 @@ MonoBehaviour:
   portrait: {fileID: 0}
   actionPoints: 1
   brain: 1
-  targetingPattern: {fileID: 11400000, guid: bbf51cecb8e7f2e4fa40df69c9d1d8bc, type: 2}
+  targetingPattern: {fileID: 11400000, guid: e400c7ae4b704bb5b6ef31c1450af971, type: 2}
   startCoordinates: {x: 4, y: 4}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   lootTable: {fileID: 0}
@@ -686,7 +686,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 239c09d57f556754db620c1adca26b94, type: 2}
   - {fileID: 11400000, guid: 239c09d57f556754db620c1adca26b94, type: 2}
   - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
-  <Health>k__BackingField: 26
+  <Health>k__BackingField: 35
 --- !u!95 &7130099151914716108
 Animator:
   serializedVersion: 7
@@ -733,6 +733,10 @@ MonoBehaviour:
     gap: 6
     color: {r: 1, g: 1, b: 1, a: 1}
     size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 4341252370176204906}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

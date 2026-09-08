@@ -179,6 +179,13 @@ public static class CardSheetImporter
 
         try
         {
+            EditorUtility.DisplayProgressBar("Sync With Sheet", "Pulling from Google Sheets...", 0.05f);
+            if (!GoogleBridgeSync.Pull(GoogleBridgeSync.Workbook.Cards))
+            {
+                Debug.LogError("Card sheet sync: stopped - could not pull phone edits from Google Sheets. See the error above.");
+                return;
+            }
+
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Reading the workbook...", 0.1f);
             if (!RunPowerShell(ImportScript, string.Empty)) { return; }
 
@@ -203,6 +210,9 @@ public static class CardSheetImporter
 
             EditorUtility.DisplayProgressBar("Sync With Sheet", "Refreshing the workbook...", 0.8f);
             RunPowerShell(ExportScript, "-WriteBaseline");
+
+            EditorUtility.DisplayProgressBar("Sync With Sheet", "Pushing to Google Sheets...", 0.95f);
+            GoogleBridgeSync.Push(GoogleBridgeSync.Workbook.Cards);
         }
         finally
         {

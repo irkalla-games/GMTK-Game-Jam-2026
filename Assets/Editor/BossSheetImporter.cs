@@ -24,6 +24,7 @@ public static class BossSheetImporter
         SyncTitle = "Sync Bosses With Sheet",
         WorkbookName = "Docs/BossDesign.xlsx",
         RefreshMenuPath = "Tools > Bosses > Refresh Sheet From Unity",
+        GoogleWorkbook = GoogleBridgeSync.Workbook.Bosses,
     };
 
     /// <summary>The everyday action: reconcile the workbook and the prefabs in both directions.</summary>

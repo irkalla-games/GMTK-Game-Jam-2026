@@ -19,15 +19,21 @@ using UnityEngine;
 /// write so SerializedObject and PrefabUtility stay in charge of serialization.
 ///
 /// Health, Actions Per Turn, Brain, Targeting, Loot Table, Display Name, Role and Deck are designer-
-/// authored and merge-arbitrated on the PowerShell side (a column changed on both sides since the last
-/// sync is a conflict, left untouched). PowerLevel and Boss are different: they are DERIVED (Brandon's-
-/// or-Estimated, and which folder the prefab lives in respectively) and always written one-way whenever
-/// they differ from what is already on the prefab, regardless of whether anything merge-arbitrated also
-/// changed - see BodySpec.changed, which lists both kinds together. The rest of a body tab (Card Facts,
-/// the averages) is derived in a different sense - pure sheet arithmetic this importer never reads.
+/// authored and merge-arbitrated on the PowerShell side - now from EITHER the body tab or the Roster
+/// tab, collapsed into one sheet-side value by Resolve-SheetPair before the usual three-way merge ever
+/// sees it (a column changed on both sides since the last sync is a conflict, left untouched; changed on
+/// both TABS since the last sync is a "sheet conflict", left untouched the same way). PowerLevel and Boss
+/// are different: they are DERIVED (Brandon's-or-Estimated, and which folder the prefab lives in
+/// respectively) and always written one-way whenever they differ from what is already on the prefab,
+/// regardless of whether anything merge-arbitrated also changed - see BodySpec.changed, which lists
+/// every kind together. The rest of a body tab (Card Facts, the averages) is derived in a different
+/// sense - pure sheet arithmetic this importer never reads.
 ///
-/// Bodies are never created, renamed or deleted by a sheet: EnemyRosterGenerator (see its own guardrail)
-/// is what brings a new body into existence, and from then on this keeps its tuned numbers in sync.
+/// Bodies are never CREATED or deleted by a sheet: EnemyRosterGenerator (see its own guardrail) is what
+/// brings a new body into existence, and from then on this keeps its tuned numbers in sync. Renaming an
+/// EXISTING body is the one exception - see BodySpec.newName and WriteBody's use of
+/// AssetDatabase.RenameAsset, which keeps the prefab's GUID (and so every deck and level reference to it)
+/// intact across the rename.
 ///
 /// Editor-only, and not covered by Tools/compile-check.ps1 unless you pass -IncludeEditor.
 /// </summary>
@@ -62,6 +68,9 @@ public static class RosterSheetSync
 
         /// <summary>The refresh menu path, quoted back at the user when a sync cannot resolve a difference.</summary>
         public string RefreshMenuPath;
+
+        /// <summary>Which Tools/GoogleBridge/workbooks.psd1 entry this roster's Google mirror lives under.</summary>
+        public GoogleBridgeSync.Workbook GoogleWorkbook;
     }
 
     // ----------------------------------------------------------------------------------------------
@@ -76,6 +85,7 @@ public static class RosterSheetSync
         public List<BodySpec> bodies = new();
         public List<ConflictSpec> conflicts = new();
         public List<ConflictSpec> unresolved = new();
+        public List<SheetConflictSpec> sheetConflicts = new();
         public List<string> problems = new();
     }
 
@@ -96,6 +106,29 @@ public static class RosterSheetSync
         public string wasLast;
     }
 
+    /// <summary>
+    /// A body tab and its Roster row disagreeing about the same field - see Resolve-SheetPair in
+    /// EnemySheet.Common.psm1. A different shape from ConflictSpec/ConflictColumn (bodyTab/roster
+    /// instead of unity/sheet) because this is one layer earlier: neither side here is "Unity", both are
+    /// sheet surfaces, and the field names are what JsonUtility matches the JSON against.
+    /// </summary>
+    [Serializable]
+    private class SheetConflictSpec
+    {
+        public string key;
+        public string tab;
+        public List<SheetConflictColumn> columns = new();
+    }
+
+    [Serializable]
+    private class SheetConflictColumn
+    {
+        public string column;
+        public string bodyTab;
+        public string roster;
+        public string wasLast;
+    }
+
     [Serializable]
     private class BodySpec
     {
@@ -112,6 +145,7 @@ public static class RosterSheetSync
         public int battleRole;     // BattleRole bitmask - merge-arbitrated, see the class doc comment
         public float powerLevel;   // Derived (Brandon's ?? Estimated) - always a one-way overwrite
         public bool isBoss;        // Derived (prefab's own folder) - always a one-way overwrite
+        public string newName;     // New prefab name from the Roster tab's Name column, or "" for no rename
         public List<string> changed = new();
     }
 
@@ -135,6 +169,13 @@ public static class RosterSheetSync
 
         try
         {
+            EditorUtility.DisplayProgressBar(config.SyncTitle, "Pulling from Google Sheets...", 0.05f);
+            if (!GoogleBridgeSync.Pull(config.GoogleWorkbook))
+            {
+                Debug.LogError($"{config.LogPrefix} sync: stopped - could not pull phone edits from Google Sheets. See the error above.");
+                return;
+            }
+
             EditorUtility.DisplayProgressBar(config.SyncTitle, "Reading the workbook...", 0.1f);
             if (!SheetSyncProcess.Run(config.ImportScript, string.Empty, ScriptTimeoutMs)) { return; }
 
@@ -154,6 +195,9 @@ public static class RosterSheetSync
 
             EditorUtility.DisplayProgressBar(config.SyncTitle, "Refreshing the workbook...", 0.8f);
             SheetSyncProcess.Run(config.ExportScript, "-WriteBaseline", ScriptTimeoutMs);
+
+            EditorUtility.DisplayProgressBar(config.SyncTitle, "Pushing to Google Sheets...", 0.95f);
+            GoogleBridgeSync.Push(config.GoogleWorkbook);
         }
         finally
         {
@@ -223,7 +267,7 @@ public static class RosterSheetSync
 
         foreach (string problem in payload.problems) { Debug.LogWarning($"{config.LogPrefix}: {problem}"); }
 
-        conflictCount = payload.conflicts.Count + payload.unresolved.Count;
+        conflictCount = payload.conflicts.Count + payload.unresolved.Count + payload.sheetConflicts.Count;
         ReportConflicts(config, payload);
 
         if (payload.bodies.Count == 0)
@@ -281,11 +325,30 @@ public static class RosterSheetSync
                              + "baseline recording which side moved, so neither was written. Use "
                              + $"{config.RefreshMenuPath} if the prefab is correct.");
         }
+
+        foreach (SheetConflictSpec c in payload.sheetConflicts)
+        {
+            System.Text.StringBuilder sb = new();
+            sb.AppendLine($"{config.LogPrefix} SHEET CONFLICT: '{c.key}' changed on BOTH the body tab and the "
+                          + "Roster tab since the last sync. Nothing was written to it on either side.");
+
+            foreach (SheetConflictColumn col in c.columns)
+            {
+                sb.AppendLine($"    {col.column}:");
+                sb.AppendLine($"        was       '{col.wasLast}'");
+                sb.AppendLine($"        body tab  '{col.bodyTab}'");
+                sb.AppendLine($"        Roster    '{col.roster}'");
+            }
+
+            sb.Append("    Make the body tab and Roster agree, or change only one of them, then sync again.");
+            Debug.LogWarning(sb.ToString());
+        }
     }
 
     /// <summary>
-    /// Writes one body's synced fields onto its prefab. Every referenced asset (targeting, loot, every
-    /// deck card) is resolved BEFORE anything is written, so a typo cannot leave the prefab half-updated.
+    /// Writes one body's synced fields onto its prefab, renaming it first if the Roster tab's Name
+    /// column asked for one. Every referenced asset (targeting, loot, every deck card) is resolved BEFORE
+    /// anything is written - the rename included - so a typo cannot leave the prefab half-updated.
     /// </summary>
     private static bool WriteBody(Config config, BodySpec spec)
     {
@@ -329,6 +392,30 @@ public static class RosterSheetSync
             deck.Add(card);
         }
 
+        // Rename BEFORE opening the prefab contents, so EditPrefabContentsScope opens the asset at its
+        // FINAL path rather than one Unity is about to relocate underneath it - same ordering
+        // CardSheetImporter.MoveCard follows, and for the same reason. Everything above (targeting/loot/
+        // deck) is resolved first regardless, so a rename never commits ahead of a validation failure
+        // that would otherwise leave the prefab half-updated.
+        //
+        // Import-EnemySheet.ps1 already validated this name (Test-EnemyRenameCandidate), so a failure
+        // here means something changed on disk between that check and this sync running.
+        bool renaming = !string.IsNullOrWhiteSpace(spec.newName) && spec.newName != spec.prefab;
+        if (renaming)
+        {
+            string renameError = AssetDatabase.RenameAsset(spec.assetPath, spec.newName);
+            if (!string.IsNullOrEmpty(renameError))
+            {
+                Debug.LogError($"{config.LogPrefix}: could not rename '{spec.prefab}' to '{spec.newName}': {renameError}. The prefab was left unchanged.");
+                return false;
+            }
+
+            // RenameAsset keeps the folder and extension, so the GUID - already known, since the Roster
+            // row is keyed on it - is the simplest authoritative way to recover the new path, rather
+            // than re-deriving it from spec.assetPath by hand.
+            spec.assetPath = AssetDatabase.GUIDToAssetPath(spec.guid);
+        }
+
         using PrefabUtility.EditPrefabContentsScope scope = new(spec.assetPath);
         GameObject root = scope.prefabContentsRoot;
         Character character = root.GetComponent<Character>();
@@ -338,6 +425,11 @@ public static class RosterSheetSync
             Debug.LogError($"{config.LogPrefix}: {spec.assetPath} has no Character component - the template must have changed.");
             return false;
         }
+
+        // RenameAsset only renames the FILE - the root GameObject's own serialized name is a separate
+        // field that does not follow along on its own, same reason EnemyRosterGenerator sets this
+        // explicitly on a freshly copied template.
+        if (renaming) { root.name = spec.newName; }
 
         SerializedObject so = new(character);
 
@@ -361,6 +453,7 @@ public static class RosterSheetSync
         so.ApplyModifiedProperties();
 
         Debug.Log($"{config.LogPrefix}: updated {spec.assetPath}"
+                  + (renaming ? $" (renamed from '{spec.prefab}')" : "")
                   + (spec.changed is { Count: > 0 } ? $" ({string.Join("; ", spec.changed)})" : ""));
 
         return true;

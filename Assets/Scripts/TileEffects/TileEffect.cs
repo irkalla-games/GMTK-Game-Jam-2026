@@ -32,8 +32,9 @@ public abstract class TileEffect
     /// pathing via Board.IsWalkable all honour it for free.
     public virtual string EnterRefusal(Character mover, GridTile tile) => null;
 
-    /// The end of the player turn - see GridManager.TickTileEffects and BattleManager.RunBattle. Wall
-    /// of Flames bites here, then decrements, same order Poison bites-then-decays.
+    /// The end of the round, after the enemies have acted - see GridManager.TickTileEffects and
+    /// BattleManager.RunBattle. Wall of Flames bites here, then decrements, same order Poison
+    /// bites-then-decays.
     public virtual void OnTurnEnd(GridTile tile) { }
 
     /// Folds a fresh application of this same type into the one already on the tile. Adding, the same

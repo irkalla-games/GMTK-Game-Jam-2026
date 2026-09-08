@@ -8,10 +8,14 @@ using UnityEngine;
 /// scene. That is the whole point - brains take a Board and can be reasoned about (and tested)
 /// without opening the Editor, and they cannot accidentally move a real character while deciding.
 ///
-/// Deliberately has no Clone() or Apply(). Those exist to chain a simulated plan several steps ahead,
-/// and this game does not need one: only an enemy's first action is committed, and every action after
-/// it is decided fresh against the live board. Simulating ahead would produce a plan that is thrown
-/// away. Read() once per decision instead.
+/// Deliberately has no Clone() or Apply(). BattleManager.DecidePlan does forecast several of an
+/// enemy's action points ahead now - every icon in the overhead intent row is a locked promise, not
+/// just the first - but it does that by moving the real Character onto a simulated Move's
+/// destination and calling GridManager.Instance.Read() again, rather than by mutating a cloned Board
+/// in place. A Board is a read-only snapshot of true occupancy; a step that changes where someone
+/// stands has to change where they really stand for that Read() to agree with everything else asking
+/// the same question (Card.Refusal's range check among them), so cloning this and editing the clone
+/// would just be a second, disagreeing answer.
 /// </summary>
 public class Board
 {

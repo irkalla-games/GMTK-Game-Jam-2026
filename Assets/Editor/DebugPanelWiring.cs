@@ -33,7 +33,14 @@ public static class DebugPanelWiring
     /// against, so the window cannot be left to grow with its content the way the pause and
     /// settings windows do. This is the same constraint PartySheetStyling records for the party
     /// sheet column.
-    private static readonly Vector2 WindowSize = new(1420f, 820f);
+    ///
+    /// 900, not the original 820: the left column's VerticalLayoutGroup sets minHeight equal to
+    /// preferredHeight on every row (see BuildPanel), so it cannot compress - a row that does not
+    /// fit is not squeezed, it overflows the window. Hero + Browse + Search (3x66) + two group
+    /// labels (2x49.5) + five buttons (5x64) + nine 6px gaps (54) = 671px of content against the
+    /// 616px Split gets out of an 820 window (820 - 48 padding - 64 header - 68 footer - 24
+    /// spacing). 900 leaves 696, a real margin rather than a rounding accident.
+    private static readonly Vector2 WindowSize = new(1420f, 900f);
 
     private const float LeftColumnWidth = 460f;
 
@@ -130,8 +137,8 @@ public static class DebugPanelWiring
         // column, so it fits again. The prune is what removes the scroll and its Viewport -
         // without it the rows would exist BOTH here and inside the old scroll content, which is
         // exactly the duplication that appeared when the scroll was added.
-        SharpSkin.PruneChildren(left, "HeroRow", "BrowseRow", "CharacterGroup",
-            "RefillRow", "HealRow", "DrawRow", "DiscardRow");
+        SharpSkin.PruneChildren(left, "HeroRow", "BrowseRow", "SearchRow", "CharacterGroup",
+            "RefillRow", "HealRow", "DrawRow", "DiscardRow", "BoardGroup", "KillRow");
 
         VerticalLayoutGroup leftLayout = SharpSkin.Ensure<VerticalLayoutGroup>(left.gameObject);
         leftLayout.spacing = PanelPalette.SettingsRowSpacing;
@@ -156,6 +163,10 @@ public static class DebugPanelWiring
         // column, and this is navigation rather than an action.
         TMP_Dropdown browse = SettingsRowBuilder.DropdownRow(left, "BrowseRow", "Browse");
 
+        // Filters the grid in every mode, unlike Class/Rarity which only apply to Cards - so it
+        // sits with Hero/Browse rather than inside the card browser itself.
+        TMP_InputField search = SettingsRowBuilder.SearchRow(left, "SearchRow", "search...");
+
         // Stacked one per row rather than in a bar: at four across, "Discard Hand" wrapped onto
         // two lines inside a 52px button.
         SettingsRowBuilder.GroupLabel(left, "CharacterGroup", "Character");
@@ -165,16 +176,41 @@ public static class DebugPanelWiring
         Button draw = SettingsRowBuilder.ButtonBar(left, "DrawRow", "Draw")[0];
         Button discard = SettingsRowBuilder.ButtonBar(left, "DiscardRow", "Discard Hand")[0];
 
+        // A separate group from Character: the four rows above act on the selected hero, this one
+        // acts on the board regardless of who is selected.
+        SettingsRowBuilder.GroupLabel(left, "BoardGroup", "Board");
+
+        Button kill = SettingsRowBuilder.ButtonBar(left, "KillRow", "Kill All Enemies")[0];
+
+        // Stated, not implied by creation order. EnsureChild finds-or-creates but never repositions
+        // a child that already existed from an earlier run of this command - only a brand-new one is
+        // appended, at the end, in whatever order it was created. On a scene that already had a
+        // debug panel, SearchRow/BoardGroup/KillRow are all new and so all landed after DiscardRow
+        // rather than where the calls above suggest - exactly the bug BuildBrowser's GridColumn/
+        // DetailPane fix already exists for.
+        SharpSkin.EnsureChild(left, "HeroRow").SetSiblingIndex(0);
+        SharpSkin.EnsureChild(left, "BrowseRow").SetSiblingIndex(1);
+        SharpSkin.EnsureChild(left, "SearchRow").SetSiblingIndex(2);
+        SharpSkin.EnsureChild(left, "CharacterGroup").SetSiblingIndex(3);
+        SharpSkin.EnsureChild(left, "RefillRow").SetSiblingIndex(4);
+        SharpSkin.EnsureChild(left, "HealRow").SetSiblingIndex(5);
+        SharpSkin.EnsureChild(left, "DrawRow").SetSiblingIndex(6);
+        SharpSkin.EnsureChild(left, "DiscardRow").SetSiblingIndex(7);
+        SharpSkin.EnsureChild(left, "BoardGroup").SetSiblingIndex(8);
+        SharpSkin.EnsureChild(left, "KillRow").SetSiblingIndex(9);
+
         Button back = BuildFooterButton(window);
 
         so.FindProperty("root").objectReferenceValue = root.gameObject;
         so.FindProperty("backButton").objectReferenceValue = back;
         so.FindProperty("heroDropdown").objectReferenceValue = hero;
         so.FindProperty("browseDropdown").objectReferenceValue = browse;
+        so.FindProperty("searchField").objectReferenceValue = search;
         so.FindProperty("refillEnergyButton").objectReferenceValue = refill;
         so.FindProperty("healButton").objectReferenceValue = heal;
         so.FindProperty("drawCardButton").objectReferenceValue = draw;
         so.FindProperty("discardHandButton").objectReferenceValue = discard;
+        so.FindProperty("killEnemiesButton").objectReferenceValue = kill;
         so.FindProperty("glossary").objectReferenceValue = Load<Glossary>(GlossaryPath);
         so.FindProperty("cardLibrary").objectReferenceValue = Load<CardLibrary>(CardLibraryPath);
         so.FindProperty("equipmentLibrary").objectReferenceValue = Load<EquipmentLibrary>(EquipmentLibraryPath);

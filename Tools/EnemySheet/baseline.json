@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-09-05T08:45:46.5260857Z",
+    "writtenUtc":  "2026-09-08T01:41:14.6721614Z",
     "bodies":  [
                    {
                        "guid":  "eaade4b777fd45447af03588cf3692e5",
@@ -11,20 +11,24 @@
                                        "Targeting":  "",
                                        "LootTable":  "",
                                        "Deck":  "EnemySlash|EnemySlash|MoveInnate|MoveInnate",
-                                       "Role":  "None"
+                                       "Role":  "None",
+                                       "Name":  "SkeletonAlly",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "51cc0c0b40e7b264ebdf1dc4594559a6",
                        "columns":  {
                                        "DisplayName":  "Bat",
-                                       "Health":  "15",
+                                       "Health":  "20",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "Weakest",
+                                       "Targeting":  "TotemClosest",
                                        "LootTable":  "",
                                        "Deck":  "Bite|Bite|Bite|Bite|MoveInnate2",
-                                       "Role":  "Both"
+                                       "Role":  "Frontline",
+                                       "Name":  "Bat",
+                                       "Brandon":  "1"
                                    }
                    },
                    {
@@ -37,189 +41,219 @@
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
                                        "Deck":  "ClawAttack|ClawAttack|ClawAttack|ClawAttack|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Crab",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "e40f592bea6dbd64693626dad514798b",
                        "columns":  {
                                        "DisplayName":  "Ranger",
-                                       "Health":  "15",
+                                       "Health":  "25",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
-                                       "Targeting":  "RangerTargeting",
+                                       "Targeting":  "Totem15Closest",
                                        "LootTable":  "",
-                                       "Deck":  "EnemyArrow|EnemyArrow|EnemyArrow|EnemyArrow|MoveInnate",
-                                       "Role":  "Backline"
+                                       "Deck":  "EnemyArrow|EnemyArrow|EnemyArrow|EnemyArrow|MoveInnate2",
+                                       "Role":  "Backline",
+                                       "Name":  "EnemyRanger",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "158567c6103052b45a79feac134a4c3b",
                        "columns":  {
                                        "DisplayName":  "Flying Eye",
-                                       "Health":  "10",
+                                       "Health":  "15",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
-                                       "Targeting":  "Furthest",
+                                       "Targeting":  "Totem15Closest",
                                        "LootTable":  "",
                                        "Deck":  "WitheringGaze|WitheringGaze|WitheringGaze|WitheringGaze|MoveInnate",
-                                       "Role":  "Backline"
+                                       "Role":  "Backline",
+                                       "Name":  "FlyingEye",
+                                       "Brandon":  "1.50"
                                    }
                    },
                    {
                        "guid":  "fe7fe8169a3ae3f4ab1463af48263a1a",
                        "columns":  {
                                        "DisplayName":  "Goblin",
-                                       "Health":  "14",
-                                       "ActionsPerTurn":  "2",
+                                       "Health":  "20",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "Backstab|Backstab|Backstab|Backstab|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Deck":  "Backstab|Backstab|Backstab|Backstab|MoveInnate2",
+                                       "Role":  "Frontline",
+                                       "Name":  "Goblin",
+                                       "Brandon":  "1"
                                    }
                    },
                    {
                        "guid":  "5bdb828176c88144986e3b367ffda1b4",
                        "columns":  {
                                        "DisplayName":  "Golem",
-                                       "Health":  "30",
+                                       "Health":  "60",
                                        "ActionsPerTurn":  "1",
-                                       "Brain":  "Warrior",
+                                       "Brain":  "Summoner",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
-                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|BoulderSmash|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Deck":  "BoulderSmash|BoulderSmash|BoulderSmash|SummonPebble|MoveInnate",
+                                       "Role":  "Frontline",
+                                       "Name":  "Golem",
+                                       "Brandon":  "2.50"
                                    }
                    },
                    {
                        "guid":  "abb6f217c283d344999e3f27fa36640f",
                        "columns":  {
                                        "DisplayName":  "Heavy Bandit",
-                                       "Health":  "22",
+                                       "Health":  "50",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Strongest",
                                        "LootTable":  "",
                                        "Deck":  "HeavySwing|HeavySwing|HeavySwing|HeavySwing|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "HeavyBandit",
+                                       "Brandon":  "2.50"
                                    }
                    },
                    {
                        "guid":  "df52b2ab92f38fd4eb6d6064e8197a56",
                        "columns":  {
                                        "DisplayName":  "Light Bandit",
-                                       "Health":  "12",
-                                       "ActionsPerTurn":  "2",
+                                       "Health":  "30",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
                                        "LootTable":  "",
-                                       "Deck":  "QuickCut|QuickCut|QuickCut|QuickCut|MoveInnate",
-                                       "Role":  "Backline"
+                                       "Deck":  "QuickCut|QuickCut|VenomCut|VenomCut|MoveInnate2",
+                                       "Role":  "Backline",
+                                       "Name":  "LightBandit",
+                                       "Brandon":  "1.50"
                                    }
                    },
                    {
                        "guid":  "022c86b9aa20aaf44806e866dd6d8971",
                        "columns":  {
                                        "DisplayName":  "Mimic",
-                                       "Health":  "26",
+                                       "Health":  "35",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "Closest",
+                                       "Targeting":  "ClosestIgnoreTotem",
                                        "LootTable":  "",
                                        "Deck":  "Chomp|Chomp|Chomp|Chomp|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Mimic",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "f04aa7787f30bab4a96433807a0f06a5",
                        "columns":  {
                                        "DisplayName":  "Mushroom",
-                                       "Health":  "13",
+                                       "Health":  "30",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
                                        "Targeting":  "Closest",
-                                       "LootTable":  "PoisonSkeleton",
+                                       "LootTable":  "EarlyGame",
                                        "Deck":  "SporeCloud|SporeCloud|SporeCloud|SporeCloud|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Mushroom",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "cffb630e9ce4c0f4798ae3e294d1d8e8",
                        "columns":  {
                                        "DisplayName":  "Pebble",
-                                       "Health":  "6",
+                                       "Health":  "5",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "Closest",
+                                       "Targeting":  "TotemClosest",
                                        "LootTable":  "",
-                                       "Deck":  "Roll|Roll|Roll|Roll|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Deck":  "Roll|Roll|Roll|Roll|MoveInnate2",
+                                       "Role":  "Frontline",
+                                       "Name":  "Pebble",
+                                       "Brandon":  "0.50"
                                    }
                    },
                    {
                        "guid":  "37960ead296e23e4ca189530884917c3",
                        "columns":  {
                                        "DisplayName":  "Plague Rat",
-                                       "Health":  "11",
-                                       "ActionsPerTurn":  "2",
+                                       "Health":  "25",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "Weakest",
-                                       "LootTable":  "PoisonSkeleton",
+                                       "Targeting":  "Closest",
+                                       "LootTable":  "EarlyGame",
                                        "Deck":  "PlagueBite|PlagueBite|PlagueBite|PlagueBite|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "PlagueRat",
+                                       "Brandon":  "1.50"
                                    }
                    },
                    {
                        "guid":  "b9a57d66ac78e19468a62c235ce3e746",
                        "columns":  {
                                        "DisplayName":  "Rat",
-                                       "Health":  "9",
-                                       "ActionsPerTurn":  "2",
+                                       "Health":  "25",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
-                                       "LootTable":  "",
+                                       "LootTable":  "EarlyGame",
                                        "Deck":  "Gnaw|Gnaw|Gnaw|Gnaw|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Rat",
+                                       "Brandon":  "1"
                                    }
                    },
                    {
                        "guid":  "909b3cba860296d47997ee7846ec93f8",
                        "columns":  {
                                        "DisplayName":  "Skeleton",
-                                       "Health":  "25",
+                                       "Health":  "30",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
                                        "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Skeleton",
+                                       "Brandon":  "1.50"
                                    }
                    },
                    {
                        "guid":  "d1b7793de9d268945bdf70cf0af39a94",
                        "columns":  {
                                        "DisplayName":  "Skeleton Warrior",
-                                       "Health":  "35",
+                                       "Health":  "40",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "WarriorTargeting",
+                                       "Targeting":  "Closest",
                                        "LootTable":  "EarlyGame",
-                                       "Deck":  "EnemySlash|MoveInnate|EnemySlash|EnemySlash|EnemySlash",
-                                       "Role":  "Frontline"
+                                       "Deck":  "EnemySlash|MoveInnate2|EnemySlash|EnemySlash|EnemySlash",
+                                       "Role":  "Frontline",
+                                       "Name":  "SkeletonWarrior",
+                                       "Brandon":  "3"
                                    }
                    },
                    {
                        "guid":  "40cab8c86b3615741ac4bc8db8156b37",
                        "columns":  {
                                        "DisplayName":  "Skull",
-                                       "Health":  "7",
+                                       "Health":  "15",
                                        "ActionsPerTurn":  "1",
-                                       "Brain":  "Warrior",
-                                       "Targeting":  "Random",
+                                       "Brain":  "Ranger",
+                                       "Targeting":  "Totem30Closest",
                                        "LootTable":  "",
                                        "Deck":  "BoneChill|BoneChill|BoneChill|BoneChill|MoveInnate",
-                                       "Role":  "Backline"
+                                       "Role":  "Backline",
+                                       "Name":  "Skull",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -232,33 +266,39 @@
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
                                        "Deck":  "Engulf|Engulf|Engulf|Engulf|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "Slime",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
                        "guid":  "a759c0567adbde54f8e686c473b037cd",
                        "columns":  {
                                        "DisplayName":  "Spiked Slime",
-                                       "Health":  "16",
+                                       "Health":  "25",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
                                        "Deck":  "SpikeBurst|SpikeBurst|SpikeBurst|SpikeBurst|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "SpikedSlime",
+                                       "Brandon":  "1.50"
                                    }
                    },
                    {
                        "guid":  "e2566430033deb14c9d648e67fdf80e4",
                        "columns":  {
                                        "DisplayName":  "Vampire Bat",
-                                       "Health":  "9",
-                                       "ActionsPerTurn":  "2",
+                                       "Health":  "20",
+                                       "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
-                                       "Targeting":  "Weakest",
+                                       "Targeting":  "TotemClosest",
                                        "LootTable":  "",
-                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|LifeLeech|MoveInnate",
-                                       "Role":  "Backline"
+                                       "Deck":  "LifeLeech|LifeLeech|LifeLeech|LifeLeech|MoveInnate2",
+                                       "Role":  "Backline",
+                                       "Name":  "VampireBat",
+                                       "Brandon":  "2"
                                    }
                    },
                    {
@@ -271,7 +311,9 @@
                                        "Targeting":  "Closest",
                                        "LootTable":  "",
                                        "Deck":  "BoneBulwark|BoneBulwark|BoneBulwark|MoveInnate|MoveInnate",
-                                       "Role":  "Frontline"
+                                       "Role":  "Frontline",
+                                       "Name":  "BrittleSkeleton",
+                                       "Brandon":  ""
                                    }
                    }
                ]

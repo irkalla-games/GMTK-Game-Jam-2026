@@ -22,6 +22,7 @@ public static class EnemySheetImporter
         SyncTitle = "Sync Enemies With Sheet",
         WorkbookName = "Docs/EnemySheets.xlsx",
         RefreshMenuPath = "Tools > Enemies > Refresh Sheet From Unity",
+        GoogleWorkbook = GoogleBridgeSync.Workbook.Enemies,
     };
 
     /// <summary>The everyday action: reconcile the workbook and the prefabs in both directions.</summary>

@@ -70,11 +70,19 @@ public class DebugPanel : Singleton<DebugPanel>
 
     [SerializeField] private Button discardHandButton;
 
+    [Tooltip("Acts on the board, not the selected hero - clears every Enemy/EnemyAllied character "
+             + "through the ordinary death path.")]
+    [SerializeField] private Button killEnemiesButton;
+
     [Tooltip("How many stacks Apply Status grants. A constant rather than an input field - a number box "
              + "is a lot of UI for a value that is almost always 1 or 2.")]
     [SerializeField] private int statusStacks = 2;
 
     [Header("Browser")]
+    [Tooltip("Filters the grid by name in every mode, unlike the class/rarity filters below which only "
+             + "apply to Cards.")]
+    [SerializeField] private TMP_InputField searchField;
+
     [SerializeField] private DebugTile tileTemplate;
 
     [SerializeField] private RectTransform tileGridContent;
@@ -147,9 +155,22 @@ public class DebugPanel : Singleton<DebugPanel>
 
         if (discardHandButton != null) { discardHandButton.onClick.AddListener(DiscardHand); }
 
+        if (killEnemiesButton != null) { killEnemiesButton.onClick.AddListener(KillAllEnemies); }
+
         if (actionButton != null) { actionButton.onClick.AddListener(PrimaryAction); }
 
         if (browseDropdown != null) { browseDropdown.onValueChanged.AddListener(OnBrowseChanged); }
+
+        // Selection is an index into a list the query is about to change underneath it - same
+        // reason OnBrowseChanged clears it on a mode switch.
+        if (searchField != null)
+        {
+            searchField.onValueChanged.AddListener(_ =>
+            {
+                selected = -1;
+                Refresh();
+            });
+        }
 
         // The template is a styled tile that must never be visible itself - it exists to be cloned.
         if (tileTemplate != null) { tileTemplate.gameObject.SetActive(false); }
@@ -170,6 +191,9 @@ public class DebugPanel : Singleton<DebugPanel>
     {
         if (Keyboard.current == null) { return; }
 
+        // Otherwise a backtick typed into the search field also closes the panel out from under it.
+        if (searchField != null && searchField.isFocused) { return; }
+
         if (!Keyboard.current.backquoteKey.wasPressedThisFrame) { return; }
 
         if (IsOpen) { Close(); return; }
@@ -186,6 +210,10 @@ public class DebugPanel : Singleton<DebugPanel>
         IsOpen = true;
 
         if (root != null) { root.SetActive(true); }
+
+        // A query left over from the last open would silently hide most of the grid with no
+        // obvious cause - unlike Class/Rarity, which stay at "All" already.
+        if (searchField != null) { searchField.SetTextWithoutNotify(string.Empty); }
 
         RebuildHeroes();
         BuildBrowseOptions();
@@ -282,7 +310,7 @@ public class DebugPanel : Singleton<DebugPanel>
 
                 foreach (EquipmentData item in equipmentLibrary.Items)
                 {
-                    if (item != null) { visibleEquipment.Add(item); }
+                    if (item != null && Matches(item.equipmentName)) { visibleEquipment.Add(item); }
                 }
 
                 break;
@@ -292,7 +320,7 @@ public class DebugPanel : Singleton<DebugPanel>
 
                 foreach (EnemyRegistryEntry entry in enemyRegistry.Entries)
                 {
-                    if (entry.prefab != null) { visibleEnemies.Add(entry.prefab); }
+                    if (entry.prefab != null && Matches(entry.prefab.name)) { visibleEnemies.Add(entry.prefab); }
                 }
 
                 break;
@@ -338,8 +366,22 @@ public class DebugPanel : Singleton<DebugPanel>
 
             if (wantedRarity >= 0 && (int)card.rarity != wantedRarity) { continue; }
 
+            if (!Matches(card.cardName)) { continue; }
+
             visibleCards.Add(card);
         }
+    }
+
+    /// <summary>
+    /// Whether the search field's query matches a tile's own label - so what you type is compared
+    /// against exactly the text the grid already shows, in every mode.
+    /// </summary>
+    private bool Matches(string label)
+    {
+        if (searchField == null || string.IsNullOrWhiteSpace(searchField.text)) { return true; }
+
+        return label != null
+            && label.IndexOf(searchField.text.Trim(), System.StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     /// <summary>
@@ -359,6 +401,8 @@ public class DebugPanel : Singleton<DebugPanel>
             if (type == StatusType.Taunt || type == StatusType.GainMultiplier) { continue; }
 
             if (type == StatusType.Potency || type == StatusType.TurnTick) { continue; }
+
+            if (!Matches(type.ToString())) { continue; }
 
             visibleStatuses.Add(type);
         }
@@ -398,6 +442,8 @@ public class DebugPanel : Singleton<DebugPanel>
         if (summon.SummonedObject == null) { return; }
 
         if (!seen.Add(summon.SummonedObject)) { return; }
+
+        if (!Matches(summon.SummonedObject.name)) { return; }
 
         visibleTotems.Add(summon);
     }
@@ -911,5 +957,36 @@ public class DebugPanel : Singleton<DebugPanel>
         Character hero = SelectedHero();
 
         if (hero != null) { hero.DiscardHand(); }
+    }
+
+    /// <summary>
+    /// Clears every hostile off the board. Enemy and EnemyAllied only - a totem, wall, summoned Ally
+    /// or Neutral is not what "enemies" means here, even though BattleManager.LivingEnemies counts
+    /// them all the same way for turn order.
+    ///
+    /// TakeUnblockableDamage, not TakeDamage: it runs no OnTakeDamage hooks, so a Shield cannot soak
+    /// the kill and a Parry cannot reflect it back into a hero. Death itself is still the ordinary
+    /// path - Character.CheckDeath fires Died, so loot drops and
+    /// BattleManager.HandleCharacterDied destroys the body exactly as it would in combat.
+    ///
+    /// A snapshot copy, not the live list - the same reason BattleManager.LivingEnemies takes one:
+    /// a death here removes the character from BattleManager.Characters mid-loop.
+    /// </summary>
+    private void KillAllEnemies()
+    {
+        if (BattleManager.Instance == null) { return; }
+
+        foreach (Character character in new List<Character>(BattleManager.Instance.Characters))
+        {
+            if (character == null || character.IsDead) { continue; }
+
+            if (character.Affiliation != PlayableCharacter.Enemy
+                && character.Affiliation != PlayableCharacter.EnemyAllied)
+            {
+                continue;
+            }
+
+            character.TakeUnblockableDamage(character.Health);
+        }
     }
 }

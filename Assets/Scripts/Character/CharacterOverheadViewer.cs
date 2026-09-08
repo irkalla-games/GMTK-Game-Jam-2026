@@ -39,6 +39,11 @@ public class CharacterOverheadViewer : MonoBehaviour
              + "intentIcon is empty.")]
     [SerializeField] private IntentDamageLabel damageLabel = new();
 
+    [Tooltip("One more icon per action point past the first, for a character whose Character.ActionPoints "
+             + "is above 1 - mainly bosses. Built beside intentRoll's own window, same as damageLabel; "
+             + "unused if intentIcon is empty.")]
+    [SerializeField] private IntentRow intentRow = new();
+
     [Header("Status icons")]
     [Tooltip("Small glyph row pooled under this - a point anchor to the left of the bar and clear of "
              + "it vertically, growing further left as more stack up. Leave empty to skip this "
@@ -92,6 +97,10 @@ public class CharacterOverheadViewer : MonoBehaviour
             // Must run after Build - the label anchors to intentRoll.Window, which Build is what
             // creates.
             damageLabel.Build(intentRoll.Window);
+
+            // Same ordering requirement - the row lays its own slots out from the primary window's
+            // and damage label's current geometry.
+            intentRow.Build(intentRoll.Window, damageLabel);
         }
 
         if (healthFill != null) { previewFill = DamagePreviewFill.Build(healthFill); }
@@ -136,12 +145,13 @@ public class CharacterOverheadViewer : MonoBehaviour
 
         // Set directly rather than through RefreshIntent/intentRoll.Play - a freshly spawned enemy's
         // first icon should not fall in while its own spawn scale-in is still playing.
-        shownKind = character.CommittedIntent.kind;
+        IReadOnlyList<Intent> plan = character.CommittedPlan;
+        shownKind = plan.Count > 0 ? plan[0].kind : IntentKind.Wait;
 
         if (intentIcon != null)
         {
             intentRoll.Show(icons != null ? icons.For(shownKind) : null);
-            RefreshIntentDamage(character.CommittedIntent);
+            RefreshIntentDamage(plan);
         }
     }
 
@@ -158,6 +168,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
 
         intentRoll.Kill();
+        intentRow.Kill();
     }
 
     private void OnStatsChanged(Character _)
@@ -168,7 +179,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         // The damage number is this character's own outgoing side (Strength, Weaken, Double Attack),
         // so it has to repaint on the same signal as the health bar - see Card.OutgoingDamage's own
         // doc comment for why the defender's side is deliberately not watched here.
-        RefreshIntentDamage(character.CommittedIntent);
+        RefreshIntentDamage(character.CommittedPlan);
     }
 
     private void OnTurnAdvanced()
@@ -186,7 +197,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         // A totem's aura is pulled, not pushed (see Totem/Aura) - summoning or destroying one near
         // this character never raises its own StatsChanged, only an action resolving somewhere on the
         // board. Same reasoning RefreshStatusIcons above already relies on this event for.
-        RefreshIntentDamage(character.CommittedIntent);
+        RefreshIntentDamage(character.CommittedPlan);
     }
 
     /// <summary>
@@ -223,12 +234,14 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         if (intentIcon == null) { return; }
 
-        Intent intent = character.CommittedIntent;
+        IReadOnlyList<Intent> plan = character.CommittedPlan;
+        Intent intent = plan.Count > 0 ? plan[0] : Intent.Wait();
 
         // Repaints on every IntentChanged, unlike the roll below - a re-aim onto a different tile or
         // victim keeps the same kind (so the icon does not roll) but can still change what the locked
-        // card would hit for, e.g. a splash card now catching one more character.
-        RefreshIntentDamage(intent);
+        // card would hit for, e.g. a splash card now catching one more character. Also repaints every
+        // follow-up icon and number the same way, and re-lays the row out to match.
+        RefreshIntentDamage(plan);
 
         IntentKind next = intent.kind;
 
@@ -249,15 +262,22 @@ public class CharacterOverheadViewer : MonoBehaviour
     /// entirely - a Move/Summon/Wait intent has no victim to show one about, and GameSettings can turn
     /// the whole feature off. Deliberately does not depend on anything the defender is carrying - see
     /// Card.OutgoingDamage's own doc comment for why that is the point, not a gap.
+    ///
+    /// Also drives every follow-up icon in the row from the rest of `plan` - see IntentRow.Show, which
+    /// applies the same guard to each of its own slots.
     /// </summary>
-    private void RefreshIntentDamage(Intent intent)
+    private void RefreshIntentDamage(IReadOnlyList<Intent> plan)
     {
+        Intent intent = plan.Count > 0 ? plan[0] : Intent.Wait();
+
         bool show = GameSettings.ShowIntentDamage
                     && intent.kind == IntentKind.Attack
                     && intent.card != null
                     && GridManager.Instance != null;
 
         damageLabel.Show(show ? intent.card.OutgoingDamage(character, GridManager.Instance.GetTile(intent.target)) : 0);
+
+        intentRow.Show(plan, icons, character);
     }
 
     /// <summary>

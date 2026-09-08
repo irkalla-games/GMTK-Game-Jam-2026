@@ -125,6 +125,16 @@ public static class EquipmentSheetImporter
             EditorUtility.DisplayProgressBar("Sync Equipment With Sheet", "Refreshing the modifier schema...", 0.05f);
             EquipmentModifierSchema.WriteIfChanged();
 
+            // Pull only after the schema is current - the Modifiers/Card Tuning tabs' column lists come
+            // from modifier-schema.json (see Push/Pull-GoogleSheet.ps1's Resolve-TabSpec), and pulling
+            // against a stale schema could disagree with what was last pushed.
+            EditorUtility.DisplayProgressBar("Sync Equipment With Sheet", "Pulling from Google Sheets...", 0.08f);
+            if (!GoogleBridgeSync.Pull(GoogleBridgeSync.Workbook.Equipment))
+            {
+                Debug.LogError("Equipment sheet sync: stopped - could not pull phone edits from Google Sheets. See the error above.");
+                return;
+            }
+
             EditorUtility.DisplayProgressBar("Sync Equipment With Sheet", "Reading the workbook...", 0.15f);
             if (!SheetSyncProcess.Run(ImportScript, string.Empty)) { return; }
 
@@ -147,6 +157,9 @@ public static class EquipmentSheetImporter
 
             EditorUtility.DisplayProgressBar("Sync Equipment With Sheet", "Refreshing the workbook...", 0.85f);
             SheetSyncProcess.Run(ExportScript, "-WriteBaseline");
+
+            EditorUtility.DisplayProgressBar("Sync Equipment With Sheet", "Pushing to Google Sheets...", 0.97f);
+            GoogleBridgeSync.Push(GoogleBridgeSync.Workbook.Equipment);
         }
         finally
         {

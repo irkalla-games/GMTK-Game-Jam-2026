@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-08-23T01:24:39.2413582Z",
+    "writtenUtc":  "2026-09-08T01:51:48.4191938Z",
     "levels":  [
                    {
                        "guid":  "8c8f2f598a8bc824984510549a779d78",
@@ -28,6 +28,84 @@
                                    }
                    },
                    {
+                       "guid":  "5ee1061745b378a40ac3987579f221d9",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "999",
+                                       "HandSize":  "7",
+                                       "LootTable":  "",
+                                       "ClearRewardTable":  "",
+                                       "TileSets":  "",
+                                       "Layout":  "E:0,5,6,BrittleSkeleton,;0,7,6,BrittleSkeleton,;0,3,9,Golem,;0,8,9,Golem,|S:3,3;4,3;5,3;6,3"
+                                   }
+                   },
+                   {
+                       "guid":  "5e7b87325e799474f883eb502eba52a6",
+                       "columns":  {
+                                       "BoardWidth":  "5",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
+                                   }
+                   },
+                   {
+                       "guid":  "d352cbd577e24581b0c3129ce6af72d2",
+                       "columns":  {
+                                       "BoardWidth":  "5",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
+                                   }
+                   },
+                   {
+                       "guid":  "58e64b478fcae4c44a9419c049ec95f1",
+                       "columns":  {
+                                       "BoardWidth":  "6",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                   }
+                   },
+                   {
+                       "guid":  "be9f830c486d46be8a38463d15e5154f",
+                       "columns":  {
+                                       "BoardWidth":  "6",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                   }
+                   },
+                   {
+                       "guid":  "940ff72dd124457fbc13f820c0e2d439",
+                       "columns":  {
+                                       "BoardWidth":  "6",
+                                       "BoardHeight":  "6",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                   }
+                   },
+                   {
                        "guid":  "6abf9bedd410a2942ada5d2fc57f7438",
                        "columns":  {
                                        "BoardWidth":  "5",
@@ -37,7 +115,7 @@
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:0,3,5,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;0,1,6,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;0,5,6,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash;2,1,6,EnemyRanger,;2,5,6,EnemyRanger,;3,2,6,SkeletonWarrior,;5,2,6,SkeletonWarrior,;5,5,6,SkeletonWarrior,;6,2,6,SkeletonWarrior,;6,5,6,SkeletonWarrior,;8,2,6,SkeletonWarrior,;8,5,6,SkeletonWarrior,;9,2,6,SkeletonWarrior,;9,5,6,SkeletonWarrior,|S:3,4;3,3;4,1;5,1"
+                                       "Layout":  "E:0,3,3,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash;0,3,4,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;0,4,4,SkeletonWarrior,EnemySlash|EnemySlash|MoveInnate|EnemySlash|EnemySlash;2,1,6,EnemyRanger,;2,5,6,EnemyRanger,;3,2,6,SkeletonWarrior,;5,2,6,SkeletonWarrior,;5,5,6,SkeletonWarrior,;6,2,6,SkeletonWarrior,;6,5,6,SkeletonWarrior,;8,2,6,SkeletonWarrior,;8,5,6,SkeletonWarrior,;9,2,6,SkeletonWarrior,;9,5,6,SkeletonWarrior,|S:3,2;4,2;3,2;4,2"
                                    }
                    },
                    {
@@ -89,7 +167,7 @@
                                        "LootTable":  "TutorialSapDrop",
                                        "ClearRewardTable":  "",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,;2,3,4,SkeletonWarriorTutorial,;3,3,5,SkeletonWarriorTutorial,|S:3,3;2,3"
+                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,;2,1,4,SkeletonWarriorTutorial,;3,3,5,SkeletonWarriorTutorial,|S:2,3;3,3"
                                    }
                    }
                ],
@@ -102,9 +180,23 @@
                                  }
                  },
                  {
+                     "guid":  "749370125b87d994580b52e0d41fda20",
+                     "columns":  {
+                                     "Levels":  "DebugTestbed",
+                                     "CarryDamageBetweenLevels":  "FALSE"
+                                 }
+                 },
+                 {
                      "guid":  "1b9e3eb6bcdac0b41acc43559eb5fc29",
                      "columns":  {
                                      "Levels":  "Level1|Level2",
+                                     "CarryDamageBetweenLevels":  "FALSE"
+                                 }
+                 },
+                 {
+                     "guid":  "62594bea8b5f56b4898ebd6cc1323313",
+                     "columns":  {
+                                     "Levels":  "Level 1 - Random|Level 2 - Random|Level 3 - Random|Level 4 - Random|Level 5 - Boss",
                                      "CarryDamageBetweenLevels":  "FALSE"
                                  }
                  },

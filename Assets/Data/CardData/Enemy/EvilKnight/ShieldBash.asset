@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 4 damage. Gain 10 Shield.
+  <description>k__BackingField: Deal 4 damage. Gain 10 Shield and 2 Block.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -38,6 +38,17 @@ MonoBehaviour:
     amountDelta: 0
     amountPercent: 0
   - effect: {fileID: 11400000, guid: dae4490a1d0b1894482f41e08603a61c, type: 2}
+    aimsAt: 1
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  - effect: {fileID: 11400000, guid: 971d05e67ff19cb49a0c2a6e030045d8, type: 2}
     aimsAt: 1
     area:
       kind: 0

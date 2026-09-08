@@ -22,23 +22,25 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 06000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Summon a Heavy Bandit.
+  <description>k__BackingField: Summon a line of Heavy Bandits.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 8722fc7be9f06e049899fd25e745386e, type: 2}
     aimsAt: 0
     area:
-      kind: 0
+      kind: 2
       radius:
-        shape: 0
-        minDistance: 0
-        maxDistance: 0
-      pattern: {fileID: 0}
+        shape: 2
+        minDistance: 1
+        maxDistance: 1
+      pattern: {fileID: 11400000, guid: 8f79c6a0cdb32114494d00fc261c76fd, type: 2}
     amountDelta: 0
     amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField:
   - type: 2
     magnitude: 4
+  - type: 5
+    magnitude: 2
   <upgradedForm>k__BackingField: {fileID: 0}

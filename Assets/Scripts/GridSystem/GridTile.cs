@@ -332,7 +332,7 @@ public class GridTile : MonoBehaviour
     }
 
     /// Runs every tile effect's end-of-turn hook, then drops whatever just expired. See
-    /// GridManager.TickTileEffects - called once per round, at the end of the player turn, since a
+    /// GridManager.TickTileEffects - called once per round, at the end of the enemy turn, since a
     /// tile belongs to nobody's "own phase" the way a character's statuses do.
     public void TickTileEffects()
     {

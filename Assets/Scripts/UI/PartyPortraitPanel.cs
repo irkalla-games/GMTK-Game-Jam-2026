@@ -94,6 +94,11 @@ public class PartyPortraitPanel : MonoBehaviour
     {
         if (Keyboard.current == null || portraits.Count == 0) { return; }
 
+        // Otherwise a digit typed into the debug panel's search field also switches the active
+        // hero underneath it - and, pre-existing, so does a digit pressed through an open reward
+        // panel or the pause menu.
+        if (BattleManager.Instance != null && BattleManager.Instance.InputLocked) { return; }
+
         if (Keyboard.current.digit1Key.wasPressedThisFrame) { ActivateAt(0); }
         else if (Keyboard.current.digit2Key.wasPressedThisFrame) { ActivateAt(1); }
         else if (Keyboard.current.digit3Key.wasPressedThisFrame) { ActivateAt(2); }

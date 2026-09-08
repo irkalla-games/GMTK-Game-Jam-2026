@@ -433,6 +433,92 @@ public static class SettingsRowBuilder
     }
 
     /// <summary>
+    /// A caption-less search field, filtering whatever list sits below it regardless of mode.
+    ///
+    /// No caption: LeftColumnWidth is 460, and the standard 220px caption column would leave the field
+    /// only ~192px to type into. The placeholder text carries the label instead - the same reason
+    /// ButtonBar drops its caption too. The first TMP_InputField in the project's UI, built through
+    /// TMP's own factory for the same reason DropdownRow uses TMP_DefaultControls.CreateDropdown: a
+    /// text input's viewport/text/placeholder trio is a lot of structure whose only virtue would be
+    /// being hand-rolled.
+    /// </summary>
+    public static TMP_InputField SearchRow(RectTransform body, string objectName, string placeholder)
+    {
+        RectTransform row = SharpSkin.EnsureChild(body, objectName);
+
+        Image rowBackground = SharpSkin.Ensure<Image>(row.gameObject);
+        SharpSkin.ApplySliced(rowBackground, SharpSkin.Row);
+        rowBackground.raycastTarget = false;
+
+        HorizontalLayoutGroup layout = SharpSkin.Ensure<HorizontalLayoutGroup>(row.gameObject);
+        layout.padding = new RectOffset(PanelPalette.SettingsRowPaddingH, PanelPalette.SettingsRowPaddingH,
+            PanelPalette.SettingsRowPaddingV, PanelPalette.SettingsRowPaddingV);
+        layout.childAlignment = TextAnchor.MiddleLeft;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = true;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+
+        LayoutElement rowLayout = SharpSkin.Ensure<LayoutElement>(row.gameObject);
+        rowLayout.minHeight = PanelPalette.SettingsRowHeight;
+        rowLayout.preferredHeight = PanelPalette.SettingsRowHeight;
+        // Explicit 0, for the same reason every row in this file sets it - see the LayoutElement
+        // gotcha in CLAUDE.md. This row's own HorizontalLayoutGroup would otherwise answer
+        // flexibleHeight = 1 in its place, since childForceExpandHeight is true above.
+        rowLayout.flexibleHeight = 0f;
+        rowLayout.flexibleWidth = 1f;
+
+        TMP_InputField field = row.GetComponentInChildren<TMP_InputField>(includeInactive: true);
+
+        if (field == null)
+        {
+            GameObject created = TMP_DefaultControls.CreateInputField(TmpResources());
+            created.name = "InputField";
+            created.transform.SetParent(row, worldPositionStays: false);
+            field = created.GetComponent<TMP_InputField>();
+        }
+
+        LayoutElement fieldLayout = SharpSkin.Ensure<LayoutElement>(field.gameObject);
+        fieldLayout.preferredHeight = PanelPalette.WidgetHeight;
+        fieldLayout.minWidth = PanelPalette.WidgetMinWidth;
+        fieldLayout.flexibleWidth = 1f;
+
+        Image fieldImage = field.GetComponent<Image>();
+        SharpSkin.ApplySliced(fieldImage, SharpSkin.Input);
+        field.targetGraphic = fieldImage;
+
+        TMP_FontAsset font = SharpSkin.LoadFont();
+
+        if (field.textComponent != null)
+        {
+            if (font != null) { field.textComponent.font = font; }
+
+            field.textComponent.color = PanelPalette.Ink;
+            field.textComponent.fontSize = PanelPalette.WidgetTextSize;
+            field.textComponent.fontStyle = FontStyles.Normal;
+        }
+
+        // TMP_InputField.placeholder is typed as the base Graphic - any placeholder could be an
+        // Image instead of text - but TMP_DefaultControls.CreateInputField always gives it a
+        // TextMeshProUGUI, so this narrows back to the TMP_Text members that carry the caption.
+        if (field.placeholder is TMP_Text placeholderText)
+        {
+            if (font != null) { placeholderText.font = font; }
+
+            placeholderText.text = placeholder;
+            placeholderText.color = PanelPalette.LabelGrey;
+            placeholderText.fontSize = PanelPalette.WidgetTextSize;
+            placeholderText.fontStyle = FontStyles.Italic;
+        }
+
+        SharpSkin.PruneChildren(row, "InputField");
+
+        EditorUtility.SetDirty(field);
+
+        return field;
+    }
+
+    /// <summary>
     /// A caption on the left and one action button on the right.
     ///
     /// SettingsRowBuilder had no label-plus-button shape - every settings row ends in a widget that

@@ -106,7 +106,9 @@ function Write-EnemyWorkbook {
         $TargetingNames,
         $PreservedWeights,    # hashtable: pw_* name -> current Value, read back from the old workbook
         $PreservedRangeRows,  # array of @(Range, Power) pairs, same idea
-        $Preserved,       # hashtable: Prefab -> @{ Brandon = ...; Notes = ... }
+        $Preserved,       # hashtable: GUID -> @{ Brandon = ...; Notes = ... } (GUID, not Prefab, so a
+                          # renamed body's old tab is still found under its new name - see
+                          # Get-ExistingBodyPreserved in Export-EnemySheet.ps1)
         [string]$RepoRoot,
         $Domain,              # Get-RosterDomain result - every label and path that differs per workbook
         $SummonedReferences,  # array of @{ Prefab; Power; SummonedBy } - bodies owned by the OTHER workbook
@@ -148,7 +150,7 @@ function Write-EnemyWorkbook {
         Add-TotemSheet -Package $pkg -Totem $totem -Preserved $Preserved
     }
 
-    Add-RosterSheet -Package $pkg -Bodies $Bodies
+    Add-RosterSheet -Package $pkg -Bodies $Bodies -Preserved $Preserved
     Add-ReadmeSheet -Package $pkg -Domain $Domain -HasSummoned ($summoned.Count -gt 0) -PowerLevelLocked:$PowerLevelLocked
 
     Set-SheetOrder -Package $pkg -Bodies $Bodies -Totems $Totems -HasSummoned ($summoned.Count -gt 0)
@@ -305,7 +307,7 @@ function Add-BodySheet {
     }
 
     $pv = $null
-    if ($Preserved.ContainsKey($Body.Prefab)) { $pv = $Preserved[$Body.Prefab] }
+    if ($Preserved.ContainsKey($Body.Guid)) { $pv = $Preserved[$Body.Guid] }
     $ws.Cells[$row.Brandon, 1].Value = "Brandon's Power Level"
     if ($null -ne $pv -and $pv.Brandon -ne '' -and $null -ne $pv.Brandon) {
         $d = 0.0
@@ -580,8 +582,8 @@ function Add-TotemSheet {
     $notesRow = $r
     $ws.Cells[$notesRow, 1].Value = 'Notes'
     $ws.Cells[$notesRow, 1].Style.Font.Bold = $true
-    if ($Preserved.ContainsKey($Totem.Prefab) -and $Preserved[$Totem.Prefab].Notes) {
-        $ws.Cells[$notesRow, 2].Value = $Preserved[$Totem.Prefab].Notes
+    if ($Preserved.ContainsKey($Totem.Guid) -and $Preserved[$Totem.Guid].Notes) {
+        $ws.Cells[$notesRow, 2].Value = $Preserved[$Totem.Guid].Notes
     }
     $ws.Cells[$notesRow, 2].Style.WrapText = $true
 
@@ -597,16 +599,40 @@ function Add-TotemSheet {
 # ---------------------------------------------------------------------------------------------------
 
 function Add-RosterSheet {
-    param($Package, $Bodies)
+    <#
+        .SYNOPSIS
+            The bulk-edit grid: one row per body, Name/GUID/Boss identity up front, then the eight
+            designer-authored fields as PLAIN VALUES (not cross-tab formulas - EPPlus cannot read a
+            formula back out, so a column has to choose between being live and being editable), then the
+            derived scoring block, self-contained per row so it keeps updating as you type.
+
+        .DESCRIPTION
+            Name is the one column with a side effect: Import-EnemySheet.ps1 reads it against the GUID in
+            column B, and a changed Name is a rename request - see RosterSheetSync.WriteBody. Every other
+            editable column (Display Name, Health, Actions, Brain, Targeting, Loot Table, Role, Brandon's)
+            feeds the same three-way merge Read-BodySheetTab's copy already does, arbitrated one layer
+            earlier by Resolve-SheetPair against whatever the body tab holds for the same field.
+
+            Boss and Deck Size stay plain readouts - Boss is folder-derived (see Get-CharacterBody) and
+            Deck Size only exists on the body tab, whose Deck this feature does not make editable. Avg
+            Damage/Status/Summon/Card Power stay cross-tab formulas reading the body tab's own arithmetic
+            for the same reason - only Estimated/Effective Power/Delta/Flag are recomputed locally, from
+            this row's OWN Health/Actions/Brandon's, which is what keeps them live while you type instead
+            of reading stale until the next sync.
+
+            No Sync/NEW column: creating a body from this tab is out of scope (see RosterSheetSync's
+            class doc comment), so every row here is already Live and a Sync column would just be noise.
+    #>
+    param($Package, $Bodies, [hashtable]$Preserved = @{})
 
     $ws = $Package.Workbook.Worksheets.Add('Roster')
     $row = $script:BodyRow
 
-    $headers = @('Name', 'Boss', 'Role', 'Health', 'Actions', 'Brain', 'Targeting', 'Deck Size',
-                 'Avg Damage', 'Avg Status', 'Avg Summon', 'Avg Card Power',
-                 'Estimated', "Brandon's", 'Effective Power', 'Delta', 'Flag')
+    $headers = @('Name', 'GUID', 'Boss', 'Display Name', 'Health', 'Actions', 'Brain', 'Targeting',
+                 'Loot Table', 'Role', 'Deck Size', 'Avg Damage', 'Avg Status', 'Avg Summon',
+                 'Avg Card Power', 'Estimated', "Brandon's", 'Effective Power', 'Delta', 'Flag')
     for ($c = 0; $c -lt $headers.Count; $c++) { $ws.Cells[1, ($c + 1)].Value = $headers[$c] }
-    $ws.Cells['A1:Q1'].Style.Font.Bold = $true
+    $ws.Cells['A1:T1'].Style.Font.Bold = $true
 
     $ordered = @($Bodies | Sort-Object { $_.Prefab })
     for ($i = 0; $i -lt $ordered.Count; $i++) {
@@ -615,32 +641,53 @@ function Add-RosterSheet {
         $name = "'$($b.Prefab)'"
 
         $ws.Cells[$r, 1].Value = $b.Prefab
-        $ws.Cells[$r, 2].Value = if ($b.Boss) { 'Yes' } else { 'No' }
-        $ws.Cells[$r, 3].Formula = "$name!B$($row.Role)"
-        $ws.Cells[$r, 4].Formula = "$name!B$($row.Health)"
-        $ws.Cells[$r, 5].Formula = "$name!B$($row.Actions)"
-        $ws.Cells[$r, 6].Formula = "$name!B$($row.Brain)"
-        $ws.Cells[$r, 7].Formula = "$name!B$($row.Targeting)"
-        $ws.Cells[$r, 8].Value = @($b.Deck).Count
-        $ws.Cells[$r, 9].Formula = "$name!B$($row.AvgDamage)"
-        $ws.Cells[$r, 10].Formula = "$name!B$($row.AvgStatus)"
-        $ws.Cells[$r, 11].Formula = "$name!B$($row.AvgSummon)"
-        $ws.Cells[$r, 12].Formula = "$name!B$($row.AvgCardPower)"
-        $ws.Cells[$r, 13].Formula = "$name!B$($row.Estimated)"
-        $ws.Cells[$r, 14].Formula = "$name!B$($row.Brandon)"
+        $ws.Cells[$r, 2].Value = $b.Guid
+        $ws.Cells[$r, 3].Value = if ($b.Boss) { 'Yes' } else { 'No' }
+        $ws.Cells[$r, 4].Value = $b.DisplayName
+        $ws.Cells[$r, 5].Value = $b.MaxHealth
+        $ws.Cells[$r, 6].Value = $b.ActionPoints
+        $ws.Cells[$r, 7].Value = $b.Brain
+        $ws.Cells[$r, 8].Value = $b.Targeting
+        $ws.Cells[$r, 9].Value = $b.LootTable
+        $ws.Cells[$r, 10].Value = $b.Role
+        $ws.Cells[$r, 11].Value = @($b.Deck).Count
+        $ws.Cells[$r, 12].Formula = "$name!B$($row.AvgDamage)"
+        $ws.Cells[$r, 13].Formula = "$name!B$($row.AvgStatus)"
+        $ws.Cells[$r, 14].Formula = "$name!B$($row.AvgSummon)"
+        $ws.Cells[$r, 15].Formula = "$name!B$($row.AvgCardPower)"
+        # Local, not '<Prefab>'!B<row> - Health/Actions are now typed on THIS row, so reading the body
+        # tab's own Estimated would show a stale number until the next sync. Same formula shape as
+        # Add-BodySheet's, just pointed at this row's own cells instead of $B$<row>.
+        $ws.Cells[$r, 16].Formula = "IF(E$r=`"`",`"`",ROUND((O$r*F$r*pw_ActionScale+E$r*pw_Health)/pw_Divisor,3))"
+
+        $pv = $null
+        if ($Preserved.ContainsKey($b.Guid)) { $pv = $Preserved[$b.Guid] }
+        if ($null -ne $pv -and $pv.Brandon -ne '' -and $null -ne $pv.Brandon) {
+            $d = 0.0
+            if ([double]::TryParse([string]$pv.Brandon, [ref]$d)) { $ws.Cells[$r, 17].Value = $d }
+        }
+
         # Effective Power: what EncounterRoller actually draws against - Brandon's if authored, else
         # the Estimated formula's own result. Mirrors the resolution Import-EnemySheet.ps1 computes
         # independently when it writes Character.powerLevel, so this column is a live preview of that,
         # not the value's source.
-        $ws.Cells[$r, 15].Formula = "IF(N$r=`"`",M$r,N$r)"
-        $ws.Cells[$r, 16].Formula = "$name!B$($row.Delta)"
-        $ws.Cells[$r, 17].Formula =
-            "IF(P$r=`"`",`"`",IF(ABS(P$r)<=M$r*pw_Tolerance,`"OK`",IF(P$r>0,`"OVER`",`"UNDER`")))"
+        $ws.Cells[$r, 18].Formula = "IF(Q$r=`"`",P$r,Q$r)"
+        $ws.Cells[$r, 19].Formula = "IF(Q$r=`"`",`"`",ROUND(P$r-Q$r,3))"
+        $ws.Cells[$r, 20].Formula =
+            "IF(S$r=`"`",`"`",IF(ABS(S$r)<=P$r*pw_Tolerance,`"OK`",IF(S$r>0,`"OVER`",`"UNDER`")))"
     }
 
     $last = $ordered.Count + 1
     if ($ordered.Count -gt 0) {
-        $ws.Cells["I2:P$last"].Style.Numberformat.Format = '0.00'
+        $ws.Cells["L2:S$last"].Style.Numberformat.Format = '0.00'
+
+        foreach ($v in @(@(7, 'list_Brain'), @(8, 'list_Targeting'), @(9, 'list_Loot'), @(10, 'list_Role'))) {
+            $letter = Get-ExcelColumnName $v[0]
+            $dv = $ws.DataValidations.AddListValidation("$letter`2:$letter$last")
+            $dv.Formula.ExcelFormula = "=$($v[1])"
+            $dv.ShowErrorMessage = $false
+            $dv.AllowBlank = $true
+        }
 
         $verdicts = @(
             @('OVER',  @(255, 199, 206), @(156, 0, 6)),
@@ -648,18 +695,20 @@ function Add-RosterSheet {
             @('OK',    @(198, 239, 206), @(0, 97, 0))
         )
         foreach ($v in $verdicts) {
-            $fmt = $ws.ConditionalFormatting.AddEqual($ws.Cells["Q2:Q$last"])
+            $fmt = $ws.ConditionalFormatting.AddEqual($ws.Cells["T2:T$last"])
             $fmt.Formula = '"' + $v[0] + '"'
             $fmt.Style.Fill.BackgroundColor.Color = [System.Drawing.Color]::FromArgb($v[1][0], $v[1][1], $v[1][2])
             $fmt.Style.Font.Color.Color = [System.Drawing.Color]::FromArgb($v[2][0], $v[2][1], $v[2][2])
         }
 
-        $ws.Cells["A1:Q$last"].AutoFilter = $true
+        $ws.Cells["A1:T$last"].AutoFilter = $true
     }
 
     $ws.Column(1).Width = 22
-    $ws.Column(7).Width = 18
-    $ws.View.FreezePanes(2, 2)
+    $ws.Column(2).Width = 10
+    $ws.Column(4).Width = 16
+    $ws.Column(8).Width = 18
+    $ws.View.FreezePanes(2, 4)
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -799,7 +848,7 @@ function Add-ReadmeSheet {
         @('PowerLevel', $powerLevelLine),
         @('One tab per body', 'Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck mirror the prefab''s Character component. Card Facts below the deck strip are read from each card''s own CardData/CardEffect assets - edit a card''s numbers on Docs/CardDesign.xlsx, not here.'),
         @('One tab per totem', 'A totem has no health or deck - Totem Power is its auras and reactions, weighted the same way a body''s Card Power is.'),
-        @('Roster', 'Every body side by side, sorted by name, so you can see how they stack up. Fully formula-driven off the individual tabs.'),
+        @('Roster', 'Every body side by side, sorted by name - the bulk-edit grid. Display Name, Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Brandon''s Power Level are plain values here, synced to the matching body tab exactly like the Inspector - edit either one. Renaming a body is done by typing its new name in the Name column. Boss, Deck Size and the averages stay read-only; Estimated/Effective Power/Delta/Flag recalculate from this row''s own Health/Actions/Brandon''s as you type, so they never go stale while you''re still editing.'),
         @('Enums', 'Dropdown sources for Brain, Targeting, Loot Table and Deck cells.')
     )
 
@@ -817,12 +866,14 @@ function Add-ReadmeSheet {
         @('Summon Power', 'A live reference to the summoned body''s (or totem''s) own power cell, scaled down if its lifetime is shorter than pw_SummonHorizon.'),
         @('', ''),
         @('Syncing back to Unity', 'head'),
-        @('One button', "In Unity: $syncMenu. Applies your edits to Health, Actions Per Turn, Brain, Targeting, Loot Table, Role and Deck to the matching prefab, then refreshes this workbook so anything changed in the Inspector shows up here too."),
-        @('Deck', 'One card name per column, left to right, no gaps - the first blank cell ends the deck. Duplicates are fine and expected (four Enemy Slash cards is four cells). Pick names from the dropdown so a typo cannot silently drop a card.'),
-        @('Brandon''s Power Level and Notes', 'Never sync anywhere - they are authored HERE and preserved across every re-export.'),
-        @('Card Facts, Card Power, averages, Roster', 'Never hand-edit - fully derived from the prefab and its cards, rebuilt on every export.'),
+        @('One button', "In Unity: $syncMenu. Applies your edits - typed on a body tab OR the Roster tab, whichever you used - to the matching prefab: Display Name, Health, Actions Per Turn, Brain, Targeting, Loot Table, Role, Brandon''s Power Level and Deck. Renaming a body''s Name on the Roster tab renames the prefab too, keeping its GUID (so decks and levels still point at it). Then refreshes this workbook so anything changed in the Inspector shows up here."),
+        @('Deck', 'One card name per column, left to right, no gaps - the first blank cell ends the deck. Duplicates are fine and expected (four Enemy Slash cards is four cells). Pick names from the dropdown so a typo cannot silently drop a card. Only editable on the body tab - the Roster tab does not carry a Deck column.'),
+        @('Notes', 'Never syncs anywhere - authored HERE, body tab only, and preserved across every re-export.'),
+        @('Brandon''s Power Level', 'Syncs between the body tab and the Roster tab - whichever one you typed in wins - but never reaches a prefab field directly. It only feeds Effective Power, which is what gets written to Character.powerLevel.'),
+        @('Card Facts, Card Power, averages', 'Never hand-edit - fully derived from the prefab and its cards, rebuilt on every export. On the Roster tab this is Avg Damage/Status/Summon/Card Power, Deck Size and Boss.'),
         @('Effective Power and Boss', 'Not sheet columns you edit directly - Effective Power (Brandon''s if set, else Estimated) and Boss (which folder the prefab lives in) are written to Character.powerLevel/isBoss one-way, every sync, regardless of whether anything else on the tab changed. A body with neither Brandon''s nor a usable Estimated result is skipped with a warning and can never be drawn by EncounterRoller.'),
         @('If both sides changed', 'That body is left alone on BOTH sides and named in the Unity console, the same conflict rule Docs/CardDesign.xlsx follows. Make them agree, or change only one, then sync again.'),
+        @('If the body tab and Roster disagree', 'Same idea, one layer earlier: whichever of the two changed since the last sync wins, but if BOTH changed - differently - since then, that body is left alone everywhere and named in the console. Make the two tabs agree, or change only one, then sync again.'),
         @('Regenerating without syncing', "$refresh discards any sheet edit that has not been synced yet - only for when the sheet is known to be wrong."),
         @('The other roster workbook', 'Enemies, the ally and bosses are two separate workbooks driven by the same engine - Docs/EnemySheets.xlsx and Docs/BossDesign.xlsx - each with its own baseline and its own sync button. A prefab belongs to exactly one of them, decided by which folder it sits in under Assets/Prefabs.')
     )

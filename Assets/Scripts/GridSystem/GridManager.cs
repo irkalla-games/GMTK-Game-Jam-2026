@@ -913,7 +913,7 @@ public class GridManager : Singleton<GridManager>
 
     /// <summary>
     /// Ticks every tile's own effects by one round - Wall of Flames burns, both walls age. Called once
-    /// per round, at the end of the player turn (see BattleManager.RunBattle), since a tile belongs to
+    /// per round, at the end of the enemy turn (see BattleManager.RunBattle), since a tile belongs to
     /// nobody's "own phase" the way TickStatuses splits by side.
     ///
     /// Here rather than on BattleManager for the same reason Read() is - `tiles` is private and there

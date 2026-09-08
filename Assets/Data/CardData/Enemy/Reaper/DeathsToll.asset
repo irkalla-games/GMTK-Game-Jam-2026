@@ -49,5 +49,7 @@ MonoBehaviour:
     amountDelta: 0
     amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
-  <keywords>k__BackingField: []
+  <keywords>k__BackingField:
+  - type: 5
+    magnitude: 3
   <upgradedForm>k__BackingField: {fileID: 0}

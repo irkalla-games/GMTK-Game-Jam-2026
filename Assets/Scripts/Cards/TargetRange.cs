@@ -53,6 +53,10 @@ public struct TargetRange
     [Tooltip("Furthest tile that may be clicked. Ignored by Anywhere and SelfTile.")]
     [SerializeField] private int maxDistance;
 
+    [Tooltip("Movement only: the target must be reachable by walking within Max Distance steps, so a "
+             + "Wall of Force blocks the way. Off for teleports and for every non-movement card.")]
+    [SerializeField] private bool requiresRoute;
+
     public RangeShape Shape => shape;
 
     public int MinDistance => minDistance;
@@ -60,6 +64,11 @@ public struct TargetRange
     /// How far this card reaches. Enemy brains read it to decide where to stand - an enemy's reach is
     /// whatever its cards say it is, not a stat of its own.
     public int MaxDistance => maxDistance;
+
+    /// Whether a move card needs an unbroken walking route to its target, not merely a target within
+    /// range - see GridManager.RouteRefusal. False on every card authored before this field existed,
+    /// which is the old behaviour: a Wall of Force only refused standing on it, never crossing it.
+    public bool RequiresRoute => requiresRoute;
 
     /// True past melee reach - the same threshold CardViewer uses to pick between the sword and bow
     /// icon, and what DamageAction reads to default to Attack vs RangedAttack without a card needing
@@ -71,6 +80,7 @@ public struct TargetRange
         this.shape = shape;
         this.minDistance = minDistance;
         this.maxDistance = maxDistance;
+        this.requiresRoute = false;
     }
 
     /// <summary>

@@ -8,10 +8,14 @@ using UnityEngine;
 /// scene. That is the whole point - brains take a Board and can be reasoned about (and tested)
 /// without opening the Editor, and they cannot accidentally move a real character while deciding.
 ///
-/// Deliberately has no Clone() or Apply(). Those exist to chain a simulated plan several steps ahead,
-/// and this game does not need one: only an enemy's first action is committed, and every action after
-/// it is decided fresh against the live board. Simulating ahead would produce a plan that is thrown
-/// away. Read() once per decision instead.
+/// Deliberately has no Clone() or Apply(). BattleManager.DecidePlan does forecast several of an
+/// enemy's action points ahead now - every icon in the overhead intent row is a locked promise, not
+/// just the first - but it does that by moving the real Character onto a simulated Move's
+/// destination and calling GridManager.Instance.Read() again, rather than by mutating a cloned Board
+/// in place. A Board is a read-only snapshot of true occupancy; a step that changes where someone
+/// stands has to change where they really stand for that Read() to agree with everything else asking
+/// the same question (Card.Refusal's range check among them), so cloning this and editing the clone
+/// would just be a second, disagreeing answer.
 /// </summary>
 public class Board
 {
@@ -55,6 +59,11 @@ public class Board
     public bool IsWalkable(Vector2Int cell) =>
         cells.Contains(cell) && !occupants.ContainsKey(cell) && !blocked.Contains(cell);
 
+    /// A tile effect refuses entry here - a Wall of Force. Separate from IsWalkable because Routes
+    /// needs to tell "a wall" apart from "a body": a route may cross an occupied tile, just not land
+    /// on one, but a wall stops it outright either way.
+    public bool IsBlocked(Vector2Int cell) => blocked.Contains(cell);
+
     public bool IsEnemyOf(Vector2Int cell, PlayableCharacter affiliation) =>
         occupants.TryGetValue(cell, out PlayableCharacter occupant) && Character.AreEnemies(occupant, affiliation);
 
@@ -69,12 +78,14 @@ public class Board
     }
 
     /// <summary>
-    /// Step counts from `start` to every tile reachable within maxSteps, walking only empty tiles.
-    /// BFS rather than A* - the boards are tiny and this is twenty lines.
+    /// Step counts from `start` to every tile a walker can reach within maxSteps. Only a wall stops a
+    /// route - a body is walked past, not around, because MoveRefusal already refuses landing on one
+    /// and treating an ally as a wall would jam a column of enemies solid in a corridor. BFS rather
+    /// than A* - the boards are tiny and this is twenty lines.
     ///
     /// `start` itself is included at distance 0 even though it is occupied by the walker.
     /// </summary>
-    public Dictionary<Vector2Int, int> Flood(Vector2Int start, int maxSteps)
+    public Dictionary<Vector2Int, int> Routes(Vector2Int start, int maxSteps)
     {
         Dictionary<Vector2Int, int> distance = new() { [start] = 0 };
         Queue<Vector2Int> frontier = new();
@@ -91,7 +102,10 @@ public class Board
             {
                 Vector2Int neighbour = cell + step;
 
-                if (!IsWalkable(neighbour) || distance.ContainsKey(neighbour)) { continue; }
+                if (!Exists(neighbour) || IsBlocked(neighbour) || distance.ContainsKey(neighbour))
+                {
+                    continue;
+                }
 
                 distance[neighbour] = next;
                 frontier.Enqueue(neighbour);
@@ -163,7 +177,7 @@ public class Board
     }
 
     /// <summary>
-    /// Walks backwards from `goal` to `start` through a Flood result, returning the steps to take in
+    /// Walks backwards from `goal` to `start` through a Routes result, returning the steps to take in
     /// order and excluding the start tile. Empty if goal was never reached.
     ///
     /// The path is what gets stored on an Intent rather than just the destination - a blocked move

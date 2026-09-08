@@ -3,65 +3,109 @@
 Unity 6 (6000.5.4f1) 2D card game. Cards are played onto a tile grid; tiles mutate the characters
 standing on them.
 
+Full write-ups of the bugs behind the rules here live in [Docs/CHANGELOG.md](Docs/CHANGELOG.md).
+Superseded copies of this file are in `Docs/archive/`.
+
+## Before you call a change done — run these every time
+
+Not optional, and never wait to be asked. Each one below is a bug that has already cost multiple
+passes; the user should not have to report the same class again.
+
+**Any UI change:**
+
+1. **"Fixed size" means the minimum too.** A `LayoutElement` with only `preferredWidth/Height` set is
+   still compressible — set `minWidth`/`minHeight` and both flexible axes explicitly, including to 0.
+   A `-1` is not a low bid, it is *no* bid (see the `LayoutElement` gotcha).
+2. **Measure the artifact on disk; do not assume either verdict.** `git diff` the prefab/asset/scene and
+   read the actual YAML value. For generated art, measure the PNG's pixels and alpha bounds — not a
+   thumbnail, and not the source you think you wrote.
+3. **Look for a shadowing copy.** A scene `[SerializeField]` beats the shared asset it duplicates, and a
+   prefab instance's overrides beat the prefab. Grep the scene for the object name.
+4. **Let a neighbour tell you a box is wrong.** If something looks the wrong size, check the elements
+   *around* it — text starting at different x positions across rows proves the box width varies. That is
+   far stronger evidence than staring at the art, and the art is rarely the problem.
+5. **Force the layout to settle before saving** (`SharpSkin.RebuildLayout`), and **prune children you no
+   longer build** (`SharpSkin.PruneChildren`).
+
+**Any generated asset or importer work:**
+
+6. **Never `AssetDatabase.StartAssetEditing()`** around generation — it makes `LoadAssetAtPath` return
+   null in the same block, silently.
+7. **Repair, not skip.** Re-write every field the generator owns on every run; never `if (Exists) return;`.
+8. **Confirm the write API is real.** `TextureImporter.spritesheet` was removed in Unity 6 and fails
+   quietly; sprite metadata goes through `ISpriteEditorDataProvider`.
+9. **Check `git status` after any Asset Store import.** Packages routinely ship their own TextMesh Pro
+   essentials and overwrite the project's.
+
+If a command reported success and nothing looks different, work the list in order and stop at the first
+answer. "The tool silently did nothing" has been the wrong guess at least as often as the right one —
+sometimes it worked and the change was simply too small to see.
+
 ## Ask before you plan
 
-**Every plan for this project starts with questions, not assumptions.** Do not present a plan until
-you have asked about whatever the request left open — then ask it all in one batch, as concrete
-options with a recommendation, rather than one question at a time.
+The global rule (ask in one batch, concrete options, recommendation first) applies. What is specific
+here is *what* to ask about: nearly every design decision below has a settled answer that is not
+guessable from the code in front of you. Before planning, ask which of these the change lands on:
 
-The conventions below are what makes this necessary: nearly every design decision here has a settled
-answer that is not guessable from the code in front of you. Before planning, ask which of these the
-change lands on:
-
-- **Which half of a split does this belong to** — `CardData` or `Card`, `AuraData` or `Aura`, the
-  card's range rule or the effect's refusal, `Character.MoveTo` or `GridManager.MoveCharacter`.
+- **Which half of a split** — `CardData` or `Card`, `AuraData` or `Aura`, the card's range rule or the
+  effect's refusal, `Character.MoveTo` or `GridManager.MoveCharacter`.
 - **Is this a `Status` subclass?** Most combat rules are. Ask before adding a field to `Character`.
-- **Does an existing `.asset` have to keep deserializing correctly?** Enum values, serialized field
-  order and sorting layer ids are all written into assets — appending is safe, reordering is not.
-- **Refusal or hook** — a gate asked before the fact (`Refusal`, `ActRefusal`, `MoveRefusal`) or a
-  notification after it (`OnTakeDamage`, `OnTurnEnd`).
+- **Must an existing `.asset` keep deserializing?** Enum values, serialized field order and sorting
+  layer ids are written into assets — appending is safe, reordering is not.
+- **Refusal or hook** — a gate asked before (`Refusal`, `ActRefusal`, `MoveRefusal`) or a notification
+  after (`OnTakeDamage`, `OnTurnEnd`).
 - **Authoring numbers or per-play state** — constructor args on a `GameAction` vs. `ActionContext`.
-
-Small, direct edits where I have already said what to change do not need a question round.
 
 ## Checking that it compiles
 
-Unity's own batch-mode compile refuses to run while the Editor has the project open
-(`Temp/UnityLockfile`), so use the standalone check instead:
+Unity's batch-mode compile refuses to run while the Editor holds `Temp/UnityLockfile`, so use:
 
 ```
 powershell -ExecutionPolicy Bypass -File Tools/compile-check.ps1
 ```
 
-Exit code 0 means it compiles. It drives the Roslyn compiler and .NET SDK bundled inside the Unity
-install, reading sources, references, and defines out of `Assembly-CSharp.csproj`.
+Exit 0 means it compiles; add `-IncludeEditor` to cover `Assets/Editor`. It drives the Roslyn compiler
+and .NET SDK inside the Unity install, reading sources and references out of `Assembly-CSharp.csproj` —
+which is gitignored and regenerated by Unity, so if it is missing or stale, focus the Editor once.
 
-`Assembly-CSharp.csproj` is gitignored and regenerated by Unity. If it is missing or does not list a
-file you just added, focus the Editor once to have it rewritten.
+**While the Editor is open, never hand-edit `.unity` or `.prefab` YAML** — Unity holds them in memory
+and overwrites on its next save. Go through an Editor menu command.
 
 ## Design sheets
 
-Cards, enemies, levels and equipment each round-trip through an Excel workbook, so numbers can be
-tuned and reviewed outside the Inspector: `Tools/CardSheet` ↔ `Docs/CardDesign.xlsx`,
-`Tools/EnemySheet` ↔ `Docs/EnemySheets.xlsx`, `Tools/LevelSheet` ↔ `Docs/LevelDesign.xlsx`,
-`Tools/EquipmentSheet` ↔ `Docs/EquipmentDesign.xlsx`. Each has a `.psm1` holding the shared YAML
-reader/asset index/merge logic, `Export-*.ps1` (assets → workbook) and `Import-*.ps1` (workbook → a
-`*.json` work order), and an `Assets/Editor/*Importer.cs` that applies that work order through
-`AssetDatabase`/`SerializedObject`. PowerShell reads and diffs because Unity's batch mode cannot run
-while the Editor holds `Temp/UnityLockfile`; Unity does every write because GUIDs, local fileIDs and
-packed-hex enum lists are its business. Each tool's `Tools/<Name>Sheet/Sync <Name> With Sheet` menu
-item runs the whole three-way merge (`baseline.json` records where both sides last agreed; one column
-disagreeing on both sides conflicts and leaves that row/item untouched on both sides); each also has a
-`Refresh Sheet From Unity` escape hatch that discards unsynced sheet edits and rebuilds from the assets.
+Cards, enemies, bosses, levels and equipment each round-trip through an Excel workbook so numbers can be
+tuned outside the Inspector: `Tools/CardSheet` ↔ `Docs/CardDesign.xlsx`, `Tools/EnemySheet` ↔
+`Docs/EnemySheets.xlsx`, `Tools/BossSheet` ↔ `Docs/BossDesign.xlsx`, `Tools/LevelSheet` ↔
+`Docs/LevelDesign.xlsx`, `Tools/EquipmentSheet` ↔ `Docs/EquipmentDesign.xlsx`.
 
-`EquipmentSheet` differs from the other three in one respect: an item's "effects" are polymorphic
-`EquipmentModifier`/`CardModifier` sub-assets embedded in the same `.asset` file, so its Modifiers and
-Card Tuning tabs' columns are not hand-listed in PowerShell - `Assets/Editor/EquipmentModifierSchema.cs`
-reflects over every modifier subclass and writes `Tools/EquipmentSheet/modifier-schema.json`, which the
-PowerShell side reads to build columns and dropdowns. Writing a new `EquipmentModifier`/`CardModifier`
-subclass makes it appear in the sheet on the next sync with no `.ps1` edit. A sub-asset's identity for
-matching purposes is its Unity local fileID (the sheet's read-only `Mod Id`/`Sub Id` columns); reorder
-by dragging rows, not by editing the `Ord` display column.
+Each has a `.psm1` (shared YAML reader / asset index / merge logic), `Export-*.ps1` (assets → workbook),
+`Import-*.ps1` (workbook → a `*.json` work order), and an `Assets/Editor/*Importer.cs` applying it through
+`AssetDatabase`/`SerializedObject`. PowerShell reads and diffs because Unity's batch mode cannot run while
+the Editor holds the lockfile; Unity does every write because GUIDs, fileIDs and packed-hex enum lists are
+its business.
+
+`Sync <Name> With Sheet` runs the three-way merge — `baseline.json` records where both sides last agreed,
+and a column disagreeing on both sides conflicts and is left untouched on both. `Refresh Sheet From Unity`
+discards unsynced sheet edits.
+
+`BossSheet` is the exception to "each has a `.psm1`" — **it has no logic of its own.** Bosses and enemies
+are the same `Character` component with the same tab layout and merge columns, so `Tools/BossSheet` holds
+only two forwarders passing `-Domain Bosses` into `Tools/EnemySheet`'s scripts, plus its own
+`baseline.json`; `Get-RosterDomain` in `EnemySheet.Common.psm1` is the single place the two differ, and
+`Assets/Editor/RosterSheetSync.cs` is the shared body of both importers. **The split is by folder**:
+`Assets/Prefabs/Bosses` is the boss workbook's, `Enemies` + `Allies` the enemy workbook's, and separate
+baselines are the whole point — a boss retune and an enemy retune can never conflict. Two consequences:
+the boss `PowerLevel` tab is a **read-only mirror** of the enemy workbook's, so both score on one scale
+(edit it there, or your typing is discarded); and since seven of the eight bosses summon a plain enemy
+whose tab the *other* workbook owns, those land on a read-only `Summoned` tab carrying just the
+`pow_<Prefab>` cell a Summon Power formula needs. That tab deliberately has **no `GUID` row**, which is
+what makes `Read-BodySheetTab` return null for it so no importer can ever write those prefabs twice.
+
+`EquipmentSheet` differs in one respect: an item's effects are polymorphic sub-assets in the same
+`.asset`, so its columns are not hand-listed — `EquipmentModifierSchema.cs` reflects over every
+`EquipmentModifier`/`CardModifier` subclass and writes `modifier-schema.json` for the PowerShell side, so
+a new subclass appears on the next sync with no `.ps1` edit. A sub-asset's identity is its local fileID
+(the read-only `Mod Id`/`Sub Id` columns); reorder by dragging rows, not by editing `Ord`.
 
 ## Architecture
 
@@ -85,238 +129,185 @@ Totem                         projects auras onto whoever stands in its range
 
 ### Conventions we settled on
 
-**`CardData` is the type, `Card` is the copy.** A ScriptableObject asset is a single shared instance —
-two copies of Bash in a deck point at the same object. So `CardData` fields are private with read-only
-properties, and anything that varies per copy or changes during a run lives on `Card`.
+**`CardData` is the type, `Card` is the copy.** A ScriptableObject is one shared instance — two copies of
+Bash point at the same object. `CardData` fields are private with read-only properties; anything varying
+per copy or during a run lives on `Card`.
 
 **Actions are stateless.** A `GameAction`'s fields are `readonly` authoring numbers passed to its
-constructor. Everything that varies per play arrives through `ActionContext`. Keep per-resolution
-state in coroutine locals — those are already per-invocation. Never write to an action's field during
-`Execute`.
+constructor; everything per-play arrives through `ActionContext`. Keep per-resolution state in coroutine
+locals. Never write to an action's field during `Execute`.
 
-**`ActionContext` is per action, not per card.** That is what lets one card aim its actions at
-different things: Bash damages the tile you picked but draws for whoever played it.
+**`ActionContext` is per action, not per card.** That is what lets one card aim its actions at different
+things: Bash damages the tile you picked but draws for whoever played it.
 
-**One click, one answer: `Card.Refusal(source, target)`.** It returns null if the card may be played
-there, otherwise the reason. `CardPlayManager.PlaySelectedOn` asks it *above* the commit point, so a
-refused play costs no energy and the card stays in hand. `GridManager.ShowPlayableTiles` builds the
-tile highlight from the very same call, which is what stops the highlight from ever promising a tile
-that a click would then refuse. Anything that can refuse a play belongs in there, not downstream.
+**One click, one answer: `Card.Refusal(source, target)`.** Null if the card may be played there, else the
+reason. `CardPlayManager.PlaySelectedOn` asks it *above* the commit point, so a refused play costs no
+energy. `GridManager.ShowPlayableTiles` builds the highlight from the same call, which is what stops the
+highlight promising a tile a click would refuse. Anything that can refuse a play belongs there.
 
 **Range is the card's rule; everything else is the effect's.** `TargetRange` on `CardData` says which
 tiles may be clicked, measured from the acting character's tile — one rule per card, because one click
-has to produce one yes/no. Per-effect rules (Move cannot land on an occupied tile, damage needs an
-enemy) go in `CardEffect.Refusal`, which defaults to "no objection". Do not put range on an effect:
-effect assets are shared between cards.
+must produce one yes/no. Per-effect rules go in `CardEffect.Refusal`, which defaults to no objection.
+Never put range on an effect: effect assets are shared between cards.
 
-**`RangeShape.Anywhere` is 0 on purpose.** A `.asset` authored before a serialized field exists
-deserializes to all-zero, so that default has to be the old behaviour. Same reason `TargetRange` is a
-struct and `DamageEffect.canHitAllies` is off-by-default. The enum's int values are written into
-assets — append new shapes, never reorder.
+**`RangeShape.Anywhere` is 0 on purpose.** An `.asset` authored before a field existed deserializes to
+all-zero, so that default must be the old behaviour — same reason `TargetRange` is a struct and
+`DamageEffect.canHitAllies` is off by default. Append new shapes, never reorder.
 
-**Cards target tiles, never characters directly.** `Tiles.DealDamage` etc. forward onto `Occupant`.
-This lets an action say "damage this tile" without knowing whether anything is standing there.
+**Cards target tiles, never characters directly.** `Tiles.DealDamage` forwards onto `Occupant`, so an
+action can say "damage this tile" without knowing whether anything stands there.
 
-**A `Status` is a behaviour, not a record — and `Character` resolves no combat rules.** Shield, Block,
-Parry, Strength, Double Attack, Poison, Frozen and Rooted are all `Status` subclasses carrying their
-own rule. `Character.TakeDamage` runs the `OnTakeDamage` hooks and subtracts what survives; it does not
-know those types exist, and a new mitigation type needs no change there. There is deliberately no
-`Shield`/`BlockCharges`/`ParryCharges` on `Character` — it has a status list that may contain one, and
-callers ask `StatusStacks(type)` or `FindStatus(type)`.
+**A `Status` is a behaviour, and `Character` resolves no combat rules.** Shield, Block, Parry, Strength,
+Double Attack, Poison, Frozen and Rooted are all `Status` subclasses carrying their own rule.
+`Character.TakeDamage` runs the `OnTakeDamage` hooks and subtracts what survives; it does not know those
+types exist, so a new mitigation type needs no change there. There is deliberately no
+`Shield`/`BlockCharges`/`ParryCharges` field — callers ask `StatusStacks(type)` or `FindStatus(type)`.
 
-**Hooks are notifications; refusals are gates.** `OnDealDamage`/`OnTakeDamage`/`OnTurnStart`/
-`OnTurnEnd` fire after something happens. `ActRefusal` (Frozen) and `MoveRefusal` (Rooted) are asked
-*before*, repeatedly, and return null-or-reason like every other `Refusal` in the codebase. Frozen
-cannot be an `OnTurnStart` hook: freezing an enemy mid-`PlayerActing` has to deny the action it takes
-in `EnemyResolve` that same round, and a turn-start hook has already run by then.
+**Hooks are notifications; refusals are gates.** `OnDealDamage`/`OnTakeDamage`/`OnTurnStart`/`OnTurnEnd`
+fire after the fact. `ActRefusal` (Frozen) and `MoveRefusal` (Rooted) are asked *before*, repeatedly, and
+return null-or-reason. Frozen cannot be an `OnTurnStart` hook: freezing an enemy mid-`PlayerActing` has to
+deny the action it takes in `EnemyResolve` that same round, and a turn-start hook has already run.
 
-**`DamageInfo` is immutable and passed through.** Each status returns the next one —
-`info = status.OnTakeDamage(info)` — so nothing half-writes a shared object. A `readonly struct`, so
-the one-per-status-per-hit churn allocates nothing.
+**`DamageInfo` is immutable and passed through.** Each status returns the next —
+`info = status.OnTakeDamage(info)` — so nothing half-writes a shared object. A `readonly struct`, so the
+churn allocates nothing.
 
-**`StatusEffect` and `Aura` are the two halves of `Status`, with identical capabilities.** Every hook
-is available to either — a totem's curse cloud can poison you exactly like a poison dart. They differ
-only in ownership and lifetime: a `StatusEffect` sits in `Character.ownStatusEffects`, ages, merges
-when re-applied and spends real charges; an `Aura` is owned by a `Totem`, has no duration, is never
-merged, and is rebuilt fresh per query so its charges never really deplete. `Aura` *wraps* a
-`StatusEffect` and forwards every hook rather than reimplementing the rule — a `StrengthAura`
-duplicating `StrengthStatus`'s arithmetic is the second-answer-to-one-question this design deletes.
+**`StatusEffect` and `Aura` are two halves of `Status` with identical capabilities.** Every hook is
+available to either. They differ only in ownership and lifetime: a `StatusEffect` sits in
+`Character.ownStatusEffects`, ages, merges when re-applied and spends real charges; an `Aura` is owned by
+a `Totem`, has no duration, is never merged, and is rebuilt per query so its charges never deplete.
+`Aura` *wraps* a `StatusEffect` and forwards every hook rather than reimplementing the rule.
 
 **Auras are pulled, not pushed.** A `Totem` holds no membership list and never writes to a character;
-`Character.ActiveStatuses()` walks the totems and asks what each projects onto its tile right now,
-then appends the character's own. Auras come first in that list, and there is no sort — hooks run
-FIFO, so mitigation order and the outgoing damage total both depend on which status landed first.
+`Character.ActiveStatuses()` walks the totems and asks what each projects onto its tile right now, then
+appends the character's own. Auras come first and there is no sort — hooks run FIFO, so mitigation order
+and the outgoing damage total both depend on which status landed first.
 
 **Name the half, not the concept.** `ownStatusEffects` vs auras, `AuraData` (authoring) vs `Aura`
-(runtime, the `CardData`/`Card` split again), `ApplyStatusEffect` for the *card effect* that grants
-one. A bare "status" in a variable name is ambiguous now that both halves exist.
+(runtime), `ApplyStatusEffect` for the card effect that grants one. A bare "status" is ambiguous now.
 
-**Where a tile sits in world space is `GridManager`'s business.** It owns both `MoveCharacter` (tween,
-move rules, pickup) and `PlaceCharacter` (snap, no rules — arriving on the board). `Character.MoveTo`
-only swaps occupancy references, so anything writing `transform.position = tile.transform.position`
-outside `GridManager` is a character that knows how the grid is laid out.
+**Where a tile sits in world space is `GridManager`'s business.** It owns `MoveCharacter` (tween, move
+rules, pickup) and `PlaceCharacter` (snap, no rules). `Character.MoveTo` only swaps occupancy references,
+so anything writing `transform.position = tile.transform.position` outside `GridManager` is a character
+that knows how the grid is laid out.
 
-**Depth is a layer name, not a number — and a multi-renderer prefab gets a `SortingGroup`.** The stack
-is `Background → Grid → Characters → Cards → UI → CardHover → Overlay`, spelled once in
-`SortingLayers`. `orderInLayer` is then a small number meaning "in front of the thing before it *in
-this layer*", never a global position. The `SortingGroup` on a card's and a character's root is what
-makes it sort atomically: without one, a card's name and description are separate renderers that
-happily draw over the card next to them, which is exactly the bug the -98..0 scheme had. Anything with
-more than one renderer that should move as a unit needs the group — renumbering alone cannot fix it.
+**Depth is a layer name, not a number — and a multi-renderer prefab gets a `SortingGroup`.** The stack is
+`Background → Grid → Characters → Cards → UI → CardHover → Overlay`, spelled once in `SortingLayers`.
+`orderInLayer` is a small number meaning "in front of the thing before it *in this layer*". The
+`SortingGroup` on a card's or character's root is what makes it sort atomically; without one a card's name
+and description draw over the card beside them. Renumbering alone cannot fix that.
 
-**Sorting layers are written into assets by id, so append and never reorder.** Same hazard as
-`RangeShape`'s enum values. Adding a layer is safe; deleting one silently drops every prefab
-referencing it back to `Default`, and reordering the list rearranges the whole game's rendering in one
-move. `Camera.orthographicSize` is the matching rule on the other axis: `CameraFrame` keeps a fixed
-19.2 × 10.8 world frame visible, and the screen-space canvases have to stay on Scale With Screen Size /
-1920×1080 / **Expand** to scale by the identical factor.
+**Sorting layers are written into assets by id, so append and never reorder.** Deleting one silently
+drops every prefab referencing it back to `Default`. `Camera.orthographicSize` is the matching rule on the
+other axis: `CameraFrame` keeps a fixed 19.2 × 10.8 world frame visible, and screen-space canvases must
+stay on Scale With Screen Size / 1920×1080 / **Expand** to scale by the identical factor.
 
-**Energy belongs to `Character`, not `BattleManager`.** Multiple characters each have their own pool;
-playing a card charges `BattleManager.ActiveCharacter`.
+**Energy belongs to `Character`, not `BattleManager`.** Each character has its own pool; playing a card
+charges `BattleManager.ActiveCharacter`.
 
-**There is no turn order.** Clicking a character makes it active. Characters have no colliders of
-their own, so the tile under them is what you click.
+**There is no turn order.** Clicking a character makes it active. Characters have no colliders, so the
+tile under them is what you click.
 
-**`BattleManager.OnTileClicked` is the one door for tile clicks.** `GridTile.OnMouseDown` forwards
-there, and it decides what the click meant: with a card selected it hands off to
-`CardPlayManager.PlaySelectedOn`, otherwise it activates the tile's occupant. `CardPlayManager` only
-knows how to play cards — it does not decide who is active.
+**`BattleManager.OnTileClicked` is the one door for tile clicks.** `GridTile.OnMouseDown` forwards there
+and it decides what the click meant: with a card selected it hands off to `CardPlayManager.PlaySelectedOn`,
+otherwise it activates the occupant. `CardPlayManager` does not decide who is active.
 
-**Every `Character` owns its deck, hand, and piles.** `Character.BuildDeck()` runs in `Awake`;
-`ActiveHandViewer` only deals the opening hands and rebuilds the on-screen row when the active
-character changes. The hand you see always belongs to `BattleManager.ActiveCharacter`. `DrawPile` and
-`DiscardPile` are exposed read-only the same way `Hand` is — for a UI to count or list, never to add
-to — see `CardPileHud`/`CardPilePanel` below.
+**Every `Character` owns its deck, hand, and piles.** `BuildDeck()` runs in `Awake`; `ActiveHandViewer`
+only deals opening hands and rebuilds the row when the active character changes. `DrawPile`/`DiscardPile`
+are exposed read-only like `Hand` — for a UI to count or list, never to add to.
 
-**Card objects persist for the whole battle.** `Character.BuildDeck()` constructs them once from that
-character's authored `List<CardData> deck`; they then move drawPile → hand → discardPile. Do not
-rebuild a `Card` on draw — that would silently discard its per-copy state.
+**Card objects persist for the whole battle.** `BuildDeck()` constructs them once; they then move drawPile
+→ hand → discardPile. Rebuilding a `Card` on draw would silently discard its per-copy state.
 
-**Drawing is the character's business; displaying is `ActiveHandViewer`'s.** `Character.DrawCard()`
-moves a card from its own draw pile to its own hand and raises `CardDrawn` — it knows nothing about
-viewers. `ActiveHandViewer` subscribes to every character and builds a `CardViewer` only when the
-drawer is the active one. Never call back into `ActiveHandViewer` from `Character` to update the view;
-`PilesReshuffled` follows the same one-way rule `CardDrawn`/`CardDiscarded` already set.
+**Drawing is the character's business; displaying is `ActiveHandViewer`'s.** `Character.DrawCard()` moves
+a card and raises `CardDrawn`, knowing nothing about viewers. `ActiveHandViewer` subscribes to every
+character and builds a `CardViewer` only when the drawer is active. Never call back into the viewer from
+`Character`; `PilesReshuffled` follows the same one-way rule as `CardDrawn`/`CardDiscarded`.
 
-**A synchronous burst becomes a visible sequence in the view, never in `Character`.**
-`Character.DrawCards`/`DiscardHand` fire their events for every card in one frame — that is correct;
-`Character` has no idea anything is watching. `ActiveHandViewer.dealQueue` is what turns that burst
-into cards arriving one at a time, and it is also where a reshuffle flourish
-(`CardPileHud.PlayReshuffle`) gets to sit between the cards dealt before it and the ones it unblocked,
-since `Character.PilesReshuffled` always fires before the `CardDrawn` it enabled. Do not add sequencing
-of this kind to `Character` — it would mean a card event's timing depends on whether anything is
-currently looking at the hand.
+**A synchronous burst becomes a visible sequence in the view, never in `Character`.** `DrawCards`/
+`DiscardHand` fire events for every card in one frame — correct, since `Character` has no idea anything is
+watching. `ActiveHandViewer.dealQueue` turns that into cards arriving one at a time, and is where a
+reshuffle flourish (`CardPileHud.PlayReshuffle`) sits. Sequencing in `Character` would make a card event's
+timing depend on whether anything is looking.
 
 **Read-only pile screens are `CardGridView` + a thin panel, not a mode on `CardRemovalPanel`.**
-`CardRemovalPanel` (choose one, `Resolved`/`ChosenIndex`, `RemoveCardSkipReward` is the only reader)
-and `CardPilePanel` (look, then close, nothing to resolve) are the same "real `CardViewer`s laid out in
-a grid" shape `CardGridView.Build` holds once. A screen that browses and a screen that commits to a
-choice are different concepts even when they share a grid — see `OfferedCard`, which both build on.
+`CardRemovalPanel` (choose one) and `CardPilePanel` (look, then close) share the grid `CardGridView.Build`
+holds once. Browsing and committing to a choice are different concepts even when they share a grid.
 
 ## Gotchas
 
-**`GameAction` is a plain class; `CardEffect` is the `ScriptableObject`.** Actions are never assets —
-they are `new`'d on every play and most take constructor arguments. Deriving `GameAction` from
-`ScriptableObject` compiles fine and then throws at runtime the first time a card is played: *"must be
-instantiated using the ScriptableObject.CreateInstance method instead of new"*.
+**`GameAction` is a plain class; `CardEffect` is the `ScriptableObject`.** Actions are never assets — they
+are `new`'d on every play. Deriving `GameAction` from `ScriptableObject` compiles and then throws on the
+first play: *"must be instantiated using the ScriptableObject.CreateInstance method instead of new"*.
 
-**Never mutate a `ScriptableObject` at runtime.** In the Editor those writes persist into the `.asset`
-file on disk after you exit Play Mode — unlike scene changes, they are not reverted. You will
-"fix" a value at runtime and silently edit your card asset.
+**Never mutate a `ScriptableObject` at runtime.** In the Editor those writes persist into the `.asset` on
+disk after Play Mode exits — unlike scene changes, they are not reverted.
 
 **`[SerializeField]` fields cannot be `const`, `readonly`, or `static`.** Unity's serializer skips all
-three and the field vanishes from the Inspector. The IDE's "Make field readonly" hint on a serialized
-field is always a false positive — ignore it. For immutability, use a private field plus a read-only
-property.
+three and the field vanishes from the Inspector. The IDE's "make field readonly" hint on a serialized
+field is always a false positive. For immutability use a private field plus a read-only property.
 
-**Never `using UnityEditor;` or `using NUnit.Framework;` in runtime scripts.** Both break player
-builds. `using UnityEngine.TextCore.Text;` is also worth avoiding — it defines its own `Character`
-type that will silently shadow ours.
+**Never `using UnityEditor;` or `using NUnit.Framework;` in runtime scripts** — both break player builds.
+Avoid `using UnityEngine.TextCore.Text;` too: it defines its own `Character` that shadows ours.
 
-**`StartCoroutine` runs synchronously up to the first `yield`.** So the first action queued when a card
-is played resolves *inside* the click, before the rest are even enqueued. Do not assume the queue is
-purely deferred.
+**`StartCoroutine` runs synchronously up to the first `yield`.** The first action queued when a card is
+played resolves *inside* the click, before the rest are enqueued. The queue is not purely deferred.
 
-**Hovering a hand card enlarges that same `CardViewer` in place — there is no separate preview
-object.** `CardViewer.OnMouseEnter` scales and re-sorts itself; the collider that receives
-`OnMouseDown` throughout is the card's own. A reward or removal-grid card is `clickOverride`d instead
-of routing through `CardPlayManager`, which is what filters a hand click with
-`ActiveHandViewer.Contains` before acting.
+**Hovering a hand card enlarges that same `CardViewer` in place** — there is no preview object.
+`OnMouseEnter` scales and re-sorts itself; the collider receiving `OnMouseDown` throughout is the card's
+own. Reward and removal-grid cards are `clickOverride`d instead of routing through `CardPlayManager`,
+which filters hand clicks with `ActiveHandViewer.Contains`.
 
-**Deleting and recreating a `.cs` file changes its GUID.** Any scene or prefab referencing that
-MonoBehaviour loses the link. Rename or edit in place instead.
+**Deleting and recreating a `.cs` file changes its GUID**, and every scene or prefab referencing that
+MonoBehaviour loses the link. Rename or edit in place.
 
 **Making a `ScriptableObject` base class abstract breaks existing assets** of that type — they can no
-longer be instantiated. `Assets/Data/New Card.asset` is currently in this state; delete it and
-recreate via **Assets → Create → Card Data → Bash**.
+longer be instantiated. `Assets/Data/New Card.asset` is in this state; delete it and recreate via
+**Assets → Create → Card Data → Bash**.
 
-**Never `??` or `?.` a `UnityEngine.Object`.** Both test *reference* null, which bypasses Unity's
-overloaded `==` — and that overload is the only thing reporting a missing or destroyed object as null.
-`GetComponent<T>()` on an object without that component returns a **fake-null**: null by `==`, a real
-reference to `??`. So `GetComponent<Canvas>() ?? AddComponent<Canvas>()` never adds anything and throws
-`MissingComponentException` on the next property set. Write the two-line form, as `TooltipPanelWiring`,
-`CharacterSelectWiring` and `PartyPortraitWiring` all do, or reuse `TutorialWiring.Ensure<T>`. `?.` is
-only safe guarding an expression that returns a *literal* null after an explicit `!= null` test — see
-`TutorialDirector.Active`. (The `Tweener?.Kill()` calls in `TurnTransitionViewer` are fine for the
-opposite reason: `Tweener` is a plain C# class, not a `UnityEngine.Object`.)
+**Never `??` or `?.` a `UnityEngine.Object`.** Both test *reference* null, bypassing Unity's overloaded
+`==` — the only thing reporting a missing or destroyed object as null. `GetComponent<T>()` returns a
+**fake-null**: null by `==`, a real reference to `??`, so `GetComponent<Canvas>() ?? AddComponent<Canvas>()`
+never adds anything and throws on the next property set. Write the two-line form or reuse
+`TutorialWiring.Ensure<T>`. `?.` is only safe guarding a *literal* null after an explicit `!= null` test.
+`Tweener?.Kill()` is fine — a plain C# class, not a `UnityEngine.Object`.
 
 **Never wrap asset generation in `AssetDatabase.StartAssetEditing()`.** It defers every import in the
-block, so `LoadAssetAtPath` returns null for anything created in that same block — and the failure is
-silent. Every file appears, so the Project window looks right, while every cross-reference is written
-as `{fileID: 0}` and every `SerializedObject` edit to a just-created asset is dropped. Create in
-dependency order and pass each new asset *down as a live object* instead of re-loading it by path; see
-`TutorialContentGenerator`. In-game this surfaces as a **default-size board with nothing on it** —
-`RunManager.CurrentLevel` null means `BuildGrid(Vector2Int.zero)` falls back to `GridManager`'s own
-width/height and both `SpawnParty` and `SpawnEnemies` early-return.
+block, so `LoadAssetAtPath` returns null for anything created there — silently, with cross-references
+written as `{fileID: 0}`. Create in dependency order and pass each new asset *down as a live object*; see
+`TutorialContentGenerator`. Full story in the changelog.
 
-**A content generator should repair, not skip.** Reuse an existing asset rather than recreating it, but
-re-write every field it owns on every run. A bare `if (Exists(path)) return;` guard makes a half-built
-set permanently unfixable except by deleting files by hand — which is exactly the state the bug above
-leaves behind. Tune numbers in the Inspector *after* the last run, or lift them into constants.
+**A content generator should repair, not skip.** Reuse an existing asset, but re-write every field it owns
+on every run. A bare `if (Exists(path)) return;` makes a half-built set permanently unfixable by hand.
 
-
-**A `LayoutElement` left at `-1` does not lose the tie - it is never consulted at all.**
+**A `LayoutElement` left at `-1` does not lose the tie — it is never consulted at all.**
 `LayoutUtility.GetLayoutProperty` skips any component returning a negative value *before* it looks at
-`layoutPriority`, so the next `ILayoutElement` on the object answers instead. On a row that is itself a
-`HorizontalLayoutGroup` with `childForceExpandHeight = true`, that group reports `flexibleHeight = 1` -
-and the row then advertises "I will take spare vertical space" to its column no matter what its
-`preferredHeight` says. Four such rows splitting a 314px surplus is how a row whose `preferredHeight`
-was 40 rendered at 118.5. The same trap bites WIDTH through a different component: a row whose
-background is a **Simple `Image`** reports that sprite's native size as its `preferredWidth`, and
-since the `Image` and the layout group are both priority 0, `LayoutUtility` takes the LARGER - so a
-row backed by the 875px `list_item_background` wanted 875px however little its contents needed.
-**Any object carrying both a layout group and a `LayoutElement` must set
-`flexibleHeight`/`flexibleWidth` explicitly, including to 0** - see `SettingsRowBuilder.Row`. The
-symptom is unmistakable and misleading: the Inspector shows Preferred Height 40 next to a driven Height
-of 118.5, and re-running the wiring changes nothing, because every value it writes already matches.
-**RectTransform width and height are serialized, so a scripted layout must be forced to settle before
-the scene is saved.** uGUI defers rebuilds to `CanvasUpdateRegistry`; a wiring command that builds
-dozens of objects in one frame gets that pass run against half-built state, and those numbers are what
-land in the `.unity` file. `SharpSkin.RebuildLayout` walks the tree deepest-first with
-`LayoutRebuilder.ForceRebuildLayoutImmediate` and every UI wiring command calls it before saving.
+`layoutPriority`, so the next `ILayoutElement` on the object answers instead — a sibling layout group's
+`flexibleHeight = 1`, or a Simple `Image`'s native sprite size as `preferredWidth`. **Any object carrying
+both a layout group and a `LayoutElement` must set `flexibleHeight`/`flexibleWidth` explicitly, including
+to 0** — see `SettingsRowBuilder.Row`.
 
-**`SharpSkin.EnsureChild` makes a command idempotent for what it still builds, not for what it used
-to.** When a row changed from a captioned `ButtonRow` to a caption-less `ButtonBar`, re-running left the
-old `Label` and `Button` beside the new `Button0` - three children in a horizontal row, which crushed
-the button into a vertical letter stack. Row builders call `SharpSkin.PruneChildren` with exactly the
-children they create, so a container holds what the current code says rather than the union of every
-version that ever ran.
+**`minWidth`/`minHeight` are the same trap, and the object needs no layout group to fall into it** — a
+plain `Image` is an `ILayoutElement`, so every icon qualifies. A preferred size is only a preference: a
+group that cannot fit its children compresses them toward their *minimums*, and a `-1` hands that answer
+to the `Image`, which says 0. **A helper meaning "fixed size" must set the minimum too** — see
+`PartySheetStyling.AddFixedSize`. Symptom: an element is the wrong size only in *some* rows, and a
+non-`preserveAspect` `Image` inside it is squashed to match.
+
+**RectTransform width and height are serialized, so a scripted layout must be forced to settle before the
+scene is saved.** uGUI defers rebuilds to `CanvasUpdateRegistry`, so a command building dozens of objects
+in one frame saves half-built numbers. `SharpSkin.RebuildLayout` walks the tree deepest-first with
+`LayoutRebuilder.ForceRebuildLayoutImmediate`; every UI wiring command calls it before saving.
+
+**`SharpSkin.EnsureChild` makes a command idempotent for what it still builds, not for what it used to.**
+Row builders call `SharpSkin.PruneChildren` with exactly the children they create, so a container holds
+what the current code says rather than the union of every version that ever ran.
 
 ## Not implemented yet
 
-Marked with TODOs in the code: enemy behaviour (non-player characters just stand there), and win/loss
-conditions.
+Marked with TODOs: enemy behaviour (non-player characters just stand there), and win/loss conditions.
 
-Shield (a pool of extra health, wiped each turn), Block (a flat reduction on every hit, lasting a
-limited number of turns) and Parry (negates a hit and reflects it back) are `Status` subclasses like
-everything else — `ShieldStatus`, `BlockStatus`, `ParryStatus`. They apply in whatever order they were
-gained, not a fixed priority: hooks run FIFO. A reflected parry goes back through `TakeDamage`, so the
-attacker's own statuses answer it and a parry can itself be parried; `Character.MaxParryBounces` caps
-the resulting bounce war, which only fails to terminate on its own if an aura is granting Parry.
-
-Balance notes, all consequences of the numbers as authored rather than bugs: Parry charges survive
-`TurnStart` while Shield and Block do not — Block now decrements one stack per turn regardless of
-whether it took a hit (`BlockStatus.OnTurnStart`), so "Block 3" is a flat -3 to every hit for the next
-three turns rather than three hits' worth. Against the current 3–5 enemy damage band that fully negates
-most single-enemy hits for as long as it lasts; against several enemies in one turn it is worth far
-more than the same-cost Shield, which drains its pool faster the more hits arrive.
+Shield (a pool of extra health, wiped each turn), Block (a flat reduction per hit, lasting a limited
+number of turns) and Parry (negates a hit and reflects it) are `Status` subclasses — `ShieldStatus`,
+`BlockStatus`, `ParryStatus` — applying in the order gained, not a fixed priority, since hooks run FIFO.
+Current balance consequences are recorded in the changelog.

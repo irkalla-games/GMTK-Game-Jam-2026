@@ -563,7 +563,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 10
+  maxHealth: 25
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 2
@@ -574,7 +574,7 @@ MonoBehaviour:
   portrait: {fileID: 21300000, guid: 9031ddff7d13d6c4fad61bb77e53414f, type: 3}
   actionPoints: 1
   brain: 2
-  targetingPattern: {fileID: 11400000, guid: 1341e29f77de4fdfa8b2bb9219d0231b, type: 2}
+  targetingPattern: {fileID: 11400000, guid: 6cd330c38dfa4bc193942c2801cc069a, type: 2}
   startCoordinates: {x: 2, y: 5}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   lootTable: {fileID: 0}
@@ -583,8 +583,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
   - {fileID: 11400000, guid: bbde0f0e0cc14d529a5088cf2502a322, type: 2}
-  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
-  <Health>k__BackingField: 10
+  - {fileID: 11400000, guid: 4f7b2c91e6a84d3ab0d5c8e27f1a9b64, type: 2}
+  <Health>k__BackingField: 25
 --- !u!95 &4795317427983224773
 Animator:
   serializedVersion: 7
@@ -626,6 +626,15 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 1792486937503993714}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

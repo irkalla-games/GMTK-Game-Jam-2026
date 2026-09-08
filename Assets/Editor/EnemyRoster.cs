@@ -320,6 +320,14 @@ public static class EnemyRoster
 
     /// Minions the bosses call in. Permanent (0 turns) on purpose - a boss whose adds evaporate on
     /// their own gives the player nothing to do about them.
+    ///
+    /// KNOWN HAZARD: `prefab` here is a name, and the Roster tab (see RosterSheetSync.WriteBody) can now
+    /// rename an existing body via AssetDatabase.RenameAsset. This table is not updated by that - a
+    /// summon card minted here after a rename would point at the OLD name, and re-running
+    /// Tools > Enemies > Generate Roster for a renamed CharacterSpec.name below would recreate the
+    /// prefab under its old name from the template rather than finding the renamed one (Generate Roster
+    /// is already behind a confirm dialog warning it discards sheet tuning, which is why this is a
+    /// comment and not a code change). If you rename something here, update it here too.
     public static readonly SummonSpec[] Summons =
     {
         new() { name = "SummonSkeletonMinion", prefab = "Skeleton" },

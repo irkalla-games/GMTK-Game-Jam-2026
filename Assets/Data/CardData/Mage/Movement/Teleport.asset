@@ -18,12 +18,14 @@ MonoBehaviour:
     shape: 0
     minDistance: 0
     maxDistance: 0
+    requiresRoute: 0
   <requiredClass>k__BackingField: 2
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Move to any tile on the board.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: 3069fdfad499bc94a8da73fa096a8b6d, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: d537771370c9446baed97512da971480, type: 2}
   <effectEntries>k__BackingField:
@@ -35,6 +37,10 @@ MonoBehaviour:
         shape: 0
         minDistance: 0
         maxDistance: 0
+        requiresRoute: 0
       pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
+  <upgradedForm>k__BackingField: {fileID: 0}

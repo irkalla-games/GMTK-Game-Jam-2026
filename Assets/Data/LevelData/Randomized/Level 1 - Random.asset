@@ -20,12 +20,21 @@ MonoBehaviour:
     anyPower: 10
     bossFrontlinePower: 0
     bossBacklinePower: 0
-    reinforcementPower: 0
+    reinforcementPower: 25
     maxPowerPerEnemy: 2
     maxPowerPerWave: 6
     waveInterval: 1
     waveIntervalJitter: 2
-    poolFilter: []
+    poolFilter:
+    - {fileID: 9030803548844171682, guid: 51cc0c0b40e7b264ebdf1dc4594559a6, type: 3}
+    - {fileID: 9030803548844171682, guid: fe7fe8169a3ae3f4ab1463af48263a1a, type: 3}
+    - {fileID: 9030803548844171682, guid: f04aa7787f30bab4a96433807a0f06a5, type: 3}
+    - {fileID: 9030803548844171682, guid: f80d9dc6173669245bd4782952cd1667, type: 3}
+    - {fileID: 9030803548844171682, guid: 7902e6bd6fe8b444eab36cf00a8771be, type: 3}
+    - {fileID: 9030803548844171682, guid: 909b3cba860296d47997ee7846ec93f8, type: 3}
+    - {fileID: 9030803548844171682, guid: 022c86b9aa20aaf44806e866dd6d8971, type: 3}
+    - {fileID: 9030803548844171682, guid: 40cab8c86b3615741ac4bc8db8156b37, type: 3}
+    - {fileID: 9030803548844171682, guid: 158567c6103052b45a79feac134a4c3b, type: 3}
   partySpawnCells:
   - {x: 2, y: 3}
   - {x: 3, y: 3}

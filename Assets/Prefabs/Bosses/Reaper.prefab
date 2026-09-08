@@ -675,19 +675,19 @@ MonoBehaviour:
   displayName: Reaper
   portrait: {fileID: 0}
   actionPoints: 2
-  brain: 3
-  targetingPattern: {fileID: 11400000, guid: 1e5d2bca8c962ef4f81f3607c97d63c6, type: 2}
+  brain: 1
+  targetingPattern: {fileID: 11400000, guid: 533260a4cae2432da6710784ec742d6c, type: 2}
   startCoordinates: {x: 4, y: 4}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
   lootTable: {fileID: 11400000, guid: 9e9dfdca23e27ff4eb9edefe19b17553, type: 2}
   deck:
   - {fileID: 11400000, guid: c90aeb9fd1b522e4e9ceb442096ded71, type: 2}
-  - {fileID: 11400000, guid: c90aeb9fd1b522e4e9ceb442096ded71, type: 2}
   - {fileID: 11400000, guid: 9aa98cf1d02a0d547ad7499cf286ce22, type: 2}
-  - {fileID: 11400000, guid: 9aa98cf1d02a0d547ad7499cf286ce22, type: 2}
-  - {fileID: 11400000, guid: 12d3f837e6375f046b590dfb06c3b1f0, type: 2}
-  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
-  - {fileID: 11400000, guid: 0c8f3a6d2b4e4f9a8c1d7e5b3a2f6c9d, type: 2}
+  - {fileID: 11400000, guid: d35efb0a1af04381850353ef70f9f7c3, type: 2}
+  - {fileID: 11400000, guid: 4cda4fed035e43f89daae7722563ab98, type: 2}
+  - {fileID: 11400000, guid: d950b17862b74f29a9116d6e6baf3953, type: 2}
+  - {fileID: 11400000, guid: c63bc2ac593efc9409d8b2e2b673a08d, type: 2}
+  - {fileID: 11400000, guid: c63bc2ac593efc9409d8b2e2b673a08d, type: 2}
   <Health>k__BackingField: 110
 --- !u!95 &7130099151914716108
 Animator:
@@ -730,6 +730,15 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 4341252370176204906}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

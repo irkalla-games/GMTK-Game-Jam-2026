@@ -36,6 +36,8 @@ public class GridTile : MonoBehaviour
 
     private TileWarningOverlay warningOverlay;
 
+    private TileHatchOverlay hatchOverlay;
+
     private void Awake()
     {
         selector = GetComponent<TileSelector>();
@@ -49,6 +51,10 @@ public class GridTile : MonoBehaviour
     public void SetOccupant(Character character)
     {
         Occupant = character;
+
+        // The single writer of occupancy, so this alone covers a route going stale from a move, a
+        // spawn, or a death freeing a tile - see GridManager.BoardChanged.
+        GridManager.BoardChanged();
     }
 
     /// Lights this tile up as a legal target for the selected card. The colour itself belongs to
@@ -71,6 +77,21 @@ public class GridTile : MonoBehaviour
         if (selector != null) { selector.SetHovered(value); }
     }
 
+    /// Cross-hatches this tile as in range of the selected card but not a legal click - see
+    /// GridManager.ShowPlayableTiles and TileHatchOverlay. Lazily attached like the spawn warning below,
+    /// for the same reason: a tile that never hatches never pays for the extra renderer.
+    public void SetHatched(bool value)
+    {
+        if (!value)
+        {
+            if (hatchOverlay != null) { hatchOverlay.SetActive(false); }
+            return;
+        }
+
+        if (hatchOverlay == null) { hatchOverlay = TileHatchOverlay.AttachTo(this); }
+        if (hatchOverlay != null) { hatchOverlay.SetActive(true); }
+    }
+
     /// Starts or stops this tile's red spawn-warning pulse - see GridManager.ShowSpawnWarning. Lazily
     /// attaches TileWarningOverlay on first use, the same as RefreshEffectOverlay does below for
     /// TileEffectOverlay; a tile that never warns never pays for the extra renderer.
@@ -84,6 +105,20 @@ public class GridTile : MonoBehaviour
 
         if (warningOverlay == null) { warningOverlay = TileWarningOverlay.AttachTo(this); }
         if (warningOverlay != null) { warningOverlay.SetActive(true); }
+    }
+
+    /// <summary>
+    /// Stabs this tile red once, as an enemy attack covering it resolves - see BattleManager.Execute
+    /// and TileWarningOverlay.Flash. Lazily attaches the same overlay the spawn warning uses, so a tile
+    /// never carries two renderers for two kinds of red and the sorting budget stays where it is.
+    ///
+    /// No bool and no clearing counterpart, unlike every other visual on this class: the stab has a
+    /// fixed length and ends itself.
+    /// </summary>
+    public void FlashThreat()
+    {
+        if (warningOverlay == null) { warningOverlay = TileWarningOverlay.AttachTo(this); }
+        if (warningOverlay != null) { warningOverlay.Flash(); }
     }
 
     public void DealDamage(int amount, Character attacker = null)
@@ -278,6 +313,7 @@ public class GridTile : MonoBehaviour
 
         tileEffects.Add(incoming);
         RefreshEffectOverlay();
+        GridManager.BoardChanged();
     }
 
     /// Why a tile effect on this tile refuses to let `mover` step here, or null if none object. Asked
@@ -296,7 +332,7 @@ public class GridTile : MonoBehaviour
     }
 
     /// Runs every tile effect's end-of-turn hook, then drops whatever just expired. See
-    /// GridManager.TickTileEffects - called once per round, at the end of the player turn, since a
+    /// GridManager.TickTileEffects - called once per round, at the end of the enemy turn, since a
     /// tile belongs to nobody's "own phase" the way a character's statuses do.
     public void TickTileEffects()
     {
@@ -304,6 +340,7 @@ public class GridTile : MonoBehaviour
 
         tileEffects.RemoveAll(effect => effect.IsExpired);
         RefreshEffectOverlay();
+        GridManager.BoardChanged();
     }
 
     private void RefreshEffectOverlay()

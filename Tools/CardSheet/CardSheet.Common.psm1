@@ -35,7 +35,7 @@ $script:TagNames     = @('None', 'Attack', 'Defence', 'Movement', 'Poison', 'Fir
 $script:ShapeNames   = @('Anywhere', 'Chebyshev', 'Manhattan', 'SelfTile')
 $script:AreaKindNames= @('Single', 'Radius', 'Pattern')
 $script:AimNames     = @('Tile', 'Self')
-$script:KeywordNames = @('None', 'Innate', 'Cooldown', 'Dormant')
+$script:KeywordNames = @('None', 'Innate', 'Cooldown', 'Dormant', 'Rebound', 'Interruptible')
 # Index = the enum's int value, so this list must stay in StatusType.cs's declaration order and must
 # be APPENDED to whenever a status is added. A missing tail entry is not cosmetic: Get-EnumName falls
 # back to "Unknown(16)", that string goes into the Glossary tab's Type column, and Unity's

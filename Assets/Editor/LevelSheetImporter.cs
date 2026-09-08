@@ -124,6 +124,13 @@ public static class LevelSheetImporter
 
         try
         {
+            EditorUtility.DisplayProgressBar("Sync Levels With Sheet", "Pulling from Google Sheets...", 0.05f);
+            if (!GoogleBridgeSync.Pull(GoogleBridgeSync.Workbook.Levels))
+            {
+                Debug.LogError("Level sheet sync: stopped - could not pull phone edits from Google Sheets. See the error above.");
+                return;
+            }
+
             EditorUtility.DisplayProgressBar("Sync Levels With Sheet", "Reading the workbook...", 0.1f);
             if (!SheetSyncProcess.Run(ImportScript, string.Empty, ScriptTimeoutMs)) { return; }
 
@@ -143,6 +150,9 @@ public static class LevelSheetImporter
 
             EditorUtility.DisplayProgressBar("Sync Levels With Sheet", "Refreshing the workbook...", 0.8f);
             SheetSyncProcess.Run(ExportScript, "-WriteBaseline", ScriptTimeoutMs);
+
+            EditorUtility.DisplayProgressBar("Sync Levels With Sheet", "Pushing to Google Sheets...", 0.95f);
+            GoogleBridgeSync.Push(GoogleBridgeSync.Workbook.Levels);
         }
         finally
         {

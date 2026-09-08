@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 3 damage. Gain 4 Block.
+  <description>k__BackingField: Deal 3 damage. Apply Weaken and Vulnerable.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -37,8 +37,19 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
-  - effect: {fileID: 11400000, guid: a836327bb4d2a2e4484474715888ecb1, type: 2}
-    aimsAt: 1
+  - effect: {fileID: 11400000, guid: fdf8e59b34a6463478b37ed552bf8e09, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  - effect: {fileID: 11400000, guid: d96f92b498b41174c8c02c1ba9bf1642, type: 2}
+    aimsAt: 0
     area:
       kind: 0
       radius:
@@ -49,5 +60,7 @@ MonoBehaviour:
     amountDelta: 0
     amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
-  <keywords>k__BackingField: []
+  <keywords>k__BackingField:
+  - type: 5
+    magnitude: 2
   <upgradedForm>k__BackingField: {fileID: 0}

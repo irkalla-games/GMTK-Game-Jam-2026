@@ -22,18 +22,18 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 5 damage.
+  <description>k__BackingField: Deal 5 damage to everything within 1 tile.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5001, type: 2}
     aimsAt: 0
     area:
-      kind: 0
+      kind: 1
       radius:
-        shape: 0
+        shape: 1
         minDistance: 0
-        maxDistance: 0
+        maxDistance: 1
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0

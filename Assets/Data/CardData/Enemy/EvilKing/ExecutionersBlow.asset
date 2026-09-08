@@ -22,11 +22,11 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 9 damage.
+  <description>k__BackingField: Deal 4 damage.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: a1c05e11d2f34b0a9e5c17d40b1e5002, type: 2}
+  - effect: {fileID: 11400000, guid: abee4d4f63fb20347a76a5c8221892f2, type: 2}
     aimsAt: 0
     area:
       kind: 0

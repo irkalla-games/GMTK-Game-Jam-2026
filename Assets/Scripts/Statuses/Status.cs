@@ -214,6 +214,26 @@ public abstract class Status
     public virtual void OnDamageDealt(DamageInfo info) { }
 
     /// <summary>
+    /// The carrier has just *taken* a hit, and its Health is already the new value. OnTakeDamage's
+    /// notification half: that one is the mitigation pipeline and runs before anything is subtracted,
+    /// so a rule asking "am I below half yet" cannot answer there. This runs after, which is what a
+    /// health-threshold rule needs - see ThresholdStatus, the only thing that uses it.
+    ///
+    /// Fired from Character.TakeDamage before CheckDeath, so a threshold still fires on the blow that
+    /// drops the carrier; a rule that wants to skip that case checks IsDead itself. Like OnDamageDealt,
+    /// nothing here may deal further damage - it would recurse straight back through TakeDamage.
+    /// Spawning, teleporting and granting statuses are all fine.
+    /// </summary>
+    public virtual void OnDamageTaken(Character carrier, DamageInfo info) { }
+
+    /// <summary>
+    /// Whether a chip for this status should badge a number. False for the one-shot boss rules, whose
+    /// count would only ever read "1" and say nothing the tooltip does not - see SelectedCharacterPanel,
+    /// which already suppresses the badge for a projected aura on the same reasoning.
+    /// </summary>
+    public virtual bool ShowsCount => true;
+
+    /// <summary>
     /// The carrier has just summoned something - `summon` is the freshly spawned Character, already
     /// placed on the board. A notification, the same shape as OnDamageDealt: fired once per summon,
     /// after SummonAction has already spawned and placed it, so a status here may safely read or adjust

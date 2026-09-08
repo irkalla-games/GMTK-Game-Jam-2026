@@ -140,4 +140,61 @@ public enum StatusType
     /// amount on top - and rides the same Character.AddStatus OnGainStatus pipeline, so a totem and a
     /// piece of equipment granting the same subject compound rather than fight. See GainBonusStatus.
     GainBonus = 24,
+
+    /// <summary>
+    /// Immune to one other status, and which one rotates at the end of every one of the carrier's
+    /// turns - the Dread Sorcerer's Ward Cycle.
+    ///
+    /// Rides the same Character.AddStatus OnGainStatus pipeline GainMultiplier and GainBonus use, but
+    /// cancels rather than scales: it answers WithStacks(0), and AddStatus drops an application that
+    /// arrives at zero. So a warded status is refused outright rather than landing at reduced size.
+    ///
+    /// Carries its cycle rather than a single subject, because the rotation is the point - a player
+    /// who reads the icon can spend their Freeze on the turn it is warding something else. See
+    /// WardStatus and the WardCycle component that seeds it.
+    /// </summary>
+    Warded = 25,
+
+    /// <summary>
+    /// Deals its own size straight back to whoever attacks the carrier - the Evil King's punishment
+    /// for swinging at him.
+    ///
+    /// Was StatusType.None until bosses needed it: ThornsStatus already existed for equipment, but a
+    /// status with no type of its own can neither be applied by a card nor shown on the carrier, which
+    /// is exactly what a boss identity needs. stacks is the damage returned, not a countdown - it does
+    /// not age.
+    /// </summary>
+    Thorns = 26,
+
+    /// <summary>
+    /// Splits the carrier in two when its health first crosses a threshold - the Reinforced Golem.
+    /// A ThresholdStatus; see that class for why the crossing rule is shared.
+    /// </summary>
+    Splitting = 27,
+
+    /// <summary>
+    /// Blinks the carrier clear of the party each time its health crosses another threshold - the Evil
+    /// Wizard refusing to be pinned. A ThresholdStatus, same as Splitting.
+    /// </summary>
+    Escaping = 28,
+
+    /// <summary>
+    /// The carrier discards a card at random at the start of its next turn - the Reaper's Grave Tithe.
+    ///
+    /// Deferred rather than immediate, and that is the whole point: BattleManager.TurnStart calls
+    /// DiscardHand on every character before redrawing, so a card taken during the enemy's phase is one
+    /// the hero was about to lose anyway. Stealing on the way *in* to their turn, after the fresh hand
+    /// is dealt, is the only timing where it costs them anything. See PilferedStatus.
+    /// </summary>
+    Pilfered = 29,
+
+    /// <summary>
+    /// Takes energy off the carrier's pool for the next few of its turns - the Reaper's Soul Drain.
+    ///
+    /// Deferred for the same reason Pilfered is: TurnStart calls ResetEnergy, so energy drained during
+    /// the enemy's phase is refilled before the hero ever spends from it. This lowers EnergyCapacity
+    /// instead, which is the number ResetEnergy fills to - so it bites on the turn the player actually
+    /// has to budget. See SappedStatus.
+    /// </summary>
+    Sapped = 30,
 }

@@ -128,7 +128,7 @@ public class PartySheetColumn : MonoBehaviour
                 : $"{hero.Health}/{hero.MaxHealth}";
         }
 
-        if (energyText != null) { energyText.text = $"{hero.Energy}/{hero.MaxEnergy}"; }
+        if (energyText != null) { energyText.text = $"{hero.Energy}/{hero.EnergyCapacity}"; }
 
         LayOutPage();
     }

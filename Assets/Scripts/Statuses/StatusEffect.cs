@@ -100,6 +100,13 @@ public abstract class StatusEffect : Status
         StatusType.Regeneration => new RegenerationStatus(stacks),
         StatusType.Lifesteal => new LifestealStatus(stacks),
 
+        // stacks is the damage returned rather than a duration - see ThornsStatus. That makes it the
+        // one entry here where "3 stacks" reads as "3 damage back" instead of "3 turns".
+        StatusType.Thorns => new ThornsStatus(stacks),
+
+        StatusType.Pilfered => new PilferedStatus(stacks),
+        StatusType.Sapped => new SappedStatus(stacks),
+
         // GainMultiplier, Potency and TurnTick are aura-only, same reason Taunt is missing here: each
         // needs a subject StatusType (and TurnTick a TurnTiming) that this signature has nowhere to
         // put. AuraData.CreateEffect builds them directly - see Totem.Project.

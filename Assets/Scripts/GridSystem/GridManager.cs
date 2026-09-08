@@ -81,6 +81,21 @@ public class GridManager : Singleton<GridManager>
 
     private readonly Dictionary<Vector2Int, GridTile> tiles = new();
 
+    /// <summary>
+    /// Bumped by anything that changes what a route can walk through - occupancy or a tile effect.
+    /// ReachableFrom's memo keys on this rather than recomputing per tile, since ShowPlayableTiles
+    /// asks a route question for every tile on the board on every hover.
+    /// </summary>
+    private int boardVersion;
+
+    /// Static and null-guarded rather than an instance call, because GridTile is the caller and a
+    /// tile must never assume a GridManager exists yet - and Instance is a UnityEngine.Object, so this
+    /// is `!= null`, never `?.`.
+    public static void BoardChanged()
+    {
+        if (Instance != null) { Instance.boardVersion++; }
+    }
+
 
     // No Awake override. The grid used to be built here, which needed a `if (Instance != this) return;`
     // guard so a duplicate GridManager did not build a second board on its way to being destroyed.
@@ -110,6 +125,10 @@ public class GridManager : Singleton<GridManager>
         CreateGrid(BoardSize.x, BoardSize.y);
 
         if (boardVisuals != null) { boardVisuals.Build(BoardSize, tileSet, seed); }
+
+        // A fresh board invalidates any route cached against the old one, same as an occupant or a
+        // tile effect changing would.
+        BoardChanged();
     }
 
 
@@ -518,11 +537,17 @@ public class GridManager : Singleton<GridManager>
 
 
     /// <summary>
-    /// Tints every tile this card could legally be played on, and clears the rest.
+    /// Tints every tile this card could legally be played on, cross-hatches the ones it reaches but
+    /// cannot be played on, and clears the rest.
     ///
-    /// Built from Card.Refusal - the exact predicate the click itself is gated on - so the highlight
-    /// cannot promise a tile that a click would then refuse. A tile within range but occupied by
-    /// somebody else stays dark, because Move's own rule rejects it.
+    /// The green half is built from Card.Refusal - the exact predicate the click itself is gated on - so
+    /// the highlight cannot promise a tile that a click would then refuse. The hatched half is the
+    /// difference between that and the card's own TargetRange: a tile Bash could have hit if somebody
+    /// were standing there, a tile Move could have reached were it not occupied. Without it a card's
+    /// shape is invisible whenever only one or two tiles in range happen to hold a legal target, and the
+    /// player has no way to learn how far anything reaches.
+    ///
+    /// The two sets are mutually exclusive by construction, so nothing has to arbitrate between them.
     /// </summary>
     public void ShowPlayableTiles(Card card, Character source)
     {
@@ -532,32 +557,58 @@ public class GridManager : Singleton<GridManager>
             return;
         }
 
+        // An Anywhere card reaches the whole board, so hatching everywhere it cannot be clicked teaches
+        // nothing and stripes the screen - the same judgement the whole-board escape below makes about
+        // the green highlight. Every other shape draws a real boundary that is worth showing.
+        bool hatchable = card.range.Shape != RangeShape.Anywhere;
+
+        // Null for a character that has not been placed yet. TargetRange.Contains refuses every shape but
+        // Anywhere against a null origin, and Anywhere is already excluded, so that hatches nothing.
+        GridTile origin = source.Tile;
+
         List<GridTile> playable = new();
+        List<GridTile> hatched = new();
 
         foreach (GridTile tile in tiles.Values)
         {
             if (card.Refusal(source, tile) == null) { playable.Add(tile); }
+            else if (hatchable && card.range.Contains(origin, tile)) { hatched.Add(tile); }
         }
 
         // A card with no restriction at all is legal on every tile, and lighting the whole board is
         // noise rather than information - the raised card in hand already says one is selected. Note
         // this asks what the card actually refuses, not just its range: Fireball may be aimed anywhere
         // on the board but only at an enemy, so its handful of legal tiles do get lit.
+        //
+        // Nothing is hatched in that case either: refusing nothing means the hatch set is empty anyway.
         if (playable.Count == tiles.Count)
         {
             ClearPlayableTiles();
             return;
         }
 
-        foreach (GridTile tile in tiles.Values) { tile.SetInRange(false); }
+        foreach (GridTile tile in tiles.Values)
+        {
+            tile.SetInRange(false);
+            tile.SetHatched(false);
+        }
 
         foreach (GridTile tile in playable) { tile.SetInRange(true); }
+
+        foreach (GridTile tile in hatched) { tile.SetHatched(true); }
     }
 
 
+    /// Drops both halves of the selected-card highlight. The single teardown path - CardPlayManager's
+    /// ClearHighlights, Deselect and post-play clear all arrive here - so the hatching can never outlive
+    /// the card that asked for it.
     public void ClearPlayableTiles()
     {
-        foreach (GridTile tile in tiles.Values) { tile.SetInRange(false); }
+        foreach (GridTile tile in tiles.Values)
+        {
+            tile.SetInRange(false);
+            tile.SetHatched(false);
+        }
     }
 
 
@@ -790,9 +841,79 @@ public class GridManager : Singleton<GridManager>
     }
 
 
+    /// Cache for ReachableFrom - a single entry, since only one card is ever being aimed at a time.
+    private (Vector2Int origin, int steps, int version) routeCacheKey = (default, -1, -1);
+    private Dictionary<Vector2Int, int> routeCache;
+
+    /// <summary>
+    /// Step counts from `origin` to every tile walkable within `steps`, memoized against boardVersion
+    /// so ShowPlayableTiles asking this once per tile on the board, every time a card is picked up,
+    /// costs one BFS rather than one per tile.
+    /// </summary>
+    private IReadOnlyDictionary<Vector2Int, int> ReachableFrom(Vector2Int origin, int steps)
+    {
+        (Vector2Int, int, int) key = (origin, steps, boardVersion);
+
+        if (routeCache == null || routeCacheKey != key)
+        {
+            routeCache = Read().Routes(origin, steps);
+            routeCacheKey = key;
+        }
+
+        return routeCache;
+    }
+
+    /// <summary>
+    /// Why `mover` cannot walk a route to `destination` within `steps`, or null if it can. A companion
+    /// to MoveRefusal rather than a replacement: MoveRefusal already answers every question about the
+    /// destination tile itself (occupied, walled, Rooted), so this only ever needs to ask whether a
+    /// path exists at all. Only meaningful for a card with TargetRange.RequiresRoute set - see
+    /// Card.Refusal, the only caller.
+    /// </summary>
+    public static string RouteRefusal(Character mover, GridTile destination, int steps)
+    {
+        if (mover == null || mover.Tile == null || destination == null || Instance == null)
+        {
+            return null;
+        }
+
+        IReadOnlyDictionary<Vector2Int, int> reachable =
+            Instance.ReachableFrom(mover.Tile.Coordinates, steps);
+
+        return reachable.ContainsKey(destination.Coordinates) ? null : "the way is blocked";
+    }
+
+    /// <summary>
+    /// The tiles to step through to walk from `origin` to `destination` within `steps`, excluding
+    /// `origin` itself. Empty when there is no route - the board may have changed since the refusal
+    /// that let this play through was asked, so MoveAction has to be ready for that.
+    ///
+    /// Reads the board fresh rather than through ReachableFrom's memo: that cache exists to make many
+    /// tiles' worth of highlighting cheap against one unchanged board, not to answer this, which is
+    /// asked once per move and wants the board as it stands right now.
+    /// </summary>
+    public List<GridTile> Route(GridTile origin, GridTile destination, int steps)
+    {
+        List<GridTile> route = new();
+
+        if (origin == null || destination == null) { return route; }
+
+        Board board = Read();
+        Dictionary<Vector2Int, int> distance = board.Routes(origin.Coordinates, steps);
+
+        foreach (Vector2Int cell in board.PathTo(distance, origin.Coordinates, destination.Coordinates))
+        {
+            GridTile tile = GetTile(cell);
+            if (tile != null) { route.Add(tile); }
+        }
+
+        return route;
+    }
+
+
     /// <summary>
     /// Ticks every tile's own effects by one round - Wall of Flames burns, both walls age. Called once
-    /// per round, at the end of the player turn (see BattleManager.RunBattle), since a tile belongs to
+    /// per round, at the end of the enemy turn (see BattleManager.RunBattle), since a tile belongs to
     /// nobody's "own phase" the way TickStatuses splits by side.
     ///
     /// Here rather than on BattleManager for the same reason Read() is - `tiles` is private and there

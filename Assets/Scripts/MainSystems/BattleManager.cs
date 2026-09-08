@@ -26,7 +26,8 @@ public enum BattlePhase
 ///                  the whole time - see LateUpdate - so the icon over its head always shows what it
 ///                  would actually do if EnemyResolve started this instant.
 ///   EnemyResolve   each enemy re-decides outright and acts on it - see Decide and Execute. Enemy
-///                  statuses tick once every enemy has acted.
+///                  statuses tick once every enemy has acted, and tile effects tick after that -
+///                  a wall stands for the whole round it was paid for, enemy movement included.
 ///   -> TurnStart
 ///
 /// Statuses deliberately tick at the end of the phase they gate rather than at the shared TurnStart -
@@ -1050,17 +1051,17 @@ public class BattleManager : Singleton<BattleManager>
     }
 
     /// <summary>
-    /// Keeps every enemy's CommittedIntent - and so the icon and damage number over its head - equal
-    /// to what would actually happen if EnemyResolve ran right now. Runs once per frame rather than
-    /// from inside each handler, so one card that queues three actions produces one recompute instead
-    /// of three.
+    /// Keeps every enemy's CommittedPlan - and so the icon row and damage numbers over its head - equal
+    /// to what would actually happen if EnemyResolve ran right now, action point by action point. Runs
+    /// once per frame rather than from inside each handler, so one card that queues three actions
+    /// produces one recompute instead of three.
     ///
-    /// Decide is lock-aware (see its own doc comment), so this re-aims each enemy's already-committed
-    /// card at the moved board rather than picking a new one - a hero stepping closer changes where an
-    /// archer's shot lands, never what card it is shooting with.
+    /// DecidePlan is lock-aware per step (see its own doc comment), so this re-aims each enemy's
+    /// already-committed cards at the moved board rather than picking new ones - a hero stepping closer
+    /// changes where an archer's shot lands, never what card it is shooting with.
     ///
-    /// Only while the player is rearranging the board. EnemyResolve clears each enemy's icon the
-    /// instant it finishes acting, and a pass landing after that would hand the icon straight back
+    /// Only while the player is rearranging the board. EnemyResolve clears each enemy's row the
+    /// instant it finishes acting, and a pass landing after that would hand the row straight back
     /// before the next enemy has even gone; TurnStart re-commits everyone from a fresh board the
     /// moment PlayerActing begins again, so a change dropped here while it is not our turn is never
     /// actually lost.
@@ -1077,15 +1078,15 @@ public class BattleManager : Singleton<BattleManager>
 
         foreach (Character enemy in LivingEnemies())
         {
-            Intent next = Decide(enemy, board);
+            List<Intent> next = DecidePlan(enemy, board, enemy.ActionPoints);
 
-            // Every field, not just kind - a re-aim onto a different tile or victim (same locked
-            // card) still has to repaint the icon's position and damage number. Matches skips only a
-            // truly identical result, so re-assigning it never rolls the icon over to the sprite it is
-            // already showing.
-            if (next.Matches(enemy.CommittedIntent)) { continue; }
+            // Every field of every step, not just kind - a re-aim onto a different tile or victim
+            // (same locked card) still has to repaint that icon's position and damage number.
+            // PlansMatch skips only a truly identical result, so re-assigning it never rolls an icon
+            // over to the sprite it is already showing.
+            if (PlansMatch(next, enemy.CommittedPlan)) { continue; }
 
-            enemy.CommittedIntent = next;
+            enemy.SetCommittedPlan(next);
         }
     }
 
@@ -1316,10 +1317,6 @@ public class BattleManager : Singleton<BattleManager>
 
             TickStatuses(playerControlled: true);
 
-            // Tiles belong to nobody's "own phase" - ticked once per round, here, rather than split by
-            // side like TickStatuses. See GridManager.TickTileEffects.
-            if (GridManager.Instance != null) { GridManager.Instance.TickTileEffects(); }
-
             // The tutorial explains what the discard meant and what the enemy is about to do, and both
             // beats have to land in this gap - after the hand has cleared, before anything acts on it.
             // Same shape as the two waits above: the round must not roll over on top of something still
@@ -1328,6 +1325,14 @@ public class BattleManager : Singleton<BattleManager>
                 TutorialDirector.Instance == null || !TutorialDirector.Instance.HoldingRound);
 
             yield return StartCoroutine(EnemyResolve());
+
+            // Tiles belong to nobody's "own phase" - ticked once per round, here at the end of the
+            // whole round rather than split by side like TickStatuses. After EnemyResolve on purpose:
+            // a wall laid during PlayerActing has to still be standing while the enemies move, so
+            // Wall of Force blocks their pathing for the turn it was paid for and Wall of Flames bites
+            // whoever is left standing in it once they have finished moving. See
+            // GridManager.TickTileEffects.
+            if (GridManager.Instance != null) { GridManager.Instance.TickTileEffects(); }
 
             int turnsBefore = TurnsRemaining;
 
@@ -1394,7 +1399,7 @@ public class BattleManager : Singleton<BattleManager>
             if (handingOver)
             {
                 NotificationManager.Instance.Show("Ready",
-                    "That is everything you need. The real run starts now - same heroes, full decks.");
+                    "Tutorial has been completed! You will now continue onto a real run where your Heroes can die.");
             }
             else if (finalLevel)
             {
@@ -1486,24 +1491,24 @@ public class BattleManager : Singleton<BattleManager>
             // Same reasoning TargetSelector.TryPick documents for resolving Random once per pick.
             enemy.RollTotemHunt();
 
-            // Last round's lock has to be gone before Decide runs, or Decide (via the lock-aware
-            // private overload above) would just re-aim the card this enemy already discarded playing
-            // last turn. No lock is held here, so this is always a fresh EnemyBrain.Decide.
+            // Last round's lock has to be gone before DecidePlan runs, or it (via the lock-aware
+            // re-aim inside it) would just re-aim the cards this enemy already discarded playing last
+            // turn. No lock is held here, so every step is a fresh EnemyBrain.Decide.
             enemy.ClearIntentLock();
 
-            Intent opening = Decide(enemy, board);
+            List<Intent> opening = DecidePlan(enemy, board, enemy.ActionPoints);
 
-            // The one and only place a lock is set - see Character.LockedCard. Every recompute for the
-            // rest of this turn re-aims this exact card rather than picking a new one.
-            enemy.LockIntent(opening);
+            // The one and only place a lock is set - see Character.LockedPlan. Every recompute for the
+            // rest of this turn re-aims these exact cards rather than picking new ones.
+            enemy.LockPlan(opening);
 
-            // The setter raises IntentChanged, which is what puts the icon up - see
+            // SetCommittedPlan raises IntentChanged, which is what puts the icon row up - see
             // CharacterOverheadViewer.
-            enemy.CommittedIntent = opening;
+            enemy.SetCommittedPlan(opening);
 
-            if (!enemy.CommittedIntent.IsWait)
+            if (opening.Count > 0)
             {
-                Debug.Log($"{enemy.name} intends: {enemy.CommittedIntent}");
+                Debug.Log($"{enemy.name} intends: {string.Join(" -> ", opening)}");
             }
         }
 
@@ -1539,6 +1544,38 @@ public class BattleManager : Singleton<BattleManager>
         return false;
     }
 
+    /// <summary>
+    /// Knocks out the Interruptible cards this enemy was committed to, because a Freeze just took its
+    /// whole turn. Called from the frozen branch below, before the lock is cleared - the plan is the
+    /// whole point, since it names what this enemy was *winding up* rather than everything it holds.
+    ///
+    /// Only cards carrying the Interruptible keyword are affected (Card.Interrupt no-ops otherwise),
+    /// so freezing an enemy mid-poke still just costs it the swing. A card appearing in two steps of
+    /// the same plan is interrupted once - Interrupt is idempotent within a turn anyway, since it
+    /// assigns the magnitude rather than adding to it.
+    ///
+    /// Falls back to the committed plan when the lock is already empty: the lock is what BattleManager
+    /// promises, but the icon row is what the player read before spending the Freeze, and those two
+    /// disagreeing should not quietly cost them the interrupt they aimed for.
+    /// </summary>
+    private void InterruptCommittedCards(Character enemy)
+    {
+        if (enemy == null) { return; }
+
+        IReadOnlyList<Intent> plan = enemy.LockedPlan.Count > 0 ? enemy.LockedPlan : enemy.CommittedPlan;
+
+        foreach (Intent step in plan)
+        {
+            if (step.card == null) { continue; }
+
+            if (step.card.Interrupt())
+            {
+                Debug.Log($"{enemy.name}'s {step.card.Data.cardName} was interrupted for "
+                          + $"{step.card.InterruptedRemaining} turn(s)");
+            }
+        }
+    }
+
     private IEnumerator EnemyResolve()
     {
         Phase = BattlePhase.EnemyResolve;
@@ -1553,11 +1590,12 @@ public class BattleManager : Singleton<BattleManager>
             if (enemy == null || enemy.IsDead) { continue; }
 
             // Frozen burns the whole turn, not one action - there is no partial thaw. Clear the
-            // intent too, or a frozen enemy would wear a ghost icon into the next turn.
+            // intent too, or a frozen enemy would wear a ghost icon row into the next turn.
             if (!enemy.CanAct)
             {
                 Debug.Log($"{enemy.name} is frozen and loses its turn");
-                enemy.CommittedIntent = Intent.Wait();
+                InterruptCommittedCards(enemy);
+                enemy.ClearCommittedPlan();
                 enemy.LockedAim = Intent.Wait();
                 enemy.ClearIntentLock();
                 continue;
@@ -1567,8 +1605,9 @@ public class BattleManager : Singleton<BattleManager>
             {
                 // LockAimsOn may have frozen this enemy onto an Attack it was aiming at a dodger who
                 // has since moved on - see DodgeStatus. Consuming that lock instead of deciding fresh
-                // is the one exception to "CommittedIntent is only ever what the icon shows"; every
-                // other action point is still decided outright against the live board, same as always.
+                // is the one exception to "the front of CommittedPlan is only ever what the icon row
+                // shows"; every other action point is still decided outright against the live board,
+                // same as always.
                 bool committed = !enemy.LockedAim.IsWait;
                 Intent step = committed ? enemy.LockedAim : Decide(enemy, GridManager.Instance.Read());
 
@@ -1578,15 +1617,23 @@ public class BattleManager : Singleton<BattleManager>
 
                 yield return StartCoroutine(Execute(enemy, step, committed));
 
+                // Pops the step that just resolved off the front of both the lock and the row, so
+                // the overhead icon row counts down one icon per action point instead of every icon
+                // vanishing at once when this enemy is entirely done - see
+                // Character.ConsumeLockedStep/ConsumeCommittedStep.
+                enemy.ConsumeLockedStep();
+                enemy.ConsumeCommittedStep();
+
                 // AddAction resolves the first action synchronously, so "queued" is not "finished".
                 // Also waits on LootManager: an enemy can shove a hero onto a loot tile, and the reward
                 // panel that opens for it must resolve before the next action point spends.
                 yield return new WaitUntil(() => ActionManager.Instance.IsIdle && LootIdle());
             }
 
-            // Clears this enemy's icon the moment it is done, rather than every icon vanishing at
-            // once when EnemyResolve began - so mid-resolve you can see who is still owed an action.
-            enemy.CommittedIntent = Intent.Wait();
+            // Clears whatever is left of this enemy's row the moment it is done, rather than every
+            // icon vanishing at once when EnemyResolve began - so mid-resolve you can see who is
+            // still owed an action.
+            enemy.ClearCommittedPlan();
             enemy.LockedAim = Intent.Wait();
             enemy.ClearIntentLock();
         }
@@ -1644,12 +1691,14 @@ public class BattleManager : Singleton<BattleManager>
     /// What this character would do right now - Wait if it has no brain, which is every player.
     ///
     /// Lock-aware: if this character is still holding the card it committed to this turn (see
-    /// Character.LockedCard), this re-aims that same card at the live board instead of asking Decide
-    /// fresh, so every caller - the per-frame refresh below, TurnStart's opening commit, and
-    /// EnemyResolve's own re-ask per action point - gets the same "same card, live aim" answer without
-    /// needing to know the lock exists. Only falls through to a fresh Decide when the locked card can
-    /// no longer be aimed at anything at all; TurnStart is the only place that result gets re-locked,
-    /// so a card dropped here for being briefly unplayable is not silently replaced forever.
+    /// Character.LockedCard, step 0 of LockedPlan), this re-aims that same card at the live board
+    /// instead of asking Decide fresh, so every caller - LockAimsOn, and EnemyResolve's own re-ask per
+    /// action point once ConsumeLockedStep has advanced the lock to that step - gets the same "same
+    /// card, live aim" answer without needing to know the lock exists. Only falls through to a fresh
+    /// Decide when the locked card can no longer be aimed at anything at all. See DecidePlan for the
+    /// multi-step version this is the single-step building block of - TurnStart and LateUpdate call
+    /// that instead, so a card dropped here for being briefly unplayable is not what silently
+    /// re-locks; only DecidePlan's own result ever is.
     /// </summary>
     private static Intent Decide(Character character, Board board)
     {
@@ -1665,6 +1714,90 @@ public class BattleManager : Singleton<BattleManager>
         }
 
         return brain.Decide(character, board);
+    }
+
+    /// <summary>
+    /// What this character would do over its next `steps` action points, in order - the multi-icon
+    /// forecast behind the overhead intent row. Each step is decided the same lock-aware way Decide
+    /// is (re-aiming a held lock, falling through to a fresh brain.Decide only once that lock has
+    /// nothing left to offer), so a plan already locked this turn - see Character.LockedPlan - comes
+    /// back as the same cards re-aimed live rather than a fresh guess every recompute.
+    ///
+    /// Every step's brain.Decide call excludes the cards earlier steps of this same forecast already
+    /// chose (`spent`), so a two-card hand does not show the same card twice - see
+    /// EnemyBrain.IsAvailable. A Move step temporarily relocates `character` onto its destination
+    /// tile for the rest of the forecast (restored in the finally below) so a closing melee enemy
+    /// reads Move-then-Attack rather than Move-then-Move; Character.MoveTo is safe to call and undo
+    /// like this mid-decision because it only swaps GridTile occupancy references and bumps
+    /// GridManager's route-cache version - it raises no events and never touches transform.position.
+    /// Stops early on a Wait, so a plan shorter than `steps` is exactly as long as this enemy actually
+    /// has something to do.
+    /// </summary>
+    private static List<Intent> DecidePlan(Character character, Board board, int steps)
+    {
+        List<Intent> plan = new(steps);
+
+        EnemyBrain brain = EnemyBrain.For(character.Brain);
+
+        if (brain == null || character.Tile == null || steps <= 0) { return plan; }
+
+        List<Card> spent = new();
+        GridTile origin = character.Tile;
+        IReadOnlyList<Intent> lockedPlan = character.LockedPlan;
+
+        try
+        {
+            for (int i = 0; i < steps; i++)
+            {
+                Intent step = default;
+                bool decided = false;
+
+                if (i < lockedPlan.Count && character.Holds(lockedPlan[i].card))
+                {
+                    Intent held = brain.Reaim(character, lockedPlan[i].card, lockedPlan[i].kind, board);
+
+                    if (!held.IsWait) { step = held; decided = true; }
+                }
+
+                if (!decided) { step = brain.Decide(character, board, spent); }
+
+                if (step.IsWait) { break; }
+
+                plan.Add(step);
+                spent.Add(step.card);
+
+                if (step.kind == IntentKind.Move && i < steps - 1)
+                {
+                    GridTile destination = GridManager.Instance.GetTile(step.target);
+
+                    if (destination == null) { break; }
+
+                    character.MoveTo(destination);
+                    board = GridManager.Instance.Read();
+                }
+            }
+        }
+        finally
+        {
+            if (character.Tile != origin) { character.MoveTo(origin); }
+        }
+
+        return plan;
+    }
+
+    /// True when every step of `a` matches the same step of `b` - the plan-level version of
+    /// Intent.Matches, so LateUpdate's recompute only repaints a row when something about it actually
+    /// changed rather than on every dirty frame.
+    private static bool PlansMatch(IReadOnlyList<Intent> a, IReadOnlyList<Intent> b)
+    {
+        if (a.Count != b.Count) { return false; }
+
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (!a[i].Matches(b[i])) { return false; }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1705,6 +1838,14 @@ public class BattleManager : Singleton<BattleManager>
         // DiscardPlayed, matching CardPlayManager: an enemy resolving its intent is playing a card, so
         // a Rebound one should come back to its hand exactly as it would for a hero.
         enemy.DiscardPlayed(step.card);
+
+        // Below the refusal above, so a fizzled plan never looks like a landed hit, and above
+        // ResolveEffects so occupancy is still the pre-damage board - a body this attack kills should
+        // light up rather than wink out. Fired on the same frame as the damage rather than leading it,
+        // so the enemy turn keeps its pacing. DamageArea answers empty for a Move or a Summon, which is
+        // why there is no IntentKind check here.
+        foreach (GridTile hit in step.card.DamageArea(enemy, tile)) { hit.FlashThreat(); }
+
         step.card.ResolveEffects(enemy, tile);
 
         // The one place the pattern is spent. Only attacks, and only ones that really went off - the

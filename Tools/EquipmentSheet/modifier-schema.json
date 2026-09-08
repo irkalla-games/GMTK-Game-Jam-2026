@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "writtenUtc": "2026-09-03T00:12:32.1974697Z",
+    "writtenUtc": "2026-09-08T08:43:54.4344660Z",
     "unityVersion": "6000.5.4f1",
     "types": [
         {
@@ -41,7 +41,13 @@
                         "Lifesteal",
                         "FlatDamageDealt",
                         "FlatDamageTaken",
-                        "GainBonus"
+                        "GainBonus",
+                        "Warded",
+                        "Thorns",
+                        "Splitting",
+                        "Escaping",
+                        "Pilfered",
+                        "Sapped"
                     ],
                     "enumValues": [
                         0,
@@ -68,7 +74,13 @@
                         21,
                         22,
                         23,
-                        24
+                        24,
+                        25,
+                        26,
+                        27,
+                        28,
+                        29,
+                        30
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -280,7 +292,13 @@
                         "Lifesteal",
                         "FlatDamageDealt",
                         "FlatDamageTaken",
-                        "GainBonus"
+                        "GainBonus",
+                        "Warded",
+                        "Thorns",
+                        "Splitting",
+                        "Escaping",
+                        "Pilfered",
+                        "Sapped"
                     ],
                     "enumValues": [
                         0,
@@ -307,7 +325,13 @@
                         21,
                         22,
                         23,
-                        24
+                        24,
+                        25,
+                        26,
+                        27,
+                        28,
+                        29,
+                        30
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -384,7 +408,13 @@
                         "Lifesteal",
                         "FlatDamageDealt",
                         "FlatDamageTaken",
-                        "GainBonus"
+                        "GainBonus",
+                        "Warded",
+                        "Thorns",
+                        "Splitting",
+                        "Escaping",
+                        "Pilfered",
+                        "Sapped"
                     ],
                     "enumValues": [
                         0,
@@ -411,7 +441,13 @@
                         21,
                         22,
                         23,
-                        24
+                        24,
+                        25,
+                        26,
+                        27,
+                        28,
+                        29,
+                        30
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -510,7 +546,13 @@
                         "Lifesteal",
                         "FlatDamageDealt",
                         "FlatDamageTaken",
-                        "GainBonus"
+                        "GainBonus",
+                        "Warded",
+                        "Thorns",
+                        "Splitting",
+                        "Escaping",
+                        "Pilfered",
+                        "Sapped"
                     ],
                     "enumValues": [
                         0,
@@ -537,7 +579,13 @@
                         21,
                         22,
                         23,
-                        24
+                        24,
+                        25,
+                        26,
+                        27,
+                        28,
+                        29,
+                        30
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -599,7 +647,13 @@
                         "Lifesteal",
                         "FlatDamageDealt",
                         "FlatDamageTaken",
-                        "GainBonus"
+                        "GainBonus",
+                        "Warded",
+                        "Thorns",
+                        "Splitting",
+                        "Escaping",
+                        "Pilfered",
+                        "Sapped"
                     ],
                     "enumValues": [
                         0,
@@ -626,7 +680,13 @@
                         21,
                         22,
                         23,
-                        24
+                        24,
+                        25,
+                        26,
+                        27,
+                        28,
+                        29,
+                        30
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -829,6 +889,21 @@
                     "truncated": false
                 },
                 {
+                    "path": "entry.area.radius.requiresRoute",
+                    "serializedPath": "entry.area.radius.requiresRoute",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Movement only: the target must be reachable by walking within Max Distance steps, so a Wall of Force blocks the way. Off for teleports and for every non-movement card.",
+                    "truncated": false
+                },
+                {
                     "path": "entry.area.pattern",
                     "serializedPath": "entry.area.pattern",
                     "kind": "object",
@@ -1004,6 +1079,21 @@
                     "truncated": false
                 },
                 {
+                    "path": "area.radius.requiresRoute",
+                    "serializedPath": "area.radius.requiresRoute",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Movement only: the target must be reachable by walking within Max Distance steps, so a Wall of Force blocks the way. Off for teleports and for every non-movement card.",
+                    "truncated": false
+                },
+                {
                     "path": "area.pattern",
                     "serializedPath": "area.pattern",
                     "kind": "object",
@@ -1127,14 +1217,16 @@
                         "Innate",
                         "Cooldown",
                         "Dormant",
-                        "Rebound"
+                        "Rebound",
+                        "Interruptible"
                     ],
                     "enumValues": [
                         0,
                         1,
                         2,
                         3,
-                        4
+                        4,
+                        5
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -1169,14 +1261,16 @@
                         "Innate",
                         "Cooldown",
                         "Dormant",
-                        "Rebound"
+                        "Rebound",
+                        "Interruptible"
                     ],
                     "enumValues": [
                         0,
                         1,
                         2,
                         3,
-                        4
+                        4,
+                        5
                     ],
                     "isFlags": false,
                     "objectType": "",

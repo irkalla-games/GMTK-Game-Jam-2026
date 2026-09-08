@@ -233,6 +233,11 @@ public class CardPlayManager : Singleton<CardPlayManager>
     {
         if (!HasSelection) { return; }
 
+        // Otherwise Backspace/E typed into the debug panel's search field also deselects the card
+        // or rotates its aim underneath it. OnCardClicked already checks InputLocked; this makes
+        // Update agree with it.
+        if (BattleManager.Instance != null && BattleManager.Instance.InputLocked) { return; }
+
         if (Keyboard.current != null && Keyboard.current.backspaceKey.wasPressedThisFrame)
         {
             Deselect();

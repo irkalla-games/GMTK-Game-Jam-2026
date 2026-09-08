@@ -22,11 +22,11 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 6 damage. Heal 5.
+  <description>k__BackingField: Deal 2 damage. Apply Weaken.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 5dd8e966162d47a4b990f67e30ce6ae2, type: 2}
+  - effect: {fileID: 11400000, guid: 3d27ea264b552f34f8714152e4dc8b05, type: 2}
     aimsAt: 0
     area:
       kind: 0
@@ -37,8 +37,8 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
-  - effect: {fileID: 11400000, guid: 0e351cc79beb5e447b515b7584ae9b39, type: 2}
-    aimsAt: 1
+  - effect: {fileID: 11400000, guid: fdf8e59b34a6463478b37ed552bf8e09, type: 2}
+    aimsAt: 0
     area:
       kind: 0
       radius:
@@ -49,5 +49,7 @@ MonoBehaviour:
     amountDelta: 0
     amountPercent: 0
   <animation>k__BackingField: {fileID: 0}
-  <keywords>k__BackingField: []
+  <keywords>k__BackingField:
+  - type: 5
+    magnitude: 3
   <upgradedForm>k__BackingField: {fileID: 0}

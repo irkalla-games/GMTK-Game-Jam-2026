@@ -22,8 +22,9 @@ MonoBehaviour:
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
+  <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Apply 4 stacks of Poison.
-  <image>k__BackingField: {fileID: 0}
+  <image>k__BackingField: {fileID: 21300000, guid: da4c50fc4d8dd264f88ae9268bce91eb, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: bb990246a9e74a9da9818c57770f9e51, type: 2}
   <effectEntries>k__BackingField:

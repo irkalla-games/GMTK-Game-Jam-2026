@@ -169,6 +169,46 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 24
+  - title: WARDED
+    body: Immune to one status at a time. Which one rotates at the end of each of this
+      character's turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 25
+  - title: THORNS
+    body: Attackers take {stacks} damage whenever they hit this character. Does not
+      wear off.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 26
+  - title: SPLITTING
+    body: Splits into two at half health, with the remaining health shared between
+      them.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 27
+  - title: ESCAPING
+    body: Blinks to the far side of the board each time its health falls past another
+      threshold.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 28
+  - title: PILFERED
+    body: Discards a card at random at the start of each of the next {stacks} turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 29
+  - title: SAPPED
+    body: 1 less energy each turn for {stacks} turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 30
   keywords:
   - title: INNATE
     body: Always in hand. Never enters the draw or discard pile.
@@ -188,6 +228,13 @@ MonoBehaviour:
     defaultStacks: 1
     defaultAmount: 1
     type: 3
+  - title: INTERRUPTIBLE
+    body: Freezing this character while it is winding this up knocks the card out for
+      {magnitude} turns.
+    terms: []
+    defaultStacks: 1
+    defaultAmount: 1
+    type: 5
   summons:
   - title: 
     body: 

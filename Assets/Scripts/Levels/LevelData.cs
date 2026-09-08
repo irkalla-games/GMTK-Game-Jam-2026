@@ -111,7 +111,9 @@ public class LevelData : ScriptableObject
     [Tooltip("Turns the player has to survive. Reaching 0 is the win.")]
     [SerializeField] private int turnsToSurvive = 10;
 
-    [Tooltip("Hand is topped back up to this at the start of each turn - unplayed cards carry over.")]
+    [Tooltip("Cards held at the start of each turn. The old hand is discarded first, so unplayed cards "
+             + "do NOT carry over - see BattleManager.TurnStart. Innate cards return to hand before "
+             + "the draw and take up slots, so they count against this rather than adding to it.")]
     [SerializeField] private int handSize = 5;
 
     [Tooltip("Default odds and choice count for a reward dropped on this level. A Character with its "

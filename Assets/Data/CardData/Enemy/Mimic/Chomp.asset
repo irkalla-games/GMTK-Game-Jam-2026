@@ -22,11 +22,22 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 7 damage.
+  <description>k__BackingField: Deal 7 damage. Apply Root.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 5e680a6c51d3ffd428265490d6a1e1d8, type: 2}
+    aimsAt: 0
+    area:
+      kind: 0
+      radius:
+        shape: 0
+        minDistance: 0
+        maxDistance: 0
+      pattern: {fileID: 0}
+    amountDelta: 0
+    amountPercent: 0
+  - effect: {fileID: 11400000, guid: a4d4e3e61e8148469881f4b9e148b125, type: 2}
     aimsAt: 0
     area:
       kind: 0

@@ -22,7 +22,7 @@ MonoBehaviour:
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 3 damage. Apply Root.
+  <description>k__BackingField: Deal 3 damage. Apply Weaken.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -37,7 +37,7 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
-  - effect: {fileID: 11400000, guid: a4d4e3e61e8148469881f4b9e148b125, type: 2}
+  - effect: {fileID: 11400000, guid: fdf8e59b34a6463478b37ed552bf8e09, type: 2}
     aimsAt: 0
     area:
       kind: 0

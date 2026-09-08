@@ -27,6 +27,16 @@ public class IntentDamageLabel
 
     private TextMeshProUGUI text;
 
+    /// Whether the label is currently showing a number - what IntentRow reads to decide whether this
+    /// slot's reserved width should include the label's own box when laying out the follow-up icons
+    /// beside it. False before Build has run, same as every other accessor here.
+    public bool Visible => text != null && text.gameObject.activeSelf;
+
+    /// The label's own RectTransform, exposed so IntentRow can read its right edge - see Build's own
+    /// comment on why this shares an anchor point with the slot it was built beside, which is what
+    /// makes that edge comparable to the slot's own anchoredPosition.x with no extra conversion.
+    public RectTransform Rect => text != null ? (RectTransform)text.transform : null;
+
     /// <summary>
     /// Builds the label as a sibling of `slot`, never a child of it - `slot` is IntentRoll.Window,
     /// which wraps the authored icon Image and duplicates it into two rolling copies (see

@@ -206,59 +206,99 @@ public class Character : MonoBehaviour
         huntingTotemThisTurn = chance > 0 && UnityEngine.Random.Range(0, 100) < chance;
     }
 
-    private Intent committedIntent;
+    private readonly List<Intent> committedPlan = new();
 
     /// <summary>
-    /// What this enemy would do if its turn came right now - what the overhead icon shows.
+    /// Every action this enemy would take if its turn came right now, one entry per action point -
+    /// what the overhead icon row shows, leftmost first. See CommittedIntent for the first step alone.
     ///
-    /// The card is a promise for the whole turn (see LockedCard); the tile and victim are not -
-    /// BattleManager recomputes those whenever the board changes (see BattleManager.LateUpdate) by
-    /// re-aiming the same locked card, and re-derives the whole thing outright the moment the enemy
-    /// actually acts and the lock is consumed or lapses. Moving a hero out of an archer's reach turns
-    /// its Attack back into a Move only once the locked card genuinely cannot be aimed at anyone -
-    /// stepping back into range hands the same card back rather than rolling a new one.
+    /// Each step's card is a promise for the whole turn (see LockedCard/LockedPlan); the tile and
+    /// victim are not - BattleManager recomputes those whenever the board changes (see
+    /// BattleManager.LateUpdate) by re-aiming the same locked cards, and re-derives a step outright
+    /// the moment the enemy actually acts and that step's lock is consumed or lapses. Moving a hero
+    /// out of an archer's reach turns its Attack back into a Move only once the locked card genuinely
+    /// cannot be aimed at anyone - stepping back into range hands the same card back rather than
+    /// rolling a new one.
     /// </summary>
-    public Intent CommittedIntent
+    public IReadOnlyList<Intent> CommittedPlan => committedPlan;
+
+    /// The first (and, for a one-action-point character, only) step of CommittedPlan - what every
+    /// existing single-intent reader (CharacterOverheadViewer, SelectedCharacterPanel,
+    /// BattleManager.LockAimsOn) still asks. Get-only: writers go through SetCommittedPlan and its
+    /// siblings below, which are what raise IntentChanged.
+    public Intent CommittedIntent => committedPlan.Count > 0 ? committedPlan[0] : Intent.Wait();
+
+    /// Replaces the whole plan and announces it - BattleManager.TurnStart's opening commit and
+    /// LateUpdate's live recompute both call this.
+    public void SetCommittedPlan(IReadOnlyList<Intent> plan)
     {
-        get => committedIntent;
-        set { committedIntent = value; IntentChanged?.Invoke(this); }
+        committedPlan.Clear();
+        if (plan != null) { committedPlan.AddRange(plan); }
+        IntentChanged?.Invoke(this);
     }
 
+    /// Drops the whole plan - EnemyResolve calls this once an enemy has spent every action point (or
+    /// none, being frozen), so the icon row never carries a step already spent into the next turn.
+    public void ClearCommittedPlan() => SetCommittedPlan(null);
+
+    /// Pops the step EnemyResolve just executed off the front, so the row counts down mid-resolve
+    /// instead of clearing all at once - see EnemyResolve.
+    public void ConsumeCommittedStep()
+    {
+        if (committedPlan.Count == 0) { return; }
+
+        committedPlan.RemoveAt(0);
+        IntentChanged?.Invoke(this);
+    }
+
+    private readonly List<Intent> lockedPlan = new();
+
     /// <summary>
-    /// The card this enemy committed to for the whole turn, and the kind it was committed as -
-    /// BattleManager.Decide re-aims this same card every time the board changes rather than picking a
-    /// new one, which is what makes the intent icon's damage number a promise instead of a forecast
-    /// that can flicker as the player moves. Null between rounds and whenever nothing was committed
-    /// (a Wait turn).
+    /// The cards this enemy committed to for the whole turn, and the kind each was committed as, one
+    /// entry per action point - BattleManager.Decide re-aims these same cards every time the board
+    /// changes rather than picking new ones, which is what makes the intent row's damage numbers a
+    /// promise instead of a forecast that can flicker as the player moves. Empty between rounds and
+    /// whenever nothing was committed (a Wait turn).
     ///
     /// Distinct from LockedAim: that one is Dodge freezing a *whole* Intent, tile included, for a
-    /// single action point, and it still overrides this outright when set - see
-    /// BattleManager.LockAimsOn and EnemyResolve. This one only pins the card; the aim stays live.
+    /// single action point, and it still overrides step 0 of this outright when set - see
+    /// BattleManager.LockAimsOn and EnemyResolve. This one only pins each step's card; the aim stays
+    /// live.
     /// </summary>
-    public Card LockedCard { get; private set; }
+    public IReadOnlyList<Intent> LockedPlan => lockedPlan;
 
-    public IntentKind LockedKind { get; private set; }
+    /// The first step's card and kind - what BattleManager.Decide (the single-step, lock-aware entry
+    /// point every non-plan caller still uses) reads.
+    public Card LockedCard => lockedPlan.Count > 0 ? lockedPlan[0].card : null;
 
-    /// Commits to `intent`'s card and kind for the rest of the turn, or clears the lock if it is a
-    /// Wait. Called once from BattleManager.TurnStart with a fresh Decide; never called with the
-    /// result of Reaim, or a re-aim would silently become a new lock.
-    public void LockIntent(Intent intent)
+    public IntentKind LockedKind => lockedPlan.Count > 0 ? lockedPlan[0].kind : IntentKind.Wait;
+
+    /// Commits to a fresh plan for the rest of the turn - one entry per action point, in order. A
+    /// Wait step ends the plan there; nothing past it is locked, matching "no card to promise past
+    /// this point". Called once from BattleManager.TurnStart with a fresh DecidePlan; never called
+    /// with the result of Reaim, or a re-aim would silently become a new lock.
+    public void LockPlan(IReadOnlyList<Intent> plan)
     {
-        if (intent.IsWait)
+        lockedPlan.Clear();
+
+        if (plan == null) { return; }
+
+        foreach (Intent step in plan)
         {
-            ClearIntentLock();
-            return;
+            if (step.IsWait) { break; }
+
+            lockedPlan.Add(step);
         }
-
-        LockedCard = intent.card;
-        LockedKind = intent.kind;
     }
 
-    public void ClearIntentLock()
+    /// Drops the step BattleManager.EnemyResolve just consumed off the front of the lock, so the next
+    /// action point re-aims (or freshly decides) the step after it rather than repeating this one.
+    public void ConsumeLockedStep()
     {
-        LockedCard = null;
-        LockedKind = IntentKind.Wait;
+        if (lockedPlan.Count > 0) { lockedPlan.RemoveAt(0); }
     }
+
+    public void ClearIntentLock() => lockedPlan.Clear();
 
     /// Whether `card` is still one of this character's hand copies - what BattleManager.Decide checks
     /// before trusting LockedCard, since the card may have been discarded (played, or a hand reshuffle)
@@ -392,6 +432,10 @@ public class Character : MonoBehaviour
     /// CharacterAnimator's flinch does not play on it - that contract stays exactly as it is - but a
     /// damage-number popup still wants to say "this landed for nothing" instead of showing nothing at
     /// all, which is the whole reason this is a second event rather than a change to Damaged.
+    ///
+    /// A hit that arrives at zero counts too. An attack Weaken already cut to nothing never reaches the
+    /// mitigation pipeline at all, so TakeDamage raises this from its guard clause instead - same
+    /// number, same reason. An arrow that visibly flew has to report something when it lands.
     /// </summary>
     public event Action<Character, int> DamageRegistered;
 
@@ -486,7 +530,7 @@ public class Character : MonoBehaviour
 
     public void ResetEnergy()
     {
-        Energy = maxEnergy + BonusEnergy;
+        Energy = EnergyCapacity;
         RaiseStatsChanged();
     }
 
@@ -506,6 +550,15 @@ public class Character : MonoBehaviour
             return total;
         }
     }
+
+    /// <summary>
+    /// The pool a turn refills to: the authored maximum plus everything equipment and auras add. Every
+    /// readout answering "how much energy does this character have" wants this, not MaxEnergy - the
+    /// pip column and the party sheet both used to quote the bare authored number and hide a ring's
+    /// +1. Energy itself can still exceed this (GainEnergy is uncapped on purpose); a view that has to
+    /// draw one slot per point takes Max(EnergyCapacity, Energy).
+    /// </summary>
+    public int EnergyCapacity => maxEnergy + BonusEnergy;
 
     /// <summary>
     /// The hand-size counterpart to BonusEnergy - a ring's "+1 card drawn each turn". Read by
@@ -570,7 +623,20 @@ public class Character : MonoBehaviour
     /// </summary>
     public void TakeDamage(int amount, Character attacker = null, int bounces = 0)
     {
-        if (amount <= 0) { return; }
+        // A swing that arrives already blunted to nothing - Weaken took the whole of it off in
+        // ComputeOutgoingDamage before it ever left the attacker. It still reports a hit for 0, the
+        // same as a hit Parry or Shield eats does further down: the arrow visibly flew and landed, so
+        // saying nothing at all reads as the game having dropped the attack rather than as the debuff
+        // having worked. That distinction is the whole lesson of the tutorial's Sap step.
+        //
+        // Returns above ComputeIncomingDamage on purpose. A hit with nothing left in it must not spend
+        // a Block, Shield, Parry or Dodge charge - there is nothing there for a defense to prevent, and
+        // burning one here would let a fully weakened attacker strip a target's guard for free.
+        if (amount <= 0)
+        {
+            DamageRegistered?.Invoke(this, 0);
+            return;
+        }
 
         DamageInfo info = ComputeIncomingDamage(amount, attacker, shouldConsume: true);
 
@@ -595,6 +661,11 @@ public class Character : MonoBehaviour
         // Reflect above has already run by this point, so a parried hit fires the *parrier's* riders
         // on the counter-blow rather than the original attacker's - the right reading of "on hit".
         if (!info.negated && attacker != null) { attacker.NotifyDamageDealt(info); }
+
+        // The victim's own health-threshold rules - Splitting, Escaping. After Health is already the
+        // new value, since "am I below half" is unanswerable in the OnTakeDamage pipeline above, and
+        // before CheckDeath so a threshold still fires on the blow that drops the carrier.
+        foreach (Status status in ActiveStatuses()) { status.OnDamageTaken(this, info); }
 
         CheckDeath();
     }

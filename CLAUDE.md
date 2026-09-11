@@ -24,8 +24,13 @@ passes; the user should not have to report the same class again.
 4. **Let a neighbour tell you a box is wrong.** If something looks the wrong size, check the elements
    *around* it — text starting at different x positions across rows proves the box width varies. That is
    far stronger evidence than staring at the art, and the art is rarely the problem.
-5. **Force the layout to settle before saving** (`SharpSkin.RebuildLayout`), and **prune children you no
-   longer build** (`SharpSkin.PruneChildren`).
+5. **Force the layout to settle before saving**, and **prune children you no longer build.** The
+   scripted UI wiring commands that used to make this one line (`SharpSkin.RebuildLayout`,
+   `SharpSkin.PruneChildren`) are archived — see [Editor tools: what is live, what is
+   archived](#editor-tools-what-is-live-what-is-archived). A UI change today is a hand edit through
+   the Editor or a scene/prefab edit, so settle the layout with
+   `LayoutRebuilder.ForceRebuildLayoutImmediate` yourself, and remove any child object you no longer
+   build by hand, the same way `SharpSkin` used to.
 
 **Any generated asset or importer work:**
 
@@ -106,6 +111,27 @@ what makes `Read-BodySheetTab` return null for it so no importer can ever write 
 `EquipmentModifier`/`CardModifier` subclass and writes `modifier-schema.json` for the PowerShell side, so
 a new subclass appears on the next sync with no `.ps1` edit. A sub-asset's identity is its local fileID
 (the read-only `Mod Id`/`Sub Id` columns); reorder by dragging rows, not by editing `Ord`.
+
+## Editor tools: what is live, what is archived
+
+`Assets/Editor` holds the sheet syncs, the Inspector and asset-import infrastructure, and a handful of
+recurring workflow tools (`CardArtAssigner`, `EnemyRegistryGenerator`, `CardArtImportNormaliser`,
+`BlockSpriteImporter`, `DebugTestbedGenerator`, `EncounterSimulatorWindow`) — nothing else. Everything
+that was one-shot — a generator that authored a batch of content once, or a wiring command that built
+a UI panel once — lives in [Archive/EditorTools/](Archive/EditorTools/README.md), outside `Assets/`,
+and is not compiled. Its README lists every file, the menu item it used to register, and why it was
+archived.
+
+**Do not restore an archived file to make a change.** They repair rather than skip (see the checklist
+above): every field the generator owns is rewritten on every run, against a project that has moved on
+since it was written. Edit the asset by hand, or go through the design sheet that owns the numbers.
+Restoring is for genuinely new content of a kind that has no other author — and even then,
+`EnemyRosterGenerator` in particular will overwrite sheet-tuned enemy stats if run against an existing
+body rather than a new one.
+
+The seven `Tools/Unlocks/*` and `Tools/Level/Top Up Party Spawn Cells` dev commands were extracted
+into `Assets/Editor/DevCommands.cs` before their two host files were archived — they're testing
+shortcuts meant to keep working indefinitely, unlike the wiring around them.
 
 ## Architecture
 
@@ -314,14 +340,17 @@ longer be instantiated. `Assets/Data/New Card.asset` is in this state; delete it
 **Never `??` or `?.` a `UnityEngine.Object`.** Both test *reference* null, bypassing Unity's overloaded
 `==` — the only thing reporting a missing or destroyed object as null. `GetComponent<T>()` returns a
 **fake-null**: null by `==`, a real reference to `??`, so `GetComponent<Canvas>() ?? AddComponent<Canvas>()`
-never adds anything and throws on the next property set. Write the two-line form or reuse
-`TutorialWiring.Ensure<T>`. `?.` is only safe guarding a *literal* null after an explicit `!= null` test.
+never adds anything and throws on the next property set. Write the two-line form — the `Ensure<T>`
+helper that used to save the repetition lived in `TutorialWiring.cs`, now archived along with the rest
+of the one-shot wiring (see [Editor tools](#editor-tools-what-is-live-what-is-archived)). `?.` is only
+safe guarding a *literal* null after an explicit `!= null` test.
 `Tweener?.Kill()` is fine — a plain C# class, not a `UnityEngine.Object`.
 
 **Never wrap asset generation in `AssetDatabase.StartAssetEditing()`.** It defers every import in the
 block, so `LoadAssetAtPath` returns null for anything created there — silently, with cross-references
 written as `{fileID: 0}`. Create in dependency order and pass each new asset *down as a live object*; see
-`TutorialContentGenerator`. Full story in the changelog.
+`TutorialContentGenerator` in [Archive/EditorTools/](Archive/EditorTools/README.md) for a worked
+example. Full story in the changelog.
 
 **A content generator should repair, not skip.** Reuse an existing asset, but re-write every field it owns
 on every run. A bare `if (Exists(path)) return;` makes a half-built set permanently unfixable by hand.
@@ -331,23 +360,28 @@ on every run. A bare `if (Exists(path)) return;` makes a half-built set permanen
 `layoutPriority`, so the next `ILayoutElement` on the object answers instead — a sibling layout group's
 `flexibleHeight = 1`, or a Simple `Image`'s native sprite size as `preferredWidth`. **Any object carrying
 both a layout group and a `LayoutElement` must set `flexibleHeight`/`flexibleWidth` explicitly, including
-to 0** — see `SettingsRowBuilder.Row`.
+to 0** — see `SettingsRowBuilder.Row` in [Archive/EditorTools/](Archive/EditorTools/README.md) if that
+scripted UI wiring is ever restored; the rule applies whether you're scripting the row or building it
+by hand in the Editor.
 
 **`minWidth`/`minHeight` are the same trap, and the object needs no layout group to fall into it** — a
 plain `Image` is an `ILayoutElement`, so every icon qualifies. A preferred size is only a preference: a
 group that cannot fit its children compresses them toward their *minimums*, and a `-1` hands that answer
 to the `Image`, which says 0. **A helper meaning "fixed size" must set the minimum too** — see
-`PartySheetStyling.AddFixedSize`. Symptom: an element is the wrong size only in *some* rows, and a
-non-`preserveAspect` `Image` inside it is squashed to match.
+`PartySheetStyling.AddFixedSize` in [Archive/EditorTools/](Archive/EditorTools/README.md). Symptom: an
+element is the wrong size only in *some* rows, and a non-`preserveAspect` `Image` inside it is squashed
+to match.
 
 **RectTransform width and height are serialized, so a scripted layout must be forced to settle before the
 scene is saved.** uGUI defers rebuilds to `CanvasUpdateRegistry`, so a command building dozens of objects
-in one frame saves half-built numbers. `SharpSkin.RebuildLayout` walks the tree deepest-first with
-`LayoutRebuilder.ForceRebuildLayoutImmediate`; every UI wiring command calls it before saving.
+in one frame saves half-built numbers. If you script a UI build, force it with
+`LayoutRebuilder.ForceRebuildLayoutImmediate` deepest-first before saving — this was `SharpSkin.RebuildLayout`,
+now archived with the wiring commands that called it.
 
-**`SharpSkin.EnsureChild` makes a command idempotent for what it still builds, not for what it used to.**
-Row builders call `SharpSkin.PruneChildren` with exactly the children they create, so a container holds
-what the current code says rather than the union of every version that ever ran.
+**A command that builds UI objects is idempotent for what it still builds, not for what it used to.**
+Prune any child object your code no longer creates, so a container holds what the current code says
+rather than the union of every version that ever ran — this was `SharpSkin.EnsureChild`/`PruneChildren`,
+now archived alongside the wiring commands that used them.
 
 ## Not implemented yet
 
@@ -362,8 +396,8 @@ nothing resumes), and equipment, which is per-run only. What *does* persist is `
 `GameSettings`, `DeckUnlocks`, `CharacterUnlocks` and `DifficultyProgress`.
 
 Nothing awards a **deck** unlock yet. `DeckUnlocks.Unlock` still has no runtime caller — only the
-`Tools/Unlocks` menu commands. Character unlocks and difficulty tiers *are* awarded, by
-`RunManager.AwardRunComplete`.
+`Tools/Unlocks` menu commands in `Assets/Editor/DevCommands.cs`. Character unlocks and difficulty
+tiers *are* awarded, by `RunManager.AwardRunComplete`.
 
 Shield (a pool of extra health, wiped each turn), Block (a flat reduction per hit, lasting a limited
 number of turns) and Parry (negates a hit and reflects it) are `Status` subclasses — `ShieldStatus`,

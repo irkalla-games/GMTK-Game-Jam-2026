@@ -71,7 +71,7 @@ public static class TutorialWiring
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
 
         Debug.Log("Tutorial wiring: done - scene saved. Assign the five CardData fields on "
-                  + $"{DirectorName} by hand: Fireball, Shield, Slash, Teleport, Sap Totem.");
+                  + $"{DirectorName} by hand: Smite, Shield, Slash, Move, Heal Totem.");
     }
 
     // ---- Main Menu --------------------------------------------------------------------------------
@@ -121,15 +121,20 @@ public static class TutorialWiring
 
         // The party the player is handed once the tutorial is cleared: the same two heroes they just
         // played, on the starter decks that hold the four cards the tutorial taught. Written only when
-        // the list is empty, so a hand-tuned follow-on survives a re-run.
+        // the list is empty, so a hand-tuned follow-on survives a re-run - except this command's own
+        // stale Knight+Mage default (from when the tutorial taught the Mage), which is cleared and
+        // replaced rather than left standing: nobody hand-tuned it to that value on purpose, it was
+        // this command's own old output.
         SerializedProperty party = so.FindProperty("tutorialFollowOnParty");
+
+        if (party != null && IsStaleMageDefault(party)) { party.arraySize = 0; }
 
         if (party != null && party.arraySize == 0)
         {
             SetPartyEntry(party, 0, "Assets/Prefabs/Player/PlayerKnight.prefab",
                 "Assets/Data/DeckData/KnightStarter.asset");
-            SetPartyEntry(party, 1, "Assets/Prefabs/Player/PlayerMage.prefab",
-                "Assets/Data/DeckData/MageStarter.asset");
+            SetPartyEntry(party, 1, "Assets/Prefabs/Player/PlayerCleric.prefab",
+                "Assets/Data/DeckData/ClericStarter.asset");
         }
 
         so.ApplyModifiedProperties();
@@ -139,6 +144,20 @@ public static class TutorialWiring
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
 
         Debug.Log("Tutorial wiring: Main Menu wired - scene saved.");
+    }
+
+    /// True only for this command's own pre-Cleric output (Knight + Mage, in that order) - the one case
+    /// where clearing a "written only when empty" list is still correct. Checked by slot 1's prefab
+    /// rather than any deck field, since PlayerEntry.deck is the part a designer is most likely to have
+    /// hand-tuned even while leaving the roster itself alone.
+    private static bool IsStaleMageDefault(SerializedProperty party)
+    {
+        if (party.arraySize != 2) { return false; }
+
+        GameObject mage = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player/PlayerMage.prefab");
+        Object slot1Prefab = party.GetArrayElementAtIndex(1).FindPropertyRelative("prefab").objectReferenceValue;
+
+        return slot1Prefab == mage;
     }
 
     private static void SetPartyEntry(SerializedProperty party, int index, string prefabPath, string deckPath)
@@ -224,8 +243,7 @@ public static class TutorialWiring
         RectTransform footer = EnsureChild(bodyRoot, "Footer");
         ConfigureHorizontalLayout(footer.gameObject, PanelPalette.RowSpacing);
 
-        Button cont = EnsureButton(footer, "ContinueButton", "Continue", font,
-            PanelPalette.HeaderFill, PanelPalette.Gold);
+        Button cont = EnsureButton(footer, "ContinueButton", "Continue", font);
 
         // A scene wired before Skip Tutorial moved out of the footer still has the old child sitting
         // here, wired to nothing now that TutorialPopup's skipButton field points at the standalone one
@@ -288,17 +306,21 @@ public static class TutorialWiring
         rect.sizeDelta = new Vector2(width, Height);
         rect.anchoredPosition = new Vector2(x, y);
 
-        ConfigureImage(rect.gameObject, null, PanelPalette.HeaderFill, raycast: true);
-
-        Button button = Ensure<Button>(rect.gameObject);
-        button.targetGraphic = rect.GetComponent<Image>();
-
+        // Label first, then ApplyButton - the same ordering EnsureButton documents, and the same reason
+        // it uses ApplyButton rather than a null-sprite ConfigureImage.
         TMP_Text text = EnsureLabel(rect, "Label");
-        Style(text, font, PanelPalette.TermNameSize, PanelPalette.TermNameSpacing, PanelPalette.LabelGrey,
-            FontStyles.Bold | FontStyles.UpperCase, wrap: false);
+        Style(text, font, PanelPalette.TermNameSize, PanelPalette.TermNameSpacing,
+            PanelPalette.LabelNormal, FontStyles.Bold | FontStyles.UpperCase, wrap: false);
         text.alignment = TextAlignmentOptions.Center;
         text.text = "Skip Tutorial";
         Stretch((RectTransform)text.transform);
+
+        Button button = Ensure<Button>(rect.gameObject);
+
+        SharpSkin.ApplyButton(button);
+
+        Image background = rect.GetComponent<Image>();
+        if (background != null) { background.raycastTarget = true; }
 
         return (rect.gameObject, button);
     }
@@ -340,13 +362,11 @@ public static class TutorialWiring
         SetIfEmpty(so, "portraitPanel",
             Object.FindAnyObjectByType<PartyPortraitPanel>(FindObjectsInactive.Include));
 
-        SetIfEmpty(so, "enemyPanel", FindEnemyPanel());
-
-        SetIfEmpty(so, "fireball", Card("Mage/RangedAttack/Fireball"));
+        SetIfEmpty(so, "smite", Card("Cleric/Heal/Smite"));
         SetIfEmpty(so, "shield", Card("Knight/Buff (Defensive)/Shield"));
         SetIfEmpty(so, "slash", Card("Knight/Melee Attack/Slash"));
-        SetIfEmpty(so, "teleport", Card("Mage/Movement/Teleport"));
-        SetIfEmpty(so, "sapTotem", Card("Mage/Summon/Sap Totem"));
+        SetIfEmpty(so, "move", Card("Generic/Move"));
+        SetIfEmpty(so, "healTotem", Card("Cleric/Summon/Heal Totem"));
 
         so.ApplyModifiedProperties();
     }
@@ -363,19 +383,6 @@ public static class TutorialWiring
         }
 
         return card;
-    }
-
-    /// The enemy-side panel is the one whose Audience is NotPlayerControlled - asked rather than matched
-    /// by object name, since the two panels are otherwise identical components.
-    private static SelectedCharacterPanel FindEnemyPanel()
-    {
-        foreach (SelectedCharacterPanel panel in
-                 Object.FindObjectsByType<SelectedCharacterPanel>(FindObjectsInactive.Include))
-        {
-            if (panel.Audience == PanelAudience.NotPlayerControlled) { return panel; }
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -529,26 +536,56 @@ public static class TutorialWiring
         text.raycastTarget = false;
     }
 
+    /// <summary>
+    /// A button skinned the way every other button in the game is - SharpSkin.ApplyButton, which lays
+    /// the sliced rect_button sprite on it and hands it a SharpButtonTint wired to its background and
+    /// label.
+    ///
+    /// **Not ConfigureImage with a null sprite.** That is what this used to do, and it actively broke
+    /// the button: a null sprite CLEARS whatever was there (deliberately - see ConfigureImage), so a
+    /// re-run of this command stripped the sprite off an already-skinned button, and SharpButtonTint
+    /// then multiplied PanelPalette.ButtonNormal - which is white, meant to leave sprite art as
+    /// authored - over nothing at all. A solid white rectangle, every time the wiring was re-run.
+    ///
+    /// The label is built before ApplyButton, not after: ApplyButton finds the label with
+    /// GetComponentInChildren to hand it to SharpButtonTint, so a label created afterwards would leave
+    /// the tint driving the background alone and the text stuck at its authored colour.
+    /// </summary>
     private static Button EnsureButton(RectTransform parent, string childName, string label,
-        TMP_FontAsset font, Color fill, Color ink)
+        TMP_FontAsset font)
     {
         RectTransform rect = EnsureChild(parent, childName);
 
-        ConfigureImage(rect.gameObject, null, fill, raycast: true);
-
-        Button button = Ensure<Button>(rect.gameObject);
-        button.targetGraphic = rect.GetComponent<Image>();
-
-        LayoutElement element = Ensure<LayoutElement>(rect.gameObject);
-        element.preferredHeight = 44f;
-        element.flexibleWidth = 1f;
-
         TMP_Text text = EnsureLabel(rect, "Label");
-        Style(text, font, PanelPalette.TermNameSize, PanelPalette.TermNameSpacing, ink,
-            FontStyles.Bold | FontStyles.UpperCase, wrap: false);
+
+        // The resting colour SharpButtonTint itself applies, so the Editor-time look matches play mode
+        // rather than flipping the moment the scene runs.
+        Style(text, font, PanelPalette.TermNameSize, PanelPalette.TermNameSpacing,
+            PanelPalette.LabelNormal, FontStyles.Bold | FontStyles.UpperCase, wrap: false);
         text.alignment = TextAlignmentOptions.Center;
         text.text = label;
         Stretch((RectTransform)text.transform);
+
+        Button button = Ensure<Button>(rect.gameObject);
+
+        SharpSkin.ApplyButton(button);
+
+        // ApplySliced does not touch raycastTarget, and a button whose target graphic takes no raycasts
+        // is a button that cannot be clicked.
+        Image background = rect.GetComponent<Image>();
+        if (background != null) { background.raycastTarget = true; }
+
+        // Every axis stated outright, including the zeroes. This object carries both a LayoutElement and
+        // - now that ApplyButton has given it one - an Image with a real sprite, and a LayoutElement
+        // left at -1 is not consulted at all: LayoutUtility skips a negative bid before it ever looks at
+        // layoutPriority, so the Image would answer instead with its sprite's native size. See CLAUDE.md.
+        LayoutElement element = Ensure<LayoutElement>(rect.gameObject);
+        element.minHeight = 44f;
+        element.preferredHeight = 44f;
+        element.flexibleHeight = 0f;
+        element.minWidth = 0f;
+        element.preferredWidth = 0f;
+        element.flexibleWidth = 1f;
 
         return button;
     }

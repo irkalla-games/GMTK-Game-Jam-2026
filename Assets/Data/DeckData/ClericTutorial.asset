@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bc05c1dab7b1b25479b78eb721423298, type: 3}
-  m_Name: MageTutorial
+  m_Name: ClericTutorial
   m_EditorClassIdentifier: Assembly-CSharp::DeckData
-  displayName: Mage (Tutorial)
+  displayName: Cleric (Tutorial)
   description: The scripted tutorial hand. Not offered anywhere.
   forClass: 0
   cards:
-  - {fileID: 11400000, guid: 576ab6616f9067d458e6811318815c6c, type: 2}
-  - {fileID: 11400000, guid: aaf80d8da0ea4c228b87cbad0b9af242, type: 2}
+  - {fileID: 11400000, guid: 96e73bab6c061cd49bf0c98a367e781e, type: 2}
+  - {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
   locked: 0
   unlockId: 

@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Knight
   m_EditorClassIdentifier: Assembly-CSharp::CharacterOption
   displayName: Knight
-  portrait: {fileID: 0}
   prefab: {fileID: 8814313836042315297, guid: 2f55586ecf87a1f46baec75a87d99411, type: 3}
   decks:
   - {fileID: 11400000, guid: ad04e702eb5b30a49bf827a88fd833db, type: 2}
   - {fileID: 11400000, guid: 25f06671280fce648a6f5b8724a23268, type: 2}
+  locked: 0
+  unlockId: knight

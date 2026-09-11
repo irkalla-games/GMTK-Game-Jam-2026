@@ -669,7 +669,7 @@ MonoBehaviour:
   maxEnergy: 3
   playableCharacter: 3
   battleRole: 0
-  powerLevel: 2
+  powerLevel: 1.85
   isBoss: 0
   characterClass: 0
   displayName: Skeleton
@@ -727,6 +727,15 @@ MonoBehaviour:
   intentRoll:
     rollDuration: 0.5
     rollEase: 9
+  damageLabel:
+    fontSize: 28
+    gap: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 5346522556858515181}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

@@ -13,18 +13,18 @@ MonoBehaviour:
   m_Name: Tutorial
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   enemies:
-  - prefab: {fileID: 182765627993517242, guid: ecfacaa5c517fd94c91ba7e1e196611c, type: 3}
-    cell: {x: 2, y: 6}
+  - prefab: {fileID: 5722869675094232849, guid: d0282ae8667b05148889497c71ed709f, type: 3}
+    cell: {x: 1, y: 5}
     deckOverride: []
   waves:
   - turn: 2
     enemies:
-    - prefab: {fileID: 1505060705099608387, guid: e7a0dc478496d9c44990d84e064945aa, type: 3}
-      cell: {x: 0, y: 3}
+    - prefab: {fileID: 4301190963141267142, guid: 8581092730b40aa4494c38bbd490244c, type: 3}
+      cell: {x: 2, y: 3}
       deckOverride: []
   - turn: 3
     enemies:
-    - prefab: {fileID: 1505060705099608387, guid: e7a0dc478496d9c44990d84e064945aa, type: 3}
+    - prefab: {fileID: 4301190963141267142, guid: 8581092730b40aa4494c38bbd490244c, type: 3}
       cell: {x: 2, y: 4}
       deckOverride: []
   encounterBudget:
@@ -40,12 +40,12 @@ MonoBehaviour:
     waveIntervalJitter: 0
     poolFilter: []
   partySpawnCells:
-  - {x: 1, y: 2}
   - {x: 2, y: 2}
+  - {x: 1, y: 2}
   boardSize: {x: 3, y: 6}
   turnsToSurvive: 3
   handSize: 3
-  lootTable: {fileID: 11400000, guid: c55a878fd7ae2354cbc186db23a61ce3, type: 2}
+  lootTable: {fileID: 11400000, guid: 3efd6b99c13b6b945974e4b82ae997a3, type: 2}
   clearRewardTable: {fileID: 0}
   tileSets:
   - {fileID: 11400000, guid: b5d318c6538aecd47a73001dcc0608b4, type: 2}

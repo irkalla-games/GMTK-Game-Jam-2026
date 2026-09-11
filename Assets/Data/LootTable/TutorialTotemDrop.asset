@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 60b0e579e296d7247b349cf04c09d740, type: 3}
-  m_Name: TutorialSapDrop
+  m_Name: TutorialTotemDrop
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
   - rarity: 0
@@ -19,8 +19,8 @@ MonoBehaviour:
   cardWeights: []
   excludedCards: []
   guaranteedCards:
-  - {fileID: 11400000, guid: 8b23e21878068f84ca903b21df587219, type: 2}
-  - {fileID: 11400000, guid: 8b23e21878068f84ca903b21df587219, type: 2}
-  - {fileID: 11400000, guid: 8b23e21878068f84ca903b21df587219, type: 2}
+  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
+  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
+  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
   choiceCount: 3
   equipmentChance: 0

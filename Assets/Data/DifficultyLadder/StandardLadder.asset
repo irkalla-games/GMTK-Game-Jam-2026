@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d041df74dffaec4478a2177e93c17219, type: 3}
+  m_Name: StandardLadder
+  m_EditorClassIdentifier: Assembly-CSharp::DifficultyLadder
+  tiers:
+  - displayName: Normal
+    extraEncounterPower: 0
+    extraEnemyHealth: 0
+    unlocksOnClear:
+    - {fileID: 11400000, guid: 960a63c3011f7d94ba670b5bb8a21ec4, type: 2}
+  - displayName: Hard I
+    extraEncounterPower: 0.25
+    extraEnemyHealth: 0
+    unlocksOnClear:
+    - {fileID: 11400000, guid: 868f9f141320d4e4388aed05e432965a, type: 2}
+  - displayName: Hard II
+    extraEncounterPower: 0.25
+    extraEnemyHealth: 0.25
+    unlocksOnClear: []
+  - displayName: Hard III
+    extraEncounterPower: 0.5
+    extraEnemyHealth: 0.25
+    unlocksOnClear: []
+  - displayName: Hard IV
+    extraEncounterPower: 0.5
+    extraEnemyHealth: 0.5
+    unlocksOnClear: []
+  - displayName: Hard V
+    extraEncounterPower: 0.75
+    extraEnemyHealth: 0.5
+    unlocksOnClear: []
+  - displayName: Hard VI
+    extraEncounterPower: 0.75
+    extraEnemyHealth: 0.75
+    unlocksOnClear: []

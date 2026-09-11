@@ -69,8 +69,17 @@ public class PartyPortraitPanel : MonoBehaviour
         battle.ActiveCharacterChanged += OnActiveChanged;
         battle.TurnAdvanced += RefreshAll;
 
+        // Statuses can change without any hero's own StatsChanged firing, because auras are pulled
+        // rather than pushed: a totem landing beside a hero writes nothing to that hero (see Totem,
+        // which only adds itself to a static registry), so the chip row would sit stale until the next
+        // turn or the next thing that did mutate them. SelectedCharacterPanel already subscribes here
+        // for exactly this reason - this is the same subscription for the portrait row.
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += OnActionResolved; }
+
         Rebuild();
     }
+
+    private void OnActionResolved(GameAction action, ActionContext ctx) => RefreshAll();
 
     private void OnDestroy()
     {
@@ -83,6 +92,8 @@ public class PartyPortraitPanel : MonoBehaviour
             battle.ActiveCharacterChanged -= OnActiveChanged;
             battle.TurnAdvanced -= RefreshAll;
         }
+
+        if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
 
         DetachHeroes();
         DetachPortraits();

@@ -17,11 +17,11 @@ MonoBehaviour:
     eligibleForRandomDraw: 1
   - prefab: {fileID: 9030803548844171682, guid: fae9e0d8df06f744cb3eed28f98bb54f, type: 3}
     eligibleForRandomDraw: 1
+  - prefab: {fileID: 3139292633343518583, guid: 4cb5e72728f8d3143a2397b50dff133f, type: 3}
+    eligibleForRandomDraw: 0
   - prefab: {fileID: 9030803548844171682, guid: f80d9dc6173669245bd4782952cd1667, type: 3}
     eligibleForRandomDraw: 1
   - prefab: {fileID: 7309865209041413330, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-    eligibleForRandomDraw: 1
-  - prefab: {fileID: 182765627993517242, guid: ecfacaa5c517fd94c91ba7e1e196611c, type: 3}
     eligibleForRandomDraw: 1
   - prefab: {fileID: 9030803548844171682, guid: e58fd978e913eea4699c373a33b5e08b, type: 3}
     eligibleForRandomDraw: 1
@@ -62,8 +62,6 @@ MonoBehaviour:
   - prefab: {fileID: 9030803548844171682, guid: eaade4b777fd45447af03588cf3692e5, type: 3}
     eligibleForRandomDraw: 0
   - prefab: {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    eligibleForRandomDraw: 1
-  - prefab: {fileID: 1505060705099608387, guid: e7a0dc478496d9c44990d84e064945aa, type: 3}
     eligibleForRandomDraw: 1
   - prefab: {fileID: 9030803548844171682, guid: 40cab8c86b3615741ac4bc8db8156b37, type: 3}
     eligibleForRandomDraw: 1

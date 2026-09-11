@@ -230,6 +230,52 @@ watching. `ActiveHandViewer.dealQueue` turns that into cards arriving one at a t
 reshuffle flourish (`CardPileHud.PlayReshuffle`) sits. Sequencing in `Character` would make a card event's
 timing depend on whether anything is looking.
 
+**A run is `RunData` + `RunManager`; what outlives it is `PlayerPrefs`.** `RunData` is the campaign as
+authored (its levels, its `DifficultyLadder`, whether clearing it awards anything); `RunManager` is how
+far through you are — same split as `CardData`/`Card`. Anything that must survive the run goes in a
+static `PlayerPrefs` class (`GameSettings`, `DeckUnlocks`, `CharacterUnlocks`, `DifficultyProgress`),
+never a `ScriptableObject`: a runtime write to an asset persists to disk after Play Mode exits, and a
+built game has no writable `Assets` folder.
+
+**A difficulty scale is a bonus added to 1, never a raw multiplier.** `DifficultyTier.extraEnemyHealth`
+of `0.25` means ×1.25. A `float` in a struct authored before the field existed deserializes to `0`, and
+a raw multiplier would then read ×0 and silently delete every encounter — so the all-zero default has to
+mean "unchanged". Same reasoning as `RangeShape.Anywhere` being 0. It is also what lets a debug campaign
+carry no ladder at all and simply never scale.
+
+**`EncounterRoller` scores whole lineups; it does not draw greedily.** Each of `rollAttempts` rolls
+is scored at every point it could have stopped, and the best wins (shortfall ≫ waste ≈ duplicates).
+`frontlineCount`/`backlineCount` count **`BattleRole`, not board zone**, across the **opening lineup
+only** — reinforcement waves ignore them. That is why a rolled wave **never lands on turn 1**: `TurnStart`
+spawns a turn-1 wave before the player's first action, so it would sit on the board the caps describe.
+The first comes on turn `1 + waveInterval`. **Bosses come from `bossCount`**, a count, not the
+boss power budgets: it places N random bosses on either side, on top of every power budget (its power is
+added to the scoring target so it never reads as overspend). The boss *power* budgets still exist but
+fix a side. A boss takes a headcount slot on its side. `0` means *unbounded* for a count,
+*one roll* for `rollAttempts`, and literally zero for `duplicatePenalty`. **Variety is entirely
+`duplicatePenalty`'s**: at 0 repeats are as likely as anything; above 0 it weights the draw
+(`1/(1 + penalty·k)`), trims cheap trailing repeats, and scores repetitive rolls down. Caps bound
+what a budget can buy: seven slots can only spend what seven of the pool's dearest bodies cost, so
+lower `anyPower` alongside adding caps or the level quietly spends less than it says.
+
+**Tune encounters with `Tools/Level/Encounter Simulator`, not by playing.** It rolls a level thousands
+of times through `EncounterRoller.RollFor` — the one call `BattleManager.RollEncounter` also makes, so
+never re-implement roll logic beside it — and reports example battles, per-enemy frequency, common and
+rare openings/waves, pacing, and checks (enemies over the cap, unreachable budgets, waves after the last
+turn). It reads the level and every prefab's `powerLevel` fresh per run, and `seed + i` per battle keeps
+runs comparable. The roller *reports* a missed role minimum in `RolledEncounter`; callers decide whether
+to log it, so the simulator stays quiet.
+
+**Difficulty is applied in `BattleManager.AddCharacter`, not `Spawn`.** `Spawn` misses summons — an
+enemy Summoner's bodies arrive through `GridTile.SummonObject`. `AddCharacter` is the one door *every*
+body enters by and already refuses duplicates, so nothing is scaled twice. Gate on
+`Character.IsHostileToParty`, **not** `!IsPlayerControlled`: the latter means "AI-resolved" and is true
+of a hero's own summoned ally.
+
+**A run-complete award goes in `EndLevel`, not `Finish`.** `Finish` loads the Main Menu synchronously,
+so anything raised there is never seen. `EndLevel` already puts up the Victory modal, and already checks
+the tutorial hand-over first — which is what stops a cleared tutorial paying out.
+
 **Read-only pile screens are `CardGridView` + a thin panel, not a mode on `CardRemovalPanel`.**
 `CardRemovalPanel` (choose one) and `CardPilePanel` (look, then close) share the grid `CardGridView.Build`
 holds once. Browsing and committing to a choice are different concepts even when they share a grid.
@@ -305,7 +351,19 @@ what the current code says rather than the union of every version that ever ran.
 
 ## Not implemented yet
 
-Marked with TODOs: enemy behaviour (non-player characters just stand there), and win/loss conditions.
+Enemy behaviour and win/loss conditions **do** ship — this section used to claim otherwise. Enemies
+have brains (`EnemyBrain`, `Warrior`/`Ranger`/`Summoner`), and a battle ends by surviving
+`LevelData.TurnsToSurvive` (`BattleManager.EndLevel`) or by losing every hero (`AllHeroesDead`).
+**The win condition is a turn count, not killing every enemy** — nothing ends a battle because the
+board emptied. The only real TODO left in `Assets/Scripts` is a cosmetic fizzle in `BattleManager`.
+
+Not persisted between sessions: a run in progress (`PauseMenu.QuitToMenu` leaves one behind that
+nothing resumes), and equipment, which is per-run only. What *does* persist is `PlayerPrefs`, via
+`GameSettings`, `DeckUnlocks`, `CharacterUnlocks` and `DifficultyProgress`.
+
+Nothing awards a **deck** unlock yet. `DeckUnlocks.Unlock` still has no runtime caller — only the
+`Tools/Unlocks` menu commands. Character unlocks and difficulty tiers *are* awarded, by
+`RunManager.AwardRunComplete`.
 
 Shield (a pool of extra health, wiped each turn), Block (a flat reduction per hit, lasting a limited
 number of turns) and Parry (negates a hit and reflects it) are `Status` subclasses — `ShieldStatus`,

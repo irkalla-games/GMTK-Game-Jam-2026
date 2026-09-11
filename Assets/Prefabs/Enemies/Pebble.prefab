@@ -668,7 +668,7 @@ MonoBehaviour:
   maxHealth: 5
   maxEnergy: 3
   playableCharacter: 0
-  battleRole: 1
+  battleRole: 0
   powerLevel: 0.5
   isBoss: 0
   characterClass: 0

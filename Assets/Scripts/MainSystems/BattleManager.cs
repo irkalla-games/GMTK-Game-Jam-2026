@@ -526,6 +526,10 @@ public class BattleManager : Singleton<BattleManager>
         {
             if (character == null) { continue; }
 
+            // The one thing AddCharacter does that a scene-placed body would otherwise miss. Harmless
+            // on the party and on a friendly summon, which it declines by side - see ApplyDifficulty.
+            ApplyDifficulty(character);
+
             Subscribe(character);
 
             // Their own Start places them, but nothing orders that against this Start, and the board
@@ -771,13 +775,28 @@ public class BattleManager : Singleton<BattleManager>
         LevelData level = CurrentLevel;
         if (level == null) { return; }
 
-        EncounterBudget budget = level.EncounterBudget;
+        // Through EncounterRoller.RollFor, the same call the Encounter Simulator makes - so what the
+        // simulator reports for a level is what a battle here actually rolls. Difficulty scaling
+        // happens inside it; see RollFor for why that never touches the level asset.
+        DifficultyTier tier = RunManager.Instance != null ? RunManager.Instance.CurrentTier : default;
         System.Random dice = new(UnityEngine.Random.Range(int.MinValue, int.MaxValue));
-        EncounterRoller roller = new(enemyRegistry, budget.poolFilter, level.PartySpawnCells,
-            GridManager.Instance.BoardSize, dice);
 
-        rolledStartingEnemies.AddRange(roller.RollStartingLineup(budget));
-        rolledWaves.AddRange(roller.RollReinforcementWaves(budget));
+        RolledEncounter rolled =
+            EncounterRoller.RollFor(level, enemyRegistry, tier, GridManager.Instance.BoardSize, dice);
+
+        rolledStartingEnemies.AddRange(rolled.opening);
+        rolledWaves.AddRange(rolled.waves);
+
+        // Reported by the roller rather than logged by it, so the simulator can tally thousands of
+        // these quietly. A real battle falling short is worth a line in the console, though: a designer
+        // asking for more of a role than the level can supply should hear about it.
+        if (!rolled.MetMinimums)
+        {
+            Debug.LogWarning($"{level.name}: could not meet the level's role minimums - short "
+                             + $"{rolled.frontlineShortfall} frontline and {rolled.backlineShortfall} "
+                             + "backline. Check the pool filter holds bodies of that role, and that "
+                             + "anyPower can afford them. Tools/Levels/Encounter Simulator shows how often.");
+        }
     }
 
     /// <summary>
@@ -1131,12 +1150,42 @@ public class BattleManager : Singleton<BattleManager>
     {
         if (character == null || characters.Contains(character)) { return; }
 
+        ApplyDifficulty(character);
+
         characters.Add(character);
         Subscribe(character);
 
         // A body that just joined has a hand and an energy pool of its own, so what the party can
         // still do has changed - a summoned ally is one more set of cards to light up.
         RaisePlayabilityChanged();
+    }
+
+    /// <summary>
+    /// Raises a hostile body's health to what the run's difficulty tier asks for, as it joins.
+    ///
+    /// Called from AddCharacter rather than Spawn because Spawn is not the whole story: an enemy
+    /// Summoner's skeletons arrive through GridTile.SummonObject, which never touches Spawn and calls
+    /// AddCharacter directly. AddCharacter is the one door *every* body enters by - scene-placed
+    /// characters, SpawnParty, Spawn and summons alike - and it already refuses a duplicate before
+    /// reaching here, so nothing can be scaled twice.
+    ///
+    /// Gated on IsHostileToParty, not !IsPlayerControlled: the latter means "AI-resolved" and is true
+    /// of a hero's own summoned ally, which must not pick up the enemy bonus.
+    ///
+    /// AddMaxHealth rather than writing a new maximum, because it already raises the ceiling and
+    /// current health together - a body must not join the battle pre-damaged.
+    /// </summary>
+    private static void ApplyDifficulty(Character character)
+    {
+        if (!character.IsHostileToParty) { return; }
+
+        RunManager run = RunManager.Instance;
+
+        if (run == null) { return; }
+
+        int bonus = run.CurrentTier.ExtraHealthFor(character.MaxHealth);
+
+        if (bonus > 0) { character.AddMaxHealth(bonus); }
     }
 
     /// <summary>
@@ -1403,7 +1452,13 @@ public class BattleManager : Singleton<BattleManager>
             }
             else if (finalLevel)
             {
-                NotificationManager.Instance.Show("Victory", "The party made it out!");
+                // Awarded here rather than in Finish, which loads the Main Menu synchronously and so
+                // has nowhere to show what was earned. handingOver is checked above this, which is
+                // what stops a cleared tutorial paying out.
+                string earned = run != null ? run.AwardRunComplete() : null;
+
+                NotificationManager.Instance.Show("Victory",
+                    earned != null ? $"The party made it out!\n\n{earned}" : "The party made it out!");
             }
             else
             {

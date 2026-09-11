@@ -16,9 +16,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 09a7258cd7dc67749b468fcf0531c772, type: 2}
   startingParty:
   - {fileID: 2207806884135289404, guid: 230f0bb3a71914b4fb20d3ab6d79efc0, type: 3}
-  - {fileID: 8490451942384217234, guid: 7f9ed791076dfe64cb529af5069c8bd8, type: 3}
+  - {fileID: 1817881648732923330, guid: ec68173dfa82dbb44b3237702ef6c8f8, type: 3}
   startingPartyDecks:
   - {fileID: 11400000, guid: 97439ce7feca2fb45a1d4ccfe089d390, type: 2}
-  - {fileID: 11400000, guid: a30e30841ea21fd42ac0ed9d569185b4, type: 2}
+  - {fileID: 11400000, guid: a345ed72767b6404dbacd2e08dfd957b, type: 2}
   startingHeroes: []
   carryDamageBetweenLevels: 0

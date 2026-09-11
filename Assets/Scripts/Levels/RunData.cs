@@ -56,6 +56,15 @@ public class RunData : ScriptableObject
              + "each level at full health. Death is permanent either way.")]
     [SerializeField] private bool carryDamageBetweenLevels;
 
+    [Tooltip("The difficulty rungs this campaign may be played on. Leave empty and the run always "
+             + "plays unscaled - which is what every debug and testbed campaign wants.")]
+    [SerializeField] private DifficultyLadder ladder;
+
+    [Tooltip("On: clearing this campaign earns whatever its tier unlocks and opens the rung above. "
+             + "Off by default on purpose, so the debug, testbed and tutorial runs award nothing "
+             + "without any of those assets needing to be touched - only the real campaign sets it.")]
+    [SerializeField] private bool awardsProgression;
+
     public IReadOnlyList<LevelData> Levels => levels;
 
     /// <summary>
@@ -90,9 +99,27 @@ public class RunData : ScriptableObject
     public bool CarryDamageBetweenLevels => carryDamageBetweenLevels;
 
     /// <summary>
+    /// This campaign's difficulty rungs, or null for one that is never scaled.
+    ///
+    /// Held here rather than on RunManager because RunManager has no prefab and lives in no scene, so
+    /// there is nothing for a reference to be serialized on. A campaign naming its own ladder also
+    /// makes null mean "never scales", which is exactly right for DebugRun and the testbed and costs
+    /// no special case - see RunManager.CurrentTier.
+    /// </summary>
+    public DifficultyLadder Ladder => ladder;
+
+    /// <summary>
+    /// Whether clearing this campaign earns anything. Off by default for the same reason
+    /// CarryDamageBetweenLevels is: an asset authored before the field existed - every debug and
+    /// tutorial run - must deserialize to the harmless answer.
+    /// </summary>
+    public bool AwardsProgression => awardsProgression;
+
+    /// <summary>
     /// Builds a RunData entirely in memory, for a run whose party was chosen at the select screen
     /// rather than dragged onto an asset in the Inspector. This is the seam a future level generator
-    /// plugs into - only `levels` needs to come from somewhere else, this factory itself never changes.
+    /// plugs into - only `levels` needs to come from somewhere else, the rest of these are carried
+    /// straight through from the campaign asset the select screen was opened with.
     ///
     /// This looks like it breaks "never mutate a ScriptableObject at runtime" and does not - that rule
     /// is about writes landing on an asset already saved to disk. CreateInstance produces an object
@@ -102,13 +129,36 @@ public class RunData : ScriptableObject
     /// windows, since it is not asset-backed and has nowhere to be shown.
     /// </summary>
     public static RunData CreateRuntime(
-        IEnumerable<LevelData> levels, IEnumerable<PartyEntry> heroes, bool carryDamageBetweenLevels)
+        IEnumerable<LevelData> levels,
+        IEnumerable<PartyEntry> heroes,
+        bool carryDamageBetweenLevels,
+        DifficultyLadder ladder = null,
+        bool awardsProgression = false)
     {
         RunData run = CreateInstance<RunData>();
         run.hideFlags = HideFlags.HideAndDontSave;
         run.levels = new List<LevelData>(levels);
         run.startingHeroes = new List<PartyEntry>(heroes);
         run.carryDamageBetweenLevels = carryDamageBetweenLevels;
+        run.ladder = ladder;
+        run.awardsProgression = awardsProgression;
         return run;
+    }
+
+    /// <summary>
+    /// The same run this describes, built from `source`'s campaign-wide settings and the party the
+    /// select screen produced. Exists so the two callers that build a run out of an authored campaign
+    /// - CharacterSelectPanel and MainMenu's tutorial hand-over - cannot disagree about which of its
+    /// fields carry across; adding a field to a campaign now needs one edit, not three.
+    /// </summary>
+    public static RunData CreateRuntimeFrom(RunData source, IEnumerable<PartyEntry> heroes)
+    {
+        if (source == null)
+        {
+            return CreateRuntime(new List<LevelData>(), heroes, carryDamageBetweenLevels: false);
+        }
+
+        return CreateRuntime(
+            source.Levels, heroes, source.CarryDamageBetweenLevels, source.Ladder, source.AwardsProgression);
     }
 }

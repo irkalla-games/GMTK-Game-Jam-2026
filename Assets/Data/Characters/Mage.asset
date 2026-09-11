@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Mage
   m_EditorClassIdentifier: Assembly-CSharp::CharacterOption
   displayName: Mage
-  portrait: {fileID: 0}
   prefab: {fileID: 6338188868612233919, guid: cb01aa46fbd50204695accbc09080159, type: 3}
   decks:
   - {fileID: 11400000, guid: 9f0dcb1faa73a1a42a88a8cc100fd4c4, type: 2}
   - {fileID: 11400000, guid: d87e1af2c8710ce4e85441c64accb222, type: 2}
+  locked: 1
+  unlockId: mage

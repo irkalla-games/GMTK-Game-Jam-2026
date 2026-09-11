@@ -505,6 +505,17 @@ public class Character : MonoBehaviour
 
     public bool IsEnemyOf(Character other) => other != null && AreEnemies(playableCharacter, other.playableCharacter);
 
+    /// <summary>
+    /// True only for bodies on the side hostile to the party - Enemy and EnemyAllied.
+    ///
+    /// Deliberately not `!IsPlayerControlled`, which means "AI-resolved" and is what
+    /// BattleManager.LivingEnemies asks: that one is true of a *friendly* summon too, correctly, since
+    /// an Ally takes an AI turn like anything else. This asks a different question - which side is
+    /// this on - and is what difficulty scaling gates on, so a hero's summoned skeleton never picks up
+    /// the enemy health bonus.
+    /// </summary>
+    public bool IsHostileToParty => AreEnemies(playableCharacter, PlayableCharacter.AllyPlayable);
+
     public bool CanAfford(int cost) => cost <= Energy;
 
     public void SpendEnergy(int cost)

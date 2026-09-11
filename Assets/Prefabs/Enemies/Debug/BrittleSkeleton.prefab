@@ -453,7 +453,7 @@ MonoBehaviour:
   targetingPattern: {fileID: 11400000, guid: bbf51cecb8e7f2e4fa40df69c9d1d8bc, type: 2}
   startCoordinates: {x: 4, y: 4}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
-  lootTable: {fileID: 0}
+  lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}
   deck:
   - {fileID: 11400000, guid: c605de25d1ddef545ae635249c67fbc3, type: 2}
   - {fileID: 11400000, guid: c605de25d1ddef545ae635249c67fbc3, type: 2}

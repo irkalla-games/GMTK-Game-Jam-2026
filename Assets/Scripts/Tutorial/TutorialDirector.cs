@@ -32,15 +32,15 @@ public class TutorialDirector : Singleton<TutorialDirector>
     [Header("Cards the script names")]
     [Tooltip("Must match the CardData in the tutorial decks - the director finds the live Card in a "
              + "hand by comparing against these.")]
-    [SerializeField] private CardData fireball;
+    [SerializeField] private CardData smite;
 
     [SerializeField] private CardData shield;
 
     [SerializeField] private CardData slash;
 
-    [SerializeField] private CardData teleport;
+    [SerializeField] private CardData move;
 
-    [SerializeField] private CardData sapTotem;
+    [SerializeField] private CardData healTotem;
 
     [Header("Scene anchors (wired by Tools > Tutorial > Wire Tutorial Overlay)")]
     [Tooltip("The End Turn button's rect.")]
@@ -56,10 +56,6 @@ public class TutorialDirector : Singleton<TutorialDirector>
     [Tooltip("The row of hero portraits. Which portrait is whose is asked live - the row is rebuilt "
              + "whenever the roster changes.")]
     [SerializeField] private PartyPortraitPanel portraitPanel;
-
-    [Tooltip("The enemy-side SelectedCharacterPanel - the one whose Audience is NotPlayerControlled. "
-             + "Its status row is lit for the 'hover a status' beat.")]
-    [SerializeField] private SelectedCharacterPanel enemyPanel;
 
     /// What the player may touch right now. Owned here, asked by the input doors through the statics
     /// below - see TutorialGate.
@@ -113,10 +109,10 @@ public class TutorialDirector : Singleton<TutorialDirector>
     private const string PlayCardBody =
         "To use a card, select a card from your hand using left click.";
 
-    private const string AimFireballTitle = "Pick a Target";
-    private const string AimFireballBody =
-        "The highlighted tiles are the ones your selected card can reach. Left click the Ranger to hit "
-        + "it with Fireball.";
+    private const string AimSmiteTitle = "Pick a Target";
+    private const string AimSmiteBody =
+        "The highlighted tiles are the ones your selected card can reach. Left click the Flying Eye to "
+        + "hit it with Smite.";
 
     private const string SwitchHeroTitle = "Switch Hero";
     private const string SwitchHeroBody =
@@ -144,10 +140,10 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
     private const string SlashTitle = "Finish It";
     private const string SlashBody =
-        "The skeleton only has 1 health. Select Slash with left click.";
+        "The rat only has 1 health. Select Slash with left click.";
 
     private const string SlashAimTitle = "Cut It Down";
-    private const string SlashAimBody = "Left click the skeleton to attack it.";
+    private const string SlashAimBody = "Left click the rat to attack it.";
 
     private const string LootTitle = "Enemies Drop Loot";
     private const string LootBody =
@@ -156,37 +152,36 @@ public class TutorialDirector : Singleton<TutorialDirector>
     private const string RewardTitle = "Claim Your Reward";
     private const string RewardBody = "Take any reward to add it to your hand.";
 
-    private const string BackToMageTitle = "Back to the Mage";
-    private const string BackToMageBody = "Press 2 to take control of the Mage.";
+    private const string BackToClericTitle = "Back to the Cleric";
+    private const string BackToClericBody = "Press 2 to take control of the Cleric.";
 
-    private const string TeleportTitle = "Move Across the Board";
-    private const string TeleportBody =
-        "Teleport puts you on any free tile in range. Select it with left click.";
+    private const string MoveTitle = "Step Onto the Loot";
+    private const string MoveBody =
+        "Move takes you one tile in any direction, diagonals included. Select it with left click.";
 
-    private const string TeleportAimTitle = "Claim the Drop";
-    private const string TeleportAimBody =
-        "Left click the tile with the drop on it to teleport onto the loot.";
+    private const string MoveAimTitle = "Claim the Drop";
+    private const string MoveAimBody = "Left click the tile with the drop on it.";
 
     private const string TotemTitle = "Place a Totem";
     private const string TotemBody =
-        "A totem stays on the board and affects anyone standing near it. Select Sap Totem.";
+        "A totem stays on the board and affects anyone standing near it. Select Heal Totem.";
 
-    private const string TotemAimTitle = "Put It Next to the Ranger";
+    private const string TotemAimTitle = "Put It Next to the Knight";
     private const string TotemAimBody =
-        "Left click a free tile next to the Ranger so its aura reaches him.";
+        "The Knight is hurt. Left click a free tile next to him so the totem's aura reaches him.";
 
-    private const string InspectTitle = "Inspect an Enemy";
-    private const string InspectBody =
-        "Left click any character to see their health and what is affecting them.";
+    private const string BackToKnightTitle = "Back to the Knight";
+    private const string BackToKnightBody =
+        "The totem is working on the Knight, not the Cleric. Press 1 to take control of him.";
 
     private const string StatusTitle = "Read a Status";
     private const string StatusBody =
-        "Hover a status icon with your mouse to read exactly what it is doing.";
+        "His portrait in the bottom left now carries an icon for what the totem is doing to him. "
+        + "Hover it with your mouse to read exactly what it means.";
 
-    private const string SapTitle = "Sap Weakens Attacks";
-    private const string SapBody =
-        "The Sap totem is cutting the damage off the Ranger's arrows for as long as he stands near it. "
-        + "Survive one more turn.";
+    private const string HealTotemTitle = "The Totem Heals You";
+    private const string HealTotemBody =
+        "Anyone standing in its aura is healed at the end of every turn. Survive one more turn.";
 
     private const string SpawnPreviewTitle = "Reinforcements Incoming";
     private const string SpawnPreviewBody =
@@ -195,6 +190,11 @@ public class TutorialDirector : Singleton<TutorialDirector>
     private const string RideOutTitle = "Ride It Out";
     private const string RideOutBody =
         "Click End Turn. One more wave is coming - you'll need everything you just learned.";
+
+    private const string HealedTitle = "The Totem Just Healed Him";
+    private const string HealedBody =
+        "The Knight was hurt going into this turn - now watch his health bar. Standing near the Heal "
+        + "Totem healed him back at the end of the turn.";
 
     private const string ManaCostTitle = "Cards Cost Mana";
     private const string ManaCostBody =
@@ -275,7 +275,7 @@ public class TutorialDirector : Singleton<TutorialDirector>
     /// player can afford as well as the only thing they are allowed.
     ///
     /// Through SpendEnergy rather than by authoring maxEnergy down on the tutorial prefabs: the script
-    /// needs the normal 3 back on turn 2 for the Mage to Teleport *and* place the totem, and TurnStart's
+    /// needs the normal 3 back on turn 2 for the Cleric to Move *and* place the totem, and TurnStart's
     /// own ResetEnergy already restores it with no second poke from here. Nothing authored is mutated.
     /// </summary>
     private void OnTurnAdvanced()
@@ -301,29 +301,35 @@ public class TutorialDirector : Singleton<TutorialDirector>
         // The board is built by BattleManager.Start before Begin is called, so everyone is already
         // placed - but the first hand is dealt by TurnStart, which has not run yet.
         Character knight = PartyMemberAt(0);
-        Character mage = PartyMemberAt(1);
-        Character ranger = FirstEnemy();
+        Character cleric = PartyMemberAt(1);
+        Character eye = FirstEnemy();
 
-        if (knight == null || mage == null || ranger == null)
+        if (knight == null || cleric == null || eye == null)
         {
             Debug.LogError($"{name}: the tutorial level needs two heroes and an enemy - found "
-                           + $"knight={knight}, mage={mage}, ranger={ranger}. Skipping the tutorial.");
+                           + $"knight={knight}, cleric={cleric}, eye={eye}. Skipping the tutorial.");
             End();
             yield break;
         }
+
+        // Shapes the opening state rather than mutating anything authored - the same bargain
+        // OnTurnAdvanced already strikes for energy. Full health leaves nothing for the turn-2 Heal
+        // Totem to visibly heal: the Knight's turn-1 Shield (7) fully absorbs the Eye's Withering Gaze
+        // (3), so without this he would still be at full health when the totem lands.
+        knight.SetHealth(knight.MaxHealth / 2);
 
         // The opening hand has to exist before a card can be pointed at, and the phase has to be the
         // player's before a click means anything.
         yield return new WaitUntil(() => battle.Phase == BattlePhase.PlayerActing);
 
-        // Slot 0 is the Knight so that "press 1" means the Knight, but the script opens as the Mage -
+        // Slot 0 is the Knight so that "press 1" means the Knight, but the script opens as the Cleric -
         // BattleManager.Start picks the first playable character, which is the other one.
-        battle.SetActiveCharacter(mage);
+        battle.SetActiveCharacter(cleric);
 
         yield return Read(WelcomeTitle, WelcomeBody);
 
-        yield return SelectCard(PlayCardTitle, PlayCardBody, mage, fireball, OnTile(ranger));
-        yield return AimCard(AimFireballTitle, AimFireballBody, mage, fireball, OnTile(ranger));
+        yield return SelectCard(PlayCardTitle, PlayCardBody, cleric, smite, OnTile(eye));
+        yield return AimCard(AimSmiteTitle, AimSmiteBody, cleric, smite, OnTile(eye));
 
         yield return Activate(SwitchHeroTitle, SwitchHeroBody, knight);
 
@@ -345,11 +351,11 @@ public class TutorialDirector : Singleton<TutorialDirector>
         // tile beneath it - lighting the tile taught nothing a player couldn't already see. The enemy's
         // own SelectedCharacterPanel is not an option here: it only shows once something is selected, and
         // nothing has been yet - see Select(InspectTitle...) further down.
-        CharacterOverheadViewer rangerOverhead = ranger.GetComponent<CharacterOverheadViewer>();
+        CharacterOverheadViewer eyeOverhead = eye.GetComponent<CharacterOverheadViewer>();
         TooltipAnchor? healthBarAt = UiAnchor(
-            rangerOverhead != null ? rangerOverhead.HealthBarRect : null, TooltipSide.Right);
+            eyeOverhead != null ? eyeOverhead.HealthBarRect : null, TooltipSide.Right);
         TooltipAnchor? intentIconAt = UiAnchor(
-            rangerOverhead != null ? rangerOverhead.IntentIconRect : null, TooltipSide.Right);
+            eyeOverhead != null ? eyeOverhead.IntentIconRect : null, TooltipSide.Right);
 
         yield return Read(IntentTitle, IntentBody, intentIconAt ?? healthBarAt,
             holes: Holes(healthBarAt, intentIconAt));
@@ -361,8 +367,8 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         // Both halves matter. The phase is *still* PlayerActing the moment the hold lifts - RunBattle
         // has not reached EnemyResolve yet - so waiting on the phase alone would fall straight through
-        // and go looking for a skeleton that has not been summoned. TurnsElapsed only moves in
-        // TurnStart, which is on the far side of the enemy's whole turn.
+        // and go looking for a rat that has not spawned yet. TurnsElapsed only moves in TurnStart,
+        // which is on the far side of the enemy's whole turn.
         yield return new WaitUntil(() =>
             Skipped || (battle.TurnsElapsed > heldOnTurn && battle.Phase == BattlePhase.PlayerActing));
 
@@ -376,25 +382,25 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         if (Skipped) { End(); yield break; }
 
-        Character skeleton = FirstEnemyOtherThan(ranger);
+        Character rat = FirstEnemyOtherThan(eye);
 
-        if (skeleton == null)
+        if (rat == null)
         {
-            Debug.LogWarning($"{name}: no reinforcement arrived on turn 2 - check the Ranger's summon "
-                             + "card and the tutorial level's board. Skipping to the end of the script.");
+            Debug.LogWarning($"{name}: no reinforcement arrived on turn 2 - check the tutorial level's "
+                             + "wave data and board. Skipping to the end of the script.");
         }
         else
         {
-            yield return SelectCard(SlashTitle, SlashBody, knight, slash, OnTile(skeleton));
-            yield return AimCard(SlashAimTitle, SlashAimBody, knight, slash, OnTile(skeleton));
+            yield return SelectCard(SlashTitle, SlashBody, knight, slash, OnTile(rat));
+            yield return AimCard(SlashAimTitle, SlashAimBody, knight, slash, OnTile(rat));
 
             yield return Read(LootTitle, LootBody, DropAnchor());
         }
 
-        yield return Activate(BackToMageTitle, BackToMageBody, mage);
+        yield return Activate(BackToClericTitle, BackToClericBody, cleric);
 
-        yield return SelectCard(TeleportTitle, TeleportBody, mage, teleport, HasDrop);
-        yield return AimCard(TeleportAimTitle, TeleportAimBody, mage, teleport, HasDrop);
+        yield return SelectCard(MoveTitle, MoveBody, cleric, move, HasDrop);
+        yield return AimCard(MoveAimTitle, MoveAimBody, cleric, move, HasDrop);
 
         // LootManager.IsIdle flips false as soon as the pickup is queued - well before the panel actually
         // opens, since Drain still has to wait out ActionManager.IsIdle first - so it is no good as a
@@ -409,18 +415,27 @@ public class TutorialDirector : Singleton<TutorialDirector>
         // showContinue: false removes the only other way this beat ended - RewardPanel's own buttons
         // are not gated by TutorialGate, so a reward chosen by clicking it directly used to leave the
         // coroutine parked on a Continue click that was never coming, PermitNothing() still in force and
-        // the Sap Totem never reachable.
+        // the Heal Totem never reachable.
         yield return Read(RewardTitle, RewardBody, RewardPanelAnchor(), dim: false,
             done: () => LootManager.Instance == null || LootManager.Instance.IsIdle, showContinue: false);
 
-        yield return SelectCard(TotemTitle, TotemBody, mage, sapTotem, FreeTileBeside(ranger));
-        yield return AimCard(TotemAimTitle, TotemAimBody, mage, sapTotem, FreeTileBeside(ranger));
+        // Beside the Knight, not the Eye - HealTotem's aura is Allies, so the Knight standing in it is
+        // what makes the heal beat that follows land.
+        yield return SelectCard(TotemTitle, TotemBody, cleric, healTotem, FreeTileBeside(knight));
+        yield return AimCard(TotemAimTitle, TotemAimBody, cleric, healTotem, FreeTileBeside(knight));
 
-        yield return Select(InspectTitle, InspectBody, ranger);
+        // Switching before reading, so the portrait the next beat lights is the one the player has just
+        // been looking at - and so "press 1" gets a second outing, on the turn where it is a deliberate
+        // choice rather than the script's own opening move.
+        yield return Activate(BackToKnightTitle, BackToKnightBody, knight);
 
-        yield return Hover(StatusTitle, StatusBody, UiAnchor(StatusRow(), TooltipSide.Left));
+        // Hovering a hero's own portrait in the bottom-left row, not clicking an enemy to open its
+        // panel. The status being taught is the Heal Totem's Regeneration, which lands on an ally - the
+        // enemy carries no icon at all here, so pointing this at one would ask the player to read an
+        // empty row.
+        yield return Hover(StatusTitle, StatusBody, StatusChipAnchor(knight));
 
-        yield return Read(SapTitle, SapBody);
+        yield return Read(HealTotemTitle, HealTotemBody);
 
         // NextWavePanel has already populated itself off LevelData.Waves by now, with no push from here
         // - see TutorialContentGenerator for the turn-3 wave this is previewing.
@@ -428,12 +443,23 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         yield return Read(SpawnPreviewTitle, SpawnPreviewBody, RectsAnchor(waveRects, TooltipSide.Below));
 
+        yield return EndTurn(RideOutTitle, RideOutBody, holdRound: true);
+
+        // BattleManager.TickStatuses(playerControlled: true) already ran by this point - it happens
+        // before RunBattle's own wait on HoldingRound, the same gap the turn 1 -> 2 Discard/Intent
+        // beats above land in - so the Heal Totem has already healed the Knight and this beat is
+        // reading his post-heal bar, not a stale one.
+        CharacterOverheadViewer knightOverhead = knight.GetComponent<CharacterOverheadViewer>();
+        TooltipAnchor? knightHealthBarAt = UiAnchor(
+            knightOverhead != null ? knightOverhead.HealthBarRect : null, TooltipSide.Right);
+
+        yield return Read(HealedTitle, HealedBody, knightHealthBarAt);
+
         int turnTwo = battle.TurnsElapsed;
 
-        yield return EndTurn(RideOutTitle, RideOutBody, holdRound: false);
+        HoldingRound = false;
 
-        // Same idiom as the turn 1 -> 2 transition above, minus a HoldingRound release - this EndTurn
-        // was called with holdRound: false, so there is nothing held to let go of here.
+        // Both halves matter, for the same reason the turn 1 -> 2 transition above needs them.
         yield return new WaitUntil(() =>
             Skipped || (battle.TurnsElapsed > turnTwo && battle.Phase == BattlePhase.PlayerActing));
 
@@ -445,9 +471,10 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
         if (Skipped) { End(); yield break; }
 
-        // Whoever ended turn 2 active carries into turn 3 - Mage, per the script above - but asked live
-        // rather than assumed, so a re-ordering of turn 2 cannot silently point this at nobody.
-        Character turnThreeHero = battle.ActiveCharacter != null ? battle.ActiveCharacter : mage;
+        // Whoever ended turn 2 active carries into turn 3 - the Knight, since the status beat switched
+        // to him - but asked live rather than assumed, so a re-ordering of turn 2 cannot silently point
+        // this at nobody. The Cleric is only the fallback for a run where nothing is active at all.
+        Character turnThreeHero = battle.ActiveCharacter != null ? battle.ActiveCharacter : cleric;
         Card representative = FirstCardInHand(turnThreeHero);
 
         yield return Read(ManaCostTitle, ManaCostBody, CardCostAnchor(representative));
@@ -578,7 +605,16 @@ public class TutorialDirector : Singleton<TutorialDirector>
                       || BattleManager.Instance.Phase != BattlePhase.PlayerActing));
     }
 
+    /// <summary>
     /// Clicking a character to read it, rather than to play anything at it.
+    ///
+    /// No beat calls this today - the "inspect an enemy" beat it was written for became a Hover on the
+    /// Knight's own portrait once the totem being taught was a Heal Totem, whose aura leaves the enemy
+    /// with no status icon to read. Kept rather than deleted because the seven primitives are a
+    /// vocabulary, not a call graph (see the class doc): clicking a character to read it is still one of
+    /// the ways a player touches this game, and the next script that needs it should find it here rather
+    /// than write it again.
+    /// </summary>
     private IEnumerator Select(string title, string body, Character who)
     {
         gate.Permit(allowedTiles: OnTile(who));
@@ -762,7 +798,22 @@ public class TutorialDirector : Singleton<TutorialDirector>
         return canvas != null ? TooltipAnchor.Of(rects, canvas, side) : null;
     }
 
-    private RectTransform StatusRow() => enemyPanel != null ? enemyPanel.StatusRowRect : null;
+    /// This hero's status chips, for the 'hover a status' beat - the status it reads (Regeneration,
+    /// from the Heal Totem) lands on an ally now, and a hero has no SelectedCharacterPanel of their own
+    /// in this scene (there is only ever one, audience NotPlayerControlled, for enemies); a hero's
+    /// chips live on their HeroPortrait instead. Individual chips, not the parent's own rect, for the
+    /// same reason PipRowAnchor uses ActivePipRects rather than pipParent - see HeroPortrait.ActiveChipRects.
+    private TooltipAnchor? StatusChipAnchor(Character hero)
+    {
+        HeroPortrait portrait = portraitPanel != null ? portraitPanel.PortraitFor(hero) : null;
+        RectTransform[] chipRects = portrait != null ? portrait.ActiveChipRects() : null;
+
+        // Above, not Left: the portrait row is pinned to the bottom-left corner, so there is no room on
+        // its left for the box to occupy - AnchoredPlacement clamps it back inside and lands it on top
+        // of the very chip this beat is asking the player to hover. See AnchoredPlacement's own note
+        // about anchors in a screen corner, which names this panel.
+        return RectsAnchor(chipRects, TooltipSide.Above);
+    }
 
     /// Highlights this hero's whole mana-pip row for the mana-pip beat - every pip, not the single
     /// representative card CardCostAnchor points at, since "how much mana you have" is the row as a
@@ -828,7 +879,7 @@ public class TutorialDirector : Singleton<TutorialDirector>
     // ---- Roster lookups ---------------------------------------------------------------------------
 
     /// Party order is spawn order, which is the order RunData authored them in - so slot 0 is the Knight
-    /// and slot 1 is the Mage, matching the digit keys PartyPortraitPanel binds.
+    /// and slot 1 is the Cleric, matching the digit keys PartyPortraitPanel binds.
     private static Character PartyMemberAt(int index)
     {
         BattleManager battle = BattleManager.Instance;

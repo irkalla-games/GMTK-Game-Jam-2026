@@ -11,6 +11,10 @@ using UnityEngine;
 /// ScriptableObject's Inspector object picker lists only main assets, and a prefab's main asset is its
 /// GameObject, so a Character-typed field here would offer an empty picker. Resolved to a Character
 /// exactly once, at RunManager.Begin, same as StartingParty already is.
+///
+/// Also the unit character unlocks are tracked against - see CharacterUnlocks. A hero the player has
+/// not earned yet still exists as an asset and can be authored and playtested; Locked only governs
+/// whether the select screen will start a run with them.
 /// </summary>
 [CreateAssetMenu(menuName = "Character/Character Option")]
 public class CharacterOption : ScriptableObject
@@ -24,6 +28,17 @@ public class CharacterOption : ScriptableObject
              + "authored deck (Character.AuthoredDeck) with no select-screen deck choice at all.")]
     [SerializeField] private List<DeckData> decks = new();
 
+    [Tooltip("Off by default on purpose, same reasoning as DeckData.locked: a CharacterOption "
+             + "authored before this field existed must deserialize to \"playable\", not \"hidden\". "
+             + "On: the select screen shows this hero greyed out and refuses to start a run with "
+             + "them until CharacterUnlocks says otherwise.")]
+    [SerializeField] private bool locked;
+
+    [Tooltip("Stable id CharacterUnlocks saves against. Leave blank to fall back to this asset's "
+             + "name - but renaming the asset later then orphans anyone's save, so a hero meant to "
+             + "ship locked should have this set explicitly.")]
+    [SerializeField] private string unlockId;
+
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
 
     /// Read off the prefab's own Character rather than authored twice here - the select screen and the
@@ -35,4 +50,11 @@ public class CharacterOption : ScriptableObject
     public GameObject Prefab => prefab;
 
     public IReadOnlyList<DeckData> Decks => decks;
+
+    /// Whether this hero has to be earned before a run may start with them - see the field's tooltip
+    /// for why false is the only safe default.
+    public bool Locked => locked;
+
+    /// Stable save id, falling back to the asset name. Same contract as DeckData.UnlockId.
+    public string UnlockId => string.IsNullOrWhiteSpace(unlockId) ? name : unlockId;
 }

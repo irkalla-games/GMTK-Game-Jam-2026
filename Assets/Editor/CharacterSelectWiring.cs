@@ -40,6 +40,11 @@ public static class CharacterSelectWiring
     private const string BackButtonName = "BackButton";
     private const string PortraitName = "Portrait";
 
+    private const string DifficultyRowName = "DifficultyRow";
+    private const string DifficultyLabelName = "DifficultyLabel";
+    private const string PreviousDifficultyName = "PreviousDifficultyButton";
+    private const string NextDifficultyName = "NextDifficultyButton";
+
     private static readonly string[] SizeButtonNames = { "PartySize2Button", "PartySize3Button", "PartySize4Button" };
 
     /// Existing objects Play used to show outright and now hides while the select screen is up - see
@@ -255,6 +260,7 @@ public static class CharacterSelectWiring
         Transform slotParent = EnsureSlotParent(backdrop.transform);
         Button startButton = EnsureActionButton(backdrop.transform, StartButtonName, "Start", new Vector2(360f, -420f));
         Button backButton = EnsureActionButton(backdrop.transform, BackButtonName, "Back", new Vector2(-360f, -420f));
+        DifficultyRow difficulty = EnsureDifficultyRow(backdrop.transform);
 
         SerializedObject so = new(panel);
         SetIfEmpty(so, "root", backdrop);
@@ -263,6 +269,11 @@ public static class CharacterSelectWiring
         if (slotPrefab != null) { SetIfEmpty(so, "slotPrefab", slotPrefab); }
         if (startButton != null) { SetIfEmpty(so, "startButton", startButton); }
         if (backButton != null) { SetIfEmpty(so, "backButton", backButton); }
+
+        if (difficulty.row != null) { SetIfEmpty(so, "difficultyRow", difficulty.row); }
+        if (difficulty.label != null) { SetIfEmpty(so, "difficultyLabel", difficulty.label); }
+        if (difficulty.previous != null) { SetIfEmpty(so, "previousDifficultyButton", difficulty.previous); }
+        if (difficulty.next != null) { SetIfEmpty(so, "nextDifficultyButton", difficulty.next); }
 
         SerializedProperty sizeButtonsProp = so.FindProperty("sizeButtons");
 
@@ -328,6 +339,132 @@ public static class CharacterSelectWiring
         text.raycastTarget = false;
 
         ApplySampleFont(text);
+    }
+
+    /// The four objects CharacterSelectPanel needs to drive the difficulty picker, returned together so
+    /// EnsurePanel can assign them in one place rather than reaching back into the hierarchy by name.
+    private struct DifficultyRow
+    {
+        public GameObject row;
+        public TMP_Text label;
+        public Button previous;
+        public Button next;
+    }
+
+    /// <summary>
+    /// Builds the "&lt; Normal &gt;" row that picks which rung of the ladder a run is played on, sitting
+    /// between the party slots and the Start/Back buttons.
+    ///
+    /// A label with two arrows rather than one button per tier, unlike the party-size row above: the
+    /// ladder is seven rungs and may grow, and seven buttons would not fit the width the size buttons
+    /// use. Cycling also matches how a slot already picks a character and a deck.
+    ///
+    /// The row is left active here and hidden at runtime by CharacterSelectPanel.RefreshDifficulty,
+    /// which is what knows whether the player has earned a second rung yet.
+    /// </summary>
+    private static DifficultyRow EnsureDifficultyRow(Transform parent)
+    {
+        DifficultyRow built = default;
+
+        Transform existing = parent.Find(DifficultyRowName);
+        GameObject row;
+
+        if (existing != null)
+        {
+            row = existing.gameObject;
+        }
+        else
+        {
+            row = new GameObject(DifficultyRowName, typeof(RectTransform));
+            row.transform.SetParent(parent, false);
+            row.layer = parent.gameObject.layer;
+
+            RectTransform rect = row.GetComponent<RectTransform>();
+            Centre(rect);
+            rect.anchoredPosition = new Vector2(0f, -320f);
+            rect.sizeDelta = new Vector2(900f, 100f);
+
+            Debug.Log($"Character select wiring: created {DifficultyRowName}.");
+        }
+
+        built.row = row;
+        built.label = EnsureDifficultyLabel(row.transform);
+        built.previous = EnsureArrow(row.transform, PreviousDifficultyName, "<", -260f);
+        built.next = EnsureArrow(row.transform, NextDifficultyName, ">", 260f);
+
+        // Exactly what this row builds, so a container left over from an earlier version of this
+        // command does not survive as a sibling nothing reads - see SharpSkin.PruneChildren's contract.
+        PruneToNames(row.transform, DifficultyLabelName, PreviousDifficultyName, NextDifficultyName);
+
+        return built;
+    }
+
+    private static TMP_Text EnsureDifficultyLabel(Transform parent)
+    {
+        Transform existing = parent.Find(DifficultyLabelName);
+
+        if (existing != null) { return existing.GetComponent<TMP_Text>(); }
+
+        GameObject go = new(DifficultyLabelName, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        go.layer = parent.gameObject.layer;
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        Centre(rect);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(420f, 90f);
+
+        TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+        text.text = "Normal";
+        text.fontSize = 48f;
+        text.alignment = TextAlignmentOptions.Center;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.raycastTarget = false;
+
+        ApplySampleFont(text);
+
+        return text;
+    }
+
+    private static Button EnsureArrow(Transform parent, string name, string glyph, float x)
+    {
+        Transform existing = parent.Find(name);
+
+        if (existing != null) { return existing.GetComponent<Button>(); }
+
+        Button source = AssetDatabase.LoadAssetAtPath<Button>(SkipButtonPrefabPath);
+
+        if (source == null)
+        {
+            Debug.LogWarning($"Character select wiring: {SkipButtonPrefabPath} not found - {name} not created.");
+            return null;
+        }
+
+        Button button = (Button)PrefabUtility.InstantiatePrefab(source, parent);
+        button.name = name;
+
+        RectTransform rect = button.GetComponent<RectTransform>();
+        Centre(rect);
+        rect.anchoredPosition = new Vector2(x, 0f);
+        rect.sizeDelta = new Vector2(90f, 90f);
+
+        TMP_Text text = button.GetComponentInChildren<TMP_Text>();
+        if (text != null) { text.text = glyph; }
+
+        return button;
+    }
+
+    /// Destroys any child of `parent` not named in `keep`. The same contract SharpSkin.PruneChildren
+    /// carries: EnsureChild-style building is idempotent for what a command still makes, never for what
+    /// it used to, so a container holds what the current code says rather than the union of versions.
+    private static void PruneToNames(Transform parent, params string[] keep)
+    {
+        for (int i = parent.childCount - 1; i >= 0; i--)
+        {
+            Transform child = parent.GetChild(i);
+
+            if (System.Array.IndexOf(keep, child.name) < 0) { Object.DestroyImmediate(child.gameObject); }
+        }
     }
 
     private static List<Button> EnsureSizeButtons(Transform parent)

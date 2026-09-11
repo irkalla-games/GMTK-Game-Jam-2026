@@ -669,7 +669,7 @@ MonoBehaviour:
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 1
-  powerLevel: 2
+  powerLevel: 1.5
   isBoss: 0
   characterClass: 0
   displayName: Slime
@@ -679,7 +679,7 @@ MonoBehaviour:
   targetingPattern: {fileID: 11400000, guid: bbf51cecb8e7f2e4fa40df69c9d1d8bc, type: 2}
   startCoordinates: {x: 4, y: 4}
   itemDropPrefab: {fileID: 2526905307802634667, guid: 09123aacde9da6a4e913d3f5b120b960, type: 3}
-  lootTable: {fileID: 0}
+  lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}
   deck:
   - {fileID: 11400000, guid: f8ada88cc46e5954d9fee21de35c0055, type: 2}
   - {fileID: 11400000, guid: f8ada88cc46e5954d9fee21de35c0055, type: 2}
@@ -733,6 +733,10 @@ MonoBehaviour:
     gap: 6
     color: {r: 1, g: 1, b: 1, a: 1}
     size: {x: 60, y: 44}
+  intentRow:
+    followUpScale: 0.7
+    followUpAlpha: 0.65
+    slotGap: 6
   statusIconParent: {fileID: 4341252370176204906}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

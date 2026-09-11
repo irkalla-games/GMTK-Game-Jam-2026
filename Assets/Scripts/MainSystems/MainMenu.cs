@@ -44,9 +44,9 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private RunData tutorialRun;
 
     [Tooltip("Who the player is handed once the tutorial is cleared, and on which decks. The tutorial "
-             + "teaches Fireball, Slash, Teleport and Sap Totem, so this wants to be the Knight and Mage "
-             + "on the starter decks that hold them - otherwise it has taught cards the player does not "
-             + "have.")]
+             + "teaches Smite, Shield, Slash, Move and Heal Totem, so this wants to be the Knight and "
+             + "Cleric on the starter decks that hold them - otherwise it has taught cards the player "
+             + "does not have.")]
     [SerializeField] private List<PartyEntry> tutorialFollowOnParty = new();
 
     public void exitButton(){
@@ -121,7 +121,7 @@ public class MainMenu : MonoBehaviour
     ///
     /// The party is not chosen here on purpose: the tutorial scripts specific cards in specific hands,
     /// so it cannot run with whoever happened to be picked. The follow-on run is built with the same
-    /// RunData.CreateRuntime factory CharacterSelectPanel uses, from this same campaign's levels - so
+    /// RunData.CreateRuntimeFrom factory CharacterSelectPanel uses, from this same campaign - so
     /// there is one answer to "what levels does a run play", and it is Campaign.
     ///
     /// StartRun before the load, matching CharacterSelectPanel.OnStartButtonClicked - it resets any
@@ -138,8 +138,10 @@ public class MainMenu : MonoBehaviour
             return false;
         }
 
-        RunData followOn = RunData.CreateRuntime(
-            campaign.Levels, tutorialFollowOnParty, campaign.CarryDamageBetweenLevels);
+        // CreateRuntimeFrom, so the follow-on inherits the campaign's ladder and its award flag along
+        // with its levels - a player who learns the game through the tutorial and then clears the real
+        // run behind it has cleared the real run, and must earn what that is worth.
+        RunData followOn = RunData.CreateRuntimeFrom(campaign, tutorialFollowOnParty);
 
         RunManager.StartRun(tutorialRun, showTutorial: true, followOn: followOn);
 

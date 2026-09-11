@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Creates every asset the tutorial level needs: the two prefab variants for the heroes, the two for
-/// the enemies, the two tutorial decks, the loot table that drops Sap Totems, the level itself (with its
+/// the enemies, the two tutorial decks, the loot table that drops Heal Totems, the level itself (with its
 /// two reinforcement waves) and the prologue run that plays it.
 ///
 /// Same shape as TotemContentGenerator and EquipmentExampleContent: idempotent and re-runnable. An
@@ -29,66 +29,75 @@ using UnityEngine;
 ///
 /// Reinforcements arrive as directly-authored LevelData.EnemyWave entries now, not a card an enemy AI
 /// casts - so unlike an AI-picked summon tile (EnemyBrain.TryFindSummon, "closest legal tile to the
-/// Ranger"), each wave's landing cell is just stated outright (SkeletonCell, SecondWaveCell) and needs
-/// no geometry to steer it. The board keeps its original 3x6 shape and hero/Ranger cells anyway, for
-/// continuity with every other authored range already tuned against them:
+/// Eye"), each wave's landing cell is just stated outright (RatCell, SecondWaveCell) and needs no
+/// geometry to steer it. The board keeps its original 3x6 shape and hero/Eye cells anyway, for
+/// continuity with every other authored range already tuned against them.
 ///
-///     x:   1     2     3
-///     y=6  .    RNG    .
-///     y=5  .     .     .     <- Sap Totem lands on one of these
-///     y=4  .    SKL    .     <- SecondWaveCell (turn 3)
-///     y=3  .    SKL    .     <- SkeletonCell (turn 2), adjacent to the Knight below
-///     y=2 MAG   KNI    .
+/// Coordinates below are 0-based, matching Vector2Int as GridManager actually reads it - a 3x6 board is
+/// x in [0,2], y in [0,5]. (An earlier version of this map was written 1-based, which is what let
+/// RangerCell (2,6) sit off-board undetected - it only worked because SpawnPlacement routes through
+/// GridManager.NearestFreeSpawnTile.)
+///
+///     x:   0     1     2
+///     y=5  .    EYE    .
+///     y=4  .     .    RAT     <- SecondWaveCell (turn 3)
+///     y=3  .     .    RAT     <- RatCell (turn 2), adjacent to both heroes below
+///     y=2  .    CLR   KNI
 ///     y=1  .     .     .
+///     y=0  .     .     .
 ///
-/// Fireball (1-5) reaches the Ranger from the Mage at (1,2) at distance 4; Slash (melee) reaches
-/// SkeletonCell from (2,2); Teleport is Anywhere; Sap Totem (1-3) reaches every free tile beside the
-/// Ranger from any row-3 drop, the row-5 ones at distance 2 and the row-6 ones at 3; EnemyArrow (1-6)
-/// can shoot back from (2,6). Resizing the board or moving RangerCell/KnightCell/MageCell means
-/// re-checking every one of these.
+/// Smite (1-4) reaches the Eye from the Cleric at (1,2) at distance 3; Slash (melee) reaches RatCell
+/// from the Knight at (2,2); Move (1-1, routed) reaches the loot drop at RatCell from the Cleric
+/// diagonally; Heal Totem (1-3) reaches every free tile beside the Knight from the drop; Withering Gaze
+/// (2-4) can shoot either hero from the Eye. Resizing the board or moving EyeCell/KnightCell/ClericCell
+/// means re-checking every one of these.
 /// </summary>
 public static class TutorialContentGenerator
 {
     // ---- Where things come from -------------------------------------------------------------------
 
-    private const string Fireball = "Assets/Data/CardData/Mage/RangedAttack/Fireball.asset";
-    private const string Teleport = "Assets/Data/CardData/Mage/Movement/Teleport.asset";
-    private const string SapTotem = "Assets/Data/CardData/Mage/Summon/Sap Totem.asset";
+    private const string Smite = "Assets/Data/CardData/Cleric/Heal/Smite.asset";
+    private const string Move = "Assets/Data/CardData/Generic/Move.asset";
+    private const string HealTotem = "Assets/Data/CardData/Cleric/Summon/Heal Totem.asset";
     private const string Slash = "Assets/Data/CardData/Knight/Melee Attack/Slash.asset";
     private const string Shield = "Assets/Data/CardData/Knight/Buff (Defensive)/Shield.asset";
-    private const string Move = "Assets/Data/CardData/Generic/Move.asset";
-    private const string EnemyArrow = "Assets/Data/CardData/Enemy/EnemyArrow.asset";
+    private const string WitheringGaze = "Assets/Data/CardData/Enemy/FlyingEye/WitheringGaze.asset";
 
     private const string KnightPrefab = "Assets/Prefabs/Player/PlayerKnight.prefab";
-    private const string MagePrefab = "Assets/Prefabs/Player/PlayerMage.prefab";
-    private const string RangerPrefab = "Assets/Prefabs/Enemies/EnemyRanger.prefab";
-    private const string SkeletonPrefab = "Assets/Prefabs/Enemies/SkeletonWarrior.prefab";
+    private const string ClericPrefab = "Assets/Prefabs/Player/PlayerCleric.prefab";
+    private const string EyePrefab = "Assets/Prefabs/Enemies/FlyingEye.prefab";
+    private const string RatPrefab = "Assets/Prefabs/Enemies/Rat.prefab";
+
+    /// Already exactly what the Eye needs while it stands over a 1-HP Heal Totem - Closest only, and
+    /// never hunts a totem instead. Reused rather than authored fresh: TotemContentGenerator's own
+    /// ClosestIgnoreTotem.asset already is this pattern.
+    private const string ClosestIgnoreTotem = "Assets/Data/TargetingData/ClosestIgnoreTotem.asset";
 
     // ---- Where things go --------------------------------------------------------------------------
 
     private const string KnightOut = "Assets/Prefabs/Player/PlayerKnightTutorial.prefab";
-    private const string MageOut = "Assets/Prefabs/Player/PlayerMageTutorial.prefab";
-    private const string RangerOut = "Assets/Prefabs/Enemies/EnemyRangerTutorial.prefab";
-    private const string SkeletonOut = "Assets/Prefabs/Enemies/SkeletonWarriorTutorial.prefab";
+    private const string ClericOut = "Assets/Prefabs/Player/PlayerClericTutorial.prefab";
+    private const string EyeOut = "Assets/Prefabs/Enemies/FlyingEyeTutorial.prefab";
+    private const string RatOut = "Assets/Prefabs/Enemies/RatTutorial.prefab";
 
     private const string KnightDeckOut = "Assets/Data/DeckData/KnightTutorial.asset";
-    private const string MageDeckOut = "Assets/Data/DeckData/MageTutorial.asset";
-    private const string LootTableOut = "Assets/Data/LootTable/TutorialSapDrop.asset";
-    private const string LevelOut = "Assets/Data/LevelData/Tutorial.asset";
+    private const string ClericDeckOut = "Assets/Data/DeckData/ClericTutorial.asset";
+    private const string LootTableOut = "Assets/Data/LootTable/TutorialTotemDrop.asset";
+    private const string LevelOut = "Assets/Data/LevelData/Tailored/Tutorial.asset";
     private const string RunOut = "Assets/Data/RunData/TutorialRun.asset";
 
     // ---- The numbers ------------------------------------------------------------------------------
 
-    /// Resizing this or moving RangerCell/KnightCell/MageCell means re-checking every authored range
+    /// Resizing this or moving EyeCell/KnightCell/ClericCell means re-checking every authored range
     /// against them - see the class doc's closing paragraph.
     private static readonly Vector2Int BoardSize = new(3, 6);
-    private static readonly Vector2Int RangerCell = new(2, 6);
+    private static readonly Vector2Int EyeCell = new(1, 5);
     private static readonly Vector2Int KnightCell = new(2, 2);
-    private static readonly Vector2Int MageCell = new(1, 2);
+    private static readonly Vector2Int ClericCell = new(1, 2);
 
     /// Chebyshev-adjacent to the Knight at (2,2), so Slash always reaches it - the turn-2 wave. See the
     /// class doc.
-    private static readonly Vector2Int SkeletonCell = new(2, 3);
+    private static readonly Vector2Int RatCell = new(2, 3);
 
     /// The turn-3 wave - what the spawn-preview beat shows during turn 2, and what turn 3's free play
     /// is spent surviving.
@@ -100,9 +109,9 @@ public static class TutorialContentGenerator
     /// what the script points at. The determinism the whole sequence rests on.
     private const int HandSize = 3;
 
-    private const int SkeletonHealth = 1;
+    private const int RatHealth = 1;
 
-    private const int SapChoices = 3;
+    private const int TotemChoices = 3;
 
     [MenuItem("Tools/Tutorial/1 - Generate Tutorial Content")]
     public static void Generate()
@@ -121,19 +130,19 @@ public static class TutorialContentGenerator
         // created - see the class doc for why that matters.
         LootTable loot = MakeLootTable(made);
 
-        GameObject skeleton = MakeSkeleton(loot, made);
-        GameObject ranger = MakeRanger(made);
+        GameObject rat = MakeRat(loot, made);
+        GameObject eye = MakeEye(made);
 
         GameObject knight = MakeVariant(KnightPrefab, KnightOut, made);
-        GameObject mage = MakeVariant(MagePrefab, MageOut, made);
+        GameObject cleric = MakeVariant(ClericPrefab, ClericOut, made);
 
         DeckData knightDeck = MakeDeck(KnightDeckOut, "Knight (Tutorial)",
             new[] { Shield, Slash, Move }, made);
-        DeckData mageDeck = MakeDeck(MageDeckOut, "Mage (Tutorial)",
-            new[] { Fireball, Teleport }, made);
+        DeckData clericDeck = MakeDeck(ClericDeckOut, "Cleric (Tutorial)",
+            new[] { Smite, Move }, made);
 
-        LevelData level = MakeLevel(ranger, skeleton, loot, made);
-        MakeRun(level, knight, mage, knightDeck, mageDeck, made);
+        LevelData level = MakeLevel(eye, rat, loot, made);
+        MakeRun(level, knight, cleric, knightDeck, clericDeck, made);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -147,12 +156,13 @@ public static class TutorialContentGenerator
 
     // ---- Enemies ----------------------------------------------------------------------------------
 
-    /// The 1-health skeleton the Knight kills, carrying the tutorial's own loot table so its drop is the
-    /// three Sap Totems rather than whatever the level would otherwise roll - Character.LootTable
-    /// overrides LevelData's for that character's own drop.
-    private static GameObject MakeSkeleton(LootTable loot, List<string> made)
+    /// The 1-health rat the Knight kills, carrying the tutorial's own loot table so its drop is the
+    /// three Heal Totems rather than whatever the level would otherwise roll - Character.LootTable
+    /// overrides LevelData's for that character's own drop. displayName is overridden too, matching the
+    /// Debug/BrittleSkeleton naming convention for a 1-HP variant of an existing enemy.
+    private static GameObject MakeRat(LootTable loot, List<string> made)
     {
-        GameObject prefab = MakeVariant(SkeletonPrefab, SkeletonOut, made);
+        GameObject prefab = MakeVariant(RatPrefab, RatOut, made);
 
         if (prefab == null) { return null; }
 
@@ -160,19 +170,21 @@ public static class TutorialContentGenerator
 
         if (so == null) { return prefab; }
 
-        so.FindProperty("maxHealth").intValue = SkeletonHealth;
+        so.FindProperty("maxHealth").intValue = RatHealth;
         so.FindProperty("lootTable").objectReferenceValue = loot;
+        so.FindProperty("displayName").stringValue = "Brittle Rat";
         Apply(so, prefab);
 
         return prefab;
     }
 
-    /// The Ranger, holding only two arrows - no summon card any more (waves are authored directly on
-    /// the level, see MakeLevel) and no Move, so RangerBrain can never walk it out of the Sap totem's
-    /// aura between the totem landing and the shot that proves it works.
-    private static GameObject MakeRanger(List<string> made)
+    /// The Flying Eye, holding only two Withering Gazes - no Move card, so EnemyBrain can never walk it
+    /// out of the Heal Totem's aura between the totem landing and the shot that would otherwise prove
+    /// nothing - and Closest-only, never-hunt-totems targeting, so its 15%/turn totem hunt (the base
+    /// prefab's Totem15Closest) can never destroy the 1-HP totem the payoff beat depends on.
+    private static GameObject MakeEye(List<string> made)
     {
-        GameObject prefab = MakeVariant(RangerPrefab, RangerOut, made);
+        GameObject prefab = MakeVariant(EyePrefab, EyeOut, made);
 
         if (prefab == null) { return null; }
 
@@ -182,9 +194,11 @@ public static class TutorialContentGenerator
 
         SetCards(so.FindProperty("deck"), new List<Object>
         {
-            Load<CardData>(EnemyArrow),
-            Load<CardData>(EnemyArrow),
+            Load<CardData>(WitheringGaze),
+            Load<CardData>(WitheringGaze),
         });
+
+        so.FindProperty("targetingPattern").objectReferenceValue = Load<TargetingPattern>(ClosestIgnoreTotem);
 
         Apply(so, prefab);
 
@@ -225,7 +239,7 @@ public static class TutorialContentGenerator
         return deck;
     }
 
-    /// Three guaranteed Sap Totems filling all three slots - which needs LootManager.BuildOffer to stop
+    /// Three guaranteed Heal Totems filling all three slots - which needs LootManager.BuildOffer to stop
     /// de-duplicating guaranteed entries against each other, the change this tutorial shipped with.
     private static LootTable MakeLootTable(List<string> made)
     {
@@ -245,16 +259,16 @@ public static class TutorialContentGenerator
         tiers.GetArrayElementAtIndex(0).FindPropertyRelative("rarity").enumValueIndex = (int)Rarity.Common;
         tiers.GetArrayElementAtIndex(0).FindPropertyRelative("weight").intValue = 1;
 
-        CardData sap = Load<CardData>(SapTotem);
+        CardData totem = Load<CardData>(HealTotem);
         SerializedProperty guaranteed = so.FindProperty("guaranteedCards");
-        guaranteed.arraySize = SapChoices;
+        guaranteed.arraySize = TotemChoices;
 
-        for (int i = 0; i < SapChoices; i++)
+        for (int i = 0; i < TotemChoices; i++)
         {
-            guaranteed.GetArrayElementAtIndex(i).objectReferenceValue = sap;
+            guaranteed.GetArrayElementAtIndex(i).objectReferenceValue = totem;
         }
 
-        so.FindProperty("choiceCount").intValue = SapChoices;
+        so.FindProperty("choiceCount").intValue = TotemChoices;
         so.FindProperty("equipmentChance").floatValue = 0f;
 
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -263,7 +277,7 @@ public static class TutorialContentGenerator
         return table;
     }
 
-    private static LevelData MakeLevel(GameObject rangerPrefab, GameObject skeletonPrefab, LootTable loot,
+    private static LevelData MakeLevel(GameObject eyePrefab, GameObject ratPrefab, LootTable loot,
         List<string> made)
     {
         LevelData level = Load<LevelData>(LevelOut);
@@ -279,10 +293,10 @@ public static class TutorialContentGenerator
 
         SerializedProperty enemies = so.FindProperty("enemies");
         enemies.arraySize = 1;
-        SerializedProperty ranger = enemies.GetArrayElementAtIndex(0);
-        ranger.FindPropertyRelative("prefab").objectReferenceValue = rangerPrefab;
-        SetCell(ranger.FindPropertyRelative("cell"), RangerCell);
-        ranger.FindPropertyRelative("deckOverride").arraySize = 0;
+        SerializedProperty eye = enemies.GetArrayElementAtIndex(0);
+        eye.FindPropertyRelative("prefab").objectReferenceValue = eyePrefab;
+        SetCell(eye.FindPropertyRelative("cell"), EyeCell);
+        eye.FindPropertyRelative("deckOverride").arraySize = 0;
 
         // Reinforcements, not a card an enemy AI plays - see the class doc. Turn 2's wave is what the
         // Slash beat kills; turn 3's is what the spawn-preview beat shows during turn 2 and what free
@@ -295,8 +309,8 @@ public static class TutorialContentGenerator
         SerializedProperty wave0Enemies = wave0.FindPropertyRelative("enemies");
         wave0Enemies.arraySize = 1;
         SerializedProperty wave0Enemy = wave0Enemies.GetArrayElementAtIndex(0);
-        wave0Enemy.FindPropertyRelative("prefab").objectReferenceValue = skeletonPrefab;
-        SetCell(wave0Enemy.FindPropertyRelative("cell"), SkeletonCell);
+        wave0Enemy.FindPropertyRelative("prefab").objectReferenceValue = ratPrefab;
+        SetCell(wave0Enemy.FindPropertyRelative("cell"), RatCell);
         wave0Enemy.FindPropertyRelative("deckOverride").arraySize = 0;
 
         SerializedProperty wave1 = waves.GetArrayElementAtIndex(1);
@@ -304,7 +318,7 @@ public static class TutorialContentGenerator
         SerializedProperty wave1Enemies = wave1.FindPropertyRelative("enemies");
         wave1Enemies.arraySize = 1;
         SerializedProperty wave1Enemy = wave1Enemies.GetArrayElementAtIndex(0);
-        wave1Enemy.FindPropertyRelative("prefab").objectReferenceValue = skeletonPrefab;
+        wave1Enemy.FindPropertyRelative("prefab").objectReferenceValue = ratPrefab;
         SetCell(wave1Enemy.FindPropertyRelative("cell"), SecondWaveCell);
         wave1Enemy.FindPropertyRelative("deckOverride").arraySize = 0;
 
@@ -312,7 +326,7 @@ public static class TutorialContentGenerator
         SerializedProperty spawns = so.FindProperty("partySpawnCells");
         spawns.arraySize = 2;
         SetCell(spawns.GetArrayElementAtIndex(0), KnightCell);
-        SetCell(spawns.GetArrayElementAtIndex(1), MageCell);
+        SetCell(spawns.GetArrayElementAtIndex(1), ClericCell);
 
         SetCell(so.FindProperty("boardSize"), BoardSize);
 
@@ -330,8 +344,8 @@ public static class TutorialContentGenerator
         return level;
     }
 
-    private static void MakeRun(LevelData level, GameObject knight, GameObject mage,
-        DeckData knightDeck, DeckData mageDeck, List<string> made)
+    private static void MakeRun(LevelData level, GameObject knight, GameObject cleric,
+        DeckData knightDeck, DeckData clericDeck, List<string> made)
     {
         RunData run = Load<RunData>(RunOut);
 
@@ -354,12 +368,12 @@ public static class TutorialContentGenerator
         SerializedProperty party = so.FindProperty("startingParty");
         party.arraySize = 2;
         party.GetArrayElementAtIndex(0).objectReferenceValue = knight;
-        party.GetArrayElementAtIndex(1).objectReferenceValue = mage;
+        party.GetArrayElementAtIndex(1).objectReferenceValue = cleric;
 
         SerializedProperty decks = so.FindProperty("startingPartyDecks");
         decks.arraySize = 2;
         decks.GetArrayElementAtIndex(0).objectReferenceValue = knightDeck;
-        decks.GetArrayElementAtIndex(1).objectReferenceValue = mageDeck;
+        decks.GetArrayElementAtIndex(1).objectReferenceValue = clericDeck;
 
         so.FindProperty("startingHeroes").arraySize = 0;
         so.FindProperty("carryDamageBetweenLevels").boolValue = false;
@@ -373,8 +387,8 @@ public static class TutorialContentGenerator
     /// <summary>
     /// A real Prefab Variant, not a copy - instantiating the base and saving that instance is what makes
     /// Unity record it as a variant. Being a variant is the point: future art, animator or stat changes
-    /// to PlayerKnight carry into PlayerKnightTutorial on their own, where a flat copy would silently
-    /// drift from the prefab it was meant to mirror.
+    /// to the source prefab carry into the tutorial variant on their own, where a flat copy would
+    /// silently drift from the prefab it was meant to mirror.
     /// </summary>
     private static GameObject MakeVariant(string sourcePath, string outPath, List<string> made)
     {
@@ -447,8 +461,8 @@ public static class TutorialContentGenerator
     {
         string[] required =
         {
-            Fireball, Teleport, SapTotem, Slash, Shield, Move, EnemyArrow,
-            KnightPrefab, MagePrefab, RangerPrefab, SkeletonPrefab,
+            Smite, Move, HealTotem, Slash, Shield, WitheringGaze,
+            KnightPrefab, ClericPrefab, EyePrefab, RatPrefab, ClosestIgnoreTotem,
         };
 
         bool ok = true;

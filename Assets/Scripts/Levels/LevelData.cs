@@ -36,6 +36,30 @@ public struct EnemyWave
 }
 
 /// <summary>
+/// How many bodies of one role a level wants on the board. A ceiling on headcount, to sit alongside
+/// the ceiling on power - a budget alone always converts into the largest number of cheap bodies it
+/// can buy, which is what made every encounter tail off into a crowd of the same 1-power enemy.
+///
+/// Both default to 0 and 0 means *unbounded*, not "none". That has to be true in both directions: a
+/// max of 0 read literally would mean "no frontline enemies at all", and every EncounterBudget
+/// authored before this struct existed deserializes to zeros. Same hazard as RangeShape.Anywhere
+/// being 0, resolved the same way - the default has to be the old behaviour.
+/// </summary>
+[System.Serializable]
+public struct RoleCount
+{
+    [Tooltip("Fewest of this role to try for. 0 asks for none in particular. Pursued by the anyPower "
+             + "draw within its budget - a minimum the budget cannot afford is not forced.")]
+    public int min;
+
+    [Tooltip("Most of this role to place. 0 means no ceiling.")]
+    public int max;
+
+    /// Whether `count` may still grow. A max of 0 is no ceiling - see the struct summary.
+    public bool HasRoomFor(int count) => max <= 0 || count < max;
+}
+
+/// <summary>
 /// A level's power budgets for EncounterRoller, on top of whatever is hand-authored in `enemies`/
 /// `waves`. Every field defaults to 0, and 0 spends nothing - a level that never touches this struct
 /// rolls exactly nothing, the same "0 is inert" rule BoardSize and RangeShape.Anywhere already follow,
@@ -45,8 +69,9 @@ public struct EnemyWave
 /// role-and-boss-filtered pool; anyPower draws from the combined frontline+backline pool and rolls
 /// each pick's side independently, so one number can land anywhere from all-frontline to all-backline
 /// across different playthroughs rather than a fixed split. reinforcementPower is spent the same
-/// "any" way, across successive generated EnemyWaves of at most maxPowerPerWave, scheduled
-/// waveInterval turns apart (plus a random 0..waveIntervalJitter offset per wave) until it runs out -
+/// "any" way, across successive generated EnemyWaves of at most maxPowerPerWave, the first on turn
+/// 1 + waveInterval and the rest waveInterval turns apart (plus a random 0..waveIntervalJitter offset
+/// per wave) until it runs out. Never on turn 1 - that board is the opening the headcounts describe -
 /// see EncounterRoller.RollReinforcementWaves. Every draw excludes bodies costing more than
 /// maxPowerPerEnemy, and stops as soon as the next pick would exceed the remaining budget - a budget
 /// is a ceiling, never a target to hit exactly.
@@ -73,6 +98,33 @@ public struct EncounterBudget
              + "these prefabs - for a thematically narrow level (all bandits, say) without needing a "
              + "second registry.")]
     public List<GameObject> poolFilter;
+
+    [Tooltip("How many frontline bodies the opening lineup may hold. 0/0 is unbounded - see RoleCount. "
+             + "Counted across the whole starting lineup, not per bucket.")]
+    public RoleCount frontlineCount;
+
+    [Tooltip("How many backline bodies the opening lineup may hold. 0/0 is unbounded.")]
+    public RoleCount backlineCount;
+
+    [Tooltip("How many whole lineups to roll before keeping the best one. 0 or 1 is a single roll. "
+             + "Each roll is cheap, so raising this is close to free - it buys a closer fit to the "
+             + "power budget, and with duplicatePenalty set, fewer repeated bodies.")]
+    public int rollAttempts;
+
+    [Tooltip("How much the roller avoids repeating an enemy type, measured in the same units as power. "
+             + "0 means none at all: every affordable enemy is equally likely on every pick, repeats "
+             + "included. Above 0 it does three things: a type already rolled k times is drawn "
+             + "1/(1 + penalty x k) as often, a repeated body cheaper than the penalty is trimmed off "
+             + "the end, and with rollAttempts above 1 the least repetitive lineup wins. 1.5 is a firm "
+             + "lean toward variety; 10 all but forbids repeats while anything else is affordable.")]
+    public float duplicatePenalty;
+
+    [Tooltip("How many bosses the opening places, each picked at random from every drawable boss and "
+             + "stood on whichever side has room (a coin flip for an untagged boss). A count rather than a "
+             + "power budget, so it means \"one boss\" whatever the bosses cost; their power sits on top of "
+             + "the budgets above rather than coming out of them. A boss takes a headcount slot on its side. "
+             + "0 places none - the boss power budgets above still work as before.")]
+    public int bossCount;
 }
 
 /// <summary>

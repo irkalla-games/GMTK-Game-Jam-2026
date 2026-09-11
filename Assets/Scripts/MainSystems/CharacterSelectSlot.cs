@@ -60,21 +60,31 @@ public class CharacterSelectSlot : MonoBehaviour
     }
 
     /// <summary>
-    /// Shows the current pick. `deckLocked` is asked for separately rather than read off `deck` here -
-    /// DeckUnlocks.IsUnlocked needs the same DeckData the panel already has in hand, and a view
-    /// shouldn't reach into a save-state lookup on its own.
+    /// Shows the current pick. Both locked flags are asked for separately rather than read off
+    /// `character`/`deck` here - the Unlocks lookups need the same assets the panel already has in
+    /// hand, and a view shouldn't reach into a save-state lookup on its own.
+    ///
+    /// A locked hero is greyed and labelled exactly as a locked deck already was, and stays *visible*
+    /// while cycled to rather than being skipped - so a player can see what there is to earn without
+    /// being allowed to take it. CharacterSelectPanel is what refuses to start the run.
     /// </summary>
-    public void Refresh(CharacterOption character, DeckData deck, bool deckLocked)
+    public void Refresh(CharacterOption character, DeckData deck, bool deckLocked, bool characterLocked)
     {
         if (portraitImage != null)
         {
             portraitImage.sprite = character != null ? character.Portrait : null;
             portraitImage.enabled = portraitImage.sprite != null;
+
+            // Dimmed rather than hidden - the silhouette is the point of showing a locked hero at all.
+            portraitImage.color = characterLocked ? Color.gray : Color.white;
         }
 
         if (nameLabel != null)
         {
-            nameLabel.text = character != null ? character.DisplayName : "-";
+            string characterName = character != null ? character.DisplayName : "-";
+
+            nameLabel.text = characterLocked ? $"{characterName} (Locked)" : characterName;
+            nameLabel.color = characterLocked ? Color.gray : Color.white;
         }
 
         if (deckLabel == null) { return; }

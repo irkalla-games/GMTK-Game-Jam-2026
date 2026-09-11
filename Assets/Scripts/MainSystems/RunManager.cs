@@ -50,6 +50,19 @@ public class RunManager : PersistantSingleton<RunManager>
     private bool tutorialEnabled;
 
     /// <summary>
+    /// Which rung of the campaign's DifficultyLadder this run is being played on.
+    ///
+    /// Snapshotted at StartRun rather than read from DifficultyProgress wherever it is needed, for the
+    /// same reason tutorialEnabled is: changing the selection at the menu must not reach a run already
+    /// under way.
+    ///
+    /// Deliberately *not* reset by Begin, unlike everything else about a run. Begin runs a second time
+    /// when the tutorial hands over to the real campaign (BeginFollowOn), and a tier cleared there
+    /// would silently drop back to Normal mid-handover. Only StartRun and EndRun write it.
+    /// </summary>
+    private int difficultyTier;
+
+    /// <summary>
     /// The run queued behind this one, or null. Exists for the tutorial: it is a self-contained prologue
     /// run with its own fixed party and its own one level, and clearing it should drop the player
     /// straight into a real run rather than back at the menu.
@@ -92,6 +105,18 @@ public class RunManager : PersistantSingleton<RunManager>
     /// </summary>
     public bool TutorialEnabled => tutorialEnabled;
 
+    /// Which rung this run is on, for anything that wants to say "Hard II" to a player.
+    public int DifficultyTier => difficultyTier;
+
+    /// <summary>
+    /// The scaling this run plays at. An all-zero tier - no campaign, no ladder authored on it, or an
+    /// index the ladder does not have - is exactly Normal, because every scale on a DifficultyTier is
+    /// a bonus added to 1 rather than a multiplier. That is what lets the debug and testbed campaigns
+    /// carry no ladder at all and still work.
+    /// </summary>
+    public DifficultyTier CurrentTier =>
+        campaign != null && campaign.Ladder != null ? campaign.Ladder.TierAt(difficultyTier) : default;
+
     /// <summary>
     /// Begins a run, from the Main Menu's Play button. Reuses the existing object when there is one
     /// rather than destroying and re-instantiating: Destroy is deferred to the end of the frame, so a
@@ -99,7 +124,10 @@ public class RunManager : PersistantSingleton<RunManager>
     /// </summary>
     /// <param name="followOn">Started automatically when `campaign` is cleared, instead of ending the
     /// run and returning to the menu. Null is the ordinary case - see the field's own doc comment.</param>
-    public static void StartRun(RunData campaign, bool showTutorial, RunData followOn = null)
+    /// <param name="difficultyTier">Which rung of the campaign's ladder to play. Defaults to 0 -
+    /// Normal - so the debug, testbed and tutorial paths stay unscaled without passing anything.</param>
+    public static void StartRun(
+        RunData campaign, bool showTutorial, RunData followOn = null, int difficultyTier = 0)
     {
         RunManager manager = Instance;
 
@@ -110,8 +138,10 @@ public class RunManager : PersistantSingleton<RunManager>
 
         manager.Begin(campaign, showTutorial);
 
-        // After Begin, which resets it along with everything else about the previous run.
+        // Both after Begin, which resets everything else about the previous run. The tier is set here
+        // rather than inside Begin precisely so a follow-on run inherits it - see the field.
         manager.followOnRun = followOn;
+        manager.difficultyTier = Mathf.Max(0, difficultyTier);
     }
 
     /// Whether clearing the current run leads somewhere other than the menu.
@@ -184,6 +214,48 @@ public class RunManager : PersistantSingleton<RunManager>
         party.Remove(member);
     }
 
+    /// <summary>
+    /// Pays out for clearing this campaign, and reports what was newly earned so the victory modal can
+    /// name it - null when nothing was, which is what keeps a repeat clear from congratulating a
+    /// player for heroes they have had for three runs.
+    ///
+    /// Called from BattleManager.EndLevel, not Finish: Finish loads the Main Menu synchronously, so a
+    /// modal raised there would never be seen. EndLevel already checks the tutorial hand-over ahead of
+    /// its final-level branch, which is what stops a cleared tutorial paying out.
+    ///
+    /// A campaign that does not award progression returns null without touching anything - that is the
+    /// whole of what keeps the debug and testbed runs inert.
+    /// </summary>
+    public string AwardRunComplete()
+    {
+        if (campaign == null || !campaign.AwardsProgression) { return null; }
+
+        List<string> lines = new();
+
+        foreach (CharacterOption option in CurrentTier.unlocksOnClear ?? new List<CharacterOption>())
+        {
+            // `!= null` rather than a null-conditional: a deleted asset is a Unity fake-null. See
+            // CLAUDE.md. Unlock itself reports whether this was news rather than already earned.
+            if (option != null && CharacterUnlocks.Unlock(option))
+            {
+                lines.Add($"{option.DisplayName} joins your roster.");
+            }
+        }
+
+        // Only when the ladder actually has a rung above this one. RecordClear would otherwise raise
+        // HighestUnlocked past the end of the list, and a selector offering that index would resolve
+        // to an all-zero tier - a "Hard VII" that silently played on Normal.
+        bool hasNextTier =
+            campaign.Ladder != null && difficultyTier + 1 < campaign.Ladder.Tiers.Count;
+
+        if (hasNextTier && DifficultyProgress.RecordClear(difficultyTier))
+        {
+            lines.Add($"{campaign.Ladder.NameAt(difficultyTier + 1)} unlocked.");
+        }
+
+        return lines.Count > 0 ? string.Join("\n", lines) : null;
+    }
+
     /// Ends the run - on death, or after the last level. The object stays alive; Begin is what resets
     /// it, so there is no window where a half-torn-down run is the one Instance points at.
     public void EndRun()
@@ -191,6 +263,10 @@ public class RunManager : PersistantSingleton<RunManager>
         campaign = null;
         levelIndex = 0;
         tutorialEnabled = false;
+
+        // Unlike Begin, which leaves this alone so a follow-on inherits it - see the field. A run that
+        // is over has no tier, and the next StartRun sets one before anything can read it.
+        difficultyTier = 0;
         followOnRun = null;
         party.Clear();
     }

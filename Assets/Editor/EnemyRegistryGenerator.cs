@@ -9,6 +9,9 @@ using UnityEngine;
 /// Get-DiscoveredRoster uses in EnemySheet.Common.psm1, kept in step by hand since this is C# scanning
 /// prefabs directly rather than sharing that PowerShell function.
 ///
+/// Allies and anything under a Debug/ folder are listed but never eligible for random draw - see the
+/// comments in Rebuild.
+///
 /// Repairs rather than skips (see CLAUDE.md): reuses the existing asset if present, but rewrites every
 /// entry on every run, so a stale registry can always be fixed by running this again rather than only
 /// by deleting the asset first.
@@ -43,17 +46,31 @@ public static class EnemyRegistryGenerator
         {
             foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { folder }))
             {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string path = AssetDatabase.GUIDToAssetPath(guid).Replace('\\', '/');
 
                 // Same exclusion Get-DiscoveredRoster applies: a Tutorial/* prefab variant carries no
                 // Character component of its own, only a PrefabInstance modifications list pointing at
                 // the base prefab - which this same scan already covers under its own folder.
-                if (path.Replace('\\', '/').Contains("/Tutorial/")) { continue; }
+                if (path.Contains("/Tutorial/")) { continue; }
+
+                // A *Tutorial prefab named directly in the folder (RatTutorial, FlyingEyeTutorial, ...)
+                // rather than tucked in a Tutorial/ subfolder - the folder check above misses these,
+                // which is how EnemyRangerTutorial and SkeletonWarriorTutorial ended up eligible for
+                // random draw despite being hand-tuned scripted-level variants (1 HP, a truncated deck)
+                // that would make no sense rolled into a real encounter.
+                if (System.IO.Path.GetFileNameWithoutExtension(path).EndsWith("Tutorial")) { continue; }
 
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null || prefab.GetComponent<Character>() == null) { continue; }
 
-                entries.Add(new EnemyRegistryEntry { prefab = prefab, eligibleForRandomDraw = eligible });
+                // A Debug/ body (BrittleSkeleton - 1 HP, built for the testbed) stays listed, so the
+                // debug panel's spawn list still offers it, but is never drawn at random. Listed rather
+                // than skipped like a Tutorial variant because DebugPanel reads every entry regardless of
+                // eligibility. It matters since Levels 3-10 cleared their pool filters: an empty filter draws
+                // from the whole registry, and a test dummy has no business turning up in a real run.
+                bool drawable = eligible && !path.Contains("/Debug/");
+
+                entries.Add(new EnemyRegistryEntry { prefab = prefab, eligibleForRandomDraw = drawable });
             }
         }
 

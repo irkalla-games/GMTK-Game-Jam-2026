@@ -17,12 +17,12 @@ MonoBehaviour:
   encounterBudget:
     frontlinePower: 0
     backlinePower: 0
-    anyPower: 10
+    anyPower: 8
     bossFrontlinePower: 0
     bossBacklinePower: 0
-    reinforcementPower: 25
+    reinforcementPower: 15
     maxPowerPerEnemy: 2
-    maxPowerPerWave: 6
+    maxPowerPerWave: 3
     waveInterval: 1
     waveIntervalJitter: 2
     poolFilter:
@@ -35,12 +35,20 @@ MonoBehaviour:
     - {fileID: 9030803548844171682, guid: 022c86b9aa20aaf44806e866dd6d8971, type: 3}
     - {fileID: 9030803548844171682, guid: 40cab8c86b3615741ac4bc8db8156b37, type: 3}
     - {fileID: 9030803548844171682, guid: 158567c6103052b45a79feac134a4c3b, type: 3}
+    frontlineCount:
+      min: 3
+      max: 3
+    backlineCount:
+      min: 2
+      max: 2
+    rollAttempts: 3
+    duplicatePenalty: 0
   partySpawnCells:
-  - {x: 2, y: 3}
-  - {x: 3, y: 3}
   - {x: 2, y: 2}
   - {x: 3, y: 2}
-  boardSize: {x: 5, y: 6}
+  - {x: 2, y: 1}
+  - {x: 3, y: 1}
+  boardSize: {x: 5, y: 5}
   turnsToSurvive: 10
   handSize: 5
   lootTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}

@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-09-08T01:51:48.4191938Z",
+    "writtenUtc":  "2026-09-10T22:47:09.8873751Z",
     "levels":  [
                    {
                        "guid":  "8c8f2f598a8bc824984510549a779d78",
@@ -44,26 +44,39 @@
                        "guid":  "5e7b87325e799474f883eb502eba52a6",
                        "columns":  {
                                        "BoardWidth":  "5",
-                                       "BoardHeight":  "6",
+                                       "BoardHeight":  "5",
                                        "TurnsToSurvive":  "10",
                                        "HandSize":  "5",
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
+                                       "Layout":  "E:|S:3,3;4,3;3,2;4,2"
+                                   }
+                   },
+                   {
+                       "guid":  "e5fe6d4ee553cfc4b89b2e95017da7c3",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:4,6;5,6;4,5;5,5"
                                    }
                    },
                    {
                        "guid":  "d352cbd577e24581b0c3129ce6af72d2",
                        "columns":  {
                                        "BoardWidth":  "5",
-                                       "BoardHeight":  "6",
+                                       "BoardHeight":  "5",
                                        "TurnsToSurvive":  "10",
                                        "HandSize":  "5",
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
+                                       "Layout":  "E:|S:3,3;4,3;3,2;4,2"
                                    }
                    },
                    {
@@ -76,7 +89,7 @@
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
                                    }
                    },
                    {
@@ -89,20 +102,72 @@
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                       "Layout":  "E:|S:3,4;4,4;3,3;4,3"
                                    }
                    },
                    {
                        "guid":  "940ff72dd124457fbc13f820c0e2d439",
                        "columns":  {
-                                       "BoardWidth":  "6",
-                                       "BoardHeight":  "6",
+                                       "BoardWidth":  "7",
+                                       "BoardHeight":  "7",
                                        "TurnsToSurvive":  "10",
                                        "HandSize":  "5",
                                        "LootTable":  "EarlyGame",
                                        "ClearRewardTable":  "EarlyLevelReward",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:|S:3,4;3,3;4,4;4,3"
+                                       "Layout":  "E:|S:3,5;4,5;3,4;4,4"
+                                   }
+                   },
+                   {
+                       "guid":  "dd18a26ce7e73fa45ac7622d635d0424",
+                       "columns":  {
+                                       "BoardWidth":  "7",
+                                       "BoardHeight":  "7",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,5;4,5;3,4;4,4"
+                                   }
+                   },
+                   {
+                       "guid":  "59cec6189b6e65b4ea0c07b4bed6eea0",
+                       "columns":  {
+                                       "BoardWidth":  "7",
+                                       "BoardHeight":  "7",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:3,5;4,5;3,4;4,4"
+                                   }
+                   },
+                   {
+                       "guid":  "cff9f7c6c3ad79f44b199afbc914ac22",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:4,6;5,6;4,5;5,5"
+                                   }
+                   },
+                   {
+                       "guid":  "13a9c595eef05184ba0e5485e338da10",
+                       "columns":  {
+                                       "BoardWidth":  "8",
+                                       "BoardHeight":  "8",
+                                       "TurnsToSurvive":  "10",
+                                       "HandSize":  "5",
+                                       "LootTable":  "EarlyGame",
+                                       "ClearRewardTable":  "EarlyLevelReward",
+                                       "TileSets":  "StoneDungeon",
+                                       "Layout":  "E:|S:4,6;4,5;5,6;5,5"
                                    }
                    },
                    {
@@ -164,10 +229,10 @@
                                        "BoardHeight":  "6",
                                        "TurnsToSurvive":  "3",
                                        "HandSize":  "3",
-                                       "LootTable":  "TutorialSapDrop",
+                                       "LootTable":  "TutorialTotemDrop",
                                        "ClearRewardTable":  "",
                                        "TileSets":  "StoneDungeon",
-                                       "Layout":  "E:0,3,7,EnemyRangerTutorial,;2,1,4,SkeletonWarriorTutorial,;3,3,5,SkeletonWarriorTutorial,|S:2,3;3,3"
+                                       "Layout":  "E:0,2,6,FlyingEyeTutorial,;2,3,4,RatTutorial,;3,3,5,RatTutorial,|S:3,3;2,3"
                                    }
                    }
                ],
@@ -196,7 +261,7 @@
                  {
                      "guid":  "62594bea8b5f56b4898ebd6cc1323313",
                      "columns":  {
-                                     "Levels":  "Level 1 - Random|Level 2 - Random|Level 3 - Random|Level 4 - Random|Level 5 - Boss",
+                                     "Levels":  "Level 1 - Random|Level 2 - Random|Level 3 - Random|Level 4 - Random|Level 5 - Boss|Level 6 - Random|Level 7 - Random|Level 8 - Random|Level 9 - Random|Level 10 - Boss",
                                      "CarryDamageBetweenLevels":  "FALSE"
                                  }
                  },

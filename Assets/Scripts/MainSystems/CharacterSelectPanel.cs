@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -14,7 +15,7 @@ using UnityEngine.UI;
 /// and CardRemovalPanel's "purely a view" split - CharacterSelectSlot fires an event per arrow click
 /// and shows whatever Refresh hands it, every rule about what a slot may legally show lives here.
 ///
-/// Owns starting the run: on Start it builds a runtime RunData (RunData.CreateRuntime) from the
+/// Owns starting the run: on Start it builds a runtime RunData (RunData.CreateRuntimeFrom) from the
 /// chosen party plus the levels/carry-damage authored on `campaign`, exactly as MainMenu.playButton
 /// used to build the whole run itself before this screen existed.
 /// </summary>
@@ -42,6 +43,17 @@ public class CharacterSelectPanel : MonoBehaviour
 
     [SerializeField] private Button backButton;
 
+    [Tooltip("The whole difficulty row, hidden outright until a second rung has been earned - a "
+             + "first-time player has no choice to make and should not be shown one. Built by "
+             + "Tools/Main Menu/Wire Character Select.")]
+    [SerializeField] private GameObject difficultyRow;
+
+    [SerializeField] private TMP_Text difficultyLabel;
+
+    [SerializeField] private Button previousDifficultyButton;
+
+    [SerializeField] private Button nextDifficultyButton;
+
     private readonly List<(CharacterOption character, DeckData deck)> selections = new();
 
     private readonly List<CharacterSelectSlot> slotViews = new();
@@ -62,6 +74,16 @@ public class CharacterSelectPanel : MonoBehaviour
         if (root != null) { root.SetActive(false); }
         if (backButton != null) { backButton.onClick.AddListener(OnBackButtonClicked); }
         if (startButton != null) { startButton.onClick.AddListener(OnStartButtonClicked); }
+
+        if (previousDifficultyButton != null)
+        {
+            previousDifficultyButton.onClick.AddListener(() => CycleDifficulty(-1));
+        }
+
+        if (nextDifficultyButton != null)
+        {
+            nextDifficultyButton.onClick.AddListener(() => CycleDifficulty(1));
+        }
     }
 
     /// <summary>
@@ -90,6 +112,7 @@ public class CharacterSelectPanel : MonoBehaviour
         WireSizeButtons();
         RebuildSlots();
         UpdateSizeButtonStates();
+        RefreshDifficulty();
         UpdateStartInteractable();
     }
 
@@ -128,13 +151,16 @@ public class CharacterSelectPanel : MonoBehaviour
             entries.Add(new PartyEntry { prefab = character.Prefab, deck = deck });
         }
 
-        RunData run = RunData.CreateRuntime(campaign.Levels, entries, campaign.CarryDamageBetweenLevels);
+        // CreateRuntimeFrom rather than CreateRuntime, so every campaign-wide setting - levels, carry
+        // damage, the ladder, whether clearing it awards anything - carries across in one call and
+        // this screen cannot drift from MainMenu's tutorial hand-over about which of them matter.
+        RunData run = RunData.CreateRuntimeFrom(campaign, entries);
 
         // Never with the tutorial. It is its own prologue run now, with its own fixed party and its own
         // scripted level - see MainMenu.TryStartTutorial, which is the only path that ever reaches it.
         // Passing the setting through here would point the director at whatever level 1 of the real
         // campaign happens to be, and it would script a board it knows nothing about.
-        RunManager.StartRun(run, showTutorial: false);
+        RunManager.StartRun(run, showTutorial: false, difficultyTier: SelectedTier());
 
         SceneManager.LoadScene("Game");
     }
@@ -175,8 +201,7 @@ public class CharacterSelectPanel : MonoBehaviour
     {
         while (selections.Count < size)
         {
-            int rosterIndex = Mathf.Min(selections.Count, roster.Characters.Count - 1);
-            CharacterOption defaultCharacter = roster.Characters[rosterIndex];
+            CharacterOption defaultCharacter = DefaultCharacterAt(selections.Count);
             selections.Add((defaultCharacter, DefaultDeckFor(defaultCharacter)));
         }
 
@@ -270,9 +295,10 @@ public class CharacterSelectPanel : MonoBehaviour
         if (index >= slotViews.Count) { return; }
 
         (CharacterOption character, DeckData deck) = selections[index];
-        bool locked = deck != null && !DeckUnlocks.IsUnlocked(deck);
+        bool deckLocked = deck != null && !DeckUnlocks.IsUnlocked(deck);
+        bool characterLocked = !CharacterUnlocks.IsUnlocked(character);
 
-        slotViews[index].Refresh(character, deck, locked);
+        slotViews[index].Refresh(character, deck, deckLocked, characterLocked);
     }
 
     private void UpdateSizeButtonStates()
@@ -290,9 +316,10 @@ public class CharacterSelectPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Start is withheld until every slot holds a character and an unlocked deck - a locked deck stays
-    /// visible while cycled to (see CharacterSelectSlot.Refresh's "(Locked)" label) rather than being
-    /// skipped outright, so a player can see what there is to earn without being allowed to take it.
+    /// Start is withheld until every slot holds an unlocked character on an unlocked deck - either
+    /// kind of locked pick stays visible while cycled to (see CharacterSelectSlot.Refresh's "(Locked)"
+    /// label) rather than being skipped outright, so a player can see what there is to earn without
+    /// being allowed to take it.
     /// </summary>
     private void UpdateStartInteractable()
     {
@@ -302,7 +329,9 @@ public class CharacterSelectPanel : MonoBehaviour
 
         foreach ((CharacterOption character, DeckData deck) in selections)
         {
-            if (character == null || (deck != null && !DeckUnlocks.IsUnlocked(deck)))
+            if (character == null
+                || !CharacterUnlocks.IsUnlocked(character)
+                || (deck != null && !DeckUnlocks.IsUnlocked(deck)))
             {
                 allReady = false;
                 break;
@@ -310,6 +339,48 @@ public class CharacterSelectPanel : MonoBehaviour
         }
 
         startButton.interactable = allReady;
+    }
+
+    // ---- Difficulty ----------------------------------------------------------------------------
+
+    /// <summary>
+    /// The hardest rung that may be picked right now: what the player has earned, but never past the
+    /// end of the campaign's ladder. Both halves matter - progress is stored independently of any one
+    /// ladder, so a save from a longer ladder must not offer a rung this campaign cannot resolve.
+    /// </summary>
+    private int MaxSelectableTier()
+    {
+        if (campaign == null || campaign.Ladder == null) { return 0; }
+
+        return Mathf.Clamp(DifficultyProgress.HighestUnlocked, 0, campaign.Ladder.Tiers.Count - 1);
+    }
+
+    private int SelectedTier() => Mathf.Clamp(DifficultyProgress.Selected, 0, MaxSelectableTier());
+
+    /// <summary>
+    /// Shows the chosen rung, or hides the row outright while there is only one to choose from - a
+    /// first-time player has no decision to make here, and the row appearing is itself the reward for
+    /// clearing the game once.
+    /// </summary>
+    private void RefreshDifficulty()
+    {
+        int max = MaxSelectableTier();
+
+        if (difficultyRow != null) { difficultyRow.SetActive(max > 0); }
+
+        if (max <= 0 || difficultyLabel == null) { return; }
+
+        difficultyLabel.text = campaign.Ladder.NameAt(SelectedTier());
+    }
+
+    /// Steps one rung, clamped rather than wrapped: the ends of a difficulty ladder are meaningful in
+    /// a way a character list's are not, and wrapping from Normal to the hardest rung is exactly the
+    /// misclick a player would not forgive.
+    private void CycleDifficulty(int direction)
+    {
+        DifficultyProgress.Selected = Mathf.Clamp(SelectedTier() + direction, 0, MaxSelectableTier());
+
+        RefreshDifficulty();
     }
 
     /// <summary>
@@ -335,6 +406,35 @@ public class CharacterSelectPanel : MonoBehaviour
         if (eligible.Count == 0) { eligible.Add(null); }
 
         return eligible;
+    }
+
+    /// <summary>
+    /// Who a newly added slot starts on: the roster entry at its own index, so growing the party
+    /// introduces each hero in roster order - but skipped past anything still locked, walking forward
+    /// and then wrapping.
+    ///
+    /// The skip is the whole point. Without it a fresh screen opens on a hero the player has not
+    /// earned, with Start greyed out and nothing on screen explaining why. Falls back to the entry at
+    /// its own index only when every hero on the roster is locked, which a shipped roster never is.
+    ///
+    /// Same shape, and same reason, as DefaultDeckFor below.
+    /// </summary>
+    private CharacterOption DefaultCharacterAt(int slotIndex)
+    {
+        IReadOnlyList<CharacterOption> characters = roster.Characters;
+
+        if (characters.Count == 0) { return null; }
+
+        int start = Mathf.Clamp(slotIndex, 0, characters.Count - 1);
+
+        for (int step = 0; step < characters.Count; step++)
+        {
+            CharacterOption candidate = characters[Wrap(start + step, characters.Count)];
+
+            if (CharacterUnlocks.IsUnlocked(candidate)) { return candidate; }
+        }
+
+        return characters[start];
     }
 
     /// Prefers the first eligible deck that is already unlocked, so a fresh pick never lands on

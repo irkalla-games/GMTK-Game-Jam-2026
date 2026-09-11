@@ -669,7 +669,7 @@ MonoBehaviour:
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 1
-  powerLevel: 1
+  powerLevel: 1.5
   isBoss: 0
   characterClass: 0
   displayName: Rat

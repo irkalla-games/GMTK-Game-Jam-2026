@@ -17,27 +17,28 @@ MonoBehaviour:
   encounterBudget:
     frontlinePower: 0
     backlinePower: 0
-    anyPower: 20
+    anyPower: 16
     bossFrontlinePower: 0
     bossBacklinePower: 0
-    reinforcementPower: 50
+    reinforcementPower: 25
     maxPowerPerEnemy: 3
-    maxPowerPerWave: 8
+    maxPowerPerWave: 6
     waveInterval: 1
     waveIntervalJitter: 2
-    poolFilter:
-    - {fileID: 9030803548844171682, guid: e40f592bea6dbd64693626dad514798b, type: 3}
-    - {fileID: 9030803548844171682, guid: 37960ead296e23e4ca189530884917c3, type: 3}
-    - {fileID: 9030803548844171682, guid: a759c0567adbde54f8e686c473b037cd, type: 3}
-    - {fileID: 9030803548844171682, guid: e2566430033deb14c9d648e67fdf80e4, type: 3}
-    - {fileID: 9030803548844171682, guid: d1b7793de9d268945bdf70cf0af39a94, type: 3}
-    - {fileID: 9030803548844171682, guid: abb6f217c283d344999e3f27fa36640f, type: 3}
-    - {fileID: 9030803548844171682, guid: df52b2ab92f38fd4eb6d6064e8197a56, type: 3}
-    - {fileID: 9030803548844171682, guid: 5bdb828176c88144986e3b367ffda1b4, type: 3}
+    poolFilter: []
+    frontlineCount:
+      min: 2
+      max: 3
+    backlineCount:
+      min: 1
+      max: 2
+    rollAttempts: 12
+    duplicatePenalty: 0
+    bossCount: 0
   partySpawnCells:
   - {x: 2, y: 3}
-  - {x: 2, y: 2}
   - {x: 3, y: 3}
+  - {x: 2, y: 2}
   - {x: 3, y: 2}
   boardSize: {x: 6, y: 6}
   turnsToSurvive: 10

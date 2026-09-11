@@ -137,6 +137,27 @@ public class HeroPortrait : MonoBehaviour
         return active.ToArray();
     }
 
+    /// <summary>
+    /// ActivePipRects's status-row twin, for the tutorial's "hover a status" beat when the status being
+    /// read is on a hero rather than an enemy - see TutorialDirector.StatusRow.
+    ///
+    /// Individual chips, not chipParent's own rect, for the identical reason ActivePipRects gives:
+    /// Place positions each chip by anchoredPosition rather than a Layout Group, so chipParent's rect is
+    /// never grown to bound them and would light a small, wrongly placed square instead of the chips
+    /// actually on screen.
+    /// </summary>
+    public RectTransform[] ActiveChipRects()
+    {
+        List<RectTransform> active = new();
+
+        foreach (StatusChip chip in chips)
+        {
+            if (chip != null && chip.gameObject.activeSelf) { active.Add(chip.Rect); }
+        }
+
+        return active.ToArray();
+    }
+
     /// Raised on click; the panel decides what that means (activate, or refuse while a card is being
     /// played from a different hero's hand), the same way CharacterSelectSlot's arrow events do.
     public event Action<HeroPortrait> Clicked;

@@ -8,6 +8,12 @@ public class HealEffect : CardEffect
     [Tooltip("Off, this may only be aimed at your own side - which is what the Mage's Heal wants.")]
     [SerializeField] private bool canHitEnemies;
 
+    /// See CardEffect.RiderKind - an enemy healing (usually itself, mid-attack) is worth telegraphing
+    /// the same way a status rider is.
+    public override IntentRiderKind RiderKind => IntentRiderKind.Heal;
+
+    public override int RiderAmount => healAmount;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new HealAction(ctx.Amount(healAmount)), ctx);

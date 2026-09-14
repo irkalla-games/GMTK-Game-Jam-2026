@@ -737,7 +737,16 @@ public class BattleManager : Singleton<BattleManager>
             // returning hero's deck arrive already tuned instead of needing a second full-deck pass.
             member.SetEquipment(record.equipment);
             member.SetDeck(record.deck);
+
+            // AddMaxHealth before SetHealth: it shifts current health along with the ceiling, and the
+            // SetHealth right after overwrites that with the record's own value anyway. A no-op at 0
+            // for every member who has never fallen. See RunManager.RecordFall/MaxHealthFor.
+            member.AddMaxHealth(-record.maxHealthLost);
             member.SetHealth(record.currentHealth);
+
+            // They have now taken the field on the reduced max RecordFall set up - AdvanceLevel's
+            // heal-up applies to them again from the next level on.
+            record.returningFromFall = false;
 
             string baseDisplayName = record.prefab.DisplayName;
 
@@ -1219,14 +1228,17 @@ public class BattleManager : Singleton<BattleManager>
             }
         }
 
-        // A hero who falls is out of the run for good - not revived next level, and not holding a spawn
-        // cell. Done here rather than in the victory write-back because the party can lose a member on
-        // a level it goes on to win, and by then the body is long destroyed.
+        // A hero who falls loses a slice of max health permanently and sits out the rest of this
+        // battle, but - unless RunData.healthLostOnFall says otherwise - is not out of the run for
+        // good; see RunManager.RecordFall. Removed from partyRecords either way, and not holding a
+        // spawn cell next level, since the body is gone regardless. Done here rather than in the
+        // victory write-back because the party can lose a member on a level it goes on to win, and by
+        // then the body is long destroyed.
         if (partyRecords.TryGetValue(character, out PartyMember record))
         {
             partyRecords.Remove(character);
 
-            if (RunManager.Instance != null) { RunManager.Instance.RemoveMember(record); }
+            if (RunManager.Instance != null) { RunManager.Instance.RecordFall(record); }
         }
 
         if (character == ActiveCharacter) { SetActiveCharacter(FirstPlayableCharacter()); }
@@ -1901,7 +1913,11 @@ public class BattleManager : Singleton<BattleManager>
         // why there is no IntentKind check here.
         foreach (GridTile hit in step.card.DamageArea(enemy, tile)) { hit.FlashThreat(); }
 
-        step.card.ResolveEffects(enemy, tile);
+        // A committed intent already passed CommittedRefusal, which deliberately skips the occupant
+        // check - see this method's doc comment. Filtering here too would undo that: a Dodge-frozen
+        // swing must still whiff at an empty tile, or land on whoever has since wandered onto it,
+        // rather than quietly dropping out because its own Refusal now objects.
+        step.card.ResolveEffects(enemy, tile, filterRefused: !committed);
 
         // The one place the pattern is spent. Only attacks, and only ones that really went off - the
         // early `yield break` above on a refusal leaves an owed "Attack: Closest" still owed. A Move

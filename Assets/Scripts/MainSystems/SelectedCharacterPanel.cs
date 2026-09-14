@@ -87,21 +87,14 @@ public class SelectedCharacterPanel : MonoBehaviour
 
     [SerializeField] private IntentIcons intentIcons;
 
-    [Tooltip("One more icon per action point past the first, for a shown character whose "
-             + "Character.ActionPoints is above 1 - mainly bosses. Scaled copies of intentIcon itself, "
-             + "placed to its right - see FollowUpIconAt. Unused if intentIcon is empty.")]
-    [SerializeField] private float followUpIconScale = 0.7f;
-
-    [SerializeField] private float followUpIconGap = 4f;
+    [Tooltip("The whole intent readout built around intentIcon - see CharacterOverheadViewer's own "
+             + "field of the same type, which this shares every line of layout and badge code with. "
+             + "Unused if intentIcon is empty.")]
+    [SerializeField] private IntentStrip intentStrip = new();
 
     /// Grown on demand and reused. Refresh runs on every resolved action, so building and destroying
     /// chips each time would churn garbage to arrive back where it started.
     private readonly List<StatusChip> chips = new();
-
-    /// One pooled clone of intentIcon per follow-up action point, grown on demand and reused, never
-    /// destroyed - same pooling contract `chips` above already follows. Empty, and never grown, on
-    /// the hero panel or any shown character with only one action point.
-    private readonly List<Image> followUpIcons = new();
 
     /// Walking StatusTypes.Displayable rather than a hand-written list is what makes the row scale: a
     /// new StatusType shows up here the moment it exists, and giving it art is one row in the icon
@@ -137,6 +130,8 @@ public class SelectedCharacterPanel : MonoBehaviour
 
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved += OnActionResolved; }
 
+        if (intentIcon != null) { intentStrip.Build(intentIcon, rolls: false); }
+
         Refresh();
     }
 
@@ -152,6 +147,7 @@ public class SelectedCharacterPanel : MonoBehaviour
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
 
         UpdateIntentSource(null);
+        intentStrip.Kill();
     }
 
     /// Both selection events land here. The argument is ignored on purpose - Refresh re-resolves who
@@ -246,76 +242,18 @@ public class SelectedCharacterPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Sets the icon straight to the character's current intent - no roll. IntentRoll's fall-in belongs
-    /// to CharacterOverheadViewer, where it always animates the same character's intent changing; here
-    /// the shown character itself can change between two refreshes, and rolling from one enemy's icon
-    /// to a different enemy's would read as a change in *that enemy's* intent rather than as a change
-    /// of who is being looked at.
+    /// Repaints the whole intent strip for whichever character is now shown - icon, damage number and
+    /// rider badges for every step of their plan. Built with rolls: false (see Start), so a step's
+    /// icon always snaps rather than falling in: the shown character itself can change between two
+    /// refreshes, and rolling from one enemy's icon to a different enemy's would read as a change in
+    /// *that enemy's* intent rather than as a change of who is being looked at.
     /// </summary>
     private void RefreshIntent(Character character)
     {
         if (intentIcon == null) { return; }
 
         IReadOnlyList<Intent> plan = character != null ? character.CommittedPlan : null;
-        IntentKind kind = plan != null && plan.Count > 0 ? plan[0].kind : IntentKind.Wait;
-
-        Sprite sprite = intentIcons != null ? intentIcons.For(kind) : null;
-
-        intentIcon.sprite = sprite;
-        intentIcon.enabled = sprite != null;
-
-        RefreshFollowUpIcons(plan);
-    }
-
-    /// <summary>
-    /// One more icon per action point past the first - no roll, same as the primary icon above, and
-    /// for the same reason: the shown character itself can change between two refreshes. Placed
-    /// left-to-right from intentIcon's own right edge, scaled down by followUpIconScale.
-    /// </summary>
-    private void RefreshFollowUpIcons(IReadOnlyList<Intent> plan)
-    {
-        int followUps = plan != null ? Mathf.Max(0, plan.Count - 1) : 0;
-
-        RectTransform primaryRect = intentIcon.rectTransform;
-        float halfIconVisual = primaryRect.sizeDelta.x * 0.5f * followUpIconScale;
-        float runningRight = primaryRect.anchoredPosition.x
-            + primaryRect.sizeDelta.x * (1f - primaryRect.pivot.x);
-
-        for (int i = 0; i < followUps; i++)
-        {
-            Image slot = FollowUpIconAt(i);
-            Sprite sprite = intentIcons != null ? intentIcons.For(plan[i + 1].kind) : null;
-
-            slot.sprite = sprite;
-            slot.enabled = sprite != null;
-
-            float centre = runningRight + followUpIconGap + halfIconVisual;
-            slot.rectTransform.anchoredPosition = new Vector2(centre, primaryRect.anchoredPosition.y);
-
-            runningRight = centre + halfIconVisual;
-        }
-
-        for (int i = followUps; i < followUpIcons.Count; i++) { followUpIcons[i].gameObject.SetActive(false); }
-    }
-
-    /// Grows the pool on demand by cloning intentIcon itself, so a follow-up icon starts with the
-    /// same anchors, pivot, sizeDelta and material intentIcon was authored with - only its scale and
-    /// position differ. Never destroyed once created, matching IconAt's own contract elsewhere.
-    private Image FollowUpIconAt(int index)
-    {
-        while (followUpIcons.Count <= index)
-        {
-            Image clone = Instantiate(intentIcon, intentIcon.rectTransform.parent);
-            clone.name = "IntentFollowUp";
-            clone.rectTransform.localScale = Vector3.one * followUpIconScale;
-            clone.raycastTarget = false;
-
-            followUpIcons.Add(clone);
-        }
-
-        followUpIcons[index].gameObject.SetActive(true);
-
-        return followUpIcons[index];
+        intentStrip.Show(plan, character, intentIcons, icons);
     }
 
     private void LayOutStatuses(Character character)

@@ -16,7 +16,7 @@ public class DiscardEffect : CardEffect
         ActionManager.Instance.AddAction(new DiscardAction(), ctx);
     }
 
-    /// No refusal and no aiming to get wrong: DiscardAction always discards from ctx.source's own
-    /// hand, so this cannot be pointed at anybody else however the asset is authored - see DrawEffect's
-    /// identical comment.
+    /// See CardEffect.ActsOnSource: DiscardAction always discards from ctx.source's own hand, so this
+    /// cannot be pointed at anybody else however the asset is authored.
+    public override bool ActsOnSource => true;
 }

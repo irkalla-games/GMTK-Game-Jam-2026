@@ -21,6 +21,17 @@ public class PartyMember
     /// Never null after Begin seeds it, same reason deck never is: BattleManager.SpawnParty hands it
     /// straight to Character.SetEquipment with no null check of its own.
     public List<EquipmentData> equipment = new();
+
+    /// Max health this hero has permanently lost to falls, in total across every fall this run.
+    /// Subtracted from prefab.MaxHealth at spawn - see RunManager.MaxHealthFor and
+    /// BattleManager.SpawnParty.
+    public int maxHealthLost;
+
+    /// Set by RecordFall, cleared by BattleManager.SpawnParty once they next take the field. Between
+    /// those two points it tells AdvanceLevel's heal-up to leave this member's health alone - the
+    /// whole point of a fall is the half-health they come back at, and a heal-up between StartRun and
+    /// the next battle would erase it before it was ever played.
+    public bool returningFromFall;
 }
 
 /// <summary>
@@ -194,16 +205,26 @@ public class RunManager : PersistantSingleton<RunManager>
 
         // Healing happens here rather than by skipping the SetHealth call in SpawnParty, so the record
         // is always the truth about a member's health and there is only ever one path that reads it.
+        // returningFromFall is skipped on purpose: a fall's whole point is the half-health they come
+        // back at, and this heal-up would erase it on the very level it was meant to matter for.
         if (!campaign.CarryDamageBetweenLevels)
         {
             foreach (PartyMember member in party)
             {
-                if (member.prefab != null) { member.currentHealth = member.prefab.MaxHealth; }
+                if (member.prefab != null && !member.returningFromFall)
+                {
+                    member.currentHealth = MaxHealthFor(member);
+                }
             }
         }
 
         return true;
     }
+
+    /// A hero's max health after every fall this run has taken from their prefab's original - floored
+    /// at 1 so a member is never left with nothing to heal to. BattleManager.SpawnParty applies this
+    /// same amount via Character.AddMaxHealth before it sets their health for the battle.
+    public static int MaxHealthFor(PartyMember member) => Mathf.Max(1, member.prefab.MaxHealth - member.maxHealthLost);
 
     /// <summary>
     /// A hero who fell is out of the run for good. Removed rather than flagged dead: everything that
@@ -212,6 +233,34 @@ public class RunManager : PersistantSingleton<RunManager>
     public void RemoveMember(PartyMember member)
     {
         party.Remove(member);
+    }
+
+    /// <summary>
+    /// What a fall costs - BattleManager.HandleCharacterDied's replacement for the old outright
+    /// RemoveMember. Either the hero is knocked down a rung of max health and stays in the run, at
+    /// half of what is left, or there is nothing left to take and they are out for good exactly as
+    /// before.
+    ///
+    /// cost &lt;= 0 covers both an unset RunData.healthLostOnFall (every debug/testbed/tutorial run) and
+    /// a run with no campaign at all - both keep today's permanent death rather than reading the 0 as
+    /// "lose nothing and never die".
+    /// </summary>
+    public void RecordFall(PartyMember member)
+    {
+        int cost = campaign != null && member.prefab != null
+            ? campaign.FallCostFor(member.prefab.MaxHealth)
+            : 0;
+        int remaining = MaxHealthFor(member) - cost;
+
+        if (cost <= 0 || remaining <= 0)
+        {
+            RemoveMember(member);
+            return;
+        }
+
+        member.maxHealthLost += cost;
+        member.currentHealth = Mathf.Max(1, remaining / 2);
+        member.returningFromFall = true;
     }
 
     /// <summary>

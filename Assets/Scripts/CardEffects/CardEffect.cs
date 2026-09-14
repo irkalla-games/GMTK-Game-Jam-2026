@@ -71,6 +71,19 @@ public abstract class CardEffect : ScriptableObject
     public virtual bool SupportsArea => true;
 
     /// <summary>
+    /// True for an effect that always acts on the caster, whatever tile the card was played on - Draw,
+    /// Energy, Discard and Self Damage all read ctx.source and ignore ctx.targets entirely.
+    ///
+    /// Not the same question as CardEffectEntry.aimsAt, and deliberately not authored beside it: the
+    /// aim is a per-card binding because CardEffect assets are shared, while this is a fact about what
+    /// this effect's own Resolve does - the same category as SupportsArea. Card reads it so such an
+    /// entry is judged at the caster's tile rather than the clicked one, which is what stops an effect
+    /// that refuses nothing, like Draw, from claiming every tile in range under Card.Refusal's
+    /// any-entry-may-land rule.
+    /// </summary>
+    public virtual bool ActsOnSource => false;
+
+    /// <summary>
     /// Who this effect is willing to land on. Declared once here rather than buried in a `wantAlly`
     /// argument inside Refusal, because two different readers need the answer: the refusal below
     /// enforces it, and the card face paints its audience stripe from it. Deriving both from this one
@@ -81,6 +94,27 @@ public abstract class CardEffect : ScriptableObject
     /// GridManager.MoveRefusal - still override Refusal, and call base first.
     /// </summary>
     public virtual TargetAudience Audience => TargetAudience.Unrestricted;
+
+    /// <summary>
+    /// Which badge, if any, an enemy's intent readout should hang off its icon for this effect - see
+    /// IntentRider and Card.OutgoingRiders. Declared here beside Audience and SupportsArea for the
+    /// same reason those are: the effect is the one thing that knows what it does, so a switch
+    /// somewhere else reading effect types would be a second answer waiting to disagree with this one.
+    ///
+    /// None means "not worth telegraphing separately" - DamageEffect says so because the damage
+    /// number already carries that information, AnimateEffect because it does nothing a player can
+    /// see coming. ApplyStatusEffect does not override this: OutgoingRiders reads its Status property
+    /// directly and keys the badge off StatusIcons instead, since every status already has art there.
+    /// </summary>
+    public virtual IntentRiderKind RiderKind => IntentRiderKind.None;
+
+    /// <summary>
+    /// The number an intent readout's badge shows for this effect's RiderKind, before this entry's
+    /// own amountDelta/amountPercent - see Card.OutgoingRiders, which runs it through
+    /// ActionContext.Amount exactly as OutgoingDamage does for DamageEffect.Damage. 0 means the badge
+    /// shows a bare glyph with no digit, which is correct for an effect like Push that has no count.
+    /// </summary>
+    public virtual int RiderAmount => 0;
 
     /// <summary>
     /// Why this effect could not land on `target`, or null if it can. Asked before the card is paid

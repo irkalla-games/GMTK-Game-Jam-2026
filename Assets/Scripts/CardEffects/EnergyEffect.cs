@@ -16,6 +16,7 @@ public class EnergyEffect : CardEffect
         ActionManager.Instance.AddAction(new EnergyAction(amount), ctx);
     }
 
-    /// No refusal and no aiming to get wrong: EnergyAction always grants ctx.source, so this cannot be
-    /// pointed at anybody else however the asset is authored - see DrawEffect's identical comment.
+    /// See CardEffect.ActsOnSource: EnergyAction always grants ctx.source, so this cannot be pointed
+    /// at anybody else however the asset is authored.
+    public override bool ActsOnSource => true;
 }

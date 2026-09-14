@@ -29,20 +29,10 @@ public class CharacterOverheadViewer : MonoBehaviour
     [Tooltip("Unused if intentIcon is empty.")]
     [SerializeField] private IntentIcons icons;
 
-    [Tooltip("Placeholder motion for the intent icon changing - the new icon falls in and pushes the "
-             + "old one out, the same mechanic TurnTransitionViewer plays for the turn counter. Unused "
-             + "if intentIcon is empty.")]
-    [SerializeField] private IntentRoll intentRoll = new();
-
-    [Tooltip("The raw damage number beside the intent icon for an Attack, gated on "
-             + "GameSettings.ShowIntentDamage. Built beside intentRoll's own window - unused if "
-             + "intentIcon is empty.")]
-    [SerializeField] private IntentDamageLabel damageLabel = new();
-
-    [Tooltip("One more icon per action point past the first, for a character whose Character.ActionPoints "
-             + "is above 1 - mainly bosses. Built beside intentRoll's own window, same as damageLabel; "
-             + "unused if intentIcon is empty.")]
-    [SerializeField] private IntentRow intentRow = new();
+    [Tooltip("The whole intent readout built around intentIcon - one step per action point, each with "
+             + "its own damage number, rider badges and the roll that plays when its icon changes. "
+             + "Unused if intentIcon is empty.")]
+    [SerializeField] private IntentStrip intentStrip = new();
 
     [Header("Status icons")]
     [Tooltip("Small glyph row pooled under this - a point anchor to the left of the bar and clear of "
@@ -69,13 +59,12 @@ public class CharacterOverheadViewer : MonoBehaviour
     /// PartyPortraitPanel.PortraitRectFor already use.
     public RectTransform HealthBarRect => healthFill != null ? (RectTransform)healthFill.transform : null;
 
-    /// Null on a hero, same as intentIcon itself - see the field's own tooltip.
-    public RectTransform IntentIconRect => intentIcon != null ? (RectTransform)intentIcon.transform : null;
-
-    /// What the icon is currently showing, kept separately from character.CommittedIntent.kind so
-    /// RefreshIntent can tell a real change from a re-assignment of the same kind - the refresh pass in
-    /// BattleManager already guards this on its own side, but TurnStart's re-commit does not.
-    private IntentKind shownKind;
+    /// Null on a hero, same as intentIcon itself - see the field's own tooltip. Reads intentStrip's
+    /// own primary rect rather than intentIcon's raw transform: IntentStrip.Build takes the authored
+    /// Image over into a masked rolling window, and that window is the thing that actually moves
+    /// during a roll, so the spotlight tracks the icon wherever it currently sits rather than an
+    /// object left behind at its original position.
+    public RectTransform IntentIconRect => intentStrip.PrimaryRect;
 
     /// Built from healthFill in Awake - see DamagePreviewFill.Build. Null when this character has no
     /// healthFill authored at all (there is none today, but nothing enforces it).
@@ -90,18 +79,7 @@ public class CharacterOverheadViewer : MonoBehaviour
     {
         character = GetComponent<Character>();
 
-        if (intentIcon != null)
-        {
-            intentRoll.Build(intentIcon);
-
-            // Must run after Build - the label anchors to intentRoll.Window, which Build is what
-            // creates.
-            damageLabel.Build(intentRoll.Window);
-
-            // Same ordering requirement - the row lays its own slots out from the primary window's
-            // and damage label's current geometry.
-            intentRow.Build(intentRoll.Window, damageLabel);
-        }
+        if (intentIcon != null) { intentStrip.Build(intentIcon, rolls: true); }
 
         if (healthFill != null) { previewFill = DamagePreviewFill.Build(healthFill); }
 
@@ -143,16 +121,10 @@ public class CharacterOverheadViewer : MonoBehaviour
         RefreshBar();
         RefreshStatusIcons();
 
-        // Set directly rather than through RefreshIntent/intentRoll.Play - a freshly spawned enemy's
-        // first icon should not fall in while its own spawn scale-in is still playing.
-        IReadOnlyList<Intent> plan = character.CommittedPlan;
-        shownKind = plan.Count > 0 ? plan[0].kind : IntentKind.Wait;
-
-        if (intentIcon != null)
-        {
-            intentRoll.Show(icons != null ? icons.For(shownKind) : null);
-            RefreshIntentDamage(plan);
-        }
+        // A freshly spawned enemy's first icon should not fall in while its own spawn scale-in is
+        // still playing - handled by IntentStrip itself, since every slot starts justActivated and
+        // snaps rather than rolls the first time it is shown. No special-cased snap needed here.
+        RefreshIntent();
     }
 
     private void OnDestroy()
@@ -167,8 +139,7 @@ public class CharacterOverheadViewer : MonoBehaviour
 
         if (ActionManager.Instance != null) { ActionManager.Instance.ActionResolved -= OnActionResolved; }
 
-        intentRoll.Kill();
-        intentRow.Kill();
+        intentStrip.Kill();
     }
 
     private void OnStatsChanged(Character _)
@@ -179,7 +150,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         // The damage number is this character's own outgoing side (Strength, Weaken, Double Attack),
         // so it has to repaint on the same signal as the health bar - see Card.OutgoingDamage's own
         // doc comment for why the defender's side is deliberately not watched here.
-        RefreshIntentDamage(character.CommittedPlan);
+        RefreshIntent();
     }
 
     private void OnTurnAdvanced()
@@ -197,7 +168,7 @@ public class CharacterOverheadViewer : MonoBehaviour
         // A totem's aura is pulled, not pushed (see Totem/Aura) - summoning or destroying one near
         // this character never raises its own StatsChanged, only an action resolving somewhere on the
         // board. Same reasoning RefreshStatusIcons above already relies on this event for.
-        RefreshIntentDamage(character.CommittedPlan);
+        RefreshIntent();
     }
 
     /// <summary>
@@ -230,54 +201,19 @@ public class CharacterOverheadViewer : MonoBehaviour
         HealthBarFill.Apply(healthFill, shieldFill, previewFill, character, previewLoss);
     }
 
+    /// <summary>
+    /// Repaints the whole intent strip from this character's current CommittedPlan - every step's
+    /// icon (rolled only if its resolved sprite actually changed - a re-aim onto a different tile or a
+    /// melee-to-ranged swap can change what is shown without changing IntentKind, and IntentStrip is
+    /// what keys the roll guard on the sprite rather than the kind for exactly that reason), its
+    /// damage number, and its rider badges. Safe to call on every IntentChanged, StatsChanged and
+    /// ActionResolved - IntentStrip.Show is its own no-op-if-unchanged guard per step.
+    /// </summary>
     private void RefreshIntent()
     {
         if (intentIcon == null) { return; }
 
-        IReadOnlyList<Intent> plan = character.CommittedPlan;
-        Intent intent = plan.Count > 0 ? plan[0] : Intent.Wait();
-
-        // Repaints on every IntentChanged, unlike the roll below - a re-aim onto a different tile or
-        // victim keeps the same kind (so the icon does not roll) but can still change what the locked
-        // card would hit for, e.g. a splash card now catching one more character. Also repaints every
-        // follow-up icon and number the same way, and re-lays the row out to match.
-        RefreshIntentDamage(plan);
-
-        IntentKind next = intent.kind;
-
-        // Guards the case IntentChanged does not: BattleManager's own refresh pass already skips
-        // assigning an unchanged kind, but TurnStart re-commits every enemy from scratch every round,
-        // including Wait-to-Wait, and CommittedIntent's setter has no equality check of its own.
-        if (next == shownKind) { return; }
-
-        Sprite from = icons != null ? icons.For(shownKind) : null;
-        Sprite to = icons != null ? icons.For(next) : null;
-
-        shownKind = next;
-        intentRoll.Play(from, to);
-    }
-
-    /// <summary>
-    /// The raw damage this character's currently-committed Attack card would swing for, or hidden
-    /// entirely - a Move/Summon/Wait intent has no victim to show one about, and GameSettings can turn
-    /// the whole feature off. Deliberately does not depend on anything the defender is carrying - see
-    /// Card.OutgoingDamage's own doc comment for why that is the point, not a gap.
-    ///
-    /// Also drives every follow-up icon in the row from the rest of `plan` - see IntentRow.Show, which
-    /// applies the same guard to each of its own slots.
-    /// </summary>
-    private void RefreshIntentDamage(IReadOnlyList<Intent> plan)
-    {
-        Intent intent = plan.Count > 0 ? plan[0] : Intent.Wait();
-
-        bool show = GameSettings.ShowIntentDamage
-                    && intent.kind == IntentKind.Attack
-                    && intent.card != null
-                    && GridManager.Instance != null;
-
-        damageLabel.Show(show ? intent.card.OutgoingDamage(character, GridManager.Instance.GetTile(intent.target)) : 0);
-
-        intentRow.Show(plan, icons, character);
+        intentStrip.Show(character.CommittedPlan, character, icons, statusIcons);
     }
 
     /// <summary>

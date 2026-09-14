@@ -3,29 +3,23 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The rolling swap for an enemy's overhead intent icon: the incoming sprite falls in from above and
+/// The rolling swap for one step of an intent readout: the incoming sprite falls in from above and
 /// shoves the outgoing one out through a mask - the same "new thing lands, old thing gets pushed out"
 /// mechanic TurnTransitionViewer plays for the turn-count roll, borrowed here as a placeholder until
 /// the intent icon has motion of its own designed for it.
 ///
-/// A plain serializable class, not a MonoBehaviour - CharacterOverheadViewer owns exactly one, and the
-/// hierarchy this needs (a masked window plus two stacked icons) does not exist on any prefab today.
-/// Build() constructs it at runtime around the single Image already authored there, so every existing
-/// intentIcon becomes a rolling one with no prefab edit.
+/// A plain class, not a MonoBehaviour and not [System.Serializable] - IntentStrip owns a pool of
+/// these, one per step of a plan, and every tunable (duration, ease) is a strip-level setting passed
+/// into Play rather than a per-instance field, so every step rolls with the same timing regardless of
+/// which slot it happens to be. Build() constructs the masked window at runtime around a single Image,
+/// so an authored prefab icon becomes a rolling one with no prefab edit, and a follow-up slot gets the
+/// identical mechanism built from scratch.
 ///
 /// One Tweener, killed by direct reference rather than by id/target search - the same rule CardViewer's
 /// scaleTween/positionTween and TurnTransitionViewer's rollTween/fadeTween follow.
 /// </summary>
-[System.Serializable]
 public class IntentRoll
 {
-    [Tooltip("Seconds the icon takes to fall in and push the previous one out.")]
-    [SerializeField] private float rollDuration = 0.5f;
-
-    [Tooltip("DOTween's configured default (OutQuad) reads floaty for a slam like this - OutCubic makes "
-             + "the icon land, the same choice TurnTransitionViewer makes for its roll.")]
-    [SerializeField] private Ease rollEase = Ease.OutCubic;
-
     private RectTransform window;
     private RectTransform stack;
     private Image outgoing;
@@ -40,9 +34,9 @@ public class IntentRoll
     public RectTransform Window => window;
 
     /// <summary>
-    /// Wraps `authored` - the single Image CharacterOverheadViewer already exposes in the Inspector -
-    /// in a masked window with two stacked copies of it. Call once, from Awake, and only when authored
-    /// is not null; heroes and the Totem leave intentIcon empty and never call this.
+    /// Wraps `authored` in a masked window with two stacked copies of it. Call once, from Build, for
+    /// both the primary slot (wrapping the icon already authored on the prefab) and every follow-up
+    /// slot (wrapping an Image built from scratch to match it) - see IntentStrip.
     /// </summary>
     public void Build(Image authored)
     {
@@ -96,8 +90,11 @@ public class IntentRoll
     }
 
     /// <summary>
-    /// Sets the icon straight to `sprite`, no roll. The initial state on spawn, so a wave enemy's
-    /// first committed intent does not fall in while its own spawn scale-in is still playing.
+    /// Sets the icon straight to `sprite`, no roll. Used both for a host that never rolls at all (the
+    /// screen-space enemy plate, whose shown character can change between two refreshes - rolling
+    /// there would read as that enemy's intent changing rather than a change of who is being looked
+    /// at) and for a slot's first activation on any host, so a freshly spawned enemy's icon or a boss's
+    /// newly-visible follow-up does not fall in while its own spawn/appear animation is still playing.
     /// </summary>
     public void Show(Sprite sprite)
     {
@@ -122,8 +119,11 @@ public class IntentRoll
     /// resets Stack to its settled position before starting the new one - `from` is always what the
     /// previous roll was carrying toward the centre, so this reads as that roll finishing early and the
     /// next one picking up from there, never as a reversal or a jump backward.
+    ///
+    /// `duration` and `ease` are the strip's own settings, not this instance's - see IntentStrip.Show,
+    /// which is the only caller and passes the same two values for every slot on the strip.
     /// </summary>
-    public void Play(Sprite from, Sprite to)
+    public void Play(Sprite from, Sprite to, float duration, Ease ease)
     {
         if (window == null) { return; }
 
@@ -143,14 +143,30 @@ public class IntentRoll
 
         // Unscaled: NotificationManager.Show can zero Time.timeScale mid-battle, and a scaled tween
         // behind a zeroed timescale would never finish.
-        rollTween = stack.DOAnchorPosY(-distance, rollDuration).SetEase(rollEase).SetUpdate(true);
+        rollTween = stack.DOAnchorPosY(-distance, duration).SetEase(ease).SetUpdate(true);
     }
 
-    /// Stops any in-flight roll without finishing it. Called from CharacterOverheadViewer.OnDestroy -
-    /// an enemy is destroyed the instant it dies, possibly mid-roll.
+    /// Stops any in-flight roll without finishing it. Called from IntentStrip.Kill - an enemy is
+    /// destroyed the instant it dies, possibly mid-roll.
     public void Kill()
     {
         rollTween?.Kill();
         rollTween = null;
+    }
+
+    /// Alpha multiplier on both rolling copies at once - what IntentStrip uses to dim a follow-up
+    /// step relative to the primary, without needing to know this class keeps two separate Images to
+    /// do it with.
+    public void SetAlpha(float alpha)
+    {
+        if (window == null) { return; }
+
+        Color inColor = incoming.color;
+        inColor.a = alpha;
+        incoming.color = inColor;
+
+        Color outColor = outgoing.color;
+        outColor.a = alpha;
+        outgoing.color = outColor;
     }
 }

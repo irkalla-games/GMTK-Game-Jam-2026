@@ -26,6 +26,18 @@ public class ApplyStatusEffect : CardEffect
     [Tooltip("On for buffs, off for curses.")]
     [SerializeField] private bool alliesOnly = true;
 
+    /// Read-only window onto the private field above, for Card.OutgoingRiders - the same
+    /// private-field-plus-property immutability pattern as TargetRange.maxDistance/MaxDistance. Adds
+    /// no backing field, so CardSheetImporter's SerializedObject.FindProperty("status") still resolves
+    /// exactly as before.
+    public StatusType Status => status;
+
+    /// See CardEffect.RiderAmount - this is the one override, since a status's badge shows its stack
+    /// count. RiderKind is deliberately left at its base None: OutgoingRiders keys a status rider off
+    /// this Status property directly rather than off RiderKind, since StatusIcons already has art for
+    /// every StatusType and a second registry entry here would just be a second way to look it up.
+    public override int RiderAmount => stacks;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new StatusAction(status, ctx.Amount(stacks)), ctx);

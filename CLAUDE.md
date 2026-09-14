@@ -171,6 +171,16 @@ reason. `CardPlayManager.PlaySelectedOn` asks it *above* the commit point, so a 
 energy. `GridManager.ShowPlayableTiles` builds the highlight from the same call, which is what stops the
 highlight promising a tile a click would refuse. Anything that can refuse a play belongs there.
 
+**A tile is playable if any one entry can land there — a card is refused only when every entry that has
+an opinion about that tile refuses it.** An entry with no opinion — aimed elsewhere, or a non-Single area
+entry — is not asked and does not count either way. This is what lets Renew (Heal + Draw) still be played
+on a full-health ally to draw the card: Heal's full-health refusal no longer vetoes the Draw half sitting
+right beside it. `ResolveEffects` mirrors the same per-tile filter onto a Single entry so the futile half
+quietly sits out rather than firing anyway — `CardEffect.ActsOnSource` (Draw, Energy, Discard, Self
+Damage) is what keeps an effect that refuses nothing from claiming every tile in range once Source entries
+are asked too. `PushRefusal` stays an absolute veto after the loop: a push with nowhere to put somebody
+still refuses the whole card.
+
 **Range is the card's rule; everything else is the effect's.** `TargetRange` on `CardData` says which
 tiles may be clicked, measured from the acting character's tile — one rule per card, because one click
 must produce one yes/no. Per-effect rules go in `CardEffect.Refusal`, which defaults to no objection.

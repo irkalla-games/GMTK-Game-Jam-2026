@@ -29,5 +29,6 @@ MonoBehaviour:
   startingPartyDecks: []
   startingHeroes: []
   carryDamageBetweenLevels: 0
+  healthLostOnFall: 0.3333334
   ladder: {fileID: 11400000, guid: e2aa947e2b90d9543b7bf12bf5beb9cb, type: 2}
   awardsProgression: 1

@@ -8,6 +8,11 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Card Effects/Push")]
 public class PushEffect : CardEffect
 {
+    /// See CardEffect.RiderKind - an enemy shoving you out of position is worth telegraphing the same
+    /// way a status rider is. RiderAmount is left at its base 0: a push has no stack count, so its
+    /// badge shows a bare glyph.
+    public override IntentRiderKind RiderKind => IntentRiderKind.Push;
+
     /// <summary>
     /// Deliberately Unrestricted, unlike a damage effect. Card.ResolveEffects filters this entry's
     /// footprint by Refusal before handing the surviving tiles to PushAction, and the ring a body is

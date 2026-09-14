@@ -53,8 +53,15 @@ public class RunData : ScriptableObject
     [SerializeField] private List<PartyEntry> startingHeroes = new();
 
     [Tooltip("On: damage taken in a level follows the party into the next one. Off: everyone starts "
-             + "each level at full health. Death is permanent either way.")]
+             + "each level at full health, except a hero returning from a fall - see "
+             + "healthLostOnFall.")]
     [SerializeField] private bool carryDamageBetweenLevels;
+
+    [Tooltip("Fraction of a hero's ORIGINAL max health a fall costs, permanently. 0.333 means a 30 "
+             + "HP hero drops to 20, then 10, then is lost for good on the fall after that - see "
+             + "RunManager.RecordFall.\n\n0 is death as it has always been: a hero who falls is out "
+             + "of the run for good.")]
+    [SerializeField] private float healthLostOnFall;
 
     [Tooltip("The difficulty rungs this campaign may be played on. Leave empty and the run always "
              + "plays unscaled - which is what every debug and testbed campaign wants.")]
@@ -99,6 +106,15 @@ public class RunData : ScriptableObject
     public bool CarryDamageBetweenLevels => carryDamageBetweenLevels;
 
     /// <summary>
+    /// How much of `originalMaxHealth` a fall costs, rounded - RunManager.RecordFall's input. Zero
+    /// for an asset authored before the field existed, which is what keeps a fall permanent there:
+    /// callers gate on this being &gt; 0, not on the field directly. Same 0-is-the-old-behaviour
+    /// reasoning as DifficultyTier.ExtraHealthFor.
+    /// </summary>
+    public int FallCostFor(int originalMaxHealth) =>
+        Mathf.RoundToInt(originalMaxHealth * healthLostOnFall);
+
+    /// <summary>
     /// This campaign's difficulty rungs, or null for one that is never scaled.
     ///
     /// Held here rather than on RunManager because RunManager has no prefab and lives in no scene, so
@@ -133,7 +149,8 @@ public class RunData : ScriptableObject
         IEnumerable<PartyEntry> heroes,
         bool carryDamageBetweenLevels,
         DifficultyLadder ladder = null,
-        bool awardsProgression = false)
+        bool awardsProgression = false,
+        float healthLostOnFall = 0f)
     {
         RunData run = CreateInstance<RunData>();
         run.hideFlags = HideFlags.HideAndDontSave;
@@ -142,6 +159,7 @@ public class RunData : ScriptableObject
         run.carryDamageBetweenLevels = carryDamageBetweenLevels;
         run.ladder = ladder;
         run.awardsProgression = awardsProgression;
+        run.healthLostOnFall = healthLostOnFall;
         return run;
     }
 
@@ -159,6 +177,7 @@ public class RunData : ScriptableObject
         }
 
         return CreateRuntime(
-            source.Levels, heroes, source.CarryDamageBetweenLevels, source.Ladder, source.AwardsProgression);
+            source.Levels, heroes, source.CarryDamageBetweenLevels, source.Ladder,
+            source.AwardsProgression, source.healthLostOnFall);
     }
 }

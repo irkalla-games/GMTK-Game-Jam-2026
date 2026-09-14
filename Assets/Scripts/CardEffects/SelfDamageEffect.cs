@@ -18,11 +18,12 @@ public class SelfDamageEffect : CardEffect
 
     public override bool SupportsArea => false;
 
+    /// See CardEffect.ActsOnSource: SelfDamageAction always costs ctx.source, so this cannot be
+    /// pointed at anybody else however the asset is authored.
+    public override bool ActsOnSource => true;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new SelfDamageAction(amount), ctx);
     }
-
-    /// No refusal and no aiming to get wrong: SelfDamageAction always costs ctx.source, so this cannot
-    /// be pointed at anybody else however the asset is authored - see DrawEffect's identical comment.
 }

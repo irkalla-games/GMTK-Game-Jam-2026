@@ -70,9 +70,17 @@ public struct TargetRange
     /// which is the old behaviour: a Wall of Force only refused standing on it, never crossing it.
     public bool RequiresRoute => requiresRoute;
 
-    /// True past melee reach - the same threshold CardViewer uses to pick between the sword and bow
-    /// icon, and what DamageAction reads to default to Attack vs RangedAttack without a card needing
-    /// to author an override just to pick the right arm.
+    /// True past melee reach - what DamageAction reads to default to Attack vs RangedAttack without a
+    /// card needing to author an override just to pick the right arm, and what IntentIcons.For(Intent)
+    /// reads to swap an enemy's overhead attack icon from crossed swords to a bow.
+    ///
+    /// CardViewer deliberately does NOT use this: a card face has room for a reach digit, so it always
+    /// shows the bow and lets the number beside it say how far - "a bow with a 1 and a bow with a 5
+    /// differ in the one place that actually differs" (see CardViewer.bowIcon). A 44-pixel overhead
+    /// glyph has no room for a digit, and the only question a player asks of an intent icon at a
+    /// glance is binary - can that thing reach me from where it is standing - so the intent readout
+    /// makes the opposite, equally deliberate choice: swap the glyph, never add a digit to it. The two
+    /// displays are meant to diverge here.
     public bool IsRanged => maxDistance > 1;
 
     public TargetRange(RangeShape shape, int minDistance, int maxDistance)

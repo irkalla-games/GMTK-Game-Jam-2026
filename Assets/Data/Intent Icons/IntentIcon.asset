@@ -19,3 +19,12 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 3913229a660ff0f4e842bbb278a76672, type: 3}
   - kind: 3
     icon: {fileID: 21300000, guid: 3f07c11b6e18cf343a9925d1b80d287d, type: 3}
+  rangedAttackIcon: {fileID: 21300000, guid: 9031ddff7d13d6c4fad61bb77e53414f, type: 3}
+  sequenceChevron: {fileID: 21300000, guid: 008cf15178552a240954abd842946aec, type: 3}
+  riders:
+  - kind: 1
+    icon: {fileID: 21300000, guid: d38c80a4703ca304c9480ccafd4cbae6, type: 3}
+  - kind: 2
+    icon: {fileID: 21300000, guid: 4a0d37bf4a6336e46a00fa4f7f01ccf0, type: 3}
+  - kind: 3
+    icon: {fileID: 21300000, guid: 07230c17de668be488c33476fe450846, type: 3}

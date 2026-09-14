@@ -395,12 +395,29 @@ public class Card
     }
 
     /// <summary>
+    /// Where this entry actually lands - the caster's tile for a Source-aimed entry, or one whose
+    /// effect ignores the clicked tile altogether (see CardEffect.ActsOnSource), else the tile that
+    /// was clicked.
+    /// </summary>
+    private static GridTile EntryAim(CardEffectEntry entry, GridTile casterTile, GridTile target) =>
+        entry.aimsAt == EffectTarget.Source || entry.effect.ActsOnSource ? casterTile : target;
+
+    /// <summary>
     /// Why this card cannot be played onto `target` by `source`, or null if it can.
     ///
     /// Asked once per click, before anything is spent - see CardPlayManager.PlaySelectedOn - and again
     /// by GridManager to decide which tiles to light up, so the highlight can never disagree with what
     /// a click actually does. Range is the card's own rule; anything past that is a rule only the
-    /// effect knows, so each effect gets asked in turn.
+    /// effects know, so each entry aimed at `target` gets asked in turn.
+    ///
+    /// Any one entry that can land on `target` is enough to make the card playable there - the card is
+    /// refused only when every entry asked about this tile agrees it cannot land. Renew's Draw half
+    /// refuses nothing, so it still claims the caster's own tile once every ally is at full health, and
+    /// the card stays playable there even though its Heal half has nothing left to do; ResolveEffects
+    /// is what then lets the Heal half quietly sit out. An entry aimed elsewhere - Source when `target`
+    /// is not the caster's own tile, or a non-Single area entry - has no opinion about this tile at all
+    /// and is not asked; a Fireball centred on empty ground is still legal as long as the blast could
+    /// catch someone somewhere in it, exactly as before.
     /// </summary>
     public string Refusal(Character source, GridTile target)
     {
@@ -421,14 +438,13 @@ public class Card
         string lockRefusal = LockRefusal();
         if (lockRefusal != null) { return lockRefusal; }
 
+        GridTile casterTile = source != null ? source.Tile : null;
+        string firstRefusal = null;
+        bool asked = false;
+
         foreach (var entry in effectEntries)
         {
             if (entry.effect == null) { continue; }
-
-            // Source-aimed effects are not asked. They land on the caster no matter where the click
-            // went, so letting one object would mean Steely Attack refusing itself the moment
-            // ShieldEffect grew a rule - the caster's own tile is, of course, occupied by the caster.
-            if (entry.aimsAt == EffectTarget.Source) { continue; }
 
             // An area entry is legal anywhere in range, even a tile its own effect would refuse - a
             // 3x3 Fireball may be centred on empty ground as long as the blast catches an enemy
@@ -437,16 +453,26 @@ public class Card
             // even known to be legal to click.
             if (!entry.area.IsSingle && entry.effect.SupportsArea) { continue; }
 
-            string refusal = entry.effect.Refusal(source, target);
+            GridTile aim = EntryAim(entry, casterTile, target);
 
-            if (refusal != null) { return refusal; }
+            // An entry aimed somewhere other than the clicked tile has no opinion about this tile -
+            // Steely Attack's self-Shield says nothing about whether the enemy tile you clicked is
+            // legal, so it neither claims nor refuses it.
+            if (aim != target) { continue; }
+
+            asked = true;
+
+            string refusal = entry.effect.Refusal(source, aim);
+
+            if (refusal == null) { return PushRefusal(source, target); }
+
+            firstRefusal ??= refusal;
         }
 
-        // Asked after the per-entry loop because it is not a question any single effect can answer: a
-        // push needs the whole footprint, and the ring around it, before it knows whether every body
-        // caught inside has somewhere to go. Skipped above by the area-entry rule like every other
-        // area effect's own Refusal, so it has to be asked here or not at all.
-        return PushRefusal(source, target);
+        // Every entry asked about this tile refused it, so the first refusal is the one to report.
+        // Nothing was asked at all - every entry aims elsewhere, or the card has none - falls through
+        // exactly as the old whole-Source-skip did: PushRefusal is the only gate left to clear.
+        return asked ? firstRefusal : PushRefusal(source, target);
     }
 
     /// <summary>
@@ -518,7 +544,7 @@ public class Card
         {
             if (entry.effect == null || entry.area.IsSingle || !entry.effect.SupportsArea) { continue; }
 
-            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : hovered;
+            GridTile aim = EntryAim(entry, casterTile, hovered);
             if (aim == null) { continue; }
 
             foreach (GridTile tile in GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant))
@@ -568,7 +594,7 @@ public class Card
         {
             if (entry.effect is not DamageEffect) { continue; }
 
-            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            GridTile aim = EntryAim(entry, casterTile, target);
             if (aim == null) { continue; }
 
             foreach (GridTile tile in EntryFootprint(source, casterTile, aim, entry)) { landed.Add(tile); }
@@ -603,7 +629,7 @@ public class Card
         {
             if (entry.effect is not DamageEffect) { continue; }
 
-            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            GridTile aim = EntryAim(entry, casterTile, target);
             if (aim == null) { continue; }
 
             if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
@@ -758,6 +784,60 @@ public class Card
         return total;
     }
 
+    /// <summary>
+    /// Every badge-worthy rider this card would hang on `target` if played right now - the statuses
+    /// it applies and the handful of named effects an intent readout calls out (see IntentRiderKind).
+    /// The exact companion to OutgoingDamage above: same walk, same aim resolution, same
+    /// ActionContext.Amount path, so a Weaken badge's stack count and the damage number beside it can
+    /// never be computed two different ways.
+    ///
+    /// Fills `into` rather than returning a list - this runs on every StatsChanged, ActionResolved
+    /// and TurnAdvanced, for every enemy on the board, for every step of its plan, and a fresh List
+    /// per call would churn garbage to arrive back where it started. Compare PreviewPush, which does
+    /// return a list and may: that one runs once, on hover.
+    ///
+    /// Deliberately not gated on IntentKind.Attack the way the damage number is - a Move card that
+    /// self-applies Stealth is exactly the thing worth telegraphing, so this runs for any card at all.
+    /// </summary>
+    public void OutgoingRiders(Character source, GridTile target, List<IntentRider> into)
+    {
+        into.Clear();
+
+        if (source == null) { return; }
+
+        GridTile casterTile = source.Tile;
+
+        foreach (var entry in effectEntries)
+        {
+            if (entry.effect == null) { continue; }
+
+            bool selfTargeted = entry.aimsAt == EffectTarget.Source;
+            GridTile aim = selfTargeted ? casterTile : target;
+
+            // Kept even though ActionContext.Amount never reads aim - the same guard OutgoingDamage
+            // applies above, so the two walks can never diverge on which entries they skip.
+            if (aim == null) { continue; }
+
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+
+            if (entry.effect is ApplyStatusEffect status)
+            {
+                // StatusType.None means the dropdown was never set (see StatusType's own doc comment)
+                // - the same "do nothing loudly" rule Resolve already inherits by applying that status
+                // for real, so a badge is not owed for a card asset that would not do anything either.
+                if (status.Status == StatusType.None) { continue; }
+
+                into.Add(new IntentRider(status.Status, IntentRiderKind.None, ctx.Amount(status.RiderAmount), selfTargeted));
+                continue;
+            }
+
+            IntentRiderKind kind = entry.effect.RiderKind;
+            if (kind == IntentRiderKind.None) { continue; }
+
+            into.Add(new IntentRider(StatusType.None, kind, ctx.Amount(entry.effect.RiderAmount), selfTargeted));
+        }
+    }
+
     /// The furthest any one entry's area footprint reaches beyond its own aim tile - 0 for a card
     /// with no area entries. What EnemyBrain.LongestReach reads to know a splash card threatens
     /// further out than its plain click range suggests: the blast covers the rest of the gap, so an
@@ -786,8 +866,16 @@ public class Card
     /// SupportsArea before filtering that footprint by the effect's own Refusal - that filter is the
     /// entire ally/enemy story: a Shield entry's wantAlly:true drops enemies and empty ground the same
     /// way it already does for a single tile, and a Damage entry with canHitAllies off drops allies.
+    ///
+    /// `filterRefused` mirrors that same per-tile filter onto a Single entry, which Card.Refusal can
+    /// now let through even when this one entry's own Refusal objects to its aim - Renew's Draw half
+    /// claims a full-health ally's tile, so the Heal half must quietly sit out rather than fire anyway.
+    /// Default true for a real play; BattleManager.Execute passes false for a committed enemy intent,
+    /// where CommittedRefusal has already deliberately skipped the occupant check so a Dodge-frozen
+    /// swing still whiffs at an empty tile, or lands on whoever has since wandered onto it, instead of
+    /// quietly dropping out here.
     /// </summary>
-    public void ResolveEffects(Character source, GridTile target)
+    public void ResolveEffects(Character source, GridTile target, bool filterRefused = true)
     {
         // Resets right when the card is actually played, not when it is merely legal - a Cooldown
         // card that never gets played (e.g. discarded unused at TurnStart) must not re-lock itself.
@@ -802,13 +890,20 @@ public class Card
         {
             if (entry.effect == null) { continue; }
 
-            GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
+            GridTile aim = EntryAim(entry, casterTile, target);
 
             List<GridTile> landed;
 
             if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
             {
-                landed = aim != null ? new List<GridTile> { aim } : new List<GridTile>();
+                // The gate above now lets a tile through when only some entries claim it, so an entry
+                // that refuses its own aim must drop out here rather than resolve anyway - the same
+                // filter the area branch below has always run, applied to the single-tile case. Not
+                // asked when aim is null: Draw and Energy read only ctx.source and must still resolve
+                // with no target at all.
+                bool refused = filterRefused && aim != null && entry.effect.Refusal(source, aim) != null;
+
+                landed = aim != null && !refused ? new List<GridTile> { aim } : new List<GridTile>();
             }
             else
             {

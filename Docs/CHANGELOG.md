@@ -9,6 +9,103 @@ written up.
 
 ---
 
+## 2026-09-12 — Card.Refusal: any effect may land, not all of them
+
+**Asked for:** the Cleric's `Renew` (Heal 3 + Draw 1), `Mend and Fortify` (Heal 5 + Strength 3) and
+`Mend and Guard` (Heal 5 + Block 2) all went dark the moment the whole party was at full health —
+`HealEffect.Refusal`'s "already at full health" killed the entire card, draw and buff included,
+because `Card.Refusal` was a conjunctive gate: the first entry that objected refused the tile for
+every entry. Wanted: a full-health party should still let you play Renew, to draw.
+
+**The fix is a rule change, not a special case for Heal.** A tile is now playable if *any* entry can
+land on it; the card is refused only when every entry that has an opinion about that tile refuses it.
+An entry with no opinion — aimed somewhere else, or a non-Single area entry — is not asked and does
+not count either way, exactly as before. Two things had to change in `Card.Refusal`
+(`Assets/Scripts/Cards/Card.cs`) to make that safe: Source-aimed entries stop being unconditionally
+skipped (they are now asked, but only when the clicked tile *is* the caster's own tile, so a
+self-buff can unlock the caster's tile and nothing else), and the loop returns as soon as one entry
+claims the tile instead of returning the first refusal it meets. `ResolveEffects` gained the
+matching per-tile filter for a Single entry (the area branch already had one) so the futile half
+quietly sits out rather than firing anyway — mirroring the existing precedent that a Fireball
+catching nobody still resolves and still animates.
+
+**Turning Source entries back on exposed a second bug waiting to happen: an effect that refuses
+nothing would now claim every tile in range.** `DrawEffect`, `EnergyEffect`, `DiscardEffect` and
+`SelfDamageEffect` each already carried the same comment — *"no aiming to get wrong: DrawAction
+always draws for ctx.source, so this cannot be pointed at anybody else however the asset is
+authored"* — as prose, unenforced. Renew's own `Draw 1` entry is authored `aimsAt: Tile` (the other
+three Draw cards all use `Self`), so under the new rule it would have lit all 81 tiles in Renew's
+range rather than just the caster's. That fact is now a declared `CardEffect.ActsOnSource` virtual,
+beside `SupportsArea`, so `Card`'s aim resolution (now one shared `EntryAim` helper instead of the
+same ternary written out five times) judges such an entry at the caster's tile no matter what the
+asset says, and no future Draw/Energy/Discard/SelfDamage card can reintroduce the bug by authoring
+the wrong aim.
+
+**One card's behaviour changes beyond the goal, on purpose: `Second Wind`** (Knight, a bare
+Source-aimed Heal) is now refused at full health, where it used to slip through because Source
+entries were never asked at all. That brings it in line with every other single-Heal card
+(`Cure Wounds`, `Heal Word`) rather than carving out an exception for it.
+
+**`BattleManager.Execute` passes `filterRefused: false`** for a committed enemy intent
+(`step.card.ResolveEffects(enemy, tile, filterRefused: !committed)`), because `CommittedRefusal`
+already deliberately skips the occupant check so a Dodge-frozen swing still whiffs at an empty tile,
+or lands on whoever has since wandered onto it — filtering there too would have quietly undone that.
+
+---
+
+## 2026-09-11 — Equal-size intent steps, rider badges, and a bow for ranged attacks
+
+**Asked for:** the enemy intent readout showed one big icon for the next action and a smaller one for
+the action after, and told the player nothing about a card's riders — a Chomp that deals damage *and*
+Roots looked identical to plain damage until it landed. Wanted: every step the same size (connected by
+a chevron so the order still reads), a corner badge per secondary effect with its own stack count, and
+a bow instead of crossed swords when the committed card reaches past melee.
+
+**`Intent.card` was already public**, so everything needed — the card's `range` and its
+`ApplyStatusEffect`/`HealEffect`/`DrawEffect`/`PushEffect` entries — was one walk away. `CardEffect`
+gained two virtuals, `RiderKind`/`RiderAmount`, the same declared-once-on-the-effect shape as
+`Audience`; `Card.OutgoingRiders` walks `effectEntries` exactly like `Card.OutgoingDamage` already
+does (same aim resolution, same `ActionContext.Amount` path) and fills a caller-supplied
+`List<IntentRider>` rather than allocating one per refresh. `IntentIcons` grew a `For(Intent)`
+overload (swaps to a `rangedAttackIcon` when `card.range.IsRanged`), a `Chevron` sprite, and a rider
+sprite list — folded into the existing asset rather than a new one, since it is already wired on
+every enemy/boss/ally prefab and the screen-space enemy plate.
+
+**The old three-field shape (`intentRoll`/`damageLabel`/`intentRow` on `CharacterOverheadViewer`, and
+a second, independently-duplicated layout in `SelectedCharacterPanel`) is gone.** Both hosts now own
+one `IntentStrip` (`Assets/Scripts/UI/Intent/`) — a pool of `IntentSlot`s, each a rolled icon, a
+damage label and an `IntentBadgeStack`, with a chevron leading into it. Rolling is a `Build(image,
+rolls)` argument, not a per-prefab bool: the overhead's icon should visibly roll when it changes,
+the screen-space plate deliberately never does, since its *shown character* — not that character's
+intent — is what changes between refreshes.
+
+**Replacing the three old field names, rather than editing them, was the point.** Every field on
+`intentRoll`/`damageLabel`/`intentRow` was serialized into all 28 enemy/boss/ally prefabs at its C#
+default (`followUpScale: 0.7`, `slotGap: 6`, ...) — changing a default in code cannot move a value
+already baked into an asset's YAML. Renaming the block to `intentStrip` orphans all three old blocks
+at once (Unity silently ignores a YAML key with no matching field), so every new tunable deserializes
+to its own initialiser everywhere with zero prefab edits and zero Editor scripting. `git status` after
+this change shows no prefab or scene diffs at all — the orphaned blocks stay in the YAML, inert, until
+each prefab is next resaved by hand.
+
+**The roll guard now keys on the resolved sprite, not `IntentKind`.** A Ranger stepping into and out
+of melee range swaps the icon between the bow and crossed swords without its `IntentKind` ever
+leaving `Attack`; the old guard (`if (next == shownKind) return;`) would have missed that entirely.
+`IntentSlot.shownSprite` plus `justActivated` (true from construction, and after `Deactivate()`) is
+what makes a slot's very first appearance always snap rather than roll, the same rule a spawning
+enemy's icon already needed — `CharacterOverheadViewer.Start()` no longer has a separate snap-only
+code path for it.
+
+**Badge layout reserves width in both directions.** A badge's stack-count digit sits outside its
+plate, to the right (approved over putting the digit inside the plate, for legibility) — so a
+card with two riders (`VoidBarrier`: Weaken + Vulnerable) reaches left past its own icon's bounds,
+and `IntentStrip.LayOut` reserves for that when placing the *previous* step in the row, not just the
+next one. Self-aimed riders (`entry.aimsAt == EffectTarget.Source`) get a different badge colour than
+riders landing on the target, so "it buffs itself mid-swing" and "it curses you" are never the same
+badge.
+
+---
+
 ## 2026-09-05 — Wall of Force blocks walking, not just standing
 
 **Asked for:** most move cards blocked by Wall of Force, with a teleport that ignores it — the Bat's

@@ -12,13 +12,24 @@ public class CharacterRoster : ScriptableObject
 {
     [SerializeField] private List<CharacterOption> characters = new();
 
+    [Tooltip("The smallest party a Debug build's size buttons offer.")]
     [SerializeField] private int minPartySize = 2;
 
+    [Tooltip("The largest party a Debug build's size buttons offer.")]
     [SerializeField] private int maxPartySize = 4;
+
+    [Tooltip("The party size the game is balanced for - the only one a Playable build offers, with the "
+             + "size buttons hidden, and the one a Debug build opens at. Change this, not Min/Max, to "
+             + "move the whole game to another size.")]
+    [SerializeField] private int playablePartySize = 2;
 
     public IReadOnlyList<CharacterOption> Characters => characters;
 
     public int MinPartySize => Mathf.Max(1, minPartySize);
 
     public int MaxPartySize => Mathf.Max(MinPartySize, maxPartySize);
+
+    /// Clamped into MinPartySize..MaxPartySize, so a value typed outside that range - 0, or 5 on a 2..4
+    /// roster - still names a party the Debug size buttons could have offered.
+    public int PlayablePartySize => Mathf.Clamp(playablePartySize, MinPartySize, MaxPartySize);
 }

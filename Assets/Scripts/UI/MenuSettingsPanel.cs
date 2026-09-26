@@ -46,6 +46,11 @@ public class MenuSettingsPanel : MonoBehaviour
 
     [SerializeField] private Toggle debugRunToggle;
 
+    [Tooltip("The whole Debug Run row, hidden in a Playable build (BuildMode.DebugTools). Its toggle "
+             + "would do nothing there - GameSettings.DebugRunEnabled ignores the saved value - and a "
+             + "setting that does nothing should not be on screen.")]
+    [SerializeField] private GameObject debugRunRow;
+
     /// When the last SFX preview played, on unscaled time. A slider drag raises onValueChanged
     /// every frame it moves, and firing a blip on each one is a machine-gun rather than a preview.
     private float lastSfxPreview;
@@ -66,6 +71,9 @@ public class MenuSettingsPanel : MonoBehaviour
         if (root != null) { root.SetActive(false); }
 
         if (backButton != null) { backButton.onClick.AddListener(Close); }
+
+        // Only ever hidden, never forced on - a Debug build leaves the row however the scene authored it.
+        if (!BuildMode.DebugTools && debugRunRow != null) { debugRunRow.SetActive(false); }
     }
 
     private void Update()

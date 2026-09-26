@@ -5,9 +5,13 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// The party-select screen MainMenu.playButton opens instead of starting a run outright: choose a
-/// party size (CharacterRoster.MinPartySize..MaxPartySize), then a character and a starting deck for
-/// each slot. Duplicates are allowed - each slot is independent.
+/// The party-select screen MainMenu.playButton opens instead of starting a run outright: a character
+/// and a starting deck for each slot. Duplicates are allowed - each slot is independent.
+///
+/// The party size is only choosable in a Debug build (BuildMode.DebugTools), across
+/// CharacterRoster.MinPartySize..MaxPartySize. A Playable build hides the size buttons and always
+/// plays at CharacterRoster.PlayablePartySize - the size the game is balanced for - and nothing else on
+/// the screen moves, so the two builds lay out identically apart from the missing buttons.
 ///
 /// Model is `selections`, one (CharacterOption, DeckData) pair per slot; the CharacterSelectSlot views
 /// are rebuilt from it on every party-size change and refreshed in place on every cycle, so resizing
@@ -26,7 +30,8 @@ public class CharacterSelectPanel : MonoBehaviour
 
     [Tooltip("One button per legal party size, in order (index 0 is CharacterRoster.MinPartySize). "
              + "Built by Tools/Main Menu/Wire Character Select to match whatever roster is assigned "
-             + "there - resizing MinPartySize/MaxPartySize on the roster needs a re-run.")]
+             + "there - resizing MinPartySize/MaxPartySize on the roster needs a re-run. Hidden in a "
+             + "Playable build, which has no size to choose.")]
     [SerializeField] private List<Button> sizeButtons = new();
 
     [SerializeField] private Transform slotParent;
@@ -68,12 +73,25 @@ public class CharacterSelectPanel : MonoBehaviour
     /// decides that means its own buttons come back, this screen has no idea such a thing exists.
     public event System.Action BackClicked;
 
+    /// Whether the party size is the player's to pick - see the class comment. BuildMode rather than
+    /// GameSettings.DebugRunEnabled: that setting sends Play straight to the testbed, skipping this
+    /// screen, so gating on it would hide the buttons every time this screen is actually reached.
+    private static bool SizeIsChoosable => BuildMode.DebugTools;
+
     /// Starts hidden regardless of the scene's authored state - same reasoning as RewardPanel.Awake.
     private void Awake()
     {
         if (root != null) { root.SetActive(false); }
         if (backButton != null) { backButton.onClick.AddListener(OnBackButtonClicked); }
         if (startButton != null) { startButton.onClick.AddListener(OnStartButtonClicked); }
+
+        if (!SizeIsChoosable)
+        {
+            foreach (Button button in sizeButtons)
+            {
+                if (button != null) { button.gameObject.SetActive(false); }
+            }
+        }
 
         if (previousDifficultyButton != null)
         {
@@ -89,8 +107,9 @@ public class CharacterSelectPanel : MonoBehaviour
     /// <summary>
     /// Opens the screen. `campaign` supplies the levels and carry-damage rule the eventual run reads -
     /// the same RunData MainMenu used to hand straight to RunManager.StartRun - and `roster` is who may
-    /// be offered. Safe to call more than once per session (Play, Back, Play again): the party size and
-    /// picks from the previous visit are kept as long as they still fit the same roster.
+    /// be offered. Safe to call more than once per session (Play, Back, Play again): the picks from the
+    /// previous visit are kept as long as they still fit the same roster, and so is a Debug build's
+    /// party size. The first visit opens at the roster's PlayablePartySize in either build.
     /// </summary>
     public void Show(RunData campaign, CharacterRoster roster)
     {
@@ -105,8 +124,8 @@ public class CharacterSelectPanel : MonoBehaviour
             return;
         }
 
-        currentSize = Mathf.Clamp(
-            currentSize == 0 ? roster.MinPartySize : currentSize, roster.MinPartySize, roster.MaxPartySize);
+        int size = SizeIsChoosable && currentSize != 0 ? currentSize : roster.PlayablePartySize;
+        currentSize = Mathf.Clamp(size, roster.MinPartySize, roster.MaxPartySize);
 
         EnsureSelectionCount(currentSize);
         WireSizeButtons();

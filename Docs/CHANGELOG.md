@@ -9,6 +9,70 @@ written up.
 
 ---
 
+## 2026-09-18 — Build Mode (Playable / Debug), a character-select pass, and driving the live Editor
+
+**Asked for:** an uploadable build with the Debug Menu unreachable, a switch in the Editor between
+that and a debug setup, the Cleric and Knight icons swapped (the cross is the Cleric's), and a
+character-select screen whose difficulty row stops covering the deck selector — thinner portrait
+borders, the character/deck arrows doubled, and the difficulty arrows matched to them.
+
+**Build Mode is a scripting define on the active build profile.** `Tools/Build Mode/Debug|Playable`
+(`Assets/Editor/BuildModeMenu.cs`) adds or removes `DEBUG_TOOLS` in the profile's Scripting Defines and
+flips its Development Build box in the same step. `BuildMode.DebugTools` is the compiled answer, and
+`GameSettings.DebugRunEnabled` became `BuildMode.DebugTools && <saved toggle>`: the testbed,
+`DebugPanel` and the pause menu's hint already asked that one getter and nothing else, so no other code
+changed. Only the Settings row needed its own reference (`MenuSettingsPanel.debugRunRow`), hidden in
+Playable because a toggle that does nothing should not be on screen. Verified in Play Mode both ways,
+including with the saved toggle forced on — it is ignored in Playable, which matters because a web
+build's PlayerPrefs is browser storage a player can edit.
+
+Found along the way:
+
+- `BuildProfile.scriptingDefines`'s setter applies the defines and requests a recompile, but leaves
+  `m_HasScriptingDefines` false on disk. Tracing the IL shows that flag is only the Build Profiles
+  window's "show the Scripting Defines section" switch (`ScriptingDefinesSettings.HasSettings`/`OnAdd`/
+  `OnRemove`) — compilation reads the list regardless. The menu sets it anyway, so the define is visible.
+- `EditorUserBuildSettings.development` with a profile active writes that profile's own `m_Development`
+  — confirmed on disk in both directions, so no `SerializedObject` detour was needed there.
+- Development Build flips with the mode because `com.unity.pipeline` — added so the Unity CLI can drive
+  the Editor — constrains its runtime assemblies and bundled Roslyn (~9 MB) to
+  `UNITY_EDITOR || DEVELOPMENT_BUILD || ENABLE_RUNTIME_PIPELINE`. Any Development build now carries
+  them; a release build carries none.
+
+**The overlap was arithmetic, and the fix exposed a shadowing value.** The difficulty row sat at
+y −320 (100 tall) and the slot's deck row at y −270 (70 tall): 35px of overlap. Per the user, the
+difficulty row stays put and the rest moves: `SlotParent` −170 → −90, party-size buttons 220 → 250.
+Doubling the slot arrows (35 → 70 px, glyph 24 → 48 pt, moved from x ±130 to ±150 to clear the 220-wide
+labels) made each slot 370 wide — and `CharacterSelectPanel.slotSpacing` is **350 in the scene**, not
+the script's 500 default, so neighbouring slots' arrows would have overlapped by 20px at party size 3
+and 4. Now 420. The checklist's "look for a shadowing copy" step is what found it; a screenshot at party
+size 2 would not have.
+
+**The portrait border** is `square_button_neutral.png`, 9-sliced at 30px (a 14px soft shadow plus a
+16px rim) around an 84px icon that already filled the 88px interior — so "smaller" could only mean a
+thinner band. `pixelsPerUnitMultiplier` 1 → 2 halves it to 15px, and the frame goes 148 → 118 to keep
+the same 2px gap.
+
+**The icon swap:** the Dark UI pack's `White Bishop.png` is drawn as a **rook** — the Cleric had been
+wearing a castle tower. The Knight now has it and the Cleric has `White Cross.png`; a horse-head
+`White Knight.png` is also in the pack. The tutorial variants inherit both.
+
+**Follow-up: the party size is Debug-only.** The game is meant for 2 heroes, with 3 still an open
+question, so `CharacterRoster` gained `playablePartySize` (2): a Playable build hides the 2/3/4 buttons
+and always starts at that size, while Debug keeps the buttons and opens at it. The gate is
+`BuildMode.DebugTools`, **not** `DebugRunEnabled` — Debug Run sends Play straight to the testbed and
+skips character select, so gating on it would have hidden the buttons every time the screen was
+actually reached. Moving the slots up into the freed space was offered and declined: the two builds lay
+out identically apart from the missing buttons. The existing `DefaultRoster.asset` read 2 before the
+value was ever written to it: a missing `int` on a ScriptableObject keeps its field initializer, unlike
+the all-zero *struct* case `RangeShape.Anywhere` guards against. The getter's clamp is for hand-typed
+values outside Min..Max, not for old assets.
+
+Noise in the same diff, not behaviour: re-saving `MainMenu.unity` replaced the Settings panel's
+serialized layout rects (all zeros, the unsettled state) with settled values; re-saving the two hero
+prefabs wrote `CharacterOverheadViewer.intentStrip`'s defaults for the first time and dropped the
+removed `intentRoll`/`damageLabel` fields.
+
 ## 2026-09-12 — Card.Refusal: any effect may land, not all of them
 
 **Asked for:** the Cleric's `Renew` (Heal 3 + Draw 1), `Mend and Fortify` (Heal 5 + Strength 3) and

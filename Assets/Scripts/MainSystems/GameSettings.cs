@@ -65,10 +65,14 @@ public static class GameSettings
     /// Defaults **off**, unlike the two above: this is the only setting whose on-state is not a way to
     /// play the game, and a player who has never touched it must never end up in it. Checked before
     /// TutorialEnabled in MainMenu.playButton, so turning it on wins over a tutorial that is also on.
+    ///
+    /// Always false in a Playable build (BuildMode.DebugTools), whatever was saved. Every debug tool -
+    /// the testbed, DebugPanel, the pause menu's hint - asks this and nothing else, so this one getter is
+    /// what shuts all of them out.
     /// </summary>
     public static bool DebugRunEnabled
     {
-        get => PlayerPrefs.GetInt(DebugRunKey, 0) != 0;
+        get => BuildMode.DebugTools && PlayerPrefs.GetInt(DebugRunKey, 0) != 0;
 
         set
         {

@@ -19,3 +19,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 960a63c3011f7d94ba670b5bb8a21ec4, type: 2}
   minPartySize: 2
   maxPartySize: 4
+  playablePartySize: 2

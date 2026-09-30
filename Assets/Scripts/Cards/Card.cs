@@ -892,32 +892,60 @@ public class Card
 
             GridTile aim = EntryAim(entry, casterTile, target);
 
-            List<GridTile> landed;
-
-            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
-            {
-                // The gate above now lets a tile through when only some entries claim it, so an entry
-                // that refuses its own aim must drop out here rather than resolve anyway - the same
-                // filter the area branch below has always run, applied to the single-tile case. Not
-                // asked when aim is null: Draw and Energy read only ctx.source and must still resolve
-                // with no target at all.
-                bool refused = filterRefused && aim != null && entry.effect.Refusal(source, aim) != null;
-
-                landed = aim != null && !refused ? new List<GridTile> { aim } : new List<GridTile>();
-            }
-            else
-            {
-                landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
-                landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
-
-                // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)
-                // and CardAnimation both read ctx.epicenter for facing/projectile/impact rather than
-                // targets[0], so this ordering is cosmetic now, not load-bearing. Kept anyway so a log
-                // or a future reader sees the clicked tile first.
-                if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
-            }
+            List<GridTile> landed = Landed(entry, source, casterTile, aim, filterRefused);
 
             entry.effect.Resolve(new ActionContext(this, source, landed, aim, entry.amountDelta, entry.amountPercent));
         }
+    }
+
+    /// <summary>
+    /// The tiles entry `entryIndex` would land on if this card were played on `target` by `source` right
+    /// now, at the current aim - exactly the list ResolveEffects would hand that entry's effect, without
+    /// resolving anything. Empty for an entry with no effect or an index out of range.
+    ///
+    /// For anything that has to judge a play by who it would reach - the balance bot deciding whether a
+    /// shield lands on the ally who is about to be hit - rather than re-deriving footprint rules beside
+    /// this. Shares Landed with ResolveEffects, so the two can never disagree.
+    /// </summary>
+    public List<GridTile> LandedTiles(Character source, GridTile target, int entryIndex)
+    {
+        if (entryIndex < 0 || entryIndex >= effectEntries.Count) { return new List<GridTile>(); }
+
+        CardEffectEntry entry = effectEntries[entryIndex];
+
+        if (entry.effect == null) { return new List<GridTile>(); }
+
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        return Landed(entry, source, casterTile, EntryAim(entry, casterTile, target), filterRefused: true);
+    }
+
+    /// One entry's landed tiles for a real play - ResolveEffects' per-entry step, and LandedTiles' whole
+    /// answer. `entry.effect` must be non-null.
+    private List<GridTile> Landed(
+        CardEffectEntry entry, Character source, GridTile casterTile, GridTile aim, bool filterRefused)
+    {
+        if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+        {
+            // The gate above now lets a tile through when only some entries claim it, so an entry
+            // that refuses its own aim must drop out here rather than resolve anyway - the same
+            // filter the area branch below has always run, applied to the single-tile case. Not
+            // asked when aim is null: Draw and Energy read only ctx.source and must still resolve
+            // with no target at all.
+            bool refused = filterRefused && aim != null && entry.effect.Refusal(source, aim) != null;
+
+            return aim != null && !refused ? new List<GridTile> { aim } : new List<GridTile>();
+        }
+
+        List<GridTile> landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
+        landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
+
+        // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)
+        // and CardAnimation both read ctx.epicenter for facing/projectile/impact rather than
+        // targets[0], so this ordering is cosmetic now, not load-bearing. Kept anyway so a log
+        // or a future reader sees the clicked tile first.
+        if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
+
+        return landed;
     }
 }

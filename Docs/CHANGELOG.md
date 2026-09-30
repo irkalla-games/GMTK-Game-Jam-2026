@@ -9,6 +9,75 @@ written up.
 
 ---
 
+## 2026-09-26 — A balance bot, and the rules get their own dice
+
+**Asked for:** a bot that plays whole runs of the game so balance can be tested without a room full of
+testers — play styles you can tune (shield-first, attack-first, always-totem), a report of where runs
+die, damage dealt and taken, which enemies hurt most weighted by how often they turn up, and a
+turn-by-turn record of what it decided that can be read and replayed.
+
+**It drives the real game rather than a copy of it.** A separate simulator was ruled out — the rules are
+~10k lines on scene components and the content lives in prefabs, so a copy would drift, and balance
+numbers from a different game are worthless — and so was clicking the screen. `BotPilot` runs the real
+MainMenu → Game loop fast-forwarded (`Time.captureDeltaTime`, turn banner off, muted) and calls the same
+doors a click reaches. That took a handful of additive seams and no rule changes: `CardPlayManager.TryPlay`
+(PlaySelectedOn now shares its `PlayRefusal`/`Commit`), public choose methods plus read-only offers on the
+three choice panels, `Character.HitResolved` (who hit whom), `Card.LandedTiles` (one entry's landed tiles,
+shared with `ResolveEffects`), `RunData.CreateRuntimeFrom(..., allowProgression)`, and read-only getters on
+a few effects. Everything else is new: `Assets/Scripts/Bot` (runtime, `#if UNITY_EDITOR || BOT_RUNNER`),
+`Tools/Bot/Bot Runner`, the five `BotProfile` presets, and `Tools/BotRunner/*.ps1` for headless batches.
+See CLAUDE.md's "Balance bot" for the rules it puts on the rest of the code.
+
+**The engine was rolling the game's dice.** Two runs of the same job agreed exactly — same digest, same
+3142 frames — but the same job at a Turbo step of 0.25 instead of 0.1 lost a round earlier. A dice trace
+(`BotJob.traceRng`: `UnityEngine.Random`'s state at every event and every frame) showed the state moving
+on *every frame, in every phase* — including EnemyResolve, where the only per-frame roll in game code
+(`LateUpdate`'s intent re-aim) never runs. The first split was inside the Knight's first Slash: seven
+frames of animation at step 0.1, three at 0.25, one roll per frame between the reseed and the hit. Nothing
+in `Assets` rolls per frame, so it is the engine — URP's post-processing draws from `UnityEngine.Random`
+while rendering. Sharing that stream meant a rule's outcome depended on how many frames rendered, which
+also made replays at watching speed impossible and a headless run (no rendering) unmatchable. The fix is
+`GameDice`: the ten rule call sites (shuffle, loot, encounter and floor seeds, random targeting, dodge
+sidestep, totem hunt, Grave Tithe) roll a state only rules advance, using the same algorithm, so the odds
+are unchanged. After it, steps 0.1 and 0.25 give the same digest, and Turbo now defaults to 0.25 — about
+1.7x fewer frames for identical results.
+
+**Headless matches the Editor.** The Windows bot player (`Build-BotPlayer.ps1`; the first build took
+about 20 minutes, almost all of it the mirror's initial import) played Balanced's first seed to the same
+digest as the Editor, `3452960a3c0b3803`, in 6 seconds against about 25 in the unfocused Editor — and two
+processes ran four runs, report included, in 36 seconds. That match is only possible because of
+`GameDice`: a player with no graphics renders nothing, so it rolls none of the engine's per-frame dice.
+
+**Replays verified both ways.** A Turbo recording re-played at 4x watch speed matched all 158 decisions
+and stopped on the final Defeat with the board up. A copy with one play tampered stopped at the very next
+decision with a fingerprint diff showing why (the tampered move was refused, so the Knight still held
+Slash and the Mushroom had 21 health instead of 12).
+
+**First batch, five profiles on three shared seeds:** every real profile cleared two levels and fell on
+level 3 (the EnemyRanger landed 6 of the killing blows there); Random fell on level 1 every time. The play
+mixes read as intended — Aggressive 53% attacks, Defensive 38% defence and 23% heals, TotemFirst 27%
+totems.
+
+Found along the way:
+
+- **Thornwood Totem's reaction re-triggers itself — an open game bug.** `Totem.TryReact` resolves a
+  reaction with the *triggering enemy* as its source, so Thornwood's "when an enemy attacks nearby, deal 3
+  back" queues a `DamageAction` whose source is that enemy — which is itself an enemy attacking nearby.
+  Normally the enemy takes 3 again and again until it dies (not 3 once); a HeavyBandit with Block up takes
+  0 each time, and the enemy phase never ends — a softlock a player would hit too. Left for a design
+  decision (whose action a reaction's is, and whether reactions may trigger reactions); the bot now cuts
+  such a run off as Stalled within seconds (`BotJob.maxEventsPerPhase`) instead of at its 15-minute cap.
+- **A modal dialog blocks every `unity` CLI command.** After a branch switch rewrote the open
+  MainMenu.unity, Unity sat on "The open scene(s) have been modified externally" and every command —
+  `editor_focus` and `set_autotick` included — failed with "Main thread operation timed out". Listing
+  the Unity process's visible windows found the `#32770` dialog; which button to press is the user's call.
+- **An unfocused Editor barely ticks.** `set_autotick --interval_ms 0` roughly doubled the frame rate a
+  batch got (about 55 to 110 fps).
+- **Lodestone Totem made level 2 free.** Its aura taunts and roots every enemy onto a Blocked totem, so a
+  Balanced bot that opened with it took no damage for ten rounds. A balance note, not a bot bug.
+- **Every run logs ~330 "Sprite Tiling might not appear correctly" warnings** and DOTween safe mode
+  catches ~130 tweens on destroyed objects. Neither is new; the report's warnings table now surfaces both.
+
 ## 2026-09-18 — Build Mode (Playable / Debug), a character-select pass, and driving the live Editor
 
 **Asked for:** an uploadable build with the Debug Menu unreachable, a switch in the Editor between

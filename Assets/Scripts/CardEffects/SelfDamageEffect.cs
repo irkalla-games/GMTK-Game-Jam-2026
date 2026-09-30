@@ -16,6 +16,10 @@ public class SelfDamageEffect : CardEffect
 {
     [SerializeField] private int amount = 5;
 
+    /// Read-only, the same private-field-plus-property shape as DamageEffect.Damage. Exactly what
+    /// Resolve costs - SelfDamageAction takes this as authored, with no entry adjustment.
+    public int Amount => amount;
+
     public override bool SupportsArea => false;
 
     /// See CardEffect.ActsOnSource: SelfDamageAction always costs ctx.source, so this cannot be

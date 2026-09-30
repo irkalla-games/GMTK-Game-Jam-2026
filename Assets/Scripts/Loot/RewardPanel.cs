@@ -77,6 +77,29 @@ public class RewardPanel : MonoBehaviour
     public SkipReward ChosenSkip { get; private set; }
 
     /// <summary>
+    /// What the offer on screen right now is made of - the cards (for Show) or items (for
+    /// ShowEquipment), the skip buttons beside them, and who it is for. Read-only, and empty for the
+    /// half of the pair that was not shown.
+    ///
+    /// Kept for the balance bot, which answers this panel by calling Choose/ChooseEquipment/ChooseSkip
+    /// with one of these rather than clicking. Index order is spawn order, left to right.
+    /// </summary>
+    public IReadOnlyList<CardData> OfferedCards => offeredCards;
+
+    public IReadOnlyList<EquipmentData> OfferedEquipment => offeredEquipment;
+
+    public IReadOnlyList<SkipReward> OfferedSkips => offeredSkips;
+
+    /// Who this offer is for - may be null (a level-clear hero whose Character has been torn down).
+    public Character Receiver { get; private set; }
+
+    private readonly List<CardData> offeredCards = new();
+
+    private readonly List<EquipmentData> offeredEquipment = new();
+
+    private readonly List<SkipReward> offeredSkips = new();
+
+    /// <summary>
     /// Whether the panel is actually on screen right now - not the same question LootManager.IsIdle
     /// answers. IsIdle flips false as soon as a pickup is queued (GridTile.TryPickUpItem, called
     /// synchronously from GridManager.MoveCharacter), well before LootManager.Drain finishes waiting on
@@ -106,7 +129,10 @@ public class RewardPanel : MonoBehaviour
         if (root != null) { root.SetActive(false); }
     }
 
-    public void Show(List<CardData> candidates, List<SkipReward> skipRewards, string title = null)
+    /// `receiver` is who the offer is for, kept only so OfferedCards has an owner to read - the card
+    /// row itself shows no swap, unlike ShowEquipment's. Optional, and null reads as "nobody known".
+    public void Show(List<CardData> candidates, List<SkipReward> skipRewards, string title = null,
+                     Character receiver = null)
     {
         Resolved = false;
         ChosenCard = null;
@@ -114,6 +140,7 @@ public class RewardPanel : MonoBehaviour
         ChosenSkip = null;
 
         Clear();
+        RememberOffer(candidates, null, skipRewards, receiver);
 
         if (root != null) { root.SetActive(true); }
 
@@ -142,6 +169,7 @@ public class RewardPanel : MonoBehaviour
         ChosenSkip = null;
 
         Clear();
+        RememberOffer(null, candidates, skipRewards, receiver);
 
         if (root != null) { root.SetActive(true); }
 
@@ -149,6 +177,22 @@ public class RewardPanel : MonoBehaviour
 
         SpawnEquipment(candidates, receiver);
         SpawnSkipButtons(skipRewards);
+    }
+
+    /// The Offered* views' backing lists, rewritten on every Show - an offer re-shown after a
+    /// backed-out skip (RewardContext.Reoffer) must not carry the previous one's entries.
+    private void RememberOffer(
+        List<CardData> cards, List<EquipmentData> equipment, List<SkipReward> skips, Character receiver)
+    {
+        offeredCards.Clear();
+        offeredEquipment.Clear();
+        offeredSkips.Clear();
+
+        if (cards != null) { offeredCards.AddRange(cards); }
+        if (equipment != null) { offeredEquipment.AddRange(equipment); }
+        if (skips != null) { offeredSkips.AddRange(skips); }
+
+        Receiver = receiver;
     }
 
     private void SpawnCards(List<CardData> candidates)
@@ -249,7 +293,12 @@ public class RewardPanel : MonoBehaviour
         }
     }
 
-    private void Choose(CardData data)
+    /// <summary>
+    /// Resolves the offer with this card - what an offered card's click calls. Public for the balance
+    /// bot, which answers with one of OfferedCards rather than clicking. A second call after the panel
+    /// has resolved does nothing, whoever makes it.
+    /// </summary>
+    public void Choose(CardData data)
     {
         if (Resolved) { return; }
 
@@ -258,7 +307,9 @@ public class RewardPanel : MonoBehaviour
         Hide();
     }
 
-    private void ChooseEquipment(EquipmentData item)
+    /// The equipment counterpart to Choose - what an EquipmentViewer's button calls. Stays void: it is
+    /// handed to EquipmentViewer.Setup as a method group.
+    public void ChooseEquipment(EquipmentData item)
     {
         if (Resolved) { return; }
 
@@ -267,7 +318,9 @@ public class RewardPanel : MonoBehaviour
         Hide();
     }
 
-    private void ChooseSkip(SkipReward reward)
+    /// The skip button counterpart to Choose. Null is a valid answer - "declined everything" - which
+    /// LootManager reads as neither a card, an item nor a skip to grant.
+    public void ChooseSkip(SkipReward reward)
     {
         if (Resolved) { return; }
 

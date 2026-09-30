@@ -72,35 +72,17 @@ public class CardPlayManager : Singleton<CardPlayManager>
         // nobody to pay the cost until one has been clicked.
         Character actor = BattleManager.Instance.ActiveCharacter;
 
-        if (actor == null)
-        {
-            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - no active character to pay the cost");
-            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
-            return;
-        }
-
-        // Actor-state rules, not targeting ones - Frozen, Cooldown and the cost. The answer does not
-        // depend on the tile, so none of it belongs in Card.Refusal. Above the commit point, so a
-        // frozen click costs nothing. This is the same call the card highlight is built from, which
-        // is what stops a card from ever looking playable and then refusing this click.
-        string playRefusal = card.PlayRefusal(actor);
-
-        if (playRefusal != null)
-        {
-            Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {playRefusal}");
-            cardViewer.transform.DOShakePosition(0.25f, 0.15f);
-            return;
-        }
-
-        // Targeting is settled here, and only here. Past the commit point below the energy is gone and
-        // the card is in the discard pile, so a rule that refuses any later refuses at a price.
-        string refusal = card.Refusal(actor, tile);
+        string refusal = PlayRefusal(actor, card, tile);
 
         if (refusal != null)
         {
             Debug.Log($"tile clicked: {tile.Coordinates} with {card.cardName} - {refusal}");
             cardViewer.transform.DOShakePosition(0.25f, 0.15f);
-            ShowRefusalHint(card, actor, tile, refusal);
+
+            // ShowRefusalHint only ever speaks up for the push refusal, which compares unequal to every
+            // actor-state reason, so asking it about those too changes nothing on screen.
+            if (actor != null) { ShowRefusalHint(card, actor, tile, refusal); }
+
             return;
         }
 
@@ -108,6 +90,34 @@ public class CardPlayManager : Singleton<CardPlayManager>
 
         selected = null;
         ClearHighlights();
+        Commit(actor, card, tile);
+    }
+
+    /// <summary>
+    /// Why `actor` may not play `card` onto `tile` right now, or null if they may - the whole
+    /// above-the-commit-point question, asked the same way whether a click or the balance bot is
+    /// asking it.
+    ///
+    /// Actor-state rules first (Frozen, Cooldown and the cost), then targeting. The first half does not
+    /// depend on the tile, so none of it belongs in Card.Refusal; it is also the call the card
+    /// highlight is built from, which is what stops a card from ever looking playable and then refusing
+    /// the click. Targeting is settled here, and only here: past the commit point the energy is gone
+    /// and the card is in the discard pile, so a rule that refuses any later refuses at a price.
+    /// </summary>
+    public static string PlayRefusal(Character actor, Card card, GridTile tile)
+    {
+        if (actor == null) { return "no active character to pay the cost"; }
+        if (card == null) { return "no card to play"; }
+
+        return card.PlayRefusal(actor) ?? card.Refusal(actor, tile);
+    }
+
+    /// <summary>
+    /// Pays for `card` and resolves it onto `tile` - everything below the commit point, with no
+    /// refusal asked. Callers ask PlayRefusal first; PlaySelectedOn and TryPlay are the two that do.
+    /// </summary>
+    public static void Commit(Character actor, Card card, GridTile tile)
+    {
         actor.SpendEnergy(card.cost);
         card.ResolveEffects(actor, tile);
 
@@ -123,6 +133,28 @@ public class CardPlayManager : Singleton<CardPlayManager>
         // DiscardPlayed rather than Discard: this is the play path, and a Rebound card is only supposed
         // to come back when it was played rather than every time it leaves hand - see that method.
         actor.DiscardPlayed(card);
+    }
+
+    /// <summary>
+    /// Plays `card` from `actor`'s hand onto `tile` without a selection or a click - the door the
+    /// balance bot uses, so it can never play by a rule the mouse does not. Returns why it refused, or
+    /// null once the card has been committed. Needs no CardViewer, so it works whoever's hand is on
+    /// screen; the viewer, if there is one, still leaves through Character.CardDiscarded as usual.
+    /// </summary>
+    public static string TryPlay(Character actor, Card card, GridTile tile)
+    {
+        if (actor != null && card != null && !actor.Holds(card))
+        {
+            return $"{card.cardName} is not in {actor.name}'s hand";
+        }
+
+        string refusal = PlayRefusal(actor, card, tile);
+
+        if (refusal != null) { return refusal; }
+
+        Commit(actor, card, tile);
+
+        return null;
     }
 
 

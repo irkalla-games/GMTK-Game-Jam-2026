@@ -501,8 +501,9 @@ public class BattleManager : Singleton<BattleManager>
         // The seed is rolled once here rather than inside BoardVisuals so a rebuild of the same battle
         // lays down the identical floor. BuildGrid runs again on every level load, and a floor that
         // reshuffled its blocks underneath the player each time would read as the board flickering.
-        // Fully qualified: System.Random is used two lines down, so a bare `Random` here is ambiguous.
-        int floorSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        // GameDice rather than UnityEngine.Random: the tile set it picks is part of the level, so it rolls
+        // with the rules' dice - see GameDice.
+        int floorSeed = GameDice.Range(int.MinValue, int.MaxValue);
         TileSetData tileSet = CurrentLevel != null
             ? CurrentLevel.PickTileSet(new System.Random(floorSeed))
             : null;
@@ -788,7 +789,7 @@ public class BattleManager : Singleton<BattleManager>
         // simulator reports for a level is what a battle here actually rolls. Difficulty scaling
         // happens inside it; see RollFor for why that never touches the level asset.
         DifficultyTier tier = RunManager.Instance != null ? RunManager.Instance.CurrentTier : default;
-        System.Random dice = new(UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+        System.Random dice = new(GameDice.Range(int.MinValue, int.MaxValue));
 
         RolledEncounter rolled =
             EncounterRoller.RollFor(level, enemyRegistry, tier, GridManager.Instance.BoardSize, dice);

@@ -96,7 +96,7 @@ public class LootTable : ScriptableObject
 
         if (total <= 0) { return Rarity.Common; }
 
-        int roll = Random.Range(0, total);
+        int roll = GameDice.Range(0, total);
 
         foreach (TierWeight entry in tierWeights)
         {

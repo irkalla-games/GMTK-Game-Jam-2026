@@ -6,6 +6,51 @@ standing on them.
 Full write-ups of the bugs behind the rules here live in [Docs/CHANGELOG.md](Docs/CHANGELOG.md).
 Superseded copies of this file are in `Docs/archive/`.
 
+## Task observer (skill activation)
+
+Before the first tool call of any session — and before writing or
+proposing a plan, not merely before executing one — invoke the
+task-observer skill AND execute its Session Start Protocol (storage
+check, frontmatter scan, review trigger). Loading the skill and running
+the protocol are separate steps; a session that loads the file and stops
+has activated nothing. Any turn that will involve a tool call counts; do
+not classify the session as "too simple" from its opening message.
+
+Select skills on the DECISION the request is about, not on the artefact it
+arrived as. Name what the user is deciding, then match the installed skill
+descriptions against that — a request handed over as a file to review
+still needs the skill whose description names its subject.
+
+After completing each task, check the observation records written this
+session and report a one-line summary (ids and titles, or "none logged
+and why"). This is the activation backstop: it forces a look at the log,
+so a session that silently skipped the protocol is discovered at the
+first task boundary instead of never.
+
+Loading a skill is not complete until you have queried the observation
+log for OPEN observations naming it and read their bodies:
+  find "C:/Users/Toxxi/.claude/skill-observations/observation-log" -maxdepth 1 \
+    -name '*.md' -exec grep -l "skill:.*<skill-name>" {} +
+(Use find, not a bare *.md glob — on an empty log an unmatched glob aborts
+the command.) Apply their insights to the current work — meaning: let them
+change what you do in THIS task. Editing the skill file, or writing the rule
+into any other file a later session reads, is acting on the observation and
+waits for the review. Run this at every skill load, however many skills load
+in one session. The session-start scan does not cover it.
+
+The task-observer workspace is user-scope, shared across all projects:
+  C:/Users/Toxxi/.claude
+Every path the skill uses derives from that root and nothing else:
+  C:/Users/Toxxi/.claude/skill-observations/observation-log/   (the log)
+  C:/Users/Toxxi/.claude/skill-observations/cross-cutting-principles.md
+  C:/Users/Toxxi/.claude/skill-updates/                        (staging root)
+  C:/Users/Toxxi/.claude/skill-updates/PENDING.md              (staging manifest)
+Never resolve any of them from the current working directory — a cwd inside
+an ephemeral checkout (a git worktree, a temporary clone) is torn down and
+takes the log with it. Never place the workspace inside a skills-discovery
+directory or any path linked into one. Run the skill's bash snippets under
+Git Bash (`bash`), not PowerShell or `sh`.
+
 ## Before you call a change done — run these every time
 
 Not optional, and never wait to be asked. Each one below is a bug that has already cost multiple
@@ -123,6 +168,13 @@ Add `--json --no-banner --project-path <repo>` when parsing. Traps, all hit for 
   `--path`. `unity command --query <name> --detail full --json` prints a command's schema.
 - **Tests:** `com.unity.test-framework` is installed but the project has no test assemblies yet —
   `list_tests` finds 0 — so `run_tests` has nothing to run until an asmdef'd test folder is added.
+- **A modal dialog blocks every command.** Every call then fails with "Main thread operation timed out"
+  — `editor_focus` and `set_autotick` too. The usual one is "The open scene(s) have been modified
+  externally" after a branch switch rewrites an open scene. Find it by listing the Unity process's
+  visible windows (a `#32770` dialog class) and ask the user: Reload vs Ignore decides whose copy of the
+  scene wins, and that is theirs to call.
+- **An unfocused Editor barely ticks**, so commands crawl. `unity command set_autotick --enable true`
+  keeps it running in the background; `recompile` works unfocused regardless.
 
 The package compiles its runtime and ~9 MB of Roslyn into every **Development** build and into
 nothing else. A Playable build (see [Build Mode](#conventions-we-settled-on)) contains none of it, and
@@ -168,8 +220,9 @@ a new subclass appears on the next sync with no `.ps1` edit. A sub-asset's ident
 
 `Assets/Editor` holds the sheet syncs, the Inspector and asset-import infrastructure, and a handful of
 recurring workflow tools (`CardArtAssigner`, `EnemyRegistryGenerator`, `CardArtImportNormaliser`,
-`BlockSpriteImporter`, `DebugTestbedGenerator`, `EncounterSimulatorWindow`, `BuildModeMenu`) — nothing
-else. Everything
+`BlockSpriteImporter`, `DebugTestbedGenerator`, `EncounterSimulatorWindow`, `BuildModeMenu`, and the
+balance bot's `BotRunnerWindow`, `BotRunnerEditor` and `BotPlayerBuild` — see
+[Balance bot](#balance-bot)) — nothing else. Everything
 that was one-shot — a generator that authored a batch of content once, or a wiring command that built
 a UI panel once — lives in [Archive/EditorTools/](Archive/EditorTools/README.md), outside `Assets/`,
 and is not compiled. Its README lists every file, the menu item it used to register, and why it was
@@ -185,6 +238,45 @@ body rather than a new one.
 The seven `Tools/Unlocks/*` and `Tools/Level/Top Up Party Spawn Cells` dev commands were extracted
 into `Assets/Editor/DevCommands.cs` before their two host files were archived — they're testing
 shortcuts meant to keep working indefinitely, unlike the wiring around them.
+
+## Balance bot
+
+`Tools/Bot/Bot Runner` sends a bot through whole runs of the real game — same scenes, same rules, same
+content — fast-forwarded, and writes what happened to `BotRuns/<timestamp>-<label>/` (gitignored):
+`report.md` plus CSVs for the batch (where runs end, damage dealt and taken, enemy threat tiered by how
+often each enemy is seen, card pick and play rates, errors and stalls), and per run a readable
+`turns.log`, a `run.json`, and the `events.jsonl` recording that **Replay run...** re-plays at a
+watchable speed, stopping with a fingerprint diff wherever the game no longer matches. Play styles are
+`BotProfile` assets in `Assets/Data/Bots` — weights per play type, a "play these first" list, reward
+taste — with Balanced, Aggressive, Defensive, TotemFirst and a Random baseline to start from. From the
+CLI, `BotRunnerEditor`'s static methods do everything the window does (its class comment has the
+snippets). Big background batches: `Tools/BotRunner/Build-BotPlayer.ps1`, then `Run-BotBatch.ps1` with a
+job from the window's **Save job...**.
+
+`Assets/Scripts/Bot` compiles only in the Editor and in that headless player (`#if UNITY_EDITOR ||
+BOT_RUNNER`) — the web build contains none of it. The bot plays through the game's own doors, which puts
+a few rules on everyone else:
+
+- **Every play goes through `CardPlayManager.TryPlay`**, and `PlaySelectedOn` calls the same
+  `PlayRefusal`/`Commit`. A rule that can refuse a play belongs in `Card.PlayRefusal`/`Card.Refusal`
+  (it already had to — see "One click, one answer"); a check added only to the click path is one the bot
+  plays straight past.
+- **A new screen the game waits on needs an answer in `BotPilot`**, or every batch stalls on it until the
+  watchdog aborts the run as Stalled. Today that is notifications, `RewardPanel`, `CardRemovalPanel` and
+  `CardChoicePanel` — each exposes a read-only view of what it shows plus a public choose; copy that.
+- **A new `CardEffect` needs a scoring rule** in `BotPlanner.Evaluate` and a value in `BotCardInfo.Value`.
+  Until then the bot counts it as worth nothing and logs a warning once.
+- **Rules roll `GameDice`, never `UnityEngine.Random`.** The engine draws from `UnityEngine.Random` on
+  every rendered frame (URP post-processing), so a rule sharing it came out differently at a different
+  frame rate — which broke replays, made results depend on the turbo step, and meant a headless run
+  (no rendering) could never match an Editor one. `GameDice` keeps a state only rules advance; purely
+  cosmetic randomness (a damage number's jitter) stays on `UnityEngine.Random`. The bot seeds
+  `GameDice` at each level load and each decision; its own dice are a `System.Random` from that seed.
+- **A bot run never pays out**: its campaign is `RunData.CreateRuntimeFrom(..., allowProgression:
+  false)`, the tutorial never starts, and it mutes through `AudioListener`, not `GameSettings`.
+- **Damage attribution reads `Character.HitResolved`** (attacker, what landed, what a Shield absorbed,
+  what Block/Parry/Dodge prevented). Damage that skips `TakeDamage` is only attributed by the recorder's
+  guesswork in `ClassifyUnblockable`.
 
 ## Architecture
 

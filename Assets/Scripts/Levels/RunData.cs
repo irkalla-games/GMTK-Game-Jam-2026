@@ -168,8 +168,13 @@ public class RunData : ScriptableObject
     /// select screen produced. Exists so the two callers that build a run out of an authored campaign
     /// - CharacterSelectPanel and MainMenu's tutorial hand-over - cannot disagree about which of its
     /// fields carry across; adding a field to a campaign now needs one edit, not three.
+    ///
+    /// `allowProgression` false plays the same campaign but never pays out, whatever the source says -
+    /// the balance bot's runs, which must not unlock heroes or difficulty tiers in PlayerPrefs. It can
+    /// only switch awarding off, never on.
     /// </summary>
-    public static RunData CreateRuntimeFrom(RunData source, IEnumerable<PartyEntry> heroes)
+    public static RunData CreateRuntimeFrom(
+        RunData source, IEnumerable<PartyEntry> heroes, bool allowProgression = true)
     {
         if (source == null)
         {
@@ -178,6 +183,6 @@ public class RunData : ScriptableObject
 
         return CreateRuntime(
             source.Levels, heroes, source.CarryDamageBetweenLevels, source.Ladder,
-            source.AwardsProgression, source.healthLostOnFall);
+            source.AwardsProgression && allowProgression, source.healthLostOnFall);
     }
 }

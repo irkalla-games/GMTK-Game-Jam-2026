@@ -203,7 +203,7 @@ public class Character : MonoBehaviour
     {
         int chance = targetingPattern != null ? targetingPattern.TotemChancePercent : 0;
 
-        huntingTotemThisTurn = chance > 0 && UnityEngine.Random.Range(0, 100) < chance;
+        huntingTotemThisTurn = chance > 0 && GameDice.Range(0, 100) < chance;
     }
 
     private readonly List<Intent> committedPlan = new();
@@ -440,6 +440,20 @@ public class Character : MonoBehaviour
     public event Action<Character, int> DamageRegistered;
 
     /// <summary>
+    /// Raised beside DamageRegistered, for every attack TakeDamage processes, with the whole story
+    /// rather than one number: the final DamageInfo (who swung, what landed as Health, what a Shield
+    /// absorbed, whether it was negated) plus `arriving`, the amount that reached this character before
+    /// its own mitigation ran. arriving - amount - shieldAbsorbed is what Block, Parry and Dodge
+    /// prevented outright.
+    ///
+    /// A separate event rather than a wider DamageRegistered because every listener of that one wants
+    /// only the popup number. This one exists for whatever has to know who hit whom - the balance bot's
+    /// damage attribution - and fires before CheckDeath, so a killing blow is attributable to its
+    /// attacker while the victim is still on its tile.
+    /// </summary>
+    public event Action<DamageInfo, int> HitResolved;
+
+    /// <summary>
     /// Raised from TakeUnblockableDamage with the nominal amount - poison is not an attack and runs no
     /// OnTakeDamage hooks, so unlike Damaged there is no post-mitigation figure to report; the number
     /// dealt is the number that lands. Kept separate from Damaged rather than folded into it because
@@ -646,6 +660,7 @@ public class Character : MonoBehaviour
         if (amount <= 0)
         {
             DamageRegistered?.Invoke(this, 0);
+            HitResolved?.Invoke(new DamageInfo(attacker, this, 0, consumeCharges: false), 0);
             return;
         }
 
@@ -664,6 +679,7 @@ public class Character : MonoBehaviour
         // Health lost plus whatever a Shield status siphoned into its own pool - see the doc on
         // DamageRegistered for why that is the right number and why this fires even at zero.
         DamageRegistered?.Invoke(this, info.amount + info.shieldAbsorbed);
+        HitResolved?.Invoke(info, amount);
 
         // The attacker's on-hit riders - Poison Blade, and whatever shield-on-attack the Knight gets
         // next. Here, not in DamageAction, because this is the one place that knows the hit actually
@@ -1570,8 +1586,9 @@ public class Character : MonoBehaviour
     {
         for (int i = cards.Count - 1; i > 0; i--)
         {
-            // Qualified: `using System` is in scope for Action, and System.Random would shadow this.
-            int j = UnityEngine.Random.Range(0, i + 1);
+            // GameDice, not UnityEngine.Random: a shuffle is a rule, and rules roll dice the engine's
+            // per-frame rendering cannot shift - see GameDice.
+            int j = GameDice.Range(0, i + 1);
             (cards[i], cards[j]) = (cards[j], cards[i]);
         }
     }

@@ -59,6 +59,18 @@ public class CardChoicePanel : Singleton<CardChoicePanel>
     /// Index into the hand passed to Show, valid only once Resolved is true.
     public int ChosenIndex { get; private set; } = -1;
 
+    /// <summary>
+    /// Whether the grid is on screen right now. Not the same question as !Resolved - that is also false
+    /// before the first Show ever happens.
+    /// </summary>
+    public bool IsShowing => root != null && root.activeSelf;
+
+    /// The hand the grid on screen was built from, index for index with ChosenIndex. Read-only, for the
+    /// balance bot, which answers this panel by calling Choose with an index into it.
+    public IReadOnlyList<Card> ShownHand => shownHand;
+
+    private IReadOnlyList<Card> shownHand = System.Array.Empty<Card>();
+
     /// Starts hidden regardless of the scene's authored state - same reasoning as RewardPanel.Awake.
     protected override void Awake()
     {
@@ -80,6 +92,8 @@ public class CardChoicePanel : Singleton<CardChoicePanel>
 
         Clear();
 
+        shownHand = hand;
+
         if (root != null) { root.SetActive(true); }
 
         if (titleLabel != null) { titleLabel.text = prompt ?? string.Empty; }
@@ -93,9 +107,13 @@ public class CardChoicePanel : Singleton<CardChoicePanel>
         if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(true); }
     }
 
-    private void Choose(int index)
+    /// <summary>
+    /// Commits to discarding the hand entry at `index` - what a grid card's click calls. Public for the
+    /// balance bot. An index outside the hand is ignored, the same as a click on nothing.
+    /// </summary>
+    public void Choose(int index)
     {
-        if (Resolved) { return; }
+        if (Resolved || index < 0 || index >= shownHand.Count) { return; }
 
         ChosenIndex = index;
         Resolved = true;

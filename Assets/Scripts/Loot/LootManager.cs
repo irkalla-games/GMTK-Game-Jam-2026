@@ -113,7 +113,7 @@ public class LootManager : Singleton<LootManager>
                 // A thin equipment pool must never leave the player facing an empty panel - the roll
                 // only takes the equipment branch when BuildEquipmentOffer actually found something,
                 // and falls through to the ordinary card offer otherwise. See LootTable.EquipmentChance.
-                List<EquipmentData> equipmentCandidates = Random.value < table.EquipmentChance
+                List<EquipmentData> equipmentCandidates = GameDice.Value < table.EquipmentChance
                     ? BuildEquipmentOffer(pickup.tier, pickup.picker, table)
                     : null;
 
@@ -180,7 +180,7 @@ public class LootManager : Singleton<LootManager>
 
         RewardContext context = new() { character = hero, record = record };
 
-        List<EquipmentData> equipmentCandidates = Random.value < resolvedTable.EquipmentChance
+        List<EquipmentData> equipmentCandidates = GameDice.Value < resolvedTable.EquipmentChance
             ? BuildEquipmentOffer(tier, hero, resolvedTable)
             : null;
 
@@ -225,7 +225,7 @@ public class LootManager : Singleton<LootManager>
             context.Reoffer = false;
 
             string title = context.character != null ? $"{context.character.DisplayName}'s reward" : null;
-            panel.Show(candidates, skips, title);
+            panel.Show(candidates, skips, title, context.character);
 
             yield return new WaitUntil(() => panel.Resolved);
 
@@ -397,11 +397,11 @@ public class LootManager : Singleton<LootManager>
             {
                 // Every remaining candidate weighed to zero (an authored cardWeights of 0, say) -
                 // uniform pick rather than offering nothing.
-                index = Random.Range(0, remaining.Count);
+                index = GameDice.Range(0, remaining.Count);
             }
             else
             {
-                int roll = Random.Range(0, totalWeight);
+                int roll = GameDice.Range(0, totalWeight);
                 index = remaining.Count - 1;
 
                 for (int i = 0; i < remaining.Count; i++)
@@ -426,7 +426,7 @@ public class LootManager : Singleton<LootManager>
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = GameDice.Range(0, i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
     }

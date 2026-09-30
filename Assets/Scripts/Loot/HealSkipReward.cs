@@ -11,6 +11,9 @@ public class HealSkipReward : SkipReward
 {
     [SerializeField] private int amount = 5;
 
+    /// How much choosing this heals - read-only, for the balance bot weighing it against the cards.
+    public int Amount => amount;
+
     public override string Label => $"Skip — Heal {amount}";
 
     public override IEnumerator Grant(RewardContext context)

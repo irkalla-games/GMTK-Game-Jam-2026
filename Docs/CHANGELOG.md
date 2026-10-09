@@ -9,6 +9,88 @@ written up.
 
 ---
 
+## 2026-10-09 (night) — Foresight: the bot reads poison and forecasts moves
+
+**Asked for:** many more runs on the new content, without the Veil exploit, trying different ways to
+play (kill some threats, defend from only some), a better strategy for the bot, re-measured reward
+ratings, and a site with the findings. 11,820 runs; the write-up is `Docs/BotStrategy.md` and the
+"Spire Balance Lab" artifact.
+
+**The bot could not see poison.** `BotBoardModel` built every enemy's threat from `Card.PreviewDamage`,
+which reports hits only, so a Light Bandit's Venom Cut (1 damage, 3 Poison to everyone within 1 tile)
+read as 1 damage, and a hero carrying lethal Poison read as healthy. The Light Bandit causes 31% of all
+hero falls. `countPoison` now counts both. On its own it changed little; together with a move forecast
+(`BattleManager.ForecastPlan`, a read-only `DecidePlan` the bot calls after stepping a hero onto a tile)
+and triage (blocks valued by what the ally needs, since health resets between levels) the new
+**Foresight** profile beat Tuned by +0.34 levels per run across all six parties, and the re-measured
+ratings added +0.11 more. Foresight is the Bot Runner's default; the v3 ratings are on Tuned, Adaptive
+and Foresight.
+
+**Build-BotPlayer.ps1 reported failure after a good build.** Unity 6000.5 batch mode can crash in its
+own shutdown after `BotPlayerBuild` has written the player; the script now trusts the build's
+`BotPlayerBuild: Succeeded` log line over the editor's exit code.
+
+## 2026-10-09 — The bot learns to play, and finds two totem bugs
+
+**Asked for:** a bot precise enough to trust for balance data, aggressive early in a battle and defensive
+late, tuned by playing. About 8,400 runs later, the full write-up is `Docs/BotStrategy.md`. The short
+version: aggression lost to steady defence for every party except the ones that could hide (below),
+because from level 3 on a party kills only 5-18% of what spawns. The new **Tuned** profile (defensive
+weights, positioning, whole-turn planning, drafting by measured reward ratings) beat the old Balanced
+default by 0.2-1.6 levels on every party and is now the Bot Runner's default.
+
+**Totems projected their auras onto themselves.** `Totem.Project` asked only `Covers`, which is true for
+the totem's own tile at range 0. So Veil Totem gave itself Stealth along with the party, and enemies
+had nothing left they could target. 35 of the bot's first 37 full-run wins took it. `Project` now skips
+every totem, not just its own: two Veil Totems side by side would otherwise hide each other. `Covers` is
+unchanged, because it also gates reactions. Same seeds, Knight + Rogue went from 7/11 full wins
+(Tuned/Adaptive) to 0, and 3.4-3.9 levels cleared to about 2.5, level with the other parties.
+
+**Thornwood Totem reflected forever.** `Totem.TryReact` runs a reaction with the triggering character as
+its `source`. So Thornwood's reflected `DamageAction` reached `ActionResolved` looking exactly like the
+enemy attacking again, and re-fired Thornwood. That repeats until the attacker dies, which made Thornwood
+an instant kill on anything that swung in range. Against a HeavyBandit whose Block soaked all 3 damage it
+never ended: the enemy phase hung. It aborted 2-3% of bot runs, and a player would have seen the game
+freeze. `ActionContext.isReaction` now marks a reaction's context, every effect passes its context
+through to the action it queues, and `TryReact` ignores marked actions, so a reaction fires once per real
+action and never chains. Verified on the 300 seeds that hung 5 times before: no stalls, one reflected hit
+per attack (two when two Thornwoods are in range).
+
+**What this changes for the data.** The reward ratings on the Tuned and Adaptive assets were measured
+before both fixes, so Veil Totem and Thornwood in particular are mis-rated until the next exploration
+batch.
+
+## 2026-10-09 — Every equipment item checked against its description
+
+**Asked for:** confirm all 33 items do what their descriptions say. Each was equipped alone in the debug
+testbed and driven through the real damage, status, turn and card-play code (`CardPlayManager.TryPlay`).
+22 already matched. The rest came down to two causes.
+
+**The card-tag items reached almost nothing.** `CardFilter` matches on `CardTag`, and most player cards
+carried no tags at all: Longsword's "Attack cards" matched zero Knight cards, Boots of Speed and Zephyr
+Ring missed Move and Teleport, and the three Fire items reached only Wall of Flames. The plumbing was
+fine; the content was untagged. Tagged Fire on Fireball, Firebolt, Flame Cone and X-Burner, Movement on
+Move and Teleport, Defence on Shield, Parry, Guardian's Aegis and Steely Resolve, and Attack on every
+player card whose job is damage. No `LootTable` weights those tags (only PoisonSkeleton weights Poison), so
+reward odds are unchanged. Fire Mage's Hat now names Firebolt alone rather than the Fire tag: an
+`AreaModifier` *replaces* an entry's footprint, so a tag-wide Hat would have flattened Flame Cone's cone and
+X-Burner's X into a plain 3×3.
+
+**`AddStatus` refuses `StatusType.None`, and two rules were built on it.** Wardens' Braid ("+1 Poison
+whenever you apply Poison") was a `GrantBonusModifier`, which rides `OnGainStatus` over the *receiver's*
+statuses - so it poisoned the wearer harder and left the Poison they applied alone. It is now an
+`AppliedStacksModifier` (`Status.AppliedStacks`, read by `StatusAction` and `PoisonBladeStatus`, so card
+Poison and each on-hit proc both get +1). Separately, Weaken Ring's "your totems included" never happened:
+`AppliedPotencyStatus.OnSummoned` handed the totem a None-typed status through `AddStatus`, which dropped
+it silently, so a Sap Totem projected Weaken 3 instead of 4. `Character.CarryUntypedStatus` is the door
+for those now.
+
+**Descriptions that undersold or misled.** Totem Anchor said +7 and gave +10 (text fixed to +10). The
+permanent Block/Shield rings never deplete, so "Block 2" was really -3 on every hit forever and "Shield 2"
+-2 on every hit, not a pool - Rimeguard, Glacier and Seraph's Ward now say so.
+
+---
+
 ## 2026-09-26 — A balance bot, and the rules get their own dice
 
 **Asked for:** a bot that plays whole runs of the game so balance can be tested without a room full of

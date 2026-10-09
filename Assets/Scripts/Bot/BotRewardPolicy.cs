@@ -65,6 +65,13 @@ public static class BotRewardPolicy
 
         if (profile.randomness >= 1f) { return Uniform(cards, items, skips, rng); }
 
+        if (profile.rewards.exploreRewards > 0f && rng.NextDouble() < profile.rewards.exploreRewards)
+        {
+            BotRewardChoice explored = Uniform(cards, items, skips, rng);
+            explored.Reason = "explore";
+            return explored;
+        }
+
         if (items.Count > 0)
         {
             int best = -1;
@@ -72,7 +79,7 @@ public static class BotRewardPolicy
 
             for (int i = 0; i < items.Count; i++)
             {
-                float value = EquipmentValue(items[i], receiver);
+                float value = EquipmentValue(items[i], receiver) + profile.rewards.Rating(items[i]);
 
                 if (items[i] != null && value > bestValue)
                 {
@@ -105,12 +112,14 @@ public static class BotRewardPolicy
             }
         }
 
-        if (bestCard >= 0 && bestCardValue >= profile.rewards.takeCardsMinValue)
+        int level = RunManager.Instance != null ? RunManager.Instance.LevelNumber : 1;
+
+        if (bestCard >= 0 && bestCardValue >= profile.rewards.TakeCardsMinValue(level))
         {
             return CardChoice(cards, bestCard, bestCardValue, "worth taking");
         }
 
-        BotRewardChoice skip = ChooseSkip(skips, deck, receiver, profile);
+        BotRewardChoice skip = ChooseSkip(skips, deck, receiver, profile, level);
 
         if (skip != null) { return skip; }
 
@@ -125,7 +134,8 @@ public static class BotRewardPolicy
         new() { Kind = "card", Index = index, Name = cards[index].cardName, Value = value, Reason = reason };
 
     private static BotRewardChoice ChooseSkip(
-        IReadOnlyList<SkipReward> skips, IReadOnlyList<CardData> deck, Character receiver, BotProfileData profile)
+        IReadOnlyList<SkipReward> skips, IReadOnlyList<CardData> deck, Character receiver, BotProfileData profile,
+        int level)
     {
         int Find(BotSkipKind kind)
         {
@@ -151,9 +161,11 @@ public static class BotRewardPolicy
 
         int remove = Find(BotSkipKind.Remove);
 
-        if (remove >= 0 && deck != null && deck.Count > profile.rewards.removeWhenDeckAbove)
+        int removeAbove = profile.rewards.RemoveWhenDeckAbove(level);
+
+        if (remove >= 0 && deck != null && deck.Count > removeAbove)
         {
-            return Pick(remove, $"deck over {profile.rewards.removeWhenDeckAbove} cards");
+            return Pick(remove, $"deck over {removeAbove} cards");
         }
 
         int heal = Find(BotSkipKind.Heal);

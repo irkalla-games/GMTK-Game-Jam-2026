@@ -1801,6 +1801,19 @@ public class BattleManager : Singleton<BattleManager>
     /// Stops early on a Wait, so a plan shorter than `steps` is exactly as long as this enemy actually
     /// has something to do.
     /// </summary>
+    /// <summary>
+    /// What this enemy's intent row would read on the board exactly as it stands now - the same
+    /// DecidePlan LateUpdate runs, without committing anything. For a caller that has just moved a body
+    /// through Character.MoveTo to ask "where would the hits land if I stood there" (the balance bot's
+    /// move forecast), and puts it back afterwards. Read-only: nothing is locked, set or raised.
+    /// </summary>
+    public static List<Intent> ForecastPlan(Character enemy)
+    {
+        if (enemy == null || enemy.IsDead || GridManager.Instance == null) { return new List<Intent>(); }
+
+        return DecidePlan(enemy, GridManager.Instance.Read(), enemy.ActionPoints);
+    }
+
     private static List<Intent> DecidePlan(Character character, Board board, int steps)
     {
         List<Intent> plan = new(steps);

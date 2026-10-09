@@ -64,6 +64,14 @@ Write-Host "Building with Unity $unityVersion in batch mode (log: $log)..."
 $process = Start-Process -FilePath $unity -ArgumentList $arguments -Wait -PassThru -NoNewWindow
 
 if ($process.ExitCode -ne 0) {
+    # Unity 6000.5 batch mode sometimes crashes in its own shutdown (WorkerManagerASIO teardown, exit
+    # -1073741819) after BotPlayerBuild has already written the player and logged its verdict - that line
+    # is the truth about the build, the exit code only about the editor process.
+    if (Select-String -Path $log -Pattern '^BotPlayerBuild: Succeeded' -Quiet) {
+        Write-Host "BUILD OK (Unity crashed on exit $($process.ExitCode) after the build succeeded): $(Join-Path $Out 'EscapeTheSpireBot.exe')"
+        exit 0
+    }
+
     Write-Host "BUILD FAILED (exit $($process.ExitCode)) - see $log"
     exit $process.ExitCode
 }

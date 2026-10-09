@@ -264,7 +264,7 @@ a few rules on everyone else:
 - **A new screen the game waits on needs an answer in `BotPilot`**, or every batch stalls on it until the
   watchdog aborts the run as Stalled. Today that is notifications, `RewardPanel`, `CardRemovalPanel` and
   `CardChoicePanel` — each exposes a read-only view of what it shows plus a public choose; copy that.
-- **A new `CardEffect` needs a scoring rule** in `BotPlanner.Evaluate` and a value in `BotCardInfo.Value`.
+- **A new `CardEffect` needs a scoring rule** in `BotPlanner.Measure` and a value in `BotCardInfo.Value`.
   Until then the bot counts it as worth nothing and logs a warning once.
 - **Rules roll `GameDice`, never `UnityEngine.Random`.** The engine draws from `UnityEngine.Random` on
   every rendered frame (URP post-processing), so a rule sharing it came out differently at a different
@@ -274,6 +274,26 @@ a few rules on everyone else:
   `GameDice` at each level load and each decision; its own dice are a `System.Random` from that seed.
 - **A bot run never pays out**: its campaign is `RunData.CreateRuntimeFrom(..., allowProgression:
   false)`, the tutorial never starts, and it mutes through `AudioListener`, not `GameSettings`.
+- **Planning is measure-once, score-many.** `BotPlanner` asks the game's previews once per candidate
+  (`BotMeasure`); `Simulate` re-scores it against a partial turn (`BotTurnState`) without touching the
+  game. `searchDepth` 0 is the original greedy pick; above 0 a beam search plans the whole turn and takes
+  its first play. A play that moves a body or fills a tile ends a planned turn — every later preview
+  would be of a board that no longer exists.
+- **An adaptive profile blends two weight sets** (`weights` aggressive, `lateWeights` defensive) by
+  `BotAggression` — battle progress, party health, crowding — and its rewards split at
+  `rewards.earlyLevels`. Every field added after the first presets defaults to "off", so an old job or
+  profile asset plays exactly as it did; keep it that way when adding more.
+- **Foresight is the default profile** (`Docs/BotStrategy.md`): Tuned plus triage (`mitigationNeed` -
+  a block is worth what the ally needs it, since health resets between levels), a move forecast
+  (`forecast` - step the hero there, re-plan every enemy through `BattleManager.ForecastPlan`, step
+  back) and `countPoison` (Poison bites before enemies act and no Shield stops it). The forecast moves
+  bodies with `Character.MoveTo` and restores them in a `finally`, the same relocate-and-restore
+  `DecidePlan` uses; anything new there must stay side-effect free. A new damage-over-time status needs
+  the same treatment as Poison in `BotBoardModel`, or enemies applying it read as harmless.
+- **Reward ratings are measured, not authored.** `Tools/BotRunner/Rate-Rewards.py` reads batches whose
+  profile has `rewards.exploreRewards = 1` (uniform random picks, so taking vs passing is causal) and
+  writes `cardRatings`; `ratingWeight` turns its levels-gained into pick value. Re-measure after a
+  balance pass — the ratings describe the content they were measured on.
 - **Damage attribution reads `Character.HitResolved`** (attacker, what landed, what a Shield absorbed,
   what Block/Parry/Dodge prevented). Damage that skips `TakeDamage` is only attributed by the recorder's
   guesswork in `ClassifyUnblockable`.

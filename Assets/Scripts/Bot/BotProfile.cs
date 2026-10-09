@@ -104,6 +104,66 @@ public class BotWeights
 
     [Tooltip("Subtracted per point of energy cost, so a free play beats an equal paid one.")]
     public float costPenalty = 0.25f;
+
+    // Appended after the first presets shipped - a profile or job written before these existed reads
+    // them as their initialisers below, which are all "off", so it plays exactly as it did.
+
+    [Tooltip("Per point of damage a killed enemy would have dealt over the rest of the battle (its per-"
+             + "round damage x rounds left after this one, capped by Future Rounds Cap). What makes an "
+             + "early kill worth more than a late one.")]
+    public float futureThreat;
+
+    [Tooltip("Per tile a move brings the hero closer to the nearest loot on the board.")]
+    public float lootApproach;
+
+    [Tooltip("Per open side a move closes: neighbouring tiles an enemy could stand on to hit the hero, "
+             + "before minus after. A corner beside an ally has two; the middle of the board has eight.")]
+    public float exposure;
+
+    [Tooltip("Per point of damage stopped, scaled by how much the ally needs it: what this round's incoming "
+             + "would add up to over the rounds left, against the health they have, capped at Need Cap. A hero "
+             + "who can soak the rest of the battle standing needs none of it - spend the energy killing. "
+             + "Counts on top of Mitigation, so lower that row when raising this one.")]
+    public float mitigationNeed;
+
+    [Tooltip("Per point of incoming a move takes off our side, need-weighted like Mitigation Need - measured "
+             + "by stepping the hero there and asking every enemy's own brain where it would now hit. Falls "
+             + "a move causes or prevents this round count through Life Saved. The exact version of Move "
+             + "Safety and Exposure; zero those when using it.")]
+    public float forecast;
+
+    private static System.Reflection.FieldInfo[] fields;
+
+    /// Every float row, a + (b - a) x t - how an adaptive profile slides from its aggressive weights to
+    /// its defensive ones. Reflected once, so a row added later blends with no edit here.
+    public static BotWeights Lerp(BotWeights a, BotWeights b, float t)
+    {
+        fields ??= Array.FindAll(typeof(BotWeights).GetFields(), f => f.FieldType == typeof(float));
+
+        BotWeights result = new();
+
+        foreach (System.Reflection.FieldInfo field in fields)
+        {
+            float from = (float)field.GetValue(a);
+            float to = (float)field.GetValue(b);
+            field.SetValue(result, from + (to - from) * t);
+        }
+
+        return result;
+    }
+
+    public BotWeights Clone() => Lerp(this, this, 0f);
+}
+
+/// A measured pick bonus for one card, by card name - see BotRewardPrefs.cardRatings.
+[Serializable]
+public class BotCardRating
+{
+    public string card;
+
+    [Tooltip("Added to the card's pick value (times Rating Weight). Positive means runs that took it did "
+             + "better than runs that passed on it.")]
+    public float bonus;
 }
 
 /// <summary>
@@ -142,6 +202,58 @@ public class BotRewardPrefs
 
     [Tooltip("Take offered equipment at all.")]
     public bool takeEquipment = true;
+
+    // Appended - a profile or job written before these existed reads them as off.
+
+    [Tooltip("Levels (1-based, inclusive) that count as early: the deck is still being built, so cards "
+             + "are taken at Take Cards Min Value. 0 turns the early/late split off.")]
+    public int earlyLevels;
+
+    [Tooltip("After the early levels: a card has to be worth this much to be taken.")]
+    public float lateTakeCardsMinValue = 4f;
+
+    [Tooltip("After the early levels: 'Remove a card' once the deck is bigger than this.")]
+    public int lateRemoveWhenDeckAbove = 14;
+
+    [Tooltip("Multiplier on the Loot weight after the early levels - how much a detour for a pickup is "
+             + "still worth once the deck is built.")]
+    public float lateLootScale = 1f;
+
+    [Tooltip("Scales every Card Ratings bonus. 0 ignores them.")]
+    public float ratingWeight;
+
+    [Tooltip("Pick bonuses measured from batch data, by card or equipment name - "
+             + "Tools/BotRunner/Rate-Rewards.py writes these.")]
+    public List<BotCardRating> cardRatings = new();
+
+    [Tooltip("Chance per reward screen of a uniformly random choice instead of the policy's - for "
+             + "measuring what each card and item is worth (Rate-Rewards.py), never for real play. The "
+             + "battles themselves are still played by the profile.")]
+    [Range(0f, 1f)] public float exploreRewards;
+
+    public bool IsEarly(int level) => earlyLevels <= 0 || level <= earlyLevels;
+
+    public float TakeCardsMinValue(int level) => IsEarly(level) ? takeCardsMinValue : lateTakeCardsMinValue;
+
+    public int RemoveWhenDeckAbove(int level) => IsEarly(level) ? removeWhenDeckAbove : lateRemoveWhenDeckAbove;
+
+    public float LootScale(int level) => IsEarly(level) ? 1f : lateLootScale;
+
+    public float Rating(CardData card) => card != null ? Rating(card.cardName) : 0f;
+
+    public float Rating(EquipmentData item) => item != null ? Rating(item.equipmentName) : 0f;
+
+    private float Rating(string name)
+    {
+        if (ratingWeight == 0f || cardRatings == null) { return 0f; }
+
+        foreach (BotCardRating rating in cardRatings)
+        {
+            if (rating != null && rating.card == name) { return rating.bonus * ratingWeight; }
+        }
+
+        return 0f;
+    }
 }
 
 /// <summary>
@@ -182,6 +294,63 @@ public class BotProfileData
     public bool baseline;
 
     public BotRewardPrefs rewards = new();
+
+    // Appended - a profile or job written before these existed reads them as off: greedy, one weight set.
+
+    [Header("Adaptive")]
+    [Tooltip("Slide from Weights (aggressive) to Late Weights (defensive) as the battle goes on - see "
+             + "BotAggression.")]
+    public bool adaptive;
+
+    [Tooltip("The defensive end of an adaptive profile. Ignored unless Adaptive is on.")]
+    public BotWeights lateWeights = new();
+
+    [Tooltip("Fraction of the battle's turns played fully aggressive.")]
+    [Range(0f, 1f)] public float aggressiveUntil = 0.4f;
+
+    [Tooltip("Fraction of the battle's turns from which play is fully defensive.")]
+    [Range(0f, 1f)] public float defensiveFrom = 0.8f;
+
+    [Tooltip("Below this fraction of the party's total health, aggression is scaled down in proportion.")]
+    [Range(0f, 1f)] public float lowHpGuard = 0.5f;
+
+    [Tooltip("More living enemies than this per hero scales aggression down - a crowd is survived, "
+             + "not raced. 0 turns it off.")]
+    public float crowdGuard;
+
+    [Tooltip("Aggression never drops below this, even on the last turn - a kill is still a kill.")]
+    [Range(0f, 1f)] public float minAggression;
+
+    [Tooltip("Rounds of future damage a kill is credited with at most (Future Threat).")]
+    public int futureRoundsCap = 6;
+
+    [Header("Search")]
+    [Tooltip("Plays deep to plan the turn as a sequence - 0 is the original one-play greedy choice.")]
+    public int searchDepth;
+
+    [Tooltip("Partial turns kept at each depth.")]
+    public int beamWidth = 6;
+
+    [Tooltip("Best next plays expanded from each kept partial turn.")]
+    public int branching = 8;
+
+    [Header("Triage and forecast")]
+    [Tooltip("Most a point of damage stopped can be worth under Mitigation Need, as a multiple: an ally "
+             + "whose incoming x rounds left comes to twice their health is no more urgent than this.")]
+    public float needCap = 1.5f;
+
+    [Tooltip("Floor on the need multiplier - how much a point stopped on an ally who will easily survive "
+             + "the battle is still worth.")]
+    [Range(0f, 1f)] public float needFloor = 0.1f;
+
+    [Tooltip("Best-scoring moves per decision measured with the forecast (when Forecast is weighted). The "
+             + "rest keep their cheap score. Each one re-plans every enemy on the board.")]
+    public int forecastMoves = 12;
+
+    [Tooltip("Count Poison as the damage it is: what an ally carries now (it bites before enemies act, and "
+             + "nothing blocks it) against their health, and what an enemy's attack would add as part of that "
+             + "enemy's threat. Off, a Light Bandit reads as the 1 damage its Venom Cut previews.")]
+    public bool countPoison;
 
     /// A deep copy through JsonUtility - the same serializer the job file uses, so a copy can never
     /// carry anything a job would not.

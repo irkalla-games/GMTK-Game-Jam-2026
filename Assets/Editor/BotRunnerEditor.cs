@@ -55,7 +55,7 @@ public static class BotRunnerEditor
     // Jobs
 
     /// The window's defaults: the real campaign on Normal, the roster's playable-size party on starter
-    /// decks, the Balanced profile, one run, Turbo.
+    /// decks, the Foresight profile, one run, Turbo.
     public static BotJob DefaultJob()
     {
         BotJob job = new() { label = "batch", campaign = "RealRun - Random" };
@@ -75,7 +75,7 @@ public static class BotRunnerEditor
             }
         }
 
-        job.profiles = Profiles("Balanced");
+        job.profiles = Profiles("Foresight");
 
         return job;
     }

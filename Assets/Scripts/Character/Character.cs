@@ -1077,6 +1077,35 @@ public class Character : MonoBehaviour
         return total;
     }
 
+    /// <summary>
+    /// How many extra stacks this character's statuses and equipment add to a `type` it is about to
+    /// apply to somebody else - see Status.AppliedStacks. Summed like AppliedPotency, so two Braids both
+    /// count.
+    /// </summary>
+    public int AppliedStacks(StatusType type)
+    {
+        int total = 0;
+
+        foreach (Status status in ActiveStatuses()) { total += status.AppliedStacks(type); }
+
+        return total;
+    }
+
+    /// <summary>
+    /// Appends a status that has no StatusType of its own - a rule inherited from equipment rather than
+    /// a buff anyone applied, like the applied potency a totem takes from its summoner's ring. AddStatus
+    /// cannot carry one: it refuses StatusType.None outright, and merging by type would fold two unrelated
+    /// typeless rules into each other. Skips the OnGainStatus pipeline for the same reason - there is no
+    /// type for a GainMultiplier or GainBonus to match. Callers guard against carrying the same rule twice.
+    /// </summary>
+    public void CarryUntypedStatus(StatusEffect status)
+    {
+        if (status == null) { return; }
+
+        ownStatusEffects.Add(status);
+        RaiseStatsChanged();
+    }
+
     /// Applies a status by type, stacking onto one already present. The convenience form for every
     /// status the enum alone can describe - GridTile.ApplyStatus and friends.
     public void AddStatus(StatusType type, int stacks)

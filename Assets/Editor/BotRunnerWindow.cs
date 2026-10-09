@@ -71,9 +71,10 @@ public class BotRunnerWindow : EditorWindow
 
         if (profiles.Count == 0)
         {
-            BotProfile balanced = AssetDatabase.LoadAssetAtPath<BotProfile>("Assets/Data/Bots/Balanced.asset");
+            // Foresight is the measured best player - the one to collect balance data with.
+            BotProfile best = AssetDatabase.LoadAssetAtPath<BotProfile>("Assets/Data/Bots/Foresight.asset");
 
-            if (balanced != null) { profiles.Add(balanced); }
+            if (best != null) { profiles.Add(best); }
         }
     }
 
@@ -182,7 +183,7 @@ public class BotRunnerWindow : EditorWindow
 
         if (GUILayout.Button("Add profile", GUILayout.Width(90f))) { profiles.Add(null); }
 
-        if (GUILayout.Button(new GUIContent("Add all presets", "Balanced, Aggressive, Defensive, TotemFirst and Random."),
+        if (GUILayout.Button(new GUIContent("Add all presets", "Every profile in Assets/Data/Bots."),
                              GUILayout.Width(110f)))
         {
             BotRunnerEditor.CreateMissingPresets();

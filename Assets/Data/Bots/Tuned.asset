@@ -1,0 +1,347 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ce6e0eefdd630b4eb81c3a5ffdec5cd, type: 3}
+  m_Name: Tuned
+  m_EditorClassIdentifier: Assembly-CSharp::BotProfile
+  data:
+    name: Tuned
+    notes: 'Measured best for balance data: defensive weights, steps out of reach
+      and into covered spots, plans whole turns, drafts by measured reward ratings.'
+    weights:
+      damage: 0.7
+      kill: 5
+      threatRemoved: 1.4
+      friendlyFire: -3
+      mitigation: 1.6
+      mitigationSpare: 0.3
+      heal: 1.3
+      lifeSaved: 40
+      dot: 0.5
+      debuff: 2
+      buff: 1
+      totemCover: 4
+      totemBase: 2
+      summon: 0.4
+      moveSetup: 0.4
+      moveSafety: 1.5
+      loot: 8
+      auraMove: 3
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1.5
+      discard: -2
+      costPenalty: 0.25
+      futureThreat: 0
+      lootApproach: 0
+      exposure: 2
+      mitigationNeed: 0
+      forecast: 0
+    playFirst: 
+    playFirstMinScore: 0
+    passThreshold: 0.5
+    randomness: 0
+    endTurnChance: 0.15
+    baseline: 0
+    rewards:
+      attackPick: 1
+      defensePick: 1.5
+      healPick: 1.4
+      totemPick: 1
+      summonPick: 1
+      debuffPick: 1
+      buffPick: 1
+      movePick: 0.6
+      utilityPick: 1
+      rarityBonus: 1
+      takeCardsMinValue: 4
+      healSkipBelowHp: 0.5
+      upgradeWeight: 1
+      removeWhenDeckAbove: 14
+      takeEquipment: 1
+      earlyLevels: 0
+      lateTakeCardsMinValue: 4
+      lateRemoveWhenDeckAbove: 14
+      lateLootScale: 1
+      ratingWeight: 20
+      cardRatings:
+      - card: Seraph's Ward
+        bonus: 0.44
+      - card: Dodge
+        bonus: 0.369
+      - card: Beacon Totem
+        bonus: 0.317
+      - card: Glacier Band
+        bonus: 0.284
+      - card: Fire Mage's Hat
+        bonus: 0.273
+      - card: Serpent's Coil
+        bonus: 0.204
+      - card: Anvil Totem
+        bonus: 0.196
+      - card: Sentinel Totem
+        bonus: 0.194
+      - card: Bastion Totem
+        bonus: 0.167
+      - card: Shackle Totem
+        bonus: 0.125
+      - card: Deepcoral Signet
+        bonus: 0.125
+      - card: Zephyr Ring
+        bonus: 0.124
+      - card: Ring of Focus
+        bonus: 0.122
+      - card: Sap Totem
+        bonus: 0.117
+      - card: Warlord Totem
+        bonus: 0.116
+      - card: Panache
+        bonus: 0.112
+      - card: Whetstone Totem
+        bonus: 0.101
+      - card: Marigold Band
+        bonus: 0.1
+      - card: Renewing Touch
+        bonus: 0.099
+      - card: Foresight
+        bonus: 0.099
+      - card: Sharpening Ring
+        bonus: 0.086
+      - card: Fireball
+        bonus: 0.085
+      - card: Block
+        bonus: 0.081
+      - card: Flame Cone
+        bonus: 0.08
+      - card: Parry
+        bonus: 0.08
+      - card: Blade Ward
+        bonus: 0.068
+      - card: Rimeguard Band
+        bonus: 0.063
+      - card: Vampire's Token
+        bonus: 0.059
+      - card: Evasion
+        bonus: 0.057
+      - card: Warcry Totem
+        bonus: 0.046
+      - card: Adrenaline
+        bonus: 0.045
+      - card: Shield Totem
+        bonus: 0.037
+      - card: Momentum Totem
+        bonus: 0.037
+      - card: Rampart Totem
+        bonus: 0.034
+      - card: Tower Totem
+        bonus: 0.032
+      - card: Weaken Ring
+        bonus: 0.032
+      - card: Rally Totem
+        bonus: 0.03
+      - card: Cleave
+        bonus: 0.029
+      - card: Ruin Totem
+        bonus: 0.028
+      - card: Vengeful Vigor
+        bonus: 0.023
+      - card: Thornwood Totem
+        bonus: 0.022
+      - card: Wall of Flames
+        bonus: 0.017
+      - card: Ghoststep Totem
+        bonus: 0.016
+      - card: Astrologer's Loop
+        bonus: 0.016
+      - card: Sunder
+        bonus: 0.011
+      - card: Hex Totem
+        bonus: 0.01
+      - card: Freeze
+        bonus: 0.007
+      - card: Opaline Charm
+        bonus: 0.007
+      - card: X-Burner
+        bonus: 0.003
+      - card: Aegis Totem
+        bonus: 0.001
+      - card: Bloodied Resolve
+        bonus: 0
+      - card: Steely Resolve
+        bonus: -0.003
+      - card: Wellspring Totem
+        bonus: -0.003
+      - card: Heal Totem
+        bonus: -0.004
+      - card: Wellhead Totem
+        bonus: -0.005
+      - card: Attack and Block
+        bonus: -0.006
+      - card: Quick Attack
+        bonus: -0.008
+      - card: Panther's Eye
+        bonus: -0.01
+      - card: Emberwood Band
+        bonus: -0.015
+      - card: Mend and Guard
+        bonus: -0.02
+      - card: Draw Totem
+        bonus: -0.023
+      - card: Chaos Totem
+        bonus: -0.024
+      - card: Guardian's Aegis
+        bonus: -0.025
+      - card: Bulwark Totem
+        bonus: -0.03
+      - card: Bloodmoon Totem
+        bonus: -0.031
+      - card: Poison Blade
+        bonus: -0.031
+      - card: Lodestone Totem
+        bonus: -0.032
+      - card: Strengthen
+        bonus: -0.032
+      - card: Bramblewreath
+        bonus: -0.033
+      - card: Boots of Speed
+        bonus: -0.035
+      - card: Cascade Ring
+        bonus: -0.035
+      - card: Summon Skeleton
+        bonus: -0.036
+      - card: Bloodshard Ring
+        bonus: -0.042
+      - card: Enfeeble Totem
+        bonus: -0.044
+      - card: Buff
+        bonus: -0.046
+      - card: Stealth
+        bonus: -0.046
+      - card: Scholar Totem
+        bonus: -0.051
+      - card: Conduit Totem
+        bonus: -0.057
+      - card: Sanctuary Totem
+        bonus: -0.059
+      - card: Contagion Totem
+        bonus: -0.059
+      - card: Fury Totem
+        bonus: -0.063
+      - card: Whirlwind
+        bonus: -0.064
+      - card: Deathgrip Signet
+        bonus: -0.066
+      - card: Fortune Totem
+        bonus: -0.068
+      - card: Binding Totem
+        bonus: -0.069
+      - card: Wall of Force
+        bonus: -0.072
+      - card: Twin Totem
+        bonus: -0.076
+      - card: Ice Shard
+        bonus: -0.08
+      - card: Veil Totem
+        bonus: -0.095
+      - card: Sporecap Ring
+        bonus: -0.096
+      - card: Bloom Totem
+        bonus: -0.096
+      - card: Longsword
+        bonus: -0.104
+      - card: Taunt
+        bonus: -0.106
+      - card: Decoy Totem
+        bonus: -0.111
+      - card: Shambles
+        bonus: -0.114
+      - card: Reinforce Totem
+        bonus: -0.119
+      - card: Poison Dagger
+        bonus: -0.134
+      - card: Fracture Totem
+        bonus: -0.137
+      - card: Dread Sovereign
+        bonus: -0.137
+      - card: Bloodpact Totem
+        bonus: -0.141
+      - card: Spike Totem
+        bonus: -0.143
+      - card: Venom Totem
+        bonus: -0.145
+      - card: Rot Totem
+        bonus: -0.146
+      - card: Totem Anchor
+        bonus: -0.151
+      - card: Entangle
+        bonus: -0.152
+      - card: Second Wind
+        bonus: -0.156
+      - card: Echo Totem
+        bonus: -0.158
+      - card: Cinderforge Ring
+        bonus: -0.16
+      - card: Ironbound Vambrace
+        bonus: -0.183
+      - card: Venomblade Totem
+        bonus: -0.193
+      - card: Stormsplit Ring
+        bonus: -0.202
+      - card: Mend and Fortify
+        bonus: -0.237
+      - card: Curse Totem
+        bonus: -0.27
+      - card: Leech Totem
+        bonus: -0.29
+      exploreRewards: 0
+    adaptive: 0
+    lateWeights:
+      damage: 1
+      kill: 6
+      threatRemoved: 1
+      friendlyFire: -2
+      mitigation: 1
+      mitigationSpare: 0.1
+      heal: 0.8
+      lifeSaved: 25
+      dot: 0.6
+      debuff: 1.5
+      buff: 1.5
+      totemCover: 4
+      totemBase: 2
+      summon: 0.3
+      moveSetup: 0.6
+      moveSafety: 0.6
+      loot: 8
+      auraMove: 2
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1
+      discard: -2
+      costPenalty: 0.25
+      futureThreat: 0
+      lootApproach: 0
+      exposure: 0
+      mitigationNeed: 0
+      forecast: 0
+    aggressiveUntil: 0.4
+    defensiveFrom: 0.8
+    lowHpGuard: 0.5
+    crowdGuard: 0
+    minAggression: 0
+    futureRoundsCap: 6
+    searchDepth: 6
+    beamWidth: 6
+    branching: 8
+    needCap: 1.5
+    needFloor: 0.1
+    forecastMoves: 12
+    countPoison: 0

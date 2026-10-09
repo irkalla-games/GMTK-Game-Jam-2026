@@ -757,7 +757,7 @@ public class BotPilot : PersistantSingleton<BotPilot>
 
         foreach (Character hero in model.Heroes) { unspent += Mathf.Max(0, hero.Energy); }
 
-        recorder.Decision(decision, e, profile.weights, unspent);
+        recorder.Decision(decision, e, decision.Weights ?? profile.weights, unspent);
 
         if (decision.IsEndTurn)
         {

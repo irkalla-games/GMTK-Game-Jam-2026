@@ -184,10 +184,15 @@ public class Totem : MonoBehaviour
     /// Each is a fresh Aura wrapping a fresh StatusEffect - the effect carries the rule (Strength's
     /// arithmetic, Poison's tick), the Aura marks it as projected rather than carried and points back
     /// here. Fresh every time; see the class comment for why that matters.
+    ///
+    /// Never onto a totem - this one or any other: a totem's auras are for the bodies standing around
+    /// it. Veil Totem used to stealth itself along with the party, leaving the enemy nothing it could
+    /// target at all - the balance bot won 35 of its first 37 full runs that way (Docs/BotStrategy.md) -
+    /// and two Veil Totems side by side would have hidden each other the same way.
     /// </summary>
     private void Project(Character character, List<Status> into)
     {
-        if (auras.Count == 0 || !Covers(character)) { return; }
+        if (auras.Count == 0 || character.TryGetComponent(out Totem _) || !Covers(character)) { return; }
 
         foreach (AuraData aura in auras)
         {
@@ -215,7 +220,8 @@ public class Totem : MonoBehaviour
     /// this aura currently covers.
     private void TryReact(GameAction action, ActionContext ctx)
     {
-        if (reactions.Count == 0 || ctx.source == null || !Covers(ctx.source)) { return; }
+        // A reaction's own actions never trigger reactions - see ActionContext.isReaction.
+        if (reactions.Count == 0 || ctx.isReaction || ctx.source == null || !Covers(ctx.source)) { return; }
 
         Character triggeringCharacter = ctx.source;
 
@@ -223,7 +229,8 @@ public class Totem : MonoBehaviour
         {
             if (!reaction.Matches(action) || reaction.Effect == null) { continue; }
 
-            ActionContext reactionCtx = new(card: null, source: triggeringCharacter, target: triggeringCharacter.Tile);
+            ActionContext reactionCtx = new(card: null, source: triggeringCharacter, target: triggeringCharacter.Tile,
+                                            isReaction: true);
             reaction.Effect.Resolve(reactionCtx);
         }
     }

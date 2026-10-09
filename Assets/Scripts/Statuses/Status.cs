@@ -126,6 +126,17 @@ public abstract class Status
     public virtual int AppliedPotency(StatusType type) => 0;
 
     /// <summary>
+    /// How many extra *stacks* of a `type` its carrier lands whenever it applies one to somebody else -
+    /// Wardens' Braid's "+1 Poison whenever you apply Poison". AppliedPotency's sibling: that one deepens
+    /// a status's size (Weaken, Vulnerable), this one adds to its count, which for Poison is the damage.
+    ///
+    /// Asked by Character.AppliedStacks, which StatusAction consults for a card and PoisonBladeStatus for
+    /// an on-hit proc. Not the same thing as OnGainStatus, which runs over the *receiver's* statuses and
+    /// so can only ever answer "statuses applied to me".
+    /// </summary>
+    public virtual int AppliedStacks(StatusType type) => 0;
+
+    /// <summary>
     /// How much this status adds to the carrier's energy refill each turn - a ring's "+1 energy each
     /// turn". Summed by Character.BonusEnergy and folded into ResetEnergy, exactly like AppliedPotency.
     /// </summary>

@@ -230,13 +230,15 @@ public sealed class BotCardInfo
         return value;
     }
 
-    /// Value × the profile's taste for the card's category, plus the rarity bonus - what drafting ranks by.
+    /// Value × the profile's taste for the card's category, plus the rarity bonus and any measured rating -
+    /// what drafting ranks by.
     public static float PickValue(CardData data, BotProfileData profile)
     {
         if (data == null || profile == null) { return float.MinValue; }
 
         return Value(data, profile) * PickMultiplier(Of(data).Primary, profile.rewards)
-               + profile.rewards.rarityBonus * RarityRank(data.rarity);
+               + profile.rewards.rarityBonus * RarityRank(data.rarity)
+               + profile.rewards.Rating(data);
     }
 
     public static float StatusValue(StatusType type, int stacks, TargetAudience audience, BotWeights w)
@@ -263,7 +265,13 @@ public sealed class BotCardInfo
     {
         if (prefab == null) { return 0f; }
 
-        if (IsTotemPrefab(prefab)) { return w.totemBase + 2f * w.totemCover; }
+        // Off the board, a totem is worth about one character under its aura - the planner's own cover
+        // count on a typical turn. Valuing it at two allies made every totem the best pick on offer, and
+        // a run drafted totems until its deck could no longer attack or block.
+        if (prefab.TryGetComponent(out Totem totem))
+        {
+            return w.totemBase + (totem.Affects == AuraAudience.Everyone ? 0f : 1f) * w.totemCover;
+        }
 
         return prefab.TryGetComponent(out Character body) ? body.MaxHealth * w.summon : 2f;
     }

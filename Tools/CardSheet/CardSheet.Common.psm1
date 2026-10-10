@@ -1117,6 +1117,11 @@ function ConvertTo-Comparable {
     # "1.0" out of a CSV round-trip is the same cost as 1.
     if ($text -match '^-?\d+\.0+$') { return ([long][double]$text).ToString() }
 
+    # "1.50" (a two-decimal export format) is the same as the "1.5" a General-format cell shows - without
+    # this a value both sides left alone reads as edited, and the merge calls a real edit a conflict.
+    # Textual on purpose: no double round-trip, so nothing is ever rounded.
+    if ($text -match '^(-?\d+\.\d*[1-9])0+$') { return $Matches[1] }
+
     return $text
 }
 

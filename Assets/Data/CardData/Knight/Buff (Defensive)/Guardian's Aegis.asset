@@ -18,9 +18,10 @@ MonoBehaviour:
     shape: 3
     minDistance: 0
     maxDistance: 0
+    requiresRoute: 0
   <requiredClass>k__BackingField: 1
   <rarity>k__BackingField: 1
-  <tags>k__BackingField: 
+  <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Give 5 Shield.
@@ -35,6 +36,7 @@ MonoBehaviour:
         shape: 2
         minDistance: 0
         maxDistance: 2
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0

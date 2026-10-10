@@ -146,7 +146,7 @@ MonoBehaviour:
     type: 20
   - title: LIFESTEAL
     body: For {stacks} more of the carrier's turns, every hit it lands also heals
-      it for half the damage dealt.
+      it for half the damage dealt, rounded up.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -170,8 +170,8 @@ MonoBehaviour:
     defaultAmount: 1
     type: 24
   - title: WARDED
-    body: Immune to one status at a time. Which one rotates at the end of each of this
-      character's turns.
+    body: Immune to one status at a time. Which one rotates at the end of each of
+      this character's turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1
@@ -229,8 +229,8 @@ MonoBehaviour:
     defaultAmount: 1
     type: 3
   - title: INTERRUPTIBLE
-    body: Freezing this character while it is winding this up knocks the card out for
-      {magnitude} turns.
+    body: Freezing this character while it is winding this up knocks the card out
+      for {magnitude} turns.
     terms: []
     defaultStacks: 1
     defaultAmount: 1

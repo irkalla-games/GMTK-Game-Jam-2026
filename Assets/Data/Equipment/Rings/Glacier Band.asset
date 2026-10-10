@@ -27,7 +27,7 @@ MonoBehaviour:
   m_Name: Glacier Band
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Glacier Band
-  <description>k__BackingField: Permanently under the effect of Shield 2.
+  <description>k__BackingField: 'Permanent Shield: -2 damage from every hit taken.'
   <icon>k__BackingField: {fileID: 21300000, guid: 68f6070cccedf0645a1c69d2405df3c5, type: 3}
   <rarity>k__BackingField: 1
   <requiredClass>k__BackingField: 0

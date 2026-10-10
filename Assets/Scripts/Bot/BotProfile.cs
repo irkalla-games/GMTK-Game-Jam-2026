@@ -132,6 +132,16 @@ public class BotWeights
              + "Safety and Exposure; zero those when using it.")]
     public float forecast;
 
+    [Tooltip("Per point of damage, times how hard that enemy hits for the health it has left (its per-round "
+             + "damage over its health before the hit). Chipping a fragile, dangerous enemy is worth more than "
+             + "the same damage on a tank - what makes the party focus one target down instead of spreading.")]
+    public float focus;
+
+    [Tooltip("Focus, one move ahead: for a move, the best attack the hero could then make, weighted the same "
+             + "way - what an enemy deals per round times the share of its health the attack takes off. Walks "
+             + "the hero towards whoever is doing the damage. Also looks at more moves (12, not 4).")]
+    public float hunt;
+
     private static System.Reflection.FieldInfo[] fields;
 
     /// Every float row, a + (b - a) x t - how an adaptive profile slides from its aggressive weights to
@@ -351,6 +361,18 @@ public class BotProfileData
              + "nothing blocks it) against their health, and what an enemy's attack would add as part of that "
              + "enemy's threat. Off, a Light Bandit reads as the 1 damage its Venom Cut previews.")]
     public bool countPoison;
+
+    [Tooltip("Count on-hit buffs as what they do. Lifesteal is worth the healing the hero's attacks will "
+             + "return over its turns (into missing health and what is coming), and an attack made while "
+             + "carrying it is credited with its heal; Poison Blade is worth the Poison its hits will apply. "
+             + "Off, both read as a generic buff per turn.")]
+    public bool countOnHit;
+
+    [Tooltip("Measure Weaken as the cut it is: 3 off each of the enemy's attacks this round, taken off what "
+             + "is coming at its victims - so two Weakens keeping an ally standing count through Life Saved - "
+             + "and half that for each later turn it lasts. Off, a Weaken counts its turns as the damage it "
+             + "stops, and never towards who survives the round.")]
+    public bool exactWeaken;
 
     /// A deep copy through JsonUtility - the same serializer the job file uses, so a copy can never
     /// carry anything a job would not.

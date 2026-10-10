@@ -283,13 +283,19 @@ a few rules on everyone else:
   `BotAggression` — battle progress, party health, crowding — and its rewards split at
   `rewards.earlyLevels`. Every field added after the first presets defaults to "off", so an old job or
   profile asset plays exactly as it did; keep it that way when adding more.
-- **Foresight is the default profile** (`Docs/BotStrategy.md`): Tuned plus triage (`mitigationNeed` -
+- **Foresight** (`Docs/BotStrategy.md`; Veteran builds on it): Tuned plus triage (`mitigationNeed` -
   a block is worth what the ally needs it, since health resets between levels), a move forecast
   (`forecast` - step the hero there, re-plan every enemy through `BattleManager.ForecastPlan`, step
   back) and `countPoison` (Poison bites before enemies act and no Shield stops it). The forecast moves
   bodies with `Character.MoveTo` and restores them in a `finally`, the same relocate-and-restore
   `DecidePlan` uses; anything new there must stay side-effect free. A new damage-over-time status needs
   the same treatment as Poison in `BotBoardModel`, or enemies applying it read as harmless.
+- **Veteran is the default profile now** (pass 3): Foresight plus lean drafting (`takeCardsMinValue` 5,
+  `removeWhenDeckAbove` 11 - the biggest single gain the bot has found), `exactWeaken` and `countOnHit`.
+  `exactWeaken` makes Weaken a per-hit cut (`BotOp.Kind.Weaken`) subtracted from what each victim faces,
+  so it counts toward Life Saved; a new debuff that shrinks enemy hits needs the same treatment, or the
+  planner never sees it keep anyone standing. `focus` and `hunt` (threat-weighted damage, and moving
+  toward it) exist but measured noise or worse; they stay off.
 - **Reward ratings are measured, not authored.** `Tools/BotRunner/Rate-Rewards.py` reads batches whose
   profile has `rewards.exploreRewards = 1` (uniform random picks, so taking vs passing is causal) and
   writes `cardRatings`; `ratingWeight` turns its levels-gained into pick value. Re-measure after a

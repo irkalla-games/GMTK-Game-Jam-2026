@@ -13,7 +13,7 @@ public static class BotPresets
 {
     public static List<BotProfileData> All() => new()
     {
-        Balanced(), Aggressive(), Defensive(), TotemFirst(), Tuned(), Adaptive(), Foresight(), RandomBaseline(),
+        Balanced(), Aggressive(), Defensive(), TotemFirst(), Tuned(), Adaptive(), Foresight(), Veteran(), RandomBaseline(),
     };
 
     public static BotProfileData Balanced() => new()
@@ -194,6 +194,35 @@ public static class BotPresets
         p.weights.moveSafety = 0f;
         p.weights.exposure = 0f;
         p.countPoison = true;
+
+        return p;
+    }
+
+    /// <summary>
+    /// Foresight, drafting like a player who knows the deck is the weapon (Docs/BotStrategy.md, pass 3):
+    ///   - Lean drafting: a card has to be worth 5 to be taken (Foresight takes at 4); below that an upgrade,
+    ///     a removal once the deck is over 11, or the pickup's heal is better. +0.31 levels over Foresight.
+    ///   - Exact Weaken: Weaken is 3 off each hit this round, so a Dull Blade that keeps an ally standing
+    ///     counts as a saved life - the Mage and Rogue starters carry five Weaken cards between them.
+    ///     +0.18 on top of lean drafting (+0.3 for parties with a Mage or Rogue, 0 for Knight + Cleric).
+    ///   - On-hit buffs counted: Leeching Blade is worth the healing it will return, not a generic buff.
+    ///     Measured within noise of not counting them; kept because it is the correct reading.
+    /// Focus (damage weighted by the target's threat per health) and Hunt (moving towards it) were tested
+    /// on top and did not pay: the dangerous enemies stand in the back line and waves keep coming.
+    /// </summary>
+    public static BotProfileData Veteran()
+    {
+        BotProfileData p = Foresight();
+        p.name = "Veteran";
+        p.notes = "Foresight, plus lean drafting (take a card only at value 5, else upgrade, remove or heal), "
+                  + "Weaken measured as the cut it is, and on-hit buffs counted as what they return.";
+
+        p.rewards.takeCardsMinValue = 5f;
+        p.rewards.lateTakeCardsMinValue = 5f;
+        p.rewards.removeWhenDeckAbove = 11;
+        p.rewards.lateRemoveWhenDeckAbove = 11;
+        p.exactWeaken = true;
+        p.countOnHit = true;
 
         return p;
     }

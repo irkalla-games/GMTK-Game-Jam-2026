@@ -15,7 +15,7 @@ public sealed class BotFeatures
 {
     public float damage, kills, threatRemoved, friendlyFire, mitigation, mitigationSpare, heal, lifeSaved, dot,
         debuff, buff, totemCover, totemBase, summon, moveSetup, moveSafety, loot, auraMove, draw, energy,
-        selfDamage, discard, futureThreat, lootApproach, exposure, mitigationNeed, forecast;
+        selfDamage, discard, futureThreat, lootApproach, exposure, mitigationNeed, forecast, focus, hunt;
 
     public int cost;
 
@@ -27,7 +27,7 @@ public sealed class BotFeatures
         + moveSafety * w.moveSafety + loot * w.loot + auraMove * w.auraMove + draw * w.draw + energy * w.energy
         + selfDamage * w.selfDamage + discard * w.discard + futureThreat * w.futureThreat
         + lootApproach * w.lootApproach + exposure * w.exposure + mitigationNeed * w.mitigationNeed
-        + forecast * w.forecast - cost * w.costPenalty;
+        + forecast * w.forecast + focus * w.focus + hunt * w.hunt - cost * w.costPenalty;
 
     public BotFeatures Clone() => (BotFeatures)MemberwiseClone();
 
@@ -73,6 +73,8 @@ public sealed class BotFeatures
         Term("cover", exposure, w.exposure);
         Term("need", mitigationNeed, w.mitigationNeed);
         Term("forecast", forecast, w.forecast);
+        Term("focus", focus, w.focus);
+        Term("hunt", hunt, w.hunt);
         Term("cost", cost, -w.costPenalty);
 
         return sb.ToString();
@@ -135,7 +137,7 @@ public sealed class BotDecision
 /// </summary>
 public readonly struct BotOp
 {
-    public enum Kind { Shield, Charges, Heal, Stealth, Freeze }
+    public enum Kind { Shield, Charges, Heal, Stealth, Freeze, Weaken }
 
     public readonly Kind What;
     public readonly Character Who;
@@ -179,6 +181,9 @@ public sealed class BotTurnState
 {
     public readonly Dictionary<Character, int> DamageTaken = new();
     public readonly HashSet<Character> Neutralised = new();
+
+    /// Enemies a planned play has already weakened - a second Weaken cuts no deeper (WeakenStatus).
+    public readonly HashSet<Character> Weakened = new();
     public readonly Dictionary<Character, int> Prevented = new();
     public readonly Dictionary<Character, int> Healed = new();
     public readonly Dictionary<Character, int> Energy = new();
@@ -195,6 +200,7 @@ public sealed class BotTurnState
 
         foreach (var pair in DamageTaken) { copy.DamageTaken[pair.Key] = pair.Value; }
         foreach (Character c in Neutralised) { copy.Neutralised.Add(c); }
+        foreach (Character c in Weakened) { copy.Weakened.Add(c); }
         foreach (var pair in Prevented) { copy.Prevented[pair.Key] = pair.Value; }
         foreach (var pair in Healed) { copy.Healed[pair.Key] = pair.Value; }
         foreach (var pair in Energy) { copy.Energy[pair.Key] = pair.Value; }
@@ -297,6 +303,10 @@ public static class BotPlanner
     /// rest of the move candidates keep their cheap score.
     private const int MoveLookaheadCount = 4;
 
+    /// The same, for a profile weighting Hunt - a move towards a dangerous enemy is rarely among the four
+    /// best-scoring moves before it is credited for that.
+    private const int HuntLookaheadCount = 12;
+
     private static readonly HashSet<string> warnedEffects = new();
 
     /// What one decision scores with - the blended weights and how many rounds a kill is credited for.
@@ -311,12 +321,20 @@ public static class BotPlanner
         /// Whether Poison counts - BotProfileData.countPoison.
         public readonly bool Poison;
 
-        public Scoring(BotWeights w, int futureRounds, Dictionary<Character, float> need, bool poison)
+        /// Whether on-hit buffs count as what they do - BotProfileData.countOnHit.
+        public readonly bool OnHit;
+
+        /// Whether Weaken is measured as the cut it is - BotProfileData.exactWeaken.
+        public readonly bool Weaken;
+
+        public Scoring(BotWeights w, int futureRounds, Dictionary<Character, float> need, bool poison, bool onHit, bool weaken)
         {
+            Weaken = weaken;
             W = w;
             FutureRounds = futureRounds;
             Need = need;
             Poison = poison;
+            OnHit = onHit;
         }
 
         public float NeedOf(Character ally) => Need != null && ally != null && Need.TryGetValue(ally, out float n) ? n : 1f;
@@ -354,7 +372,7 @@ public static class BotPlanner
         BotDecision decision = new();
         BotWeights weights = BotAggression.Weights(model, profile, out float aggression);
         Scoring scoring = new(weights, Mathf.Min(Mathf.Max(0, model.TurnsRemaining - 1), Mathf.Max(0, profile.futureRoundsCap)),
-                              Needs(model, profile), profile.countPoison);
+                              Needs(model, profile), profile.countPoison, profile.countOnHit, profile.exactWeaken);
 
         decision.Weights = weights;
         decision.Aggression = aggression;
@@ -383,7 +401,7 @@ public static class BotPlanner
         else
         {
             candidates.Sort(Compare);
-            MoveLookahead(weights, candidates);
+            MoveLookahead(model, scoring, candidates);
 
             if (!Mathf.Approximately(weights.forecast, 0f)) { Forecast(model, profile, scoring, candidates); }
 
@@ -635,7 +653,7 @@ public static class BotPlanner
 
                         if (banned != null && banned.Contains(candidate.Key)) { continue; }
 
-                        candidate.Measure = Measure(model, candidate);
+                        candidate.Measure = Measure(model, scoring, candidate);
                         candidate.Features = Simulate(model, scoring, candidate, empty, null);
                         candidate.Score = candidate.Features.Score(scoring.W);
                         candidate.Info = BotCardInfo.Of(card);
@@ -655,7 +673,7 @@ public static class BotPlanner
         + $"|{card.range.Shape}|{card.range.MinDistance}|{card.range.MaxDistance}";
 
     /// Everything the game's previews say about one play, with the aim already set on the card.
-    private static BotMeasure Measure(BotBoardModel model, BotCandidate candidate)
+    private static BotMeasure Measure(BotBoardModel model, Scoring scoring, BotCandidate candidate)
     {
         Character hero = candidate.Hero;
         Card card = candidate.Card;
@@ -667,6 +685,8 @@ public static class BotPlanner
         {
             if (hit.Key != null && hit.Value > 0) { m.Hits.Add(hit); }
         }
+
+        if (scoring.OnHit) { OnHitRiders(model, m, hero); }
 
         bool moves = false;
         bool pushed = false;
@@ -722,7 +742,7 @@ public static class BotPlanner
                 case ApplyStatusEffect status:
                     foreach (Character target in Occupants(landed, ours: null))
                     {
-                        StatusMeasure(model, m, target, status.Status, ctx.Amount(status.RiderAmount));
+                        StatusMeasure(model, scoring, m, target, status.Status, ctx.Amount(status.RiderAmount));
                     }
 
                     break;
@@ -816,6 +836,7 @@ public static class BotPlanner
         Dictionary<Character, int> prevented = new();
         Dictionary<Character, int> healed = new();
         List<Character> stopped = new();
+        List<Character> weakened = new();
 
         foreach (KeyValuePair<Character, int> hit in m.Hits)
         {
@@ -830,6 +851,9 @@ public static class BotPlanner
             {
                 case BotSide.Enemy:
                     f.damage += lost;
+
+                    // The share of this enemy the hit takes off, times what it deals per round.
+                    f.focus += Danger(model, scoring, victim) * lost / left;
 
                     if (hit.Value >= left)
                     {
@@ -938,6 +962,43 @@ public static class BotPlanner
                     healed[who] = BotTurnState.Of(healed, who) + amount;
                     break;
                 }
+                case BotOp.Kind.Weaken:
+                {
+                    // Each of the enemy's attack steps this round loses PerHit, never below nothing - taken
+                    // off what is coming at each of its victims in proportion, so a Weaken that keeps an
+                    // ally standing counts through Life Saved like a shield would. The turns after this
+                    // one are credited at half, as threat it will not deal.
+                    if (before.Neutralised.Contains(who) || stopped.Contains(who) || before.Weakened.Contains(who)
+                        || weakened.Contains(who))
+                    {
+                        break;
+                    }
+
+                    weakened.Add(who);
+
+                    int threat = model.ThreatOf(who);
+                    int steps = model.AttackSteps.TryGetValue(who, out int n) ? n : 0;
+                    // Already weakened: the preview it attacks with has the cut in it - only the extra turns count.
+                    int cut = who.StatusStacks(StatusType.Weaken) > 0 ? 0 : Mathf.Min(threat, op.PerHit * steps);
+
+                    if (cut > 0 && model.ThreatOn.TryGetValue(who, out Dictionary<Character, int> victims))
+                    {
+                        foreach (KeyValuePair<Character, int> victim in victims)
+                        {
+                            int share = Mathf.Min(victim.Value, Mathf.CeilToInt((float)cut * victim.Value / threat));
+                            int useful = Mathf.Min(share, Remaining(victim.Key));
+
+                            f.mitigationNeed += useful * scoring.NeedOf(victim.Key);
+                            prevented[victim.Key] = BotTurnState.Of(prevented, victim.Key) + useful;
+                        }
+                    }
+
+                    int later = Mathf.Min(op.Amount - 1, model.TurnsRemaining - 1);
+
+                    f.threatRemoved += cut + 0.5f * Mathf.Max(0, later) * Mathf.Min(model.PerRoundOf(who), op.PerHit);
+                    f.debuff += 0.5f * op.Amount;
+                    break;
+                }
                 case BotOp.Kind.Freeze:
                 {
                     if (before.Neutralised.Contains(who) || stopped.Contains(who)) { break; }
@@ -972,6 +1033,7 @@ public static class BotPlanner
         if (into != null)
         {
             foreach (Character enemy in stopped) { into.Neutralised.Add(enemy); }
+            foreach (Character enemy in weakened) { into.Weakened.Add(enemy); }
             foreach (var pair in prevented) { into.Prevented[pair.Key] = BotTurnState.Of(into.Prevented, pair.Key) + pair.Value; }
             foreach (var pair in healed) { into.Healed[pair.Key] = BotTurnState.Of(into.Healed, pair.Key) + pair.Value; }
 
@@ -1004,7 +1066,8 @@ public static class BotPlanner
         }
     }
 
-    private static void StatusMeasure(BotBoardModel model, BotMeasure m, Character target, StatusType type, int stacks)
+    private static void StatusMeasure(
+        BotBoardModel model, Scoring scoring, BotMeasure m, Character target, StatusType type, int stacks)
     {
         if (stacks <= 0) { return; }
 
@@ -1019,6 +1082,9 @@ public static class BotPlanner
                 return;
             case StatusType.Frozen:
                 if (enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Freeze, target, stacks)); }
+                return;
+            case StatusType.Weaken when scoring.Weaken:
+                if (enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Weaken, target, stacks, WeakenStatus.BaseAmount)); }
                 return;
             case StatusType.Weaken:
                 if (enemy)
@@ -1045,6 +1111,24 @@ public static class BotPlanner
             case StatusType.Regeneration:
                 if (!enemy) { f.heal += Mathf.Min(target.MaxHealth, stacks * (stacks + 1) / 2) * 0.5f; }
                 return;
+            case StatusType.Lifesteal when scoring.OnHit && !enemy:
+            {
+                // Half of what the carrier will hit for, rounded up, over the turns it lasts - worth only
+                // what fits into the health they are missing now plus what is coming at them meanwhile.
+                int turns = Mathf.Min(stacks, Mathf.Max(1, model.TurnsRemaining));
+                float returned = Mathf.Ceil(DamagePerTurn(target) / 2f) * turns;
+                float room = target.MaxHealth - target.Health + model.IncomingOn(target) * turns
+                             + (scoring.Poison ? model.PoisonAhead(target) : 0);
+                f.heal += Mathf.Min(returned, room);
+                return;
+            }
+            case StatusType.PoisonBlade when scoring.OnHit && !enemy:
+            {
+                // One Poison per landed hit; a stack applied with t ticks left is worth about min(t, 3).
+                int turns = Mathf.Min(stacks, Mathf.Max(1, model.TurnsRemaining));
+                f.dot += HitsPerTurn(target) * turns * Mathf.Min(3, model.FutureTicks);
+                return;
+            }
         }
 
         if (enemy) { f.debuff += stacks; }
@@ -1363,32 +1447,51 @@ public static class BotPlanner
     /// (plus a sort-order refresh and GridManager's route-cache version), raises no events and rolls
     /// nothing, and the finally puts the board back exactly as it was.
     /// </summary>
-    private static void MoveLookahead(BotWeights weights, List<BotCandidate> sorted)
+    private static void MoveLookahead(BotBoardModel model, Scoring scoring, List<BotCandidate> sorted)
     {
+        BotWeights weights = scoring.W;
+        bool hunting = !Mathf.Approximately(weights.hunt, 0f);
+        int limit = hunting ? HuntLookaheadCount : MoveLookaheadCount;
         int done = 0;
 
         foreach (BotCandidate candidate in sorted)
         {
-            if (done >= MoveLookaheadCount) { break; }
+            if (done >= limit) { break; }
 
             if (!candidate.Card.HasEffect<MoveEffect>() || candidate.Tile.Occupant != null) { continue; }
 
-            float followUp = FollowUp(candidate);
+            float followUp = FollowUp(model, scoring, candidate, out float hunt);
 
-            // Into the measurement too, so the turn search re-scores the move with its follow-up.
-            candidate.Measure.Fixed.moveSetup += followUp;
-            candidate.Features.moveSetup += followUp;
+            // The original four keep their follow-up exactly as before; the extra moves a hunting profile
+            // looks at are credited through Hunt alone.
+            if (done < MoveLookaheadCount)
+            {
+                // Into the measurement too, so the turn search re-scores the move with its follow-up.
+                candidate.Measure.Fixed.moveSetup += followUp;
+                candidate.Features.moveSetup += followUp;
+            }
+
+            if (hunting)
+            {
+                candidate.Measure.Fixed.hunt += hunt;
+                candidate.Features.hunt += hunt;
+            }
+
             candidate.Score = candidate.Features.Score(weights);
             done++;
         }
     }
 
-    private static float FollowUp(BotCandidate move)
+    /// The best attack the hero could make after the move, by damage (the return value) and by Hunt: the
+    /// share of each enemy hit that it takes off, times what that enemy deals per round - Focus, one move
+    /// ahead. What walks a Knight towards the archer rather than the pebble beside it.
+    private static float FollowUp(BotBoardModel model, Scoring scoring, BotCandidate move, out float hunt)
     {
         Character hero = move.Hero;
         GridTile origin = hero.Tile;
         GridManager grid = GridManager.Instance;
         float best = 0f;
+        hunt = 0f;
 
         if (origin == null || grid == null) { return 0f; }
 
@@ -1412,16 +1515,24 @@ public static class BotPlanner
                     if (other.Refusal(hero, target) != null) { continue; }
 
                     int damage = 0;
+                    float danger = 0f;
 
                     foreach (KeyValuePair<Character, int> hit in other.PreviewDamage(hero, target))
                     {
                         if (hit.Key != null && hit.Key.IsHostileToParty)
                         {
-                            damage += Mathf.Min(hit.Value, Mathf.Max(0, hit.Key.Health));
+                            int health = Mathf.Max(0, hit.Key.Health);
+                            int lost = Mathf.Min(hit.Value, health);
+
+                            damage += lost;
+
+                            if (health > 0) { danger += Danger(model, scoring, hit.Key) * lost / health; }
                         }
                     }
 
-                    best = Mathf.Max(best, affordable ? damage : damage * 0.5f);
+                    float share = affordable ? 1f : 0.5f;
+                    best = Mathf.Max(best, damage * share);
+                    hunt = Mathf.Max(hunt, danger * share);
                 }
             }
         }
@@ -1431,6 +1542,108 @@ public static class BotPlanner
         }
 
         return best;
+    }
+
+    /// What an enemy deals per round, its Poison included when the profile counts it - Focus and Hunt.
+    private static float Danger(BotBoardModel model, Scoring scoring, Character enemy) =>
+        model.PerRoundOf(enemy)
+        + (scoring.Poison ? model.PoisonPerRoundOf(enemy) / Mathf.Max(1, model.FutureTicks) : 0f);
+
+    /// <summary>
+    /// What an attack made right now adds through the hero's on-hit buffs: Lifesteal heals half of each
+    /// landed hit, rounded up (LifestealStatus) - a heal op on the hero, so it is capped by the health they
+    /// are missing like any heal; Poison Blade puts one Poison on every enemy it hits.
+    /// </summary>
+    private static void OnHitRiders(BotBoardModel model, BotMeasure m, Character hero)
+    {
+        bool lifesteal = hero.StatusStacks(StatusType.Lifesteal) > 0;
+        bool blade = hero.StatusStacks(StatusType.PoisonBlade) > 0;
+
+        if (!lifesteal && !blade) { return; }
+
+        int returned = 0;
+
+        foreach (KeyValuePair<Character, int> hit in m.Hits)
+        {
+            if (BotAssets.SideOf(hit.Key) != BotSide.Enemy) { continue; }
+
+            int landed = Mathf.Min(hit.Value, Mathf.Max(0, hit.Key.Health));
+
+            if (landed <= 0) { continue; }
+
+            returned += (landed + 1) / 2;
+
+            if (blade) { m.Fixed.dot += Mathf.Min(hit.Key.Health, Mathf.Clamp(model.FutureTicks, 1, 3)); }
+        }
+
+        if (lifesteal && returned > 0) { m.Ops.Add(new BotOp(BotOp.Kind.Heal, hero, returned)); }
+    }
+
+    /// Roughly what this hero hits for in a turn: its energy times its deck's damage per point of energy.
+    private static float DamagePerTurn(Character hero)
+    {
+        DeckDamage(hero, out float damage, out float cost, out _, out _);
+
+        return cost > 0f ? Mathf.Max(1, hero.EnergyCapacity) * damage / cost : 0f;
+    }
+
+    /// Roughly how many hits this hero lands in a turn: the cards its energy pays for, times the share of
+    /// its deck that deals damage.
+    private static float HitsPerTurn(Character hero)
+    {
+        DeckDamage(hero, out _, out float cost, out int attacks, out int cards);
+
+        if (cards == 0 || cost <= 0f) { return 0f; }
+
+        return Mathf.Max(1, hero.EnergyCapacity) / (cost / cards) * attacks / cards;
+    }
+
+    /// Totals over every card the hero owns: damage dealt to others, energy cost (a free card counts as
+    /// half a point - it still takes a draw), cards that deal damage, and cards.
+    private static void DeckDamage(Character hero, out float damage, out float cost, out int attacks, out int cards)
+    {
+        float d = 0f;
+        float c = 0f;
+        int a = 0;
+        int n = 0;
+
+        void Consider(IReadOnlyList<Card> pile)
+        {
+            foreach (Card card in pile)
+            {
+                if (card == null) { continue; }
+
+                n++;
+                c += card.cost > 0 ? card.cost : 0.5f;
+
+                int total = 0;
+
+                for (int e = 0; e < card.EntryCount; e++)
+                {
+                    CardEffectEntry entry = card.GetEntry(e);
+
+                    if (entry.effect is not DamageEffect hit || entry.aimsAt == EffectTarget.Source) { continue; }
+
+                    ActionContext ctx = new(card, hero, Array.Empty<GridTile>(), null, entry.amountDelta, entry.amountPercent);
+                    total += ctx.Amount(hit.Damage);
+                }
+
+                if (total > 0)
+                {
+                    a++;
+                    d += total;
+                }
+            }
+        }
+
+        Consider(hero.Hand);
+        Consider(hero.DrawPile);
+        Consider(hero.DiscardPile);
+
+        damage = d;
+        cost = c;
+        attacks = a;
+        cards = n;
     }
 
     private static void WarnUnknown(CardEffect effect)

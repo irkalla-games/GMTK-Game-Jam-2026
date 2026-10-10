@@ -183,7 +183,7 @@ public sealed class BotCardInfo
                     raw += energy.Amount * w.energy;
                     break;
                 case ApplyStatusEffect status:
-                    raw += StatusValue(status.Status, ctx.Amount(status.RiderAmount), status.Audience, w) * area;
+                    raw += StatusValue(status.Status, ctx.Amount(status.RiderAmount), status.Audience, w, profile.countOnHit, profile.exactWeaken) * area;
                     break;
                 case SummonEffect summon:
                     raw += SummonValue(summon.SummonedObject, w);
@@ -241,8 +241,21 @@ public sealed class BotCardInfo
                + profile.rewards.Rating(data);
     }
 
-    public static float StatusValue(StatusType type, int stacks, TargetAudience audience, BotWeights w)
+    /// `onHit` prices Lifesteal and Poison Blade as what they return (BotProfileData.countOnHit); off, they
+    /// read as a generic buff, as every profile written before it did. `exactWeaken` prices a Weaken's
+    /// cut per turn (BotProfileData.exactWeaken) instead of reading its turns as the damage stopped.
+    public static float StatusValue(
+        StatusType type, int stacks, TargetAudience audience, BotWeights w, bool onHit = false, bool exactWeaken = false)
     {
+        if (exactWeaken && type == StatusType.Weaken) { return stacks * WeakenStatus.BaseAmount * w.threatRemoved; }
+
+        if (onHit && audience != TargetAudience.Enemy)
+        {
+            // About 2.5 health back per turn from a typical hero's swings; one Poison per hit, about two hits.
+            if (type == StatusType.Lifesteal) { return stacks * 2.5f * w.heal; }
+            if (type == StatusType.PoisonBlade) { return stacks * 2f * 2f * w.dot; }
+        }
+
         switch (type)
         {
             case StatusType.Poison: return Mathf.Min(40, stacks * (stacks + 1) / 2) * w.dot;

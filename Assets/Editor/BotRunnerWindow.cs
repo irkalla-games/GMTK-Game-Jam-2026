@@ -71,8 +71,8 @@ public class BotRunnerWindow : EditorWindow
 
         if (profiles.Count == 0)
         {
-            // Foresight is the measured best player - the one to collect balance data with.
-            BotProfile best = AssetDatabase.LoadAssetAtPath<BotProfile>("Assets/Data/Bots/Foresight.asset");
+            // Veteran is the measured best player - the one to collect balance data with.
+            BotProfile best = AssetDatabase.LoadAssetAtPath<BotProfile>("Assets/Data/Bots/Veteran.asset");
 
             if (best != null) { profiles.Add(best); }
         }

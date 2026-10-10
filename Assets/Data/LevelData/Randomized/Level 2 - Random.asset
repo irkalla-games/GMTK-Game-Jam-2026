@@ -21,7 +21,7 @@ MonoBehaviour:
     bossFrontlinePower: 0
     bossBacklinePower: 0
     reinforcementPower: 20
-    maxPowerPerEnemy: 1.5
+    maxPowerPerEnemy: 2
     maxPowerPerWave: 3
     waveInterval: 1
     waveIntervalJitter: 2
@@ -43,6 +43,7 @@ MonoBehaviour:
       max: 1
     rollAttempts: 12
     duplicatePenalty: 0
+    bossCount: 0
   partySpawnCells:
   - {x: 2, y: 2}
   - {x: 3, y: 2}

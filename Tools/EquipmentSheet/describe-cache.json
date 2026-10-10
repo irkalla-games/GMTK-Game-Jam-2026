@@ -1,5 +1,5 @@
 {
-    "writtenUtc": "2026-09-03T02:13:21.5073609Z",
+    "writtenUtc": "2026-10-09T08:46:15.6928939Z",
     "items": [
         {
             "guid": "cb28d281a6db23d40a920ce38608486e",
@@ -373,12 +373,12 @@
         },
         {
             "guid": "fd782f182f028cf4e87fd2756788cd35",
-            "preview": "Poison +1 per grant",
-            "hash": "be96726ff48d34a98c5bf10f40599b9e87877c0e",
+            "preview": "Poison you apply: +1 stacks",
+            "hash": "9a600283ee000aa574b9a7d38cf0193d0487849b",
             "modifiers": [
                 {
-                    "modId": "-6928115594443510871",
-                    "describe": "Poison +1 per grant",
+                    "modId": "-3303880285105443153",
+                    "describe": "Poison you apply: +1 stacks",
                     "children": []
                 }
             ]

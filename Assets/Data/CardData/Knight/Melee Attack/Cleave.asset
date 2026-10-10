@@ -18,9 +18,10 @@ MonoBehaviour:
     shape: 2
     minDistance: 1
     maxDistance: 1
+    requiresRoute: 0
   <requiredClass>k__BackingField: 1
   <rarity>k__BackingField: 1
-  <tags>k__BackingField: 
+  <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Deal 5 Damage.
@@ -35,6 +36,7 @@ MonoBehaviour:
         shape: 2
         minDistance: 1
         maxDistance: 1
+        requiresRoute: 0
       pattern: {fileID: 11400000, guid: 8f79c6a0cdb32114494d00fc261c76fd, type: 2}
     amountDelta: 0
     amountPercent: 0

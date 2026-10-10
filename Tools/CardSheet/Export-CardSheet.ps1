@@ -79,7 +79,7 @@ $script:ClassTabs = [ordered]@{
     Mage    = @('Mage')
     Rogue   = @('Rogue')
     Cleric  = @('Cleric')
-    Neutral = @('Enemy', 'Generic')
+    Neutral = @('Enemy', 'Generic', 'Debug')
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -348,9 +348,11 @@ Write-Host "  $($allCards.Count) cards, $($assetIndex.All.Count) assets total"
 if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
     $baseline = Read-Baseline -ToolDir $scriptDir
     $byGuid = @{}
+    $byKey = @{}
     foreach ($card in $allCards) {
         $g = [string]$card.Row['GUID']
         if ($g) { $byGuid[$g] = $card }
+        $byKey[[string]$card.Row['Key']] = $card
     }
 
     $pending = @()
@@ -363,10 +365,16 @@ if (-not $Force -and (Test-Path -LiteralPath $WorkbookPath)) {
             $key = ''
             if ($row.PSObject.Properties.Name -contains 'Key') { $key = ([string]$row.Key).Trim() }
 
-            # A row with no GUID is a card the sheet is asking to create - unsynced by definition.
+            # A row with no GUID is a card the sheet is asking to create - unsynced until an asset with its
+            # Key exists. The sync's own import matches it by Key the same way (Import-CardSheet.ps1), and
+            # nothing writes the new GUID back into the row, so without this lookup the export that ends a
+            # create sync would always refuse the row it had just created.
             if (-not $guid) {
-                if ($key) { $pending += "$key (new row, not yet created)" }
-                continue
+                if ($key -and $byKey.ContainsKey($key)) { $guid = [string]$byKey[$key].Row['GUID'] }
+                else {
+                    if ($key) { $pending += "$key (new row, not yet created)" }
+                    continue
+                }
             }
 
             if (-not $byGuid.ContainsKey($guid)) { continue }

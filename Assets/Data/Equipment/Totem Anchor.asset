@@ -27,7 +27,7 @@ MonoBehaviour:
   m_Name: Totem Anchor
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Totem Anchor
-  <description>k__BackingField: Totems you summon have +7 max health.
+  <description>k__BackingField: Totems you summon have +10 max health.
   <icon>k__BackingField: {fileID: 0}
   <rarity>k__BackingField: 2
   <requiredClass>k__BackingField: 1

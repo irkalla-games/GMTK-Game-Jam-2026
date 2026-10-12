@@ -1,0 +1,22 @@
+{
+ "id": "02-balance-lab",
+ "number": 2,
+ "title": "Spire Balance Lab",
+ "date": "2026-10-09",
+ "url": "https://claude.ai/artifact/3gW18JZ6pqjMaFoqv8efg5",
+ "phases": [
+  "bot",
+  "measure"
+ ],
+ "tested": "Bot pass 2 after card and equipment fixes: threat-aware defending, the Foresight profile, all six pairs",
+ "headline": {
+  "kcNormal": [
+   4.17,
+   0.13
+  ],
+  "note": "Foresight; Tuned was 3.66 on the same seeds"
+ },
+ "headlineSource": "BotRuns/claude-n06-KnightCleric-final (New, 200 runs, seed 7000)",
+ "state": "done",
+ "legacy": "Run before /balance-lab, with the scripts in BotRuns/claude-tools."
+}

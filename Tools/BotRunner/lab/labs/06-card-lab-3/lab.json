@@ -1,0 +1,26 @@
+{
+ "id": "06-card-lab-3",
+ "number": 6,
+ "title": "Spire Card Lab III",
+ "date": "2026-10-11",
+ "url": "https://claude.ai/artifact/2UUSVnw5NWjLk7ud5KEK6x",
+ "phases": [
+  "cards"
+ ],
+ "tested": "Sixteen Knight/Cleric adjacency (\"next to a hero\") cards on the L4 pool, bot taught to move together",
+ "headline": {
+  "kcNormal": [
+   5.93,
+   0.13
+  ],
+  "kcHard3": [
+   3.99,
+   0.15
+  ],
+  "note": "L7 pool, plain bot: same power as L4; better ratings alone +0.46"
+ },
+ "headlineSource": "BotRuns/claude-lab3-E-L7-t0 / -t3 (VeteranL3, 250 runs each)",
+ "state": "done",
+ "legacy": "Run before /balance-lab, with the scripts in BotRuns/claude-tools.",
+ "handoff": "Docs/CardLab3-Handoff.md"
+}

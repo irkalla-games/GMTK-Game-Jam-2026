@@ -29,6 +29,9 @@
 # Balance-bot output (Tools/Bot/Bot Runner) - batches of run logs and reports, regenerated at will
 /BotRuns/
 
+# Python bytecode from the balance-lab toolkit (Tools/BotRunner/lab)
+__pycache__/
+
 # Uncomment this line if you wish to ignore the asset store tools plugin
 # /[Aa]ssets/AssetStoreTools*
 

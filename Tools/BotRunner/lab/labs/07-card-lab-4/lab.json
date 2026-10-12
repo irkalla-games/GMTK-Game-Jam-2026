@@ -1,0 +1,26 @@
+{
+ "id": "07-card-lab-4",
+ "number": 7,
+ "title": "Spire Card Lab IV",
+ "date": "2026-10-11",
+ "url": "https://claude.ai/artifact/5dnUcaxFRKVZUa8wQWFzRy",
+ "phases": [
+  "cards"
+ ],
+ "tested": "Knight taunts and \"alone\" cards at distance 2, 3 and 4, on the L4 pool minus every next-to card",
+ "headline": {
+  "kcNormal": [
+   6.66,
+   0.15
+  ],
+  "kcHard3": [
+   4.42,
+   0.17
+  ],
+  "note": "Base + 16 cards: +0.81 ± 0.16 over the base pool - too strong to ship as is"
+ },
+ "headlineSource": "BotRuns/claude-lab4-E-IT-t0 / -t3 (Veteran4, 250 runs each)",
+ "state": "done",
+ "legacy": "Run before /balance-lab, with the scripts in BotRuns/claude-tools.",
+ "handoff": "Docs/CardLab4-Handoff.md"
+}

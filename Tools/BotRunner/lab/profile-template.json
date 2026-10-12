@@ -1,0 +1,571 @@
+{
+ "name": "Veteran",
+ "notes": "Shields, blocks and heals before anything else; attacks with what is left over.",
+ "weights": {
+  "damage": 0.699999988079071,
+  "kill": 5.0,
+  "threatRemoved": 1.399999976158142,
+  "friendlyFire": -3.0,
+  "mitigation": 0.9,
+  "mitigationSpare": 0.30000001192092896,
+  "heal": 1.2999999523162842,
+  "lifeSaved": 40.0,
+  "dot": 0.5,
+  "debuff": 2.0,
+  "buff": 1.0,
+  "totemCover": 4.0,
+  "totemBase": 2.0,
+  "summon": 0.4000000059604645,
+  "moveSetup": 0.4000000059604645,
+  "moveSafety": 0.0,
+  "loot": 8.0,
+  "auraMove": 3.0,
+  "draw": 2.5,
+  "energy": 2.5,
+  "selfDamage": -1.5,
+  "discard": -2.0,
+  "costPenalty": 0.25,
+  "futureThreat": 0.0,
+  "lootApproach": 0.0,
+  "exposure": 0.0,
+  "mitigationNeed": 1.0,
+  "forecast": 1.5,
+  "focus": 0.0,
+  "hunt": 0.0
+ },
+ "playFirst": [],
+ "playFirstMinScore": 0.0,
+ "passThreshold": 0.5,
+ "randomness": 0.0,
+ "endTurnChance": 0.15000000596046448,
+ "baseline": false,
+ "rewards": {
+  "attackPick": 1.0,
+  "defensePick": 1.5,
+  "healPick": 1.399999976158142,
+  "totemPick": 1.0,
+  "summonPick": 1.0,
+  "debuffPick": 1.0,
+  "buffPick": 1.0,
+  "movePick": 0.6000000238418579,
+  "utilityPick": 1.0,
+  "rarityBonus": 1.0,
+  "takeCardsMinValue": 5.0,
+  "healSkipBelowHp": 0.5,
+  "upgradeWeight": 1.0,
+  "removeWhenDeckAbove": 11,
+  "takeEquipment": true,
+  "earlyLevels": 0,
+  "lateTakeCardsMinValue": 5.0,
+  "lateRemoveWhenDeckAbove": 11,
+  "lateLootScale": 1.0,
+  "ratingWeight": 20.0,
+  "cardRatings": [
+   {
+    "card": "Seraph's Ward",
+    "bonus": 0.402
+   },
+   {
+    "card": "Rimeguard Band",
+    "bonus": 0.393
+   },
+   {
+    "card": "Ring of Focus",
+    "bonus": 0.338
+   },
+   {
+    "card": "Glacier Band",
+    "bonus": 0.329
+   },
+   {
+    "card": "Beacon Totem",
+    "bonus": 0.261
+   },
+   {
+    "card": "Fire Mage's Hat",
+    "bonus": 0.26
+   },
+   {
+    "card": "Fury Totem",
+    "bonus": 0.259
+   },
+   {
+    "card": "Heal Totem",
+    "bonus": 0.197
+   },
+   {
+    "card": "Boots of Speed",
+    "bonus": 0.191
+   },
+   {
+    "card": "X-Burner",
+    "bonus": 0.164
+   },
+   {
+    "card": "Leech Totem",
+    "bonus": 0.164
+   },
+   {
+    "card": "Ironbound Vambrace",
+    "bonus": 0.157
+   },
+   {
+    "card": "Renewing Touch",
+    "bonus": 0.153
+   },
+   {
+    "card": "Wellspring Totem",
+    "bonus": 0.148
+   },
+   {
+    "card": "Cascade Ring",
+    "bonus": 0.146
+   },
+   {
+    "card": "Serpent's Coil",
+    "bonus": 0.143
+   },
+   {
+    "card": "Vampire's Token",
+    "bonus": 0.141
+   },
+   {
+    "card": "Astrologer's Loop",
+    "bonus": 0.131
+   },
+   {
+    "card": "Wellhead Totem",
+    "bonus": 0.13
+   },
+   {
+    "card": "Draw Totem",
+    "bonus": 0.122
+   },
+   {
+    "card": "Sentinel Totem",
+    "bonus": 0.118
+   },
+   {
+    "card": "Sap Totem",
+    "bonus": 0.112
+   },
+   {
+    "card": "Momentum Totem",
+    "bonus": 0.105
+   },
+   {
+    "card": "Freeze",
+    "bonus": 0.103
+   },
+   {
+    "card": "Whetstone Totem",
+    "bonus": 0.1
+   },
+   {
+    "card": "Sunder",
+    "bonus": 0.096
+   },
+   {
+    "card": "Second Wind",
+    "bonus": 0.081
+   },
+   {
+    "card": "Cleave",
+    "bonus": 0.079
+   },
+   {
+    "card": "Bloodied Resolve",
+    "bonus": 0.068
+   },
+   {
+    "card": "Rampart Totem",
+    "bonus": 0.058
+   },
+   {
+    "card": "Steely Resolve",
+    "bonus": 0.055
+   },
+   {
+    "card": "Totem Anchor",
+    "bonus": 0.051
+   },
+   {
+    "card": "Fortune Totem",
+    "bonus": 0.051
+   },
+   {
+    "card": "Shackle Totem",
+    "bonus": 0.043
+   },
+   {
+    "card": "Blade Ward",
+    "bonus": 0.042
+   },
+   {
+    "card": "Dodge",
+    "bonus": 0.042
+   },
+   {
+    "card": "Contagion Totem",
+    "bonus": 0.039
+   },
+   {
+    "card": "Binding Totem",
+    "bonus": 0.033
+   },
+   {
+    "card": "Wall of Force",
+    "bonus": 0.03
+   },
+   {
+    "card": "Lodestone Totem",
+    "bonus": 0.028
+   },
+   {
+    "card": "Poison Blade",
+    "bonus": 0.022
+   },
+   {
+    "card": "Ghoststep Totem",
+    "bonus": 0.009
+   },
+   {
+    "card": "Echo Totem",
+    "bonus": 0.006
+   },
+   {
+    "card": "Attack and Block",
+    "bonus": 0.002
+   },
+   {
+    "card": "Bastion Totem",
+    "bonus": -0.002
+   },
+   {
+    "card": "Rally Totem",
+    "bonus": -0.006
+   },
+   {
+    "card": "Mend and Guard",
+    "bonus": -0.007
+   },
+   {
+    "card": "Entangle",
+    "bonus": -0.009
+   },
+   {
+    "card": "Ice Shard",
+    "bonus": -0.012
+   },
+   {
+    "card": "Adrenaline",
+    "bonus": -0.021
+   },
+   {
+    "card": "Block",
+    "bonus": -0.022
+   },
+   {
+    "card": "Ruin Totem",
+    "bonus": -0.023
+   },
+   {
+    "card": "Mend and Fortify",
+    "bonus": -0.023
+   },
+   {
+    "card": "Marigold Band",
+    "bonus": -0.026
+   },
+   {
+    "card": "Conduit Totem",
+    "bonus": -0.031
+   },
+   {
+    "card": "Venomblade Totem",
+    "bonus": -0.032
+   },
+   {
+    "card": "Decoy Totem",
+    "bonus": -0.034
+   },
+   {
+    "card": "Parry",
+    "bonus": -0.034
+   },
+   {
+    "card": "Zephyr Ring",
+    "bonus": -0.036
+   },
+   {
+    "card": "Quick Attack",
+    "bonus": -0.038
+   },
+   {
+    "card": "Wall of Flames",
+    "bonus": -0.04
+   },
+   {
+    "card": "Warcry Totem",
+    "bonus": -0.044
+   },
+   {
+    "card": "Sporecap Ring",
+    "bonus": -0.048
+   },
+   {
+    "card": "Sanctuary Totem",
+    "bonus": -0.05
+   },
+   {
+    "card": "Whirlwind",
+    "bonus": -0.055
+   },
+   {
+    "card": "Venom Totem",
+    "bonus": -0.056
+   },
+   {
+    "card": "Evasion",
+    "bonus": -0.06
+   },
+   {
+    "card": "Strengthen",
+    "bonus": -0.062
+   },
+   {
+    "card": "Sharpening Ring",
+    "bonus": -0.067
+   },
+   {
+    "card": "Rot Totem",
+    "bonus": -0.072
+   },
+   {
+    "card": "Deepcoral Signet",
+    "bonus": -0.072
+   },
+   {
+    "card": "Warlord Totem",
+    "bonus": -0.072
+   },
+   {
+    "card": "Twin Totem",
+    "bonus": -0.076
+   },
+   {
+    "card": "Bulwark Totem",
+    "bonus": -0.076
+   },
+   {
+    "card": "Fireball",
+    "bonus": -0.08
+   },
+   {
+    "card": "Stormsplit Ring",
+    "bonus": -0.083
+   },
+   {
+    "card": "Flame Cone",
+    "bonus": -0.083
+   },
+   {
+    "card": "Summon Skeleton",
+    "bonus": -0.088
+   },
+   {
+    "card": "Foresight",
+    "bonus": -0.091
+   },
+   {
+    "card": "Shield Totem",
+    "bonus": -0.094
+   },
+   {
+    "card": "Scholar Totem",
+    "bonus": -0.102
+   },
+   {
+    "card": "Bloodmoon Totem",
+    "bonus": -0.107
+   },
+   {
+    "card": "Shambles",
+    "bonus": -0.108
+   },
+   {
+    "card": "Dread Sovereign",
+    "bonus": -0.11
+   },
+   {
+    "card": "Buff",
+    "bonus": -0.111
+   },
+   {
+    "card": "Curse Totem",
+    "bonus": -0.111
+   },
+   {
+    "card": "Aegis Totem",
+    "bonus": -0.112
+   },
+   {
+    "card": "Bloodshard Ring",
+    "bonus": -0.123
+   },
+   {
+    "card": "Stealth",
+    "bonus": -0.128
+   },
+   {
+    "card": "Taunt",
+    "bonus": -0.137
+   },
+   {
+    "card": "Poison Dagger",
+    "bonus": -0.141
+   },
+   {
+    "card": "Hex Totem",
+    "bonus": -0.141
+   },
+   {
+    "card": "Reinforce Totem",
+    "bonus": -0.142
+   },
+   {
+    "card": "Vengeful Vigor",
+    "bonus": -0.144
+   },
+   {
+    "card": "Weaken Ring",
+    "bonus": -0.148
+   },
+   {
+    "card": "Bramblewreath",
+    "bonus": -0.148
+   },
+   {
+    "card": "Panache",
+    "bonus": -0.152
+   },
+   {
+    "card": "Anvil Totem",
+    "bonus": -0.155
+   },
+   {
+    "card": "Longsword",
+    "bonus": -0.161
+   },
+   {
+    "card": "Panther's Eye",
+    "bonus": -0.174
+   },
+   {
+    "card": "Deathgrip Signet",
+    "bonus": -0.18
+   },
+   {
+    "card": "Chaos Totem",
+    "bonus": -0.181
+   },
+   {
+    "card": "Fracture Totem",
+    "bonus": -0.188
+   },
+   {
+    "card": "Opaline Charm",
+    "bonus": -0.199
+   },
+   {
+    "card": "Enfeeble Totem",
+    "bonus": -0.22
+   },
+   {
+    "card": "Spike Totem",
+    "bonus": -0.249
+   },
+   {
+    "card": "Tower Totem",
+    "bonus": -0.259
+   },
+   {
+    "card": "Cinderforge Ring",
+    "bonus": -0.27
+   },
+   {
+    "card": "Emberwood Band",
+    "bonus": -0.294
+   },
+   {
+    "card": "Guardian's Aegis",
+    "bonus": -0.315
+   },
+   {
+    "card": "Bloom Totem",
+    "bonus": -0.337
+   },
+   {
+    "card": "Bloodpact Totem",
+    "bonus": -0.338
+   },
+   {
+    "card": "Veil Totem",
+    "bonus": -0.356
+   },
+   {
+    "card": "Thornwood Totem",
+    "bonus": -0.374
+   }
+  ],
+  "exploreRewards": 0.0
+ },
+ "adaptive": false,
+ "aggressiveUntil": 0.4,
+ "defensiveFrom": 0.8,
+ "lowHpGuard": 0.5,
+ "crowdGuard": 0.0,
+ "minAggression": 0.0,
+ "futureRoundsCap": 6,
+ "searchDepth": 6,
+ "beamWidth": 6,
+ "branching": 8,
+ "lateWeights": {
+  "damage": 0.699999988079071,
+  "kill": 5.0,
+  "threatRemoved": 1.399999976158142,
+  "friendlyFire": -3.0,
+  "mitigation": 0.9,
+  "mitigationSpare": 0.30000001192092896,
+  "heal": 1.2999999523162842,
+  "lifeSaved": 40.0,
+  "dot": 0.5,
+  "debuff": 2.0,
+  "buff": 1.0,
+  "totemCover": 4.0,
+  "totemBase": 2.0,
+  "summon": 0.4000000059604645,
+  "moveSetup": 0.4000000059604645,
+  "moveSafety": 0.0,
+  "loot": 8.0,
+  "auraMove": 3.0,
+  "draw": 2.5,
+  "energy": 2.5,
+  "selfDamage": -1.5,
+  "discard": -2.0,
+  "costPenalty": 0.25,
+  "futureThreat": 0.0,
+  "lootApproach": 0.0,
+  "exposure": 0.0,
+  "mitigationNeed": 1.0,
+  "forecast": 1.5,
+  "focus": 0.0,
+  "hunt": 0.0
+ },
+ "needCap": 1.5,
+ "needFloor": 0.1,
+ "forecastMoves": 12,
+ "countPoison": true,
+ "countOnHit": true,
+ "exactWeaken": true
+}

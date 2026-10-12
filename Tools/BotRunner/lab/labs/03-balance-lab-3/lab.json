@@ -1,0 +1,22 @@
+{
+ "id": "03-balance-lab-3",
+ "number": 3,
+ "title": "Spire Balance Lab III",
+ "date": "2026-10-09",
+ "url": "https://claude.ai/artifact/GednDaSut2WKabHrijJuBT",
+ "phases": [
+  "bot",
+  "measure"
+ ],
+ "tested": "Bot pass 3 after Mage/Rogue healing: the Veteran profile (lean drafting, exact Weaken), reward re-rating, six pairs",
+ "headline": {
+  "kcNormal": [
+   5.99,
+   0.14
+  ],
+  "note": "Veteran; Foresight 6.11 on the same seeds"
+ },
+ "headlineSource": "BotRuns/claude-p05-KnightCleric-final (New, 188 runs, seed 15000)",
+ "state": "done",
+ "legacy": "Run before /balance-lab, with the scripts in BotRuns/claude-tools."
+}

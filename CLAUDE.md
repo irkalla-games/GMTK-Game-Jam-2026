@@ -253,6 +253,11 @@ CLI, `BotRunnerEditor`'s static methods do everything the window does (its class
 snippets). Big background batches: `Tools/BotRunner/Build-BotPlayer.ps1`, then `Run-BotBatch.ps1` with a
 job from the window's **Save job...**.
 
+**A multi-hour balance session (card lab, enemy or level budgets, tier sweeps, bot tuning) is a lab: use the
+`/balance-lab` skill** (`.claude/skills/balance-lab/`). Its toolkit, `Tools/BotRunner/lab/` (labkit + labctl),
+freezes the game at kickoff, builds in the mirror only, refuses to read unfinished batches, and keeps each
+lab's definitions and brief under `Tools/BotRunner/lab/labs/` so a later lab can start from them.
+
 `Assets/Scripts/Bot` compiles only in the Editor and in that headless player (`#if UNITY_EDITOR ||
 BOT_RUNNER`) — the web build contains none of it. The bot plays through the game's own doors, which puts
 a few rules on everyone else:

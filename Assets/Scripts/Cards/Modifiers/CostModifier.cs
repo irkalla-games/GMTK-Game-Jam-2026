@@ -8,9 +8,11 @@ public class CostModifier : CardModifier
 {
     [SerializeField] private int delta;
 
+    /// Writes the printed cost, never the live one - Card.cost subtracts a board-condition discount on
+    /// every read, and baking one in here would keep it after the condition stopped holding.
     public override void Apply(Card card)
     {
-        card.cost = Mathf.Max(0, card.cost + delta);
+        card.baseCost = Mathf.Max(0, card.baseCost + delta);
     }
 
     public override string Describe() => delta >= 0 ? $"Cost +{delta}" : $"Cost {delta}";

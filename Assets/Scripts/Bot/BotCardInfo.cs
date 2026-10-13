@@ -152,7 +152,16 @@ public sealed class BotCardInfo
             if (entry.effect == null) { continue; }
 
             float area = entry.area.IsSingle ? 1f : 1.5f;
-            ActionContext ctx = new(card, null, Array.Empty<GridTile>(), null, entry.amountDelta, entry.amountPercent);
+
+            // Nobody holds a card on the reward screen, so a board condition has no answer here. Count
+            // it as holding half the time: half a conditional bonus, and half the worth of an entry that
+            // only fires while its condition holds - the same halving the card labs drafted with.
+            bool conditional = entry.condition != CardCondition.None;
+            int delta = entry.amountDelta + (conditional ? entry.conditionBonus / 2 : 0);
+            float share = conditional && entry.onlyWhenMet ? 0.5f : 1f;
+            float before = raw;
+
+            ActionContext ctx = new(card, null, Array.Empty<GridTile>(), null, delta, entry.amountPercent);
 
             switch (entry.effect)
             {
@@ -210,6 +219,8 @@ public sealed class BotCardInfo
                     raw += 2f;
                     break;
             }
+
+            raw = before + (raw - before) * share;
         }
 
         float value = raw / Mathf.Max(1, card.cost);

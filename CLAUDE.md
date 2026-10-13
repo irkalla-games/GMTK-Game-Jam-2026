@@ -28,11 +28,13 @@ so a session that silently skipped the protocol is discovered at the
 first task boundary instead of never.
 
 Loading a skill is not complete until you have queried the observation
-log for OPEN observations naming it and read their bodies:
+log for OPEN observations naming it and read their bodies. This one command
+does both — it prints each match's title and body, not just its filename:
   find "C:/Users/Toxxi/.claude/skill-observations/observation-log" -maxdepth 1 \
-    -name '*.md' -exec grep -l "skill:.*<skill-name>" {} +
+    -name '*.md' -exec grep -l "skill:.*<skill-name>" {} + \
+    | while IFS= read -r f; do grep -m1 '^title:' "$f"; sed -n '/^\*\*Issue/,$p' "$f"; done
 (Use find, not a bare *.md glob — on an empty log an unmatched glob aborts
-the command.) Apply their insights to the current work — meaning: let them
+the command.) A list of filenames is not the answer; the bodies are. Apply their insights to the current work — meaning: let them
 change what you do in THIS task. Editing the skill file, or writing the rule
 into any other file a later session reads, is acting on the observation and
 waits for the review. Run this at every skill load, however many skills load
@@ -154,8 +156,20 @@ Add `--json --no-banner --project-path <repo>` when parsing. Traps, all hit for 
   Screen Space - Overlay canvas, which is all of this game's UI. **Never pass `save_path`**: it is
   relative to `Assets/`, so the PNG is imported into the project. Decode the inline `base64` instead.
 - **`recompile_status` returns its result as a JSON string**, not an object; parse it before reading
-  `status`, or a polling loop never sees `completed`. Files added from outside need
-  `AssetDatabase.Refresh()` (via `eval_file`) before a recompile will see them.
+  `status`, or a polling loop never sees `completed`. Files added **or edited** from outside need
+  `AssetDatabase.Refresh()` (via `eval_file`) before a recompile will see them — an unfocused Editor
+  never notices the change, and `recompile` alone builds the old source.
+- **A new `[SerializeField]`'s default sticks in already-loaded assets.** A prefab whose YAML never
+  serialized the field keeps the default from the first compile, even after you change it and
+  recompile (domain reloads restore loaded objects). `AssetDatabase.ImportAsset(path,
+  ImportAssetOptions.ForceUpdate)` clears it. Verify by probing the live instance, not a fresh
+  `AddComponent` — a fresh object proves the code compiled, not that the asset changed.
+- **An `eval_file` runtime error reports no line or stack** — just the message. Wrap any multi-step
+  snippet as `var log = new StringBuilder(); try { ...; return log.ToString(); } catch (System.Exception
+  ex) { return log.ToString() + ex; }` so one failed run returns both the progress made and the full
+  stack. Write the wrapper as literal C# lines; generating it through a script's string escapes has
+  corrupted it. Roster lists such as `BattleManager.Characters` can hold destroyed entries — test with
+  Unity's `==` before dereferencing.
 - **Edit through `SerializedObject`**, then `EditorSceneManager.SaveScene` for scenes, or
   `PrefabUtility.LoadPrefabContents` → `SaveAsPrefabAsset` for prefabs. That records prefab-instance
   overrides the way the Inspector does, where a direct property write on an instance may not.
@@ -168,11 +182,25 @@ Add `--json --no-banner --project-path <repo>` when parsing. Traps, all hit for 
   `--path`. `unity command --query <name> --detail full --json` prints a command's schema.
 - **Tests:** `com.unity.test-framework` is installed but the project has no test assemblies yet —
   `list_tests` finds 0 — so `run_tests` has nothing to run until an asmdef'd test folder is added.
-- **A modal dialog blocks every command.** Every call then fails with "Main thread operation timed out"
-  — `editor_focus` and `set_autotick` too. The usual one is "The open scene(s) have been modified
-  externally" after a branch switch rewrites an open scene. Find it by listing the Unity process's
-  visible windows (a `#32770` dialog class) and ask the user: Reload vs Ignore decides whose copy of the
-  scene wins, and that is theirs to call.
+- **"Main thread operation timed out" and "503 ... still settling" each have several causes — tell
+  them apart before acting.** In order:
+  1. `unity command set_autotick --enable true`, then retry. Autotick does **not** survive a domain
+     reload, so it is off again after every `recompile` — re-enable it each time.
+  2. After any recompile, send a one-line `return 1;` snippet before the real one: the first snippet
+     compile after a reload can exceed `eval_file`'s own 5000 ms `timeout` (a parameter in its schema;
+     the CLI's `--timeout` is the transport, a different number).
+  3. If `set_autotick` itself times out, or the 503 persists past a minute while `unity status` says
+     `ready`, it is a **modal dialog**. List the windows of the **Editor's** PID (the Unity process with
+     a `MainWindowTitle` — the first `Unity.exe` is often an import worker with no windows) and look for
+     a `#32770` dialog class. The usual one is "The open scene(s) have been modified externally" after
+     a branch switch rewrites an open scene — ask the user: Reload vs Ignore decides whose copy of the
+     scene wins, and that is theirs to call. (The "Mobile Dependency Resolver required" dialog came from
+     `com.unity.ads`, removed 2026-10-12; if it ever returns, a package re-added it.)
+  
+  **A timed-out call may still have run.** Check its effect on disk (`git status`, the asset) before
+  retrying anything that is not idempotent, and keep inspection snippets separate from mutating ones so
+  a retry is free. Likewise `menu` times out at 30 s while a long menu item (`Sync With Sheet`) keeps
+  running to completion — poll for its effect, do not re-run it.
 - **An unfocused Editor barely ticks**, so commands crawl. `unity command set_autotick --enable true`
   keeps it running in the background; `recompile` works unfocused regardless.
 
@@ -271,6 +299,9 @@ a few rules on everyone else:
   `CardChoicePanel` — each exposes a read-only view of what it shows plus a public choose; copy that.
 - **A new `CardEffect` needs a scoring rule** in `BotPlanner.Measure` and a value in `BotCardInfo.Value`.
   Until then the bot counts it as worth nothing and logs a warning once.
+- **Read an entry's number through `Card.EntryDelta` and skip it when `!Card.EntryLive`**, never
+  `entry.amountDelta` — that is how the bot sees a board condition the same way the game resolves it.
+  `BotCardInfo.Value` has no holder to ask, so it counts a condition as holding half the time.
 - **Rules roll `GameDice`, never `UnityEngine.Random`.** The engine draws from `UnityEngine.Random` on
   every rendered frame (URP post-processing), so a rule sharing it came out differently at a different
   frame rate — which broke replays, made results depend on the turbo step, and meant a headless run
@@ -361,6 +392,20 @@ still refuses the whole card.
 tiles may be clicked, measured from the acting character's tile — one rule per card, because one click
 must produce one yes/no. Per-effect rules go in `CardEffect.Refusal`, which defaults to no objection.
 Never put range on an effect: effect assets are shared between cards.
+
+**Board conditions are asked live, never stored.** "Costs 0 next to another hero", "Alone: gain 12
+instead", "Next to another hero: draw 1" are a `CardCondition` (one definition each, in
+`CardConditions.MetAt`) authored on `CardData.costCondition`/`costDiscount` or on an entry's
+`condition`/`conditionBonus`/`onlyWhenMet`. `Card.cost` is computed from `baseCost` on every read
+against `Card.Holder` (stamped by `Character.NewCard`); an equipment `CostModifier` writes `baseCost`.
+Never write a discounted cost into a field — the hand, `CanAfford`, `SpendEnergy`, the card face and the
+bot must all see the same number at the moment they look. Every `ActionContext` built from an entry
+passes `Card.EntryDelta`, and an `onlyWhenMet` entry whose condition fails is **skipped** everywhere
+(`Card.EntryLive`) — emptying its tiles is not enough, because Draw/Energy/Discard/Self Damage read
+`ctx.source`. The card face re-reads the cost on `PlayabilityChanged`, which `BattleManager` raises after
+every resolved action; `Character.MoveTo` stays silent on purpose (the bot's forecast moves bodies
+through it). A new condition is appended to the enum, and to `$script:ConditionNames` in
+`Tools/CardSheet/CardSheet.Common.psm1`.
 
 **`RangeShape.Anywhere` is 0 on purpose.** An `.asset` authored before a field existed deserializes to
 all-zero, so that default must be the old behaviour — same reason `TargetRange` is a struct and

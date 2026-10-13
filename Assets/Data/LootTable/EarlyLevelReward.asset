@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: EarlyLevelReward
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
+  - rarity: 1
+    weight: 40
   - rarity: 2
-    weight: 80
+    weight: 50
   - rarity: 3
-    weight: 20
+    weight: 10
   tagWeights: []
   cardWeights: []
   excludedCards: []

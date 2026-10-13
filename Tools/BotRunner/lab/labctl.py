@@ -10,6 +10,9 @@
     python Tools/BotRunner/lab/labctl.py cleanup <lab> [--apply] [--force]
     python Tools/BotRunner/lab/labctl.py release <lab>
     python Tools/BotRunner/lab/labctl.py wait <lab>        (queued behind another lab: blocks, then takes the lock)
+    python Tools/BotRunner/lab/labctl.py wait-tree <lab> [--quiet 15] [--give-up 6]
+                                                           (another session is still editing: blocks until the
+                                                            tree is quiet and compiles; exit 1 on give-up)
 """
 import argparse
 import json
@@ -52,7 +55,8 @@ def new(a):
         lab.acquire()
     except K.LabBusy as e:
         print(f'WAITING: {e}')
-    print(json.dumps({'id': lab.id, 'title': lab.meta['title'], 'definitions': lab.def_dir, 'data': lab.data_dir,
+    print(json.dumps({'id': lab.id, 'title': lab.meta['title'], 'topic': lab.meta['topic'],
+                      'definitions': lab.def_dir, 'data': lab.data_dir,
                       'brief': lab.brief_path, 'reserveFrom': lab.reserve_start.strftime('%Y-%m-%d %H:%M')}, indent=1))
 
 
@@ -129,6 +133,55 @@ def wait(a):
         time.sleep(60)
 
 
+def _tree_fingerprint():
+    """Every uncommitted path under SOURCE_FOLDERS with its size and mtime - changes whenever anyone edits."""
+    out = []
+    for line in git('status', '--porcelain', '--', *SOURCE_FOLDERS).splitlines():
+        path = line[3:].strip().strip('"').split(' -> ')[-1]
+        full = os.path.join(K.REPO, path)
+        try:
+            st = os.stat(full)
+            out.append((path, st.st_size, int(st.st_mtime)))
+        except OSError:
+            out.append((path, -1, 0))
+    return tuple(sorted(out))
+
+
+def wait_tree(a):
+    """Blocks until the working tree has not changed for --quiet minutes AND compiles (Tools/compile-check.ps1),
+    for a lab whose source is still being edited by another session. A failing compile restarts the quiet
+    clock - the editor may still be mid-change. Exits 1 after --give-up hours, so the brief's pre-decided
+    fallback (freeze HEAD, the last compiling state, or stuck + notify) takes over."""
+    import subprocess
+    import time
+    lab = K.Lab.open(a.lab)
+    start, last, since = time.time(), _tree_fingerprint(), time.time()
+    while True:
+        if time.time() - start > a.give_up * 3600:
+            lab.status('Stuck', 'waiting for the tree', stuck=f'tree never went quiet and compiling within {a.give_up} h')
+            print(f'{K.now():%H:%M} gave up after {a.give_up} h - apply the brief\'s fallback')
+            sys.exit(1)
+        time.sleep(60)
+        fp = _tree_fingerprint()
+        if fp != last:
+            last, since = fp, time.time()
+            lab.status('Queued', f'tree still being edited ({len(fp)} uncommitted file(s)); waiting for '
+                                 f'{a.quiet} quiet minutes')
+            continue
+        if time.time() - since < a.quiet * 60:
+            continue
+        r = subprocess.run(['powershell', '-ExecutionPolicy', 'Bypass', '-File',
+                            os.path.join(K.REPO, 'Tools', 'compile-check.ps1')],
+                           capture_output=True, text=True, encoding='utf-8', errors='replace')
+        if r.returncode == 0:
+            print(f'{K.now():%H:%M} tree quiet for {a.quiet} min and compiles - {lab.id} may freeze')
+            return
+        tail = '\n'.join((r.stdout + r.stderr).strip().splitlines()[-8:])
+        lab.status('Queued', f'tree quiet but does not compile; waiting for another change\n{tail}')
+        print(f'{K.now():%H:%M} quiet but not compiling:\n{tail}')
+        since = time.time()
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     s = p.add_subparsers(dest='cmd', required=True)
@@ -150,6 +203,8 @@ def main():
     cl.add_argument('--force', action='store_true'); cl.set_defaults(f=cleanup)
     r = s.add_parser('release'); r.add_argument('lab'); r.set_defaults(f=release)
     w = s.add_parser('wait'); w.add_argument('lab'); w.set_defaults(f=wait)
+    wt = s.add_parser('wait-tree'); wt.add_argument('lab'); wt.add_argument('--quiet', type=int, default=15)
+    wt.add_argument('--give-up', type=float, default=6.0); wt.set_defaults(f=wait_tree)
     a = p.parse_args()
     a.f(a)
 

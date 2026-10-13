@@ -474,7 +474,18 @@ public class BattleManager : Singleton<BattleManager>
 
     private void HandleIntentMayHaveChanged(Character _) => intentDirty = true;
 
-    private void HandleActionResolved(GameAction action, ActionContext ctx) => intentDirty = true;
+    private void HandleActionResolved(GameAction action, ActionContext ctx)
+    {
+        intentDirty = true;
+
+        // A move, push, swap, summon or death changes who is standing next to whom, and that changes
+        // what a "costs 0 next to another hero" card costs - see Card.cost. None of those raise a
+        // character event of their own once they land (Character.MoveTo deliberately stays silent: the
+        // balance bot's forecast moves bodies through it and must have no side effects), so every
+        // resolved action is the signal. Coarse on purpose, the same bargain PlayabilityChanged
+        // already strikes: listeners re-ask rather than being told what moved.
+        RaisePlayabilityChanged();
+    }
 
     [Tooltip("Looping battle track. Played through AudioManager, which survives the scene reload"
              + " between levels so the music does not restart on each one.")]

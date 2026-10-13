@@ -154,9 +154,10 @@ public sealed class BotBoardModel
             CardEffectEntry entry = card.GetEntry(e);
 
             if (entry.effect is not ApplyStatusEffect status || status.Status != StatusType.Poison) { continue; }
+            if (!card.EntryLive(entry, enemy)) { continue; }
 
             List<GridTile> landed = card.LandedTiles(enemy, aim, e);
-            ActionContext ctx = new(card, enemy, landed, aim, entry.amountDelta, entry.amountPercent);
+            ActionContext ctx = new(card, enemy, landed, aim, card.EntryDelta(entry, enemy), entry.amountPercent);
             int stacks = ctx.Amount(status.RiderAmount);
 
             if (stacks <= 0) { continue; }
@@ -333,8 +334,9 @@ public sealed class BotBoardModel
                     CardEffectEntry entry = card.GetEntry(e);
 
                     if (entry.effect is not DamageEffect damage || entry.aimsAt == EffectTarget.Source) { continue; }
+                    if (!card.EntryLive(entry, enemy)) { continue; }
 
-                    ActionContext ctx = new(card, enemy, System.Array.Empty<GridTile>(), null, entry.amountDelta, entry.amountPercent);
+                    ActionContext ctx = new(card, enemy, System.Array.Empty<GridTile>(), null, card.EntryDelta(entry, enemy), entry.amountPercent);
                     total += ctx.Amount(damage.Damage);
                 }
 
@@ -365,8 +367,9 @@ public sealed class BotBoardModel
                     CardEffectEntry entry = card.GetEntry(e);
 
                     if (entry.effect is not ApplyStatusEffect status || status.Status != StatusType.Poison) { continue; }
+                    if (!card.EntryLive(entry, enemy)) { continue; }
 
-                    ActionContext ctx = new(card, enemy, System.Array.Empty<GridTile>(), null, entry.amountDelta, entry.amountPercent);
+                    ActionContext ctx = new(card, enemy, System.Array.Empty<GridTile>(), null, card.EntryDelta(entry, enemy), entry.amountPercent);
                     best = Mathf.Max(best, ctx.Amount(status.RiderAmount));
                 }
             }

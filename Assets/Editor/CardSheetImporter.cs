@@ -106,6 +106,8 @@ public static class CardSheetImporter
         public string animation;
         public List<KeywordSpec> keywords = new();
         public List<EntrySpec> effectEntries = new();
+        public int costCondition;     // CardCondition; 0 = the printed cost always applies
+        public int costDiscount;
         public string sourceTab;
         public List<string> changed = new();
     }
@@ -127,6 +129,9 @@ public static class CardSheetImporter
         public int areaMin;
         public int areaMax;
         public string areaPattern;
+        public int condition;         // CardCondition; 0 = unconditional
+        public int conditionBonus;
+        public bool onlyWhenMet;
     }
 
     [Serializable]
@@ -770,6 +775,8 @@ public static class CardSheetImporter
         so.FindProperty("<excludeFromRewards>k__BackingField").boolValue = spec.excludeFromRewards;
         so.FindProperty("<rotatableAim>k__BackingField").boolValue = spec.rotatableAim;
         so.FindProperty("<description>k__BackingField").stringValue = spec.description;
+        so.FindProperty("<costCondition>k__BackingField").intValue = spec.costCondition;
+        so.FindProperty("<costDiscount>k__BackingField").intValue = spec.costDiscount;
 
         SerializedProperty range = so.FindProperty("<range>k__BackingField");
         range.FindPropertyRelative("shape").intValue = spec.rangeShape;
@@ -817,6 +824,12 @@ public static class CardSheetImporter
 
             area.FindPropertyRelative("pattern").objectReferenceValue =
                 string.IsNullOrWhiteSpace(source.areaPattern) ? null : FindByName<EffectPattern>(source.areaPattern);
+
+            // The sheet's "Cond N" cell. Written on every update, blank included, so clearing the cell
+            // really does remove the condition rather than leaving the old one on the asset.
+            entry.FindPropertyRelative("condition").intValue = source.condition;
+            entry.FindPropertyRelative("conditionBonus").intValue = source.conditionBonus;
+            entry.FindPropertyRelative("onlyWhenMet").boolValue = source.onlyWhenMet;
         }
 
         so.ApplyModifiedProperties();

@@ -1,0 +1,563 @@
+{
+ "name": "Veteran08",
+ "notes": "Foresight, plus lean drafting (take a card only at value 5, else upgrade, remove or heal), Weaken measured as the cut it is, and on-hit buffs counted as what they return.",
+ "weights": {
+  "damage": 0.7,
+  "kill": 5,
+  "threatRemoved": 1.4,
+  "friendlyFire": -3,
+  "mitigation": 0.9,
+  "mitigationSpare": 0.3,
+  "heal": 1.3,
+  "lifeSaved": 40,
+  "dot": 0.5,
+  "debuff": 2,
+  "buff": 1,
+  "totemCover": 4,
+  "totemBase": 2,
+  "summon": 0.4,
+  "moveSetup": 0.4,
+  "moveSafety": 0,
+  "loot": 8,
+  "auraMove": 3,
+  "draw": 2.5,
+  "energy": 2.5,
+  "selfDamage": -1.5,
+  "discard": -2,
+  "costPenalty": 0.25,
+  "futureThreat": 0,
+  "lootApproach": 0,
+  "exposure": 0,
+  "mitigationNeed": 1,
+  "forecast": 1.5,
+  "focus": 0,
+  "hunt": 0
+ },
+ "playFirst": [],
+ "playFirstMinScore": 0,
+ "passThreshold": 0.5,
+ "randomness": 0,
+ "endTurnChance": 0.15,
+ "baseline": false,
+ "rewards": {
+  "attackPick": 1,
+  "defensePick": 1.5,
+  "healPick": 1.4,
+  "totemPick": 1,
+  "summonPick": 1,
+  "debuffPick": 1,
+  "buffPick": 1,
+  "movePick": 0.6,
+  "utilityPick": 1,
+  "rarityBonus": 1,
+  "takeCardsMinValue": 5,
+  "healSkipBelowHp": 0.5,
+  "upgradeWeight": 1,
+  "removeWhenDeckAbove": 11,
+  "takeEquipment": true,
+  "earlyLevels": 0,
+  "lateTakeCardsMinValue": 5,
+  "lateRemoveWhenDeckAbove": 11,
+  "lateLootScale": 1,
+  "ratingWeight": 20,
+  "cardRatings": [
+   {
+    "card": "Seraph's Ward",
+    "bonus": 0.692
+   },
+   {
+    "card": "Glacier Band",
+    "bonus": 0.669
+   },
+   {
+    "card": "Opaline Charm",
+    "bonus": 0.348
+   },
+   {
+    "card": "Hermit's Smite",
+    "bonus": 0.302
+   },
+   {
+    "card": "Rimeguard Band",
+    "bonus": 0.292
+   },
+   {
+    "card": "Anvil Totem",
+    "bonus": 0.288
+   },
+   {
+    "card": "Sanctified Guard",
+    "bonus": 0.268
+   },
+   {
+    "card": "Longsword",
+    "bonus": 0.259
+   },
+   {
+    "card": "Dread Sovereign",
+    "bonus": 0.236
+   },
+   {
+    "card": "Benediction",
+    "bonus": 0.228
+   },
+   {
+    "card": "Bloom Totem",
+    "bonus": 0.219
+   },
+   {
+    "card": "Vampire's Token",
+    "bonus": 0.201
+   },
+   {
+    "card": "Lodestone Totem",
+    "bonus": 0.192
+   },
+   {
+    "card": "Smite Together",
+    "bonus": 0.188
+   },
+   {
+    "card": "Last Bastion",
+    "bonus": 0.176
+   },
+   {
+    "card": "Phalanx",
+    "bonus": 0.175
+   },
+   {
+    "card": "Rejuvenate",
+    "bonus": 0.166
+   },
+   {
+    "card": "Shield Bash",
+    "bonus": 0.156
+   },
+   {
+    "card": "Stormsplit Ring",
+    "bonus": 0.154
+   },
+   {
+    "card": "Echo Totem",
+    "bonus": 0.149
+   },
+   {
+    "card": "Boots of Speed",
+    "bonus": 0.149
+   },
+   {
+    "card": "Rampart Totem",
+    "bonus": 0.138
+   },
+   {
+    "card": "Blessed Shield",
+    "bonus": 0.124
+   },
+   {
+    "card": "Shield Slam",
+    "bonus": 0.104
+   },
+   {
+    "card": "Flanking Strike",
+    "bonus": 0.103
+   },
+   {
+    "card": "Bramblewreath",
+    "bonus": 0.1
+   },
+   {
+    "card": "Taunt",
+    "bonus": 0.097
+   },
+   {
+    "card": "Sweeping Blow",
+    "bonus": 0.093
+   },
+   {
+    "card": "Lone Stand",
+    "bonus": 0.092
+   },
+   {
+    "card": "Poison Dagger",
+    "bonus": 0.086
+   },
+   {
+    "card": "Shield Wall",
+    "bonus": 0.086
+   },
+   {
+    "card": "Zephyr Ring",
+    "bonus": 0.07
+   },
+   {
+    "card": "Wellspring Totem",
+    "bonus": 0.064
+   },
+   {
+    "card": "Aegis Totem",
+    "bonus": 0.062
+   },
+   {
+    "card": "Shoulder to Shoulder",
+    "bonus": 0.058
+   },
+   {
+    "card": "Whetstone Totem",
+    "bonus": 0.058
+   },
+   {
+    "card": "Shield Strike",
+    "bonus": 0.03
+   },
+   {
+    "card": "Judgement",
+    "bonus": 0.03
+   },
+   {
+    "card": "Tower Totem",
+    "bonus": 0.029
+   },
+   {
+    "card": "Shield Totem",
+    "bonus": 0.028
+   },
+   {
+    "card": "Deathgrip Signet",
+    "bonus": 0.024
+   },
+   {
+    "card": "Marigold Band",
+    "bonus": 0.023
+   },
+   {
+    "card": "Warlord Totem",
+    "bonus": 0.021
+   },
+   {
+    "card": "Spring Totem",
+    "bonus": 0.02
+   },
+   {
+    "card": "Vanguard's Oath",
+    "bonus": 0.017
+   },
+   {
+    "card": "Reinforce Totem",
+    "bonus": 0.011
+   },
+   {
+    "card": "Strengthen",
+    "bonus": 0.011
+   },
+   {
+    "card": "Totem Strike",
+    "bonus": 0.009
+   },
+   {
+    "card": "Brothers in Arms",
+    "bonus": 0.009
+   },
+   {
+    "card": "Astrologer's Loop",
+    "bonus": 0.002
+   },
+   {
+    "card": "Radiant Smite",
+    "bonus": -0.0
+   },
+   {
+    "card": "Guard Up",
+    "bonus": -0.001
+   },
+   {
+    "card": "Panther's Eye",
+    "bonus": -0.002
+   },
+   {
+    "card": "Ring of Focus",
+    "bonus": -0.004
+   },
+   {
+    "card": "Warhorn Totem",
+    "bonus": -0.005
+   },
+   {
+    "card": "Covering Strike",
+    "bonus": -0.005
+   },
+   {
+    "card": "Ward Blessing",
+    "bonus": -0.01
+   },
+   {
+    "card": "Rally the Line",
+    "bonus": -0.014
+   },
+   {
+    "card": "Hold the Line",
+    "bonus": -0.018
+   },
+   {
+    "card": "Vigil",
+    "bonus": -0.019
+   },
+   {
+    "card": "Twin Totem",
+    "bonus": -0.021
+   },
+   {
+    "card": "Sanctified Ground",
+    "bonus": -0.026
+   },
+   {
+    "card": "Bloodshard Ring",
+    "bonus": -0.026
+   },
+   {
+    "card": "Fury Totem",
+    "bonus": -0.028
+   },
+   {
+    "card": "Sentinel Totem",
+    "bonus": -0.029
+   },
+   {
+    "card": "Momentum Totem",
+    "bonus": -0.03
+   },
+   {
+    "card": "Solitary Guard",
+    "bonus": -0.031
+   },
+   {
+    "card": "Chapel Totem",
+    "bonus": -0.033
+   },
+   {
+    "card": "Bloodied Resolve",
+    "bonus": -0.038
+   },
+   {
+    "card": "Holy Smite",
+    "bonus": -0.04
+   },
+   {
+    "card": "Touch Heal",
+    "bonus": -0.043
+   },
+   {
+    "card": "Sporecap Ring",
+    "bonus": -0.044
+   },
+   {
+    "card": "Summon Skeleton",
+    "bonus": -0.044
+   },
+   {
+    "card": "Adrenaline",
+    "bonus": -0.045
+   },
+   {
+    "card": "Laying on of Hands",
+    "bonus": -0.049
+   },
+   {
+    "card": "Tower Shield",
+    "bonus": -0.05
+   },
+   {
+    "card": "Far Mend",
+    "bonus": -0.05
+   },
+   {
+    "card": "Lasting Renewal",
+    "bonus": -0.054
+   },
+   {
+    "card": "Sunder",
+    "bonus": -0.056
+   },
+   {
+    "card": "Beacon Totem",
+    "bonus": -0.058
+   },
+   {
+    "card": "Mending Light",
+    "bonus": -0.058
+   },
+   {
+    "card": "Communion",
+    "bonus": -0.061
+   },
+   {
+    "card": "Bulwark Totem",
+    "bonus": -0.062
+   },
+   {
+    "card": "Rally Totem",
+    "bonus": -0.063
+   },
+   {
+    "card": "Bastion Totem",
+    "bonus": -0.064
+   },
+   {
+    "card": "Bloodpact Totem",
+    "bonus": -0.071
+   },
+   {
+    "card": "Warcry Totem",
+    "bonus": -0.074
+   },
+   {
+    "card": "Whirlwind",
+    "bonus": -0.078
+   },
+   {
+    "card": "Bulwark Stance",
+    "bonus": -0.08
+   },
+   {
+    "card": "Distant Grace",
+    "bonus": -0.082
+   },
+   {
+    "card": "Totem Guard",
+    "bonus": -0.095
+   },
+   {
+    "card": "Totem Anchor",
+    "bonus": -0.097
+   },
+   {
+    "card": "Steely Resolve",
+    "bonus": -0.105
+   },
+   {
+    "card": "Shield of Faith",
+    "bonus": -0.111
+   },
+   {
+    "card": "Sharpening Ring",
+    "bonus": -0.113
+   },
+   {
+    "card": "Emberwood Band",
+    "bonus": -0.121
+   },
+   {
+    "card": "Prayer Circle",
+    "bonus": -0.122
+   },
+   {
+    "card": "Wellhead Totem",
+    "bonus": -0.127
+   },
+   {
+    "card": "Deepcoral Signet",
+    "bonus": -0.134
+   },
+   {
+    "card": "Guiding Smite",
+    "bonus": -0.135
+   },
+   {
+    "card": "Bloodmoon Totem",
+    "bonus": -0.136
+   },
+   {
+    "card": "Thornwood Totem",
+    "bonus": -0.139
+   },
+   {
+    "card": "Parry",
+    "bonus": -0.141
+   },
+   {
+    "card": "Mend and Fortify",
+    "bonus": -0.154
+   },
+   {
+    "card": "Ironbound Vambrace",
+    "bonus": -0.154
+   },
+   {
+    "card": "Serpent's Coil",
+    "bonus": -0.185
+   },
+   {
+    "card": "Cinderforge Ring",
+    "bonus": -0.192
+   },
+   {
+    "card": "Buff",
+    "bonus": -0.2
+   },
+   {
+    "card": "Close Prayer",
+    "bonus": -0.219
+   },
+   {
+    "card": "Shrine Blessing",
+    "bonus": -0.244
+   },
+   {
+    "card": "Cascade Ring",
+    "bonus": -0.322
+   },
+   {
+    "card": "Sanctuary Totem",
+    "bonus": -0.448
+   }
+  ],
+  "exploreRewards": 0
+ },
+ "adaptive": false,
+ "lateWeights": {
+  "damage": 0.7,
+  "kill": 5,
+  "threatRemoved": 1.4,
+  "friendlyFire": -3,
+  "mitigation": 0.9,
+  "mitigationSpare": 0.3,
+  "heal": 1.3,
+  "lifeSaved": 40,
+  "dot": 0.5,
+  "debuff": 2,
+  "buff": 1,
+  "totemCover": 4,
+  "totemBase": 2,
+  "summon": 0.4,
+  "moveSetup": 0.4,
+  "moveSafety": 0,
+  "loot": 8,
+  "auraMove": 3,
+  "draw": 2.5,
+  "energy": 2.5,
+  "selfDamage": -1.5,
+  "discard": -2,
+  "costPenalty": 0.25,
+  "futureThreat": 0,
+  "lootApproach": 0,
+  "exposure": 0,
+  "mitigationNeed": 1,
+  "forecast": 1.5,
+  "focus": 0,
+  "hunt": 0
+ },
+ "aggressiveUntil": 0.4,
+ "defensiveFrom": 0.8,
+ "lowHpGuard": 0.5,
+ "crowdGuard": 0,
+ "minAggression": 0,
+ "futureRoundsCap": 6,
+ "searchDepth": 6,
+ "beamWidth": 6,
+ "branching": 8,
+ "needCap": 1.5,
+ "needFloor": 0.1,
+ "forecastMoves": 12,
+ "countPoison": true,
+ "countOnHit": true,
+ "exactWeaken": true
+}

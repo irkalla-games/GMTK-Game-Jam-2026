@@ -16,7 +16,7 @@ the report.
 ## The lab, start to finish
 
 **1. Kickoff, while the user is here.** Load `references/kickoff.md` before writing a single question.
-1. `python Tools/BotRunner/lab/labctl.py preflight`. If another lab is running, say this one waits. If free disk is under 20 GB, warn.
+1. `python Tools/BotRunner/lab/labctl.py preflight`. If another lab is running, say this one waits. If the source tree is still being edited (by the user or another session), the freeze waits for it, and the brief pre-decides what happens if it never compiles. If free disk is under 20 GB, warn.
 2. One question round covering only what the kickoff message left open, each answer pre-filled from the previous brief as "(Same as last time)".
 3. `labctl.py new`, then write `brief.md` from `assets/brief-template.md`.
 4. `labctl.py freeze`, then `build <lab> base`, then `smoke <lab> base`. A failure here is reported **now**, while the user can still answer.
@@ -38,6 +38,8 @@ it in order: replication, report, index, `BotStrategy.md`, handoff, git, cleanup
 | Never read a number from an unfinished batch. Short runs finish first, so a half-done batch is biased. | `runs()`, `levels()` and `rate()` raise `IncompleteBatch` |
 | An arm picked after seeing results on seeds S gets re-run on a **fresh** seed block before it's headlined. Report each seed set and the pooled number. | `lab.seed('<new block>')`; wrap-up step 1 |
 | Compare arms run by run on the same seeds, and report ± se. | `paired()` refuses different base seeds |
+| Name a per-card winner or loser only after two rating rounds on separate seed blocks agree. A small per-card se does not show the cards differ. | `agreement(t_a, t_b)`; phases.md, Measure step 3 |
+| Every number in the report is read back against its table before publishing ("X of N", superlatives, caveats). `page()` checks structure, not claims. | `report_text(path)`; wrap-up step 2 |
 | Nothing writes the real `Assets/` during a lab, bot code included. Lab content and bot changes are definition patches applied in the mirror only. | `build()` patches the mirror; `export_patch()` for the handoff |
 | Build from the lab's frozen copy, never the live tree. | `build()` syncs from `lab.source` |
 | One lab at a time. | `active-lab.json` lock; `run()` refuses while another lab holds it |
@@ -48,6 +50,7 @@ it in order: replication, report, index, `BotStrategy.md`, handoff, git, cleanup
 
 - "The batch is 80% done and the trend is obvious." Wait for it to finish.
 - "This arm won, so it's the headline." Was it chosen on these seeds? Replicate first.
+- "Here are the best and worst new cards." From one round? Lab 08's second round correlated with its first at 0.17.
 - "I'll quickly ask the user." Not after kickoff. Make an assumption and record it.
 - "A small fix straight in `Assets/`." No. It becomes a definition patch.
 - "One more round should just about fit." `can_start` decides. Past the reserve, wrap up.

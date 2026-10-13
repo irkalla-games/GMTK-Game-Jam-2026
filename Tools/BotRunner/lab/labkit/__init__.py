@@ -15,8 +15,8 @@ from .definitions import load as load_definition
 from . import profiles
 from .batch import (KC, run, runs, levels, paired, pool, summary, is_complete, progress, IncompleteBatch,
                     BatchFailed)
-from .ratings import rate, pool_rounds, card_ratings
+from .ratings import rate, pool_rounds, agreement, card_ratings
 from .plan import runs_per_hour, estimate_hours, can_start, runs_that_fit
-from .report import page, section, table, cards, dots, paras, est, chip, fmt, Raw
+from .report import page, section, table, cards, dots, paras, est, chip, fmt, Raw, text as report_text
 from . import index
 from .cleanup import cleanup

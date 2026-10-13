@@ -698,8 +698,12 @@ public static class BotPlanner
 
             if (effect == null || effect is DamageEffect || effect is AnimateEffect) { continue; }
 
+            // A conditional entry whose condition fails is skipped here exactly as Card.ResolveEffects
+            // skips it - a Draw reads only the caster, so an empty landed list alone would still count it.
+            if (!card.EntryLive(entry, hero)) { continue; }
+
             List<GridTile> landed = card.LandedTiles(hero, tile, e);
-            ActionContext ctx = new(card, hero, landed, tile, entry.amountDelta, entry.amountPercent);
+            ActionContext ctx = new(card, hero, landed, tile, card.EntryDelta(entry, hero), entry.amountPercent);
 
             switch (effect)
             {
@@ -1623,8 +1627,9 @@ public static class BotPlanner
                     CardEffectEntry entry = card.GetEntry(e);
 
                     if (entry.effect is not DamageEffect hit || entry.aimsAt == EffectTarget.Source) { continue; }
+                    if (!card.EntryLive(entry, hero)) { continue; }
 
-                    ActionContext ctx = new(card, hero, Array.Empty<GridTile>(), null, entry.amountDelta, entry.amountPercent);
+                    ActionContext ctx = new(card, hero, Array.Empty<GridTile>(), null, card.EntryDelta(entry, hero), entry.amountPercent);
                     total += ctx.Amount(hit.Damage);
                 }
 

@@ -22,7 +22,7 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 1
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 02000000
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Gain 7 Shield.
   <image>k__BackingField: {fileID: 21300000, guid: 2a480034370c83e4bb56ac6cfb949050, type: 3}
@@ -41,6 +41,11 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

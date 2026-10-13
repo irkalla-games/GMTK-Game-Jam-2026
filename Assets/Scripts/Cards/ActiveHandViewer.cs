@@ -147,6 +147,9 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
     /// Driven by BattleManager.PlayabilityChanged rather than by this class watching for energy: five
     /// different things move the answer (energy, cooldown, Frozen, the hand, who is active) and the
     /// battle already knows about all of them.
+    ///
+    /// The cost number is re-written here too: a "costs 0 next to another hero" card changes price
+    /// when anybody moves, and BattleManager raises this after every resolved action for exactly that.
     /// </summary>
     private void RefreshPlayability()
     {
@@ -156,6 +159,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
 
             cardViewer.SetPlayable(cardViewer.card.PlayRefusal(shown) == null);
             cardViewer.RefreshLockCounter();
+            cardViewer.RefreshCost();
         }
     }
 
@@ -362,6 +366,7 @@ public class ActiveHandViewer : Singleton<ActiveHandViewer>
         // ShowHandFor rebuilds the whole row on a character switch, which raises nothing by itself.
         cardViewer.SetPlayable(card.PlayRefusal(shown) == null);
         cardViewer.RefreshLockCounter();
+        cardViewer.RefreshCost();
 
         cardViewer.PlaySpawnIn(layoutDuration);
 

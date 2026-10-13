@@ -14,7 +14,7 @@ looks like *now*. That is exactly right the first time and actively destructive 
 numbers, hand-placed layout, sheet-synced stats all get silently overwritten back to whatever the
 generator's source constants say.
 
-These 53 scripts (plus the Unity template's `TutorialInfo/` and the frozen `StatusIcons/` work order)
+These 54 scripts (plus the Unity template's `TutorialInfo/` and the frozen `StatusIcons/` work order)
 were archived for that reason, not because they're broken. If a menu item you used to reach for is
 gone, it's here.
 
@@ -55,6 +55,7 @@ gone, it's here.
 | `CardFaceLayout.cs` | `Tools/Cards/Apply Card Face Layout` | One-shot layout, already applied |
 | `CardFaceV2Builder.cs` | `Tools/Cards/Build/Use Card Face V2...` | One-shot prefab build + a swap already made |
 | `CardFolderNormaliser.cs` | `Tools/Cards/Normalise Card Folders` | One-shot asset-folder migration |
+| `CardLabContentBuilder.cs` | `Tools/Cards/Build Card Lab Content (one-shot)` | One-shot content generator (2026-10-12: the 47 card-lab cards, 3 totems, the L4 reward pool, totem costs 3 -> 2); re-running reverts any card-sheet tuning of those cards |
 | `CardPileWiring.cs` | `Tools/Battle HUD/Wire Card Piles` | One-shot scene wiring |
 | `CharacterSelectResizeWiring.cs` | `Tools/Main Menu/Resize Character Select` | One-shot layout tweak |
 | `CharacterSelectSkinWiring.cs` | `Tools/Main Menu/Skin Character Select` | One-shot restyle |

@@ -18,11 +18,14 @@ MonoBehaviour:
     shape: 1
     minDistance: 2
     maxDistance: 4
+    requiresRoute: 0
   <requiredClass>k__BackingField: 0
   <rarity>k__BackingField: 4
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
-  <description>k__BackingField: Deal 1 damage and apply 3 Poison to everything within 1 tile.
+  <rotatableAim>k__BackingField: 0
+  <description>k__BackingField: Deal 1 damage and apply 3 Poison to everything within
+    1 tile.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -34,10 +37,14 @@ MonoBehaviour:
         shape: 1
         minDistance: 0
         maxDistance: 1
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
-  - effect: {fileID: 11400000, guid: f1f83550d8e0b1349b773e5db3dcacc8, type: 2}
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
+  - effect: {fileID: 11400000, guid: bcae4299ca2f3dc41acf722b1fdc6b13, type: 2}
     aimsAt: 0
     area:
       kind: 1
@@ -45,9 +52,15 @@ MonoBehaviour:
         shape: 1
         minDistance: 0
         maxDistance: 1
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

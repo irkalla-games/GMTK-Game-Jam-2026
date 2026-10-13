@@ -12,7 +12,9 @@ never the headline.
 - An evaluation arm is 250 runs per tier. It gives a level mean ± about 0.13 to 0.15, and a paired
   difference ± about 0.14 to 0.16.
 - A rating round of about 2,500 random-drafting runs pins a Knight Uncommon to about ±0.10 and a Cleric
-  Uncommon to about ±0.16 (Card Lab III). Fewer cards in the pool means more offers each.
+  Uncommon to about ±0.16 (Card Lab III). Fewer cards in the pool means more offers each. That is each
+  card's error, not evidence that the cards differ by more: in Lab 08's 86-card pool the true spread
+  between the 47 new cards was only about ±0.07, below the noise.
 - Past labs' seeds were 1,000 to 61,000. `lab.seed(block)` hands out NN·100000 + 1000·k, so new blocks
   never collide with them.
 
@@ -37,6 +39,12 @@ never the headline.
    `rate(batches, profile='Explore')`, then `pool_rounds()`, then `card_ratings()`, then
    `profiles.with_ratings()`. A rated Veteran is a new profile name (e.g. `Veteran08`). Better ratings
    alone were worth +0.46 levels once, so say which ratings each arm used.
+   **Before naming any per-card winner or loser**, run at least two rounds on separate seed blocks and call
+   `agreement(t_r1, t_r2, names=new_cards)`. Put its `r`, `meanZ2` and `trueSd` in the method section. If
+   `differ` is False, report the set-level number, and name only the `clear` cards (pooled rating 1.5 se
+   clear of zero, same sign in both rounds). Headline a "rounds disagree" result; don't bury it, because it
+   changes what the user can act on. Lab 08: one round's ranking would have named the wrong top and bottom
+   cards (r 0.17; Hermit's Smite +0.39 then +0.02, Shrine Blessing −0.31 then +0.23).
 4. Report per tier: levels ± se, and paired differences against the comparison arm. Enemy threat comes
    from the batch CSVs (`enemies.csv`: falls per 100, damage per body).
 
@@ -71,7 +79,9 @@ never the headline.
    and get played. A passing build has already shipped zero offered cards once.
 4. **Rating rounds**: explore profile, about 2,500 runs per round. Before each round,
    `labkit.build.check()` the definition against `lab.source`. Retune between rounds toward the target
-   band, and pool only rounds that measured the **same version** of a card.
+   band, and pool only rounds that measured the **same version** of a card. Per-card verdicts need two
+   rounds of the same version and an `agreement()` check (Measure step 3), so budget the final version
+   for two rounds.
 5. **Teaching the bot** a new mechanic is a mirror-only weight (e.g. Card Lab III's `formation`). Run plain
    and taught in the same round (two explore profiles, same seeds) and report both. Each half then has half
    the offers, so its ratings are about 1.4× noisier. Budget the round for that, or rate on the pooled table

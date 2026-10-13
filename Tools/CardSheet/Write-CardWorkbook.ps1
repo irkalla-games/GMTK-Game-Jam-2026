@@ -260,6 +260,10 @@ function Add-EnumsSheet {
         list_Keyword   = @('Innate', 'Cooldown', 'Dormant')
         list_Effect    = $effectNames
         list_Folder    = $folders
+        # Suggestions only - the cells are free text (the validation shows no error), because a bonus
+        # is typed in: "Alone +6". The bare name with no +N or 'only' is legal but does nothing.
+        list_Condition = @((Get-ConditionNames) | Select-Object -Skip 1 | ForEach-Object { "$_ only" })
+        list_CostCond  = @((Get-ConditionNames) | Select-Object -Skip 1 | ForEach-Object { "$_ -1" })
     }
 
     $col = 1
@@ -524,6 +528,10 @@ function Set-CardSheets {
             @('Effect 1',    'list_Effect'),
             @('Effect 2',    'list_Effect'),
             @('Effect 3',    'list_Effect'),
+            @('Cond 1',      'list_Condition'),
+            @('Cond 2',      'list_Condition'),
+            @('Cond 3',      'list_Condition'),
+            @('Cost Cond',   'list_CostCond'),
             @('No Reward',   'list_Bool'),
             @('Rotatable',   'list_Bool')
         )
@@ -625,6 +633,8 @@ function Add-ReadmeSheet {
         @('Range Shape/Min/Max', 'Which tiles may be clicked, measured from the caster. Chebyshev is a square, Manhattan a diamond.'),
         @('Area N', 'The footprint each effect covers around its aim tile. Single is one tile.'),
         @('Rotatable', 'TRUE lets the player turn the card''s area a quarter turn while aiming (E). Only meaningful with a Pattern area - a Radius area already reads the same after any turn.'),
+        @('Cond N', 'A board condition on effect N, checked on the caster as the card resolves. "Alone +6" adds 6 to the effect while it holds (Damage 7 with "NextToHero +3" deals 10 next to a hero). "Alone only" makes the effect fire only while it holds. Blank = always. Conditions: NextToTotem, HasShield, HasBlock, NextToHero, Alone (no other hero within 2 tiles).'),
+        @('Cost Cond', 'A board condition that lowers the whole card''s cost while it holds. "NextToHero -1" = costs 1 less next to another hero. Never below 0. Blank = the printed cost always applies.'),
         @('GUID', 'Unity asset id. Blank means the card does not exist yet - this is what the importer diffs on.'),
         @('Buildable', 'Ideas tabs only, and purely informational now: Yes means the current engine could build it, anything else names what is missing. It does NOT gate anything - Ideas rows are never imported at all.'),
         @('Quantifiable', 'Balance tab. Yes = fully scored. Partial = has a numeric core plus an unscored rider (Ice Shard damages AND freezes) - plotted, but Flag reads RIDER because the number is a floor. No = nothing numeric at all, kept off the curve entirely.'),

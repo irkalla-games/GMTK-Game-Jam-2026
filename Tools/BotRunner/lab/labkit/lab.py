@@ -71,7 +71,9 @@ class Lab:
         os.makedirs(lab.def_dir)
         for sub in ('batches', 'jobs', 'players', 'scripts'):
             os.makedirs(os.path.join(lab.data_dir, sub), exist_ok=True)
-        lab.meta = {'id': lab.id, 'number': number, 'title': f'Spire Lab {number:02d}: {topic}',
+        # The title is a name (it becomes the report's <title> and the index row); the topic sentence is the
+        # report's lede and the Artifact's description - never part of the name.
+        lab.meta = {'id': lab.id, 'number': number, 'title': f'Spire Lab {number:02d}', 'topic': topic,
                     'created': now().strftime(TIME), 'deadline': deadline, 'reserveHours': reserve_hours,
                     'phases': list(phases), 'state': 'running', 'url': None, 'headline': {}, 'freeze': None}
         return lab

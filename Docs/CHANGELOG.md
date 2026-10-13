@@ -9,6 +9,59 @@ written up.
 
 ---
 
+## 2026-10-12 — The card-lab cards ship: board conditions, 47 Knight/Cleric cards, the L4 pool
+
+**Asked for:** build the Knight and Cleric cards chosen from Card Labs II–IV into the game, move every
+3-cost totem to 2, and ship Card Lab II's "L4" reward pool, which is what every lab rated these cards
+in. Numbers are exactly as last tested (Lab II's, with Lab III's retunes of Totem Strike 12, Brothers in
+Arms 8, Shrine Blessing 9 and Blessed Shield 10). Specs: `Docs/CardLab3-Handoff.md`,
+`Docs/CardLab4-Handoff.md`, and Lab II's builder in `BotRuns/claude-tools/cardlab2`.
+
+**Board conditions are a real mechanic now, not a lab patch.** `CardCondition` (NextToTotem, HasShield,
+HasBlock, NextToHero, Alone) can lower a card's cost (`CardData.costCondition`/`costDiscount`) or change
+one entry: add to its number while met (`conditionBonus`) or fire only while met (`onlyWhenMet`). "Next
+to" is the 8 surrounding tiles. "Alone" is no other hero within 2 tiles (`CardConditions.AloneDistance`
+= 3, Lab IV's recommendation). A hero is living, player-controlled and not a totem, so summoned allies
+count for neither, which is what the labs' code measured. The lab's shortcuts were not ported: the cost
+is a read-only property over `baseCost` asked against `Card.Holder` (so nothing stores a discounted
+number), a gated entry is skipped rather than emptied (Lab III's "draw 1 next to a hero" drew every time
+for two rounds), and gating is an explicit flag rather than "a bonus of 0", so zeroing a bonus can never
+silently switch an effect off. The card face rewrites its cost, dark green while discounted, whenever
+`PlayabilityChanged` fires, and `BattleManager` now raises that after every resolved action, because
+nothing announced a move landing before. "Alone" and "next to" are glossary hover terms (a new
+`Glossary.conditions` list keyed by the enum).
+
+**Content.** 47 cards in the class folders, each a copy of its lab template (art, tags, animation) with
+its numbers in effect assets ("Shield 11") rather than `amountDelta`, so the card sheet shows the real
+number. Chapel, Warhorn and Spring Totem: 10 health, cost 2, Rare; Chapel and Warhorn wear Scholar
+Totem's gold reaction gem, Spring keeps Heal Totem's. The L4 pool: level-clear rewards roll Uncommon
+40 / Rare 50 / Legendary 10 (was Rare 80 / Legendary 20, which offered the Cleric's Uncommons about 0.1
+times per run in Lab II); 17 starter-level Knight/Cleric cards out of rewards (starter decks unchanged);
+Touch Heal to Uncommon; the 7 Rare Knight/Cleric totems to 10 health. All 11 totems that cost 3 now cost
+2, every class. Built by `CardLabContentBuilder`, archived after it ran.
+
+**Card sheet.** New columns `Cond 1..3` ("Alone +6", "NextToHero only") and `Cost Cond`
+("NextToHero -1"), with dropdowns, merged three-way like every other column. The Knight Ideas rows called
+Shield Bash and Shield Wall (different, older designs) were deleted.
+
+**Bot.** The planner and enemy model read entry numbers through `Card.EntryDelta` and skip non-live
+entries; drafting value counts a condition as holding half the time. The labs' Formation term (moving
+next to allies on purpose) was not ported - Lab III measured it as noise. Veteran's `cardRatings` were
+not re-measured, so the new cards draft by formula until the next explore batch.
+
+**Verified:** every new card played through `CardPlayManager.TryPlay` in Play Mode, each conditional
+card with its condition met and unmet - 84 plays, energy, draws, Shield, Block, healing and damage all as
+the text says. A real Move into adjacency turned Brothers in Arms and Vanguard's Oath to 0 on the card
+face. A 30-run Veteran smoke batch (Knight + Cleric, Normal, `BotRuns/20261012-015855-labcards-smoke`):
+no errors, no stalls; 42 of the 47 new cards played, and the other five (Distant Grace, Guard Up, Holy
+Smite, Mending Light, Ward Blessing) were offered but never picked; none of the 17 excluded cards was
+offered; the bot's hand log shows discounted costs (Brothers in Arms at 0 and 1, Vigil at 1 and 2).
+Thirty runs is a smoke test, not a balance measurement - Lab IV expected its full set to make the game
+clearly easier, and that has not been re-measured here.
+
+**Not done:** the card sheet's status-name table still stops at Lifesteal (21), so the Glossary rows for
+statuses 22-30 report "Unknown(N)" on every sync, as they did before this change.
+
 ## 2026-10-09 (night) — Foresight: the bot reads poison and forecasts moves
 
 **Asked for:** many more runs on the new content, without the Veil exploit, trying different ways to

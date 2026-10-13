@@ -569,7 +569,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 1
+  maxHealth: 10
   maxEnergy: 0
   playableCharacter: 3
   battleRole: 0
@@ -585,7 +585,7 @@ MonoBehaviour:
   itemDropPrefab: {fileID: 0}
   lootTable: {fileID: 0}
   deck: []
-  <Health>k__BackingField: 1
+  <Health>k__BackingField: 10
 --- !u!114 &8180095766773256550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -602,6 +602,7 @@ MonoBehaviour:
     shape: 1
     minDistance: 0
     maxDistance: 2
+    requiresRoute: 0
   affects: 0
   auras:
   - type: 17
@@ -640,14 +641,26 @@ MonoBehaviour:
   shieldFill: {fileID: 7038471952900030700}
   intentIcon: {fileID: 0}
   icons: {fileID: 0}
-  intentRoll:
+  intentStrip:
+    slotGapScale: 0.18
+    chevronScale: 0.36
+    followUpAlpha: 0.4
+    rowLift: 0
+    damageFontScale: 0.64
+    damageGapScale: 0.14
+    damageBoxWidthScale: 1.36
+    damageColor: {r: 1, g: 1, b: 1, a: 1}
+    badgeScale: 0.5
+    badgeOverlap: 0.55
+    badgeSpacingScale: 0.05
+    badgeNumberGapScale: 0.08
+    badgeNumberWidthScale: 0.34
+    badgeNumberFontScale: 0.4
+    maxBadges: 3
+    targetAimedBadgeColor: {r: 0.46, g: 0.12, b: 0.14, a: 0.92}
+    selfAimedBadgeColor: {r: 0.16, g: 0.32, b: 0.48, a: 0.92}
     rollDuration: 0.5
     rollEase: 9
-  damageLabel:
-    fontSize: 28
-    gap: 6
-    color: {r: 1, g: 1, b: 1, a: 1}
-    size: {x: 60, y: 44}
   statusIconParent: {fileID: 2430622907146704958}
   statusIconPrefab: {fileID: 8508868567434183974, guid: 8c7a7d2205c98f848893d39be04417d7, type: 3}
   statusIcons: {fileID: 11400000, guid: fcd1c4d693b24272b0f438ca92c51602, type: 2}

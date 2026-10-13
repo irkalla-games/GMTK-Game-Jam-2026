@@ -39,6 +39,10 @@ public class Glossary : ScriptableObject
     /// summonable things, and the effect asset is already the one place a summon's numbers live.
     private const string SummonLink = "summon:";
 
+    /// Card conditions ("Alone", "next to another hero") - keyed by CardCondition, like statuses and
+    /// keywords are by their own enums.
+    private const string ConditionLink = "condition:";
+
     /// <summary>
     /// The parts every glossary entry has. A base class rather than two independent structs because
     /// Tag, the term matching and the fallback numbers are identical for both - only the key differs.
@@ -98,6 +102,20 @@ public class Glossary : ScriptableObject
     [SerializeField] private List<KeywordEntry> keywords = new();
 
     [SerializeField] private List<SummonEntry> summons = new();
+
+    /// <summary>
+    /// What a card condition means - "Alone" is the one that genuinely needs saying, because players
+    /// read it as "nobody next to me" when the rule is a wider radius. {magnitude} in the body is filled
+    /// with that radius (CardConditions.AloneDistance - 1), so the sentence can never disagree with the
+    /// constant the rule actually uses.
+    /// </summary>
+    [System.Serializable]
+    public class ConditionEntry : Entry
+    {
+        public CardCondition type;
+    }
+
+    [SerializeField] private List<ConditionEntry> conditions = new();
 
     /// Built on first use from every entry's terms and thrown away by OnValidate, so editing the asset
     /// mid-play re-tags rather than serving a stale table. Null means "not built yet".
@@ -202,6 +220,12 @@ public class Glossary : ScriptableObject
             return KeywordContent(keyword, entry != null ? entry.defaultStacks : 0, into);
         }
 
+        if (linkId.StartsWith(ConditionLink) &&
+            System.Enum.TryParse(linkId[ConditionLink.Length..], out CardCondition condition))
+        {
+            return ConditionContent(condition, into);
+        }
+
         if (linkId.StartsWith(SummonLink))
         {
             SummonEntry entry = FindSummon(linkId[SummonLink.Length..]);
@@ -212,6 +236,20 @@ public class Glossary : ScriptableObject
         }
 
         return into ?? new TooltipContent();
+    }
+
+    /// What a card condition means. The Alone radius is filled into {magnitude} from the rule's own
+    /// constant - see ConditionEntry.
+    public TooltipContent ConditionContent(CardCondition type, TooltipContent into = null)
+    {
+        ConditionEntry entry = FindCondition(type);
+        TooltipContent content = into ?? new TooltipContent();
+
+        if (entry == null) { return content; }
+
+        string body = entry.body.Replace(MagnitudeToken, (CardConditions.AloneDistance - 1).ToString());
+
+        return content.Add(Title(entry, type.ToString()), FillDefaults(entry, body));
     }
 
     /// <summary>
@@ -438,6 +476,11 @@ public class Glossary : ScriptableObject
             CollectTerms(entry, entry.type.ToString(), KeywordLink + entry.type, all);
         }
 
+        foreach (ConditionEntry entry in conditions)
+        {
+            CollectTerms(entry, entry.type.ToString(), ConditionLink + entry.type, all);
+        }
+
         foreach (SummonEntry entry in summons)
         {
             string name = SummonDisplayName(entry);
@@ -528,6 +571,16 @@ public class Glossary : ScriptableObject
     private KeywordEntry FindKeyword(CardKeywordType type)
     {
         foreach (KeywordEntry entry in keywords)
+        {
+            if (entry.type == type) { return entry; }
+        }
+
+        return null;
+    }
+
+    private ConditionEntry FindCondition(CardCondition type)
+    {
+        foreach (ConditionEntry entry in conditions)
         {
             if (entry.type == type) { return entry; }
         }

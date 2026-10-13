@@ -1,0 +1,898 @@
+{
+ "Adrenaline": {
+  "bonus": -0.002,
+  "diff": -0.002,
+  "offers": 6149,
+  "rounds": 2,
+  "se": 0.057,
+  "takes": 1187
+ },
+ "Aegis Totem": {
+  "bonus": 0.12,
+  "diff": 0.125,
+  "offers": 5485,
+  "rounds": 2,
+  "se": 0.064,
+  "takes": 793
+ },
+ "Anvil Totem": {
+  "bonus": 0.248,
+  "diff": 0.26,
+  "offers": 3013,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 629
+ },
+ "Astrologer's Loop": {
+  "bonus": 0.076,
+  "diff": 0.081,
+  "offers": 3460,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 524
+ },
+ "Bastion Totem": {
+  "bonus": -0.012,
+  "diff": -0.014,
+  "offers": 1239,
+  "rounds": 2,
+  "se": 0.133,
+  "takes": 189
+ },
+ "Beacon Totem": {
+  "bonus": 0.157,
+  "diff": 0.182,
+  "offers": 1237,
+  "rounds": 2,
+  "se": 0.135,
+  "takes": 186
+ },
+ "Benediction": {
+  "bonus": 0.12,
+  "diff": 0.137,
+  "offers": 1256,
+  "rounds": 2,
+  "se": 0.134,
+  "takes": 203
+ },
+ "Blessed Shield": {
+  "bonus": 0.22,
+  "diff": 0.254,
+  "offers": 1260,
+  "rounds": 2,
+  "se": 0.13,
+  "takes": 191
+ },
+ "Bloodied Resolve": {
+  "bonus": -0.043,
+  "diff": -0.044,
+  "offers": 6074,
+  "rounds": 2,
+  "se": 0.056,
+  "takes": 1184
+ },
+ "Bloodmoon Totem": {
+  "bonus": -0.235,
+  "diff": -0.242,
+  "offers": 6054,
+  "rounds": 2,
+  "se": 0.058,
+  "takes": 1112
+ },
+ "Bloodpact Totem": {
+  "bonus": -0.111,
+  "diff": -0.128,
+  "offers": 1249,
+  "rounds": 2,
+  "se": 0.134,
+  "takes": 200
+ },
+ "Bloodshard Ring": {
+  "bonus": -0.083,
+  "diff": -0.088,
+  "offers": 3446,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 488
+ },
+ "Bloom Totem": {
+  "bonus": -0.013,
+  "diff": -0.015,
+  "offers": 1160,
+  "rounds": 2,
+  "se": 0.144,
+  "takes": 173
+ },
+ "Boots of Speed": {
+  "bonus": 0.178,
+  "diff": 0.187,
+  "offers": 3408,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 563
+ },
+ "Bramblewreath": {
+  "bonus": 0.172,
+  "diff": 0.182,
+  "offers": 3043,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 545
+ },
+ "Brothers in Arms": {
+  "bonus": 0.05,
+  "diff": 0.053,
+  "offers": 2918,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 612
+ },
+ "Buff": {
+  "bonus": -0.073,
+  "diff": -0.076,
+  "offers": 3000,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 647
+ },
+ "Bulwark Stance": {
+  "bonus": -0.073,
+  "diff": -0.077,
+  "offers": 2980,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 615
+ },
+ "Bulwark Totem": {
+  "bonus": -0.197,
+  "diff": -0.228,
+  "offers": 1176,
+  "rounds": 2,
+  "se": 0.126,
+  "takes": 190
+ },
+ "Cascade Ring": {
+  "bonus": -0.212,
+  "diff": -0.225,
+  "offers": 2900,
+  "rounds": 2,
+  "se": 0.085,
+  "takes": 482
+ },
+ "Chapel Totem": {
+  "bonus": -0.037,
+  "diff": -0.038,
+  "offers": 5289,
+  "rounds": 2,
+  "se": 0.066,
+  "takes": 701
+ },
+ "Cinderforge Ring": {
+  "bonus": -0.15,
+  "diff": -0.159,
+  "offers": 3433,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 486
+ },
+ "Close Prayer": {
+  "bonus": -0.131,
+  "diff": -0.149,
+  "offers": 1195,
+  "rounds": 2,
+  "se": 0.127,
+  "takes": 214
+ },
+ "Communion": {
+  "bonus": -0.055,
+  "diff": -0.057,
+  "offers": 5452,
+  "rounds": 2,
+  "se": 0.062,
+  "takes": 800
+ },
+ "Covering Strike": {
+  "bonus": 0.028,
+  "diff": 0.029,
+  "offers": 2986,
+  "rounds": 2,
+  "se": 0.084,
+  "takes": 612
+ },
+ "Deathgrip Signet": {
+  "bonus": 0.039,
+  "diff": 0.041,
+  "offers": 3466,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 526
+ },
+ "Deepcoral Signet": {
+  "bonus": -0.269,
+  "diff": -0.341,
+  "offers": 613,
+  "rounds": 2,
+  "se": 0.201,
+  "takes": 112
+ },
+ "Distant Grace": {
+  "bonus": -0.068,
+  "diff": -0.078,
+  "offers": 1301,
+  "rounds": 2,
+  "se": 0.134,
+  "takes": 209
+ },
+ "Dread Sovereign": {
+  "bonus": -0.126,
+  "diff": -0.157,
+  "offers": 617,
+  "rounds": 2,
+  "se": 0.181,
+  "takes": 124
+ },
+ "Echo Totem": {
+  "bonus": 0.088,
+  "diff": 0.1,
+  "offers": 1181,
+  "rounds": 2,
+  "se": 0.125,
+  "takes": 222
+ },
+ "Emberwood Band": {
+  "bonus": -0.208,
+  "diff": -0.221,
+  "offers": 3001,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 505
+ },
+ "Far Mend": {
+  "bonus": -0.237,
+  "diff": -0.281,
+  "offers": 1196,
+  "rounds": 2,
+  "se": 0.142,
+  "takes": 162
+ },
+ "Flanking Strike": {
+  "bonus": 0.11,
+  "diff": 0.116,
+  "offers": 3046,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 633
+ },
+ "Fury Totem": {
+  "bonus": -0.021,
+  "diff": -0.022,
+  "offers": 3032,
+  "rounds": 2,
+  "se": 0.075,
+  "takes": 689
+ },
+ "Glacier Band": {
+  "bonus": 0.734,
+  "diff": 0.777,
+  "offers": 2881,
+  "rounds": 2,
+  "se": 0.093,
+  "takes": 512
+ },
+ "Guard Up": {
+  "bonus": 0.053,
+  "diff": 0.056,
+  "offers": 2951,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 618
+ },
+ "Guiding Smite": {
+  "bonus": -0.153,
+  "diff": -0.174,
+  "offers": 1252,
+  "rounds": 2,
+  "se": 0.119,
+  "takes": 214
+ },
+ "Hermit's Smite": {
+  "bonus": 0.215,
+  "diff": 0.255,
+  "offers": 1116,
+  "rounds": 2,
+  "se": 0.14,
+  "takes": 165
+ },
+ "Hold the Line": {
+  "bonus": -0.049,
+  "diff": -0.05,
+  "offers": 6157,
+  "rounds": 2,
+  "se": 0.057,
+  "takes": 1106
+ },
+ "Holy Smite": {
+  "bonus": -0.004,
+  "diff": -0.005,
+  "offers": 1186,
+  "rounds": 2,
+  "se": 0.131,
+  "takes": 215
+ },
+ "Ironbound Vambrace": {
+  "bonus": -0.068,
+  "diff": -0.072,
+  "offers": 3010,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 515
+ },
+ "Judgement": {
+  "bonus": 0.048,
+  "diff": 0.05,
+  "offers": 5341,
+  "rounds": 2,
+  "se": 0.065,
+  "takes": 759
+ },
+ "Last Bastion": {
+  "bonus": 0.111,
+  "diff": 0.114,
+  "offers": 6020,
+  "rounds": 2,
+  "se": 0.059,
+  "takes": 1098
+ },
+ "Lasting Renewal": {
+  "bonus": -0.105,
+  "diff": -0.121,
+  "offers": 1241,
+  "rounds": 2,
+  "se": 0.121,
+  "takes": 194
+ },
+ "Laying on of Hands": {
+  "bonus": -0.062,
+  "diff": -0.072,
+  "offers": 1266,
+  "rounds": 2,
+  "se": 0.126,
+  "takes": 193
+ },
+ "Lodestone Totem": {
+  "bonus": 0.177,
+  "diff": 0.181,
+  "offers": 6134,
+  "rounds": 2,
+  "se": 0.06,
+  "takes": 1121
+ },
+ "Lone Stand": {
+  "bonus": 0.006,
+  "diff": 0.006,
+  "offers": 2924,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 646
+ },
+ "Longsword": {
+  "bonus": 0.186,
+  "diff": 0.204,
+  "offers": 1750,
+  "rounds": 2,
+  "se": 0.114,
+  "takes": 311
+ },
+ "Marigold Band": {
+  "bonus": 0.064,
+  "diff": 0.067,
+  "offers": 2970,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 587
+ },
+ "Mend and Fortify": {
+  "bonus": -0.099,
+  "diff": -0.113,
+  "offers": 1194,
+  "rounds": 2,
+  "se": 0.125,
+  "takes": 217
+ },
+ "Mending Light": {
+  "bonus": -0.063,
+  "diff": -0.074,
+  "offers": 1245,
+  "rounds": 2,
+  "se": 0.129,
+  "takes": 186
+ },
+ "Momentum Totem": {
+  "bonus": -0.142,
+  "diff": -0.149,
+  "offers": 2991,
+  "rounds": 2,
+  "se": 0.085,
+  "takes": 603
+ },
+ "Opaline Charm": {
+  "bonus": 0.588,
+  "diff": 0.734,
+  "offers": 608,
+  "rounds": 2,
+  "se": 0.199,
+  "takes": 120
+ },
+ "Panther's Eye": {
+  "bonus": -0.084,
+  "diff": -0.088,
+  "offers": 3375,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 516
+ },
+ "Parry": {
+  "bonus": -0.075,
+  "diff": -0.078,
+  "offers": 3031,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 635
+ },
+ "Phalanx": {
+  "bonus": 0.056,
+  "diff": 0.058,
+  "offers": 3033,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 695
+ },
+ "Poison Dagger": {
+  "bonus": 0.074,
+  "diff": 0.077,
+  "offers": 4206,
+  "rounds": 2,
+  "se": 0.069,
+  "takes": 821
+ },
+ "Prayer Circle": {
+  "bonus": 0.06,
+  "diff": 0.07,
+  "offers": 1169,
+  "rounds": 2,
+  "se": 0.135,
+  "takes": 181
+ },
+ "Radiant Smite": {
+  "bonus": 0.042,
+  "diff": 0.049,
+  "offers": 1240,
+  "rounds": 2,
+  "se": 0.141,
+  "takes": 185
+ },
+ "Rally Totem": {
+  "bonus": -0.033,
+  "diff": -0.034,
+  "offers": 2901,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 611
+ },
+ "Rally the Line": {
+  "bonus": -0.051,
+  "diff": -0.053,
+  "offers": 6140,
+  "rounds": 2,
+  "se": 0.055,
+  "takes": 1156
+ },
+ "Rampart Totem": {
+  "bonus": -0.027,
+  "diff": -0.031,
+  "offers": 1174,
+  "rounds": 2,
+  "se": 0.137,
+  "takes": 179
+ },
+ "Reinforce Totem": {
+  "bonus": -0.052,
+  "diff": -0.054,
+  "offers": 5402,
+  "rounds": 2,
+  "se": 0.062,
+  "takes": 816
+ },
+ "Rejuvenate": {
+  "bonus": 0.121,
+  "diff": 0.136,
+  "offers": 1198,
+  "rounds": 2,
+  "se": 0.121,
+  "takes": 230
+ },
+ "Rimeguard Band": {
+  "bonus": 0.218,
+  "diff": 0.23,
+  "offers": 2962,
+  "rounds": 2,
+  "se": 0.087,
+  "takes": 524
+ },
+ "Ring of Focus": {
+  "bonus": 0.183,
+  "diff": 0.193,
+  "offers": 3403,
+  "rounds": 2,
+  "se": 0.086,
+  "takes": 522
+ },
+ "Sanctified Ground": {
+  "bonus": -0.035,
+  "diff": -0.036,
+  "offers": 5336,
+  "rounds": 2,
+  "se": 0.064,
+  "takes": 783
+ },
+ "Sanctified Guard": {
+  "bonus": 0.247,
+  "diff": 0.285,
+  "offers": 1173,
+  "rounds": 2,
+  "se": 0.148,
+  "takes": 193
+ },
+ "Sanctuary Totem": {
+  "bonus": -0.24,
+  "diff": -0.275,
+  "offers": 1226,
+  "rounds": 2,
+  "se": 0.119,
+  "takes": 201
+ },
+ "Sentinel Totem": {
+  "bonus": 0.017,
+  "diff": 0.02,
+  "offers": 1191,
+  "rounds": 2,
+  "se": 0.125,
+  "takes": 193
+ },
+ "Seraph's Ward": {
+  "bonus": 0.872,
+  "diff": 1.079,
+  "offers": 598,
+  "rounds": 2,
+  "se": 0.2,
+  "takes": 126
+ },
+ "Serpent's Coil": {
+  "bonus": -0.114,
+  "diff": -0.121,
+  "offers": 3052,
+  "rounds": 2,
+  "se": 0.087,
+  "takes": 496
+ },
+ "Sharpening Ring": {
+  "bonus": -0.056,
+  "diff": -0.062,
+  "offers": 1743,
+  "rounds": 2,
+  "se": 0.109,
+  "takes": 326
+ },
+ "Shield Bash": {
+  "bonus": 0.211,
+  "diff": 0.221,
+  "offers": 2969,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 637
+ },
+ "Shield Slam": {
+  "bonus": 0.078,
+  "diff": 0.082,
+  "offers": 2937,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 593
+ },
+ "Shield Strike": {
+  "bonus": 0.026,
+  "diff": 0.028,
+  "offers": 2973,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 656
+ },
+ "Shield Totem": {
+  "bonus": -0.005,
+  "diff": -0.006,
+  "offers": 6043,
+  "rounds": 2,
+  "se": 0.057,
+  "takes": 1162
+ },
+ "Shield Wall": {
+  "bonus": 0.055,
+  "diff": 0.056,
+  "offers": 6042,
+  "rounds": 2,
+  "se": 0.059,
+  "takes": 1121
+ },
+ "Shield of Faith": {
+  "bonus": -0.256,
+  "diff": -0.296,
+  "offers": 1222,
+  "rounds": 2,
+  "se": 0.135,
+  "takes": 193
+ },
+ "Shoulder to Shoulder": {
+  "bonus": -0.068,
+  "diff": -0.071,
+  "offers": 2874,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 638
+ },
+ "Shrine Blessing": {
+  "bonus": -0.094,
+  "diff": -0.11,
+  "offers": 1187,
+  "rounds": 2,
+  "se": 0.135,
+  "takes": 174
+ },
+ "Smite Together": {
+  "bonus": 0.199,
+  "diff": 0.231,
+  "offers": 1164,
+  "rounds": 2,
+  "se": 0.139,
+  "takes": 192
+ },
+ "Solitary Guard": {
+  "bonus": -0.021,
+  "diff": -0.022,
+  "offers": 2984,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 634
+ },
+ "Sporecap Ring": {
+  "bonus": -0.077,
+  "diff": -0.081,
+  "offers": 2989,
+  "rounds": 2,
+  "se": 0.086,
+  "takes": 545
+ },
+ "Spring Totem": {
+  "bonus": 0.029,
+  "diff": 0.03,
+  "offers": 5467,
+  "rounds": 2,
+  "se": 0.065,
+  "takes": 761
+ },
+ "Steely Resolve": {
+  "bonus": -0.055,
+  "diff": -0.057,
+  "offers": 2974,
+  "rounds": 2,
+  "se": 0.08,
+  "takes": 620
+ },
+ "Stormsplit Ring": {
+  "bonus": 0.021,
+  "diff": 0.022,
+  "offers": 3490,
+  "rounds": 2,
+  "se": 0.083,
+  "takes": 487
+ },
+ "Strengthen": {
+  "bonus": -0.113,
+  "diff": -0.119,
+  "offers": 2991,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 605
+ },
+ "Summon Skeleton": {
+  "bonus": -0.098,
+  "diff": -0.101,
+  "offers": 5365,
+  "rounds": 2,
+  "se": 0.063,
+  "takes": 774
+ },
+ "Sunder": {
+  "bonus": -0.104,
+  "diff": -0.109,
+  "offers": 2937,
+  "rounds": 2,
+  "se": 0.077,
+  "takes": 654
+ },
+ "Sweeping Blow": {
+  "bonus": 0.093,
+  "diff": 0.097,
+  "offers": 3028,
+  "rounds": 2,
+  "se": 0.078,
+  "takes": 659
+ },
+ "Taunt": {
+  "bonus": 0.042,
+  "diff": 0.044,
+  "offers": 3014,
+  "rounds": 2,
+  "se": 0.078,
+  "takes": 667
+ },
+ "Thornwood Totem": {
+  "bonus": -0.003,
+  "diff": -0.003,
+  "offers": 3049,
+  "rounds": 2,
+  "se": 0.079,
+  "takes": 623
+ },
+ "Totem Anchor": {
+  "bonus": 0.095,
+  "diff": 0.105,
+  "offers": 1747,
+  "rounds": 2,
+  "se": 0.11,
+  "takes": 284
+ },
+ "Totem Guard": {
+  "bonus": -0.024,
+  "diff": -0.026,
+  "offers": 2965,
+  "rounds": 2,
+  "se": 0.082,
+  "takes": 636
+ },
+ "Totem Strike": {
+  "bonus": -0.01,
+  "diff": -0.01,
+  "offers": 3003,
+  "rounds": 2,
+  "se": 0.078,
+  "takes": 662
+ },
+ "Touch Heal": {
+  "bonus": -0.118,
+  "diff": -0.138,
+  "offers": 1224,
+  "rounds": 2,
+  "se": 0.14,
+  "takes": 180
+ },
+ "Tower Shield": {
+  "bonus": -0.02,
+  "diff": -0.021,
+  "offers": 2933,
+  "rounds": 2,
+  "se": 0.077,
+  "takes": 660
+ },
+ "Tower Totem": {
+  "bonus": -0.067,
+  "diff": -0.077,
+  "offers": 1204,
+  "rounds": 2,
+  "se": 0.127,
+  "takes": 187
+ },
+ "Twin Totem": {
+  "bonus": 0.083,
+  "diff": 0.085,
+  "offers": 6156,
+  "rounds": 2,
+  "se": 0.057,
+  "takes": 1148
+ },
+ "Vampire's Token": {
+  "bonus": 0.134,
+  "diff": 0.142,
+  "offers": 3426,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 524
+ },
+ "Vanguard's Oath": {
+  "bonus": 0.034,
+  "diff": 0.035,
+  "offers": 5983,
+  "rounds": 2,
+  "se": 0.057,
+  "takes": 1097
+ },
+ "Vigil": {
+  "bonus": -0.055,
+  "diff": -0.057,
+  "offers": 5367,
+  "rounds": 2,
+  "se": 0.064,
+  "takes": 769
+ },
+ "Warcry Totem": {
+  "bonus": -0.06,
+  "diff": -0.062,
+  "offers": 5281,
+  "rounds": 2,
+  "se": 0.063,
+  "takes": 742
+ },
+ "Ward Blessing": {
+  "bonus": 0.117,
+  "diff": 0.137,
+  "offers": 1194,
+  "rounds": 2,
+  "se": 0.125,
+  "takes": 176
+ },
+ "Warhorn Totem": {
+  "bonus": 0.009,
+  "diff": 0.009,
+  "offers": 6144,
+  "rounds": 2,
+  "se": 0.056,
+  "takes": 1179
+ },
+ "Warlord Totem": {
+  "bonus": -0.012,
+  "diff": -0.014,
+  "offers": 1236,
+  "rounds": 2,
+  "se": 0.129,
+  "takes": 197
+ },
+ "Wellhead Totem": {
+  "bonus": -0.081,
+  "diff": -0.093,
+  "offers": 1214,
+  "rounds": 2,
+  "se": 0.127,
+  "takes": 197
+ },
+ "Wellspring Totem": {
+  "bonus": 0.05,
+  "diff": 0.059,
+  "offers": 1219,
+  "rounds": 2,
+  "se": 0.135,
+  "takes": 177
+ },
+ "Whetstone Totem": {
+  "bonus": 0.108,
+  "diff": 0.113,
+  "offers": 3009,
+  "rounds": 2,
+  "se": 0.081,
+  "takes": 614
+ },
+ "Whirlwind": {
+  "bonus": -0.047,
+  "diff": -0.048,
+  "offers": 6166,
+  "rounds": 2,
+  "se": 0.056,
+  "takes": 1214
+ },
+ "Zephyr Ring": {
+  "bonus": 0.087,
+  "diff": 0.092,
+  "offers": 3012,
+  "rounds": 2,
+  "se": 0.087,
+  "takes": 513
+ }
+}

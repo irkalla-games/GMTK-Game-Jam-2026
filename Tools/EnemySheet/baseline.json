@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-10-09T20:59:49.6060168Z",
+    "writtenUtc":  "2026-10-10T10:56:19.2492835Z",
     "bodies":  [
                    {
                        "guid":  "eaade4b777fd45447af03588cf3692e5",
@@ -50,7 +50,7 @@
                        "guid":  "e40f592bea6dbd64693626dad514798b",
                        "columns":  {
                                        "DisplayName":  "Ranger",
-                                       "Health":  "25",
+                                       "Health":  "10",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
                                        "Targeting":  "Totem15Closest",
@@ -65,7 +65,7 @@
                        "guid":  "158567c6103052b45a79feac134a4c3b",
                        "columns":  {
                                        "DisplayName":  "Flying Eye",
-                                       "Health":  "15",
+                                       "Health":  "10",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
                                        "Targeting":  "Totem15Closest",
@@ -125,7 +125,7 @@
                        "guid":  "df52b2ab92f38fd4eb6d6064e8197a56",
                        "columns":  {
                                        "DisplayName":  "Light Bandit",
-                                       "Health":  "30",
+                                       "Health":  "15",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Warrior",
                                        "Targeting":  "Weakest",
@@ -245,7 +245,7 @@
                        "guid":  "40cab8c86b3615741ac4bc8db8156b37",
                        "columns":  {
                                        "DisplayName":  "Skull",
-                                       "Health":  "15",
+                                       "Health":  "10",
                                        "ActionsPerTurn":  "1",
                                        "Brain":  "Ranger",
                                        "Targeting":  "Totem30Closest",

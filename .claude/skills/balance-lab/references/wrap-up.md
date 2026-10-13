@@ -24,8 +24,15 @@ silently headline it.
 - Sections: one per phase, each with the table or chart that carries its claim. The method section gets the
   freeze, builds, batches and seeds appended automatically. Add which ratings each arm used, which seed
   blocks were replicated, and the caveats.
-- Publish `report.html` with the Artifact tool (a new artifact, icon `chart`; load the artifact-design skill
-  first if it isn't loaded yet). Then
+- **Read it back before publishing.** `print(report_text(path))` dumps the rendered page as text; read it
+  once against its sources. `page()` validates structure, never claims, so nothing else catches these:
+  - Every "X of N" sentence: does the column sum to N of *those* things? Bot-report counts are often per
+    hero or per body, not per run. Lab 08 wrote "the final blow in 191 of 556 lost runs" from a column that
+    totalled 687 knockdowns.
+  - Every superlative ("most", "the top two"): check the sorted column.
+  - Every caveat: check it against this lab's own checks (e.g. `agreement()`'s `meanZ2` on se).
+- Publish `report.html` with the Artifact tool (a new artifact, icon `chart`, description
+  `lab.meta['topic']`; load the artifact-design skill first if it isn't loaded yet). Then
   `lab.update(url=..., date='YYYY-MM-DD', tested='<one line>', headline={'kcNormal': [m, se], 'kcHard3': [m, se], 'note': '<one line>'})`.
   Use the arm the verdict is about. Leave a key out if it wasn't measured.
 
@@ -65,7 +72,8 @@ brief says "everything". Never push.
 
 Run `labctl.py cleanup <lab>` first: it's a dry run and lists what would go. Then `--apply`. It keeps every
 run.json, report and CSV, plus the best and worst run's logs per batch. It deletes the other per-run logs,
-`source/` and `players/`. Analysis that reads `events.jsonl` must already be finished.
+`source/` and `players/`, and gzips the players' shard logs (`logs/shard-*.log.gz`, read with
+`gzip.open(path, 'rt')`). Analysis that reads `events.jsonl` must already be finished.
 
 ## 8. Release and tell
 

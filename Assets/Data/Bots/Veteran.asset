@@ -212,7 +212,7 @@ MonoBehaviour:
         bonus: -0.06
       - card: Strengthen
         bonus: -0.062
-      - card: Sharpening Ring
+      - card: Steel Sword
         bonus: -0.067
       - card: Rot Totem
         bonus: -0.072

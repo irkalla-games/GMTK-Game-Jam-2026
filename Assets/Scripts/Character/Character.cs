@@ -1487,7 +1487,9 @@ public class Character : MonoBehaviour
     /// </summary>
     private Card NewCard(CardData data)
     {
-        Card card = new(data);
+        // Stamped as the holder so a "costs less next to another hero" card can ask where its owner
+        // stands - see Card.Holder.
+        Card card = new(data, this);
         ApplyCardModifiers(card, data);
         return card;
     }

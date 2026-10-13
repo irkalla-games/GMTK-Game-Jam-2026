@@ -6,7 +6,7 @@
 
 ```
 Tools/BotRunner/lab/
-  labctl.py                 single steps: preflight, new, freeze, build, smoke, check-defs, status, plan, index, cleanup, release, wait
+  labctl.py                 single steps: preflight, new, freeze, build, smoke, check-defs, status, plan, index, cleanup, release, wait, wait-tree
   labkit/                   the library lab scripts import
   base-job.json             job defaults (campaign, limits); batch.make_job fills in the rest
   profile-template.json     an Editor-exported profile: the type map profiles.stock() checks against
@@ -53,11 +53,11 @@ The harness re-invokes you when the background command exits. Read the `.out`, t
 | Run a batch | `out = run(lab, 'label', [profiles], runs=250, seed=lab.seed('eval-t0'), party=KC, tier=0, player=exe, procs=15)` blocks until complete; a finished label returns at once; it resumes once after a crash |
 | Is it safe to start | `ok, eta = can_start(lab, runs, tier)`; `runs_that_fit(lab, tier)`; `runs_per_hour(lab, tier)` |
 | Read results | `levels(out)` gives {profile: n, levels, se, byRun}; `paired(a, pa, b, pb)` gives (diff, se, n); `pool((m, se), (m, se))`; `summary(out)` prints a table |
-| Ratings | `rate([outs], profile='Explore')`, `pool_rounds([tables])`, `card_ratings(table)` |
+| Ratings | `rate([outs], profile='Explore')`, `pool_rounds([tables])`, `agreement(t_a, t_b, names=)` (do the cards differ? before naming winners), `card_ratings(table)` |
 | Raw runs | `runs(out)` (Won/Died only) yields run.json dicts: `rewards`, `cards`, `enemies`, `levels`, `falls`, `killers`, ... and `_dir` for its folder's events.jsonl |
-| Report | `page(lab, lede=, tiles=, verdict=, decisions=, assumptions=, sections=[section(...)], method=)` with `table`, `cards`, `dots`, `paras`, `est`, `chip` |
+| Report | `page(lab, lede=, tiles=, verdict=, decisions=, assumptions=, sections=[section(...)], method=)` with `table`, `cards`, `dots`, `paras`, `est`, `chip`; `report_text(path)` for the read-back before publishing |
 | Index | `index.build()`, `index.index_url()`, `index.set_index_url(url)` |
-| Cleanup | `cleanup(lab, dry_run=True)` returns what it would delete; `dry_run=False` deletes |
+| Cleanup | `cleanup(lab, dry_run=True)` returns what it would delete; `dry_run=False` deletes and gzips the shard logs |
 
 ## Definitions
 

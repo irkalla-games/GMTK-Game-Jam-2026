@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "writtenUtc": "2026-10-09T08:32:09.6366181Z",
+    "writtenUtc": "2026-10-12T08:25:29.4866545Z",
     "unityVersion": "6000.5.4f1",
     "types": [
         {
@@ -1047,6 +1047,65 @@
                     "isFlags": false,
                     "objectType": "",
                     "tooltip": "Percent adjustment to this entry's authored number, applied after amountDelta. 0 means +0%, i.e. unchanged - not a multiplier, so leaving this at its serialized default (a fresh entry deserializes to 0) never rescales anything.",
+                    "truncated": false
+                },
+                {
+                    "path": "entry.condition",
+                    "serializedPath": "entry.condition",
+                    "kind": "enum",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "CardCondition",
+                    "enumNames": [
+                        "None",
+                        "NextToTotem",
+                        "HasShield",
+                        "HasBlock",
+                        "NextToHero",
+                        "Alone"
+                    ],
+                    "enumValues": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "A board condition this entry depends on, asked of the caster as the card resolves. None (the default) means the entry always resolves exactly as authored. See conditionBonus and onlyWhenMet for what the condition changes.",
+                    "truncated": false
+                },
+                {
+                    "path": "entry.conditionBonus",
+                    "serializedPath": "entry.conditionBonus",
+                    "kind": "int",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Added to the entry's number while `condition` holds - Smite Together's 'next to another hero: deal 10 instead' is Damage 7 with a bonus of 3. 0 adds nothing.",
+                    "truncated": false
+                },
+                {
+                    "path": "entry.onlyWhenMet",
+                    "serializedPath": "entry.onlyWhenMet",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "When on, the entry resolves only while `condition` holds and is skipped entirely otherwise - 'Alone: draw 1'. A separate switch rather than reading a bonus of 0 as 'only while met', so zeroing a bonus can never silently turn an effect off.",
                     "truncated": false
                 }
             ]

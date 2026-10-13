@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: Aegis Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Aegis Totem
-  <cost>k__BackingField: 3
+  <cost>k__BackingField: 2
   <range>k__BackingField:
     shape: 1
     minDistance: 1
     maxDistance: 3
+    requiresRoute: 0
   <requiredClass>k__BackingField: 8
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 
@@ -35,9 +36,15 @@ MonoBehaviour:
         shape: 0
         minDistance: 0
         maxDistance: 0
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

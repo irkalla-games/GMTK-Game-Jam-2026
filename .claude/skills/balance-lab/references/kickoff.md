@@ -12,6 +12,21 @@ of this round. Every question costs them time they wanted to spend leaving, so a
      freeze and build, so compile problems still surface while the user is here. Then run
      `labctl.py wait <lab>` in the background; it takes the lock when the other lab releases. Smoke and
      the rounds start after that.
+   - **The tree is still being edited** (the user says "after that session finishes", or preflight shows
+     files changing). The freeze cannot happen while the user is here, so the protection of building now is
+     lost. Make up for it before they leave:
+     1. Add a start-signal question to the round. Recommended: message the editing session (`SendMessage`)
+        asking it to report when done, which content it added, and whether a builder still needs running.
+        Fallback: the tree has been quiet for 15 minutes and compiles.
+     2. Compile-check the tree now (`powershell -ExecutionPolicy Bypass -File Tools/compile-check.ps1`) as an
+        early canary, and tell the user the result.
+     3. Have the brief pre-decide what happens if the tree never compiles, since nobody can answer later:
+        freeze HEAD, freeze the last compiling state, or go stuck and notify.
+     4. Do `new` and the brief now. Then run `labctl.py wait-tree <lab> --quiet 15` in the background. It
+        exits 0 once the tree is quiet and compiles, and exits 1 after `--give-up` hours (default 6), which
+        is when the brief's fallback applies. Freeze, build and smoke run after it.
+     5. If the brief needs "which cards are new" and the editing session has not said, take the CardData
+        assets that are absent at HEAD.
    - Under 20 GB free: say so with the number. Cleanup of old `BotRuns/claude-*` folders is the user's call.
 2. Read the kickoff message twice. List every answer it already gives. Those are never asked.
 3. Read the previous lab's `brief.md`, its `lab.json` (headline, `tested`), and its handoff if it has one
@@ -27,7 +42,8 @@ of this round. Every question costs them time they wanted to spend leaving, so a
 6. Build the question round (below) and ask it.
 7. `labctl.py new <slug> --topic "..." --deadline "YYYY-MM-DD HH:MM" --phases cards,measure` (phases in the
    order they will run). It prints the lab id and the `brief.md` path. Write `brief.md` there from
-   `assets/brief-template.md`.
+   `assets/brief-template.md`. The title is just "Spire Lab NN"; the topic is stored separately in
+   `lab.json` (`topic`), for the report's lede and the Artifact's description.
 8. `labctl.py freeze <lab>` (add `--head` if the brief says HEAD), then `labctl.py build <lab> base`, then
    `labctl.py smoke <lab> base`. A build takes several minutes, so run it in the background. A failed build
    prints the compiler errors; if the tree is mid-edit (another session), tell the user and offer HEAD.

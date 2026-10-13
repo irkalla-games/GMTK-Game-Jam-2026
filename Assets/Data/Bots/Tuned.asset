@@ -45,6 +45,8 @@ MonoBehaviour:
       exposure: 2
       mitigationNeed: 0
       forecast: 0
+      focus: 0
+      hunt: 0
     playFirst: 
     playFirstMinScore: 0
     passThreshold: 0.5
@@ -113,7 +115,7 @@ MonoBehaviour:
         bonus: 0.099
       - card: Foresight
         bonus: 0.099
-      - card: Sharpening Ring
+      - card: Steel Sword
         bonus: 0.086
       - card: Fireball
         bonus: 0.085
@@ -332,6 +334,8 @@ MonoBehaviour:
       exposure: 0
       mitigationNeed: 0
       forecast: 0
+      focus: 0
+      hunt: 0
     aggressiveUntil: 0.4
     defensiveFrom: 0.8
     lowHpGuard: 0.5
@@ -345,3 +349,5 @@ MonoBehaviour:
     needFloor: 0.1
     forecastMoves: 12
     countPoison: 0
+    countOnHit: 0
+    exactWeaken: 0

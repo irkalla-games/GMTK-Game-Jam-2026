@@ -194,3 +194,18 @@ def page(lab, *, lede, tiles, verdict, decisions, assumptions, sections, method,
     with open(path, 'w', encoding='utf-8') as f:
         f.write(f'<title>{E(title)}</title>\n{style}\n{body}')
     return path
+
+
+def text(path):
+    """The rendered report as plain text, for the read-back before publishing (wrap-up step 2). page() checks
+    the structure; nothing checks the claims. Read this against the tables: every "X of N" sentence against
+    the column's total (bot-report counts are often per hero or per body, not per run), every superlative
+    against the sorted column, every caveat against this lab's own checks."""
+    import re
+    with open(path, encoding='utf-8') as f:
+        raw = f.read()
+    raw = re.sub(r'(?is)<(style|script)\b.*?</\1>', ' ', raw)
+    raw = re.sub(r'(?i)<br\s*/?>|</(p|li|tr|h[1-6]|dt|dd|div|section)>', '\n', raw)
+    raw = re.sub(r'(?i)</t[dh]>', '\t', raw)
+    raw = html.unescape(re.sub(r'<[^>]+>', '', raw))
+    return '\n'.join(line.strip() for line in raw.splitlines() if line.strip())

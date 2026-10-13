@@ -14,14 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
   - rarity: 1
-    weight: 40
+    weight: 30
   - rarity: 2
-    weight: 50
-  - rarity: 3
-    weight: 10
+    weight: 70
   tagWeights: []
   cardWeights: []
   excludedCards: []
   guaranteedCards: []
   choiceCount: 5
-  equipmentChance: 0.25
+  equipmentChoiceCount: 3

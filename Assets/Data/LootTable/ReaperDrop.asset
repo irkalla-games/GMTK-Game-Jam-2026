@@ -13,16 +13,14 @@ MonoBehaviour:
   m_Name: ReaperDrop
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
-  - rarity: 1
-    weight: 45
   - rarity: 2
-    weight: 40
+    weight: 50
   - rarity: 3
-    weight: 15
+    weight: 50
   tagWeights: []
   cardWeights: []
   excludedCards: []
   guaranteedCards:
   - {fileID: 11400000, guid: 0e3798dd733944d180801d6f2263b739, type: 2}
   choiceCount: 3
-  equipmentChance: 0
+  equipmentChoiceCount: 0

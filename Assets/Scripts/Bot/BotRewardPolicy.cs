@@ -53,7 +53,8 @@ public static class BotRewardPolicy
     /// Card offer: take the best card if it is worth at least takeCardsMinValue. Otherwise upgrade (when
     /// something upgradable would gain), remove (when the deck is past removeWhenDeckAbove), heal (when
     /// below healSkipBelowHp), plain skip - and only then fall back to the best card after all.
-    /// Equipment offer: take the best item unless the profile refuses equipment.
+    /// Equipment offer: take the best item if it beats its slot's current occupant (and the profile
+    /// takes equipment at all), else the same skip order - which is where Upgrade a Card is chosen.
     /// </summary>
     public static BotRewardChoice ChooseOffer(
         RewardPanel panel, IReadOnlyList<CardData> deck, BotProfileData profile, System.Random rng)
@@ -88,7 +89,9 @@ public static class BotRewardPolicy
                 }
             }
 
-            if (best >= 0 && profile.rewards.takeEquipment)
+            // Only an item that beats what already fills its slot. Otherwise fall through to the skips:
+            // a level clear's equipment panel offers Upgrade a Card, which ChooseSkip takes when worth it.
+            if (best >= 0 && profile.rewards.takeEquipment && bestValue > 0f)
             {
                 return new BotRewardChoice
                 {

@@ -13,16 +13,14 @@ MonoBehaviour:
   m_Name: BlackKnightDrop
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
-  - rarity: 1
-    weight: 45
   - rarity: 2
-    weight: 40
+    weight: 50
   - rarity: 3
-    weight: 15
+    weight: 50
   tagWeights: []
   cardWeights: []
   excludedCards: []
   guaranteedCards:
   - {fileID: 11400000, guid: 52e101b3e4c5baa4cb2771825ac229a6, type: 2}
   choiceCount: 3
-  equipmentChance: 0
+  equipmentChoiceCount: 0

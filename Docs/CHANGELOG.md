@@ -9,6 +9,34 @@ written up.
 
 ---
 
+## 2026-10-12 — Level clears give a card and an equipment; Legendary means equipment
+
+**Asked for:** every hero gets a card reward *and* an equipment reward at the end of a level, the card
+offer leaning a little more Rare, with Remove a card as the card's alternative and Upgrade a card as the
+equipment's. Mid-battle drops should be cards nearly always, with Legendary reserved for equipment.
+
+**The tier now decides the kind.** A `LootTable` roll of Legendary on a mid-battle drop is an equipment
+offer (Legendary items); Uncommon and Rare are cards. No card is Legendary, so nothing is lost on the card
+side. `LootTable.equipmentChance` is gone (it was a second, independent dice roll that could swap any
+offer for equipment); `equipmentChoiceCount` replaces it (0 = same as `choiceCount`). Tables:
+`EarlyGame` (every level's and most enemies' drop) 70/29/1 Uncommon/Rare/Legendary; the eight boss drop
+tables Rare 50 / Legendary 50, i.e. half cards, half equipment; `EarlyLevelReward` (every level clear)
+Uncommon 30 / Rare 70, 5 cards, 3 items.
+
+**Level clear is two panels per hero**, card then equipment, each with its own tier roll. The skip
+lists split: `LootManager.levelClearCardSkips` (Skip, Remove a card; `FormerlySerializedAs` the old
+`levelClearSkipRewards`) and `levelClearEquipmentSkips` (Skip, Upgrade a card). Items a hero already
+holds are left out of any equipment offer; an empty equipment offer is skipped silently at a level
+clear and falls back to cards on a drop. The bot takes an item only when it beats its slot's current
+occupant (`BotRewardPolicy.EquipmentValue` > 0), otherwise falls through to the skips, where Upgrade is
+chosen when `BestUpgrade` gains anything.
+
+**A skip-button bug was hiding the old design.** The reward panel's `SkipButtons` had no layout group,
+so every skip button spawned on the same spot and only the last showed - the old level-clear panel had
+three (Skip, Remove, Upgrade) and players only ever saw Upgrade. It is a vertical stack now (the
+horizontal version ran into the pile counters), and the title box, 200×50 at 96pt with wrapping on,
+wrapped every title onto the board; it is 1600 wide, no wrap.
+
 ## 2026-10-12 — The card-lab cards ship: board conditions, 47 Knight/Cleric cards, the L4 pool
 
 **Asked for:** build the Knight and Cleric cards chosen from Card Labs II–IV into the game, move every

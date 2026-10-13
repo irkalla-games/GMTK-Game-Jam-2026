@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Everything the *dropper* decides about a reward: which tier, how many choices, and what to favour
-/// within that tier. LevelData holds the default for the level; a Character may override it with its
+/// within that tier. The tier also decides the kind: a Legendary roll on a mid-battle drop is an
+/// equipment offer, Uncommon and Rare are cards - see LootManager.Drain. LevelData holds the default for the level; a Character may override it with its
 /// own - see Character.LootTable. The table travels with a stolen item (Character.CarriedLoot) so loot
 /// a poison skeleton dropped still favours poison after a different enemy carries it off.
 /// </summary>
@@ -57,16 +58,15 @@ public class LootTable : ScriptableObject
     [Tooltip("How many cards the reward panel offers. Clamped to at least 1.")]
     [SerializeField] private int choiceCount = 3;
 
-    [Tooltip("Odds that an offer rolled from this table is equipment instead of cards - the whole panel "
-             + "switches, not a per-slot mix. 0 (every table authored before this field existed "
-             + "deserializes to it) means never - the same load-bearing-zero rule RangeShape.Anywhere "
-             + "documents, so no existing table's behaviour changes until this is deliberately raised.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float equipmentChance;
+    [Tooltip("How many items an equipment offer from this table shows - a Legendary drop, or the "
+             + "equipment half of a level-clear reward. 0 (every table authored before this field "
+             + "existed deserializes to it) means the same as choiceCount - the load-bearing-zero rule "
+             + "RangeShape.Anywhere documents.")]
+    [SerializeField] private int equipmentChoiceCount;
 
     public int ChoiceCount => Mathf.Max(1, choiceCount);
 
-    public float EquipmentChance => equipmentChance;
+    public int EquipmentChoiceCount => equipmentChoiceCount > 0 ? equipmentChoiceCount : ChoiceCount;
 
     public IReadOnlyList<CardData> GuaranteedCards => guaranteedCards;
 

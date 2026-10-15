@@ -21,7 +21,7 @@ MonoBehaviour:
     requiresRoute: 1
   <requiredClass>k__BackingField: 0
   <rarity>k__BackingField: 0
-  <tags>k__BackingField: 
+  <tags>k__BackingField: 03000000
   <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Move one tile in any direction.

@@ -48,6 +48,20 @@ public struct CardEffectEntry
              + "+0%, i.e. unchanged - not a multiplier, so leaving this at its serialized default "
              + "(a fresh entry deserializes to 0) never rescales anything.")]
     public int amountPercent;
+
+    [Tooltip("A board condition this entry depends on, asked of the caster as the card resolves. None "
+             + "(the default) means the entry always resolves exactly as authored. See conditionBonus "
+             + "and onlyWhenMet for what the condition changes.")]
+    public CardCondition condition;
+
+    [Tooltip("Added to the entry's number while `condition` holds - Smite Together's 'next to another "
+             + "hero: deal 10 instead' is Damage 7 with a bonus of 3. 0 adds nothing.")]
+    public int conditionBonus;
+
+    [Tooltip("When on, the entry resolves only while `condition` holds and is skipped entirely "
+             + "otherwise - 'Alone: draw 1'. A separate switch rather than reading a bonus of 0 as "
+             + "'only while met', so zeroing a bonus can never silently turn an effect off.")]
+    public bool onlyWhenMet;
 }
 
 /// <summary>
@@ -127,6 +141,15 @@ public class CardData : ScriptableObject
                     + "may itself name a further upgrade. Typically authored Rarity.NotOffered, since an "
                     + "upgrade is earned by upgrading, not found as its own reward.")]
     [field: SerializeField] public CardData upgradedForm { get; private set; }
+
+    [field: Tooltip("A board condition under which this card costs costDiscount less - 'Costs 0 next to "
+                    + "another hero'. Asked of whoever holds the card, live, every time the cost is "
+                    + "read - see Card.cost. None (the default) means the printed cost always applies.")]
+    [field: SerializeField] public CardCondition costCondition { get; private set; }
+
+    [field: Tooltip("How much less this card costs while costCondition holds. Never takes the cost "
+                    + "below 0.")]
+    [field: SerializeField] public int costDiscount { get; private set; }
 
     /// <summary>
     /// Also the hook a post-combat reward or draft screen filters on - which is the actual reason

@@ -9,6 +9,10 @@ public class EnergyEffect : CardEffect
 {
     [SerializeField] private int amount = 1;
 
+    /// Read-only, the same private-field-plus-property shape as DamageEffect.Damage. Exactly what
+    /// Resolve grants - EnergyAction takes this as authored, with no entry adjustment.
+    public int Amount => amount;
+
     public override bool SupportsArea => false;
 
     public override void Resolve(ActionContext ctx)

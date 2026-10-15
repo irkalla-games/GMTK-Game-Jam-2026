@@ -17,6 +17,10 @@ public class TauntEffect : CardEffect
              + "effect is binary, so stacking it would mean nothing.")]
     [SerializeField] private int turnsRemaining = 2;
 
+    /// The authored duration, before a card entry's own adjustment - ActionContext.Amount applies that.
+    /// Read-only, the same private-field-plus-property shape as DamageEffect.Damage.
+    public int Turns => turnsRemaining;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new TauntAction(ctx.Amount(turnsRemaining)), ctx);

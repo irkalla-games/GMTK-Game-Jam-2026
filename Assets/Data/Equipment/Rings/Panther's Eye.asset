@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Panther's Eye
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Panther's Eye
-  <description>k__BackingField: +3 damage while at full health.
+  <description>k__BackingField: +4 damage while at full health.
   <icon>k__BackingField: {fileID: 21300000, guid: 7dafc578128312c4e9bcc7437f753876, type: 3}
-  <rarity>k__BackingField: 2
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
@@ -34,4 +34,4 @@ MonoBehaviour:
   m_Name: ConditionalDamageModifier
   m_EditorClassIdentifier: Assembly-CSharp::ConditionalDamageModifier
   condition: 1
-  bonus: 3
+  bonus: 4

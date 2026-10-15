@@ -1066,7 +1066,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 20
+  maxHealth: 25
   maxEnergy: 3
   playableCharacter: 2
   battleRole: 2
@@ -1082,7 +1082,7 @@ MonoBehaviour:
   itemDropPrefab: {fileID: 0}
   lootTable: {fileID: 0}
   deck: []
-  <Health>k__BackingField: 20
+  <Health>k__BackingField: 25
 --- !u!210 &8600000000000000001
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -1270,9 +1270,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -1753656691
   m_SortingLayer: 3
-  m_SortingOrder: 1
+  m_SortingOrder: 7
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300170, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
+  m_Sprite: {fileID: 21300172, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

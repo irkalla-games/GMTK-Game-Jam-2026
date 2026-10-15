@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ce6e0eefdd630b4eb81c3a5ffdec5cd, type: 3}
+  m_Name: Aggressive
+  m_EditorClassIdentifier: Assembly-CSharp::BotProfile
+  data:
+    name: Aggressive
+    notes: Hits first and hardest; defends only when it is cheap. Takes damage and
+      debuff cards.
+    weights:
+      damage: 1.5
+      kill: 10
+      threatRemoved: 0.8
+      friendlyFire: -1
+      mitigation: 0.5
+      mitigationSpare: 0.05
+      heal: 0.4
+      lifeSaved: 15
+      dot: 0.8
+      debuff: 1
+      buff: 2
+      totemCover: 2
+      totemBase: 1
+      summon: 0.3
+      moveSetup: 0.9
+      moveSafety: 0.3
+      loot: 6
+      auraMove: 1
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -0.6
+      discard: -2
+      costPenalty: 0.25
+    playFirst: 00000000
+    playFirstMinScore: 0
+    passThreshold: 0.5
+    randomness: 0
+    endTurnChance: 0.15
+    baseline: 0
+    rewards:
+      attackPick: 1.5
+      defensePick: 1
+      healPick: 1
+      totemPick: 1
+      summonPick: 1
+      debuffPick: 1.2
+      buffPick: 1
+      movePick: 0.6
+      utilityPick: 1
+      rarityBonus: 1
+      takeCardsMinValue: 3
+      healSkipBelowHp: 0.5
+      upgradeWeight: 1
+      removeWhenDeckAbove: 14
+      takeEquipment: 1

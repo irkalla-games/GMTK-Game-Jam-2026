@@ -24,7 +24,7 @@ public class PilferedStatus : StatusEffect
     {
         if (carrier == null || carrier.Hand.Count == 0) { return; }
 
-        Card taken = carrier.Hand[Random.Range(0, carrier.Hand.Count)];
+        Card taken = carrier.Hand[GameDice.Range(0, carrier.Hand.Count)];
 
         carrier.Discard(taken);
 

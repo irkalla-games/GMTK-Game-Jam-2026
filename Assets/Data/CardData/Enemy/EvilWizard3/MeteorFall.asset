@@ -28,7 +28,7 @@ MonoBehaviour:
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 617d3d1dc022471b961cff06e054c826, type: 2}
+  - effect: {fileID: 11400000, guid: ecb84d8108edde84f8eef282d5a80b23, type: 2}
     aimsAt: 0
     area:
       kind: 0
@@ -40,6 +40,11 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 11400000, guid: 35f9ec7e5f744b44c98ccb7b7a389628, type: 2}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

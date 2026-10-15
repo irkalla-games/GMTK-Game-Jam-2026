@@ -18,10 +18,11 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 4
+    requiresRoute: 0
   <requiredClass>k__BackingField: 8
-  <rarity>k__BackingField: 0
+  <rarity>k__BackingField: 1
   <tags>k__BackingField: 
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Remove all Poison from an ally and afflict the nearest
     enemy with it.
@@ -36,9 +37,15 @@ MonoBehaviour:
         shape: 0
         minDistance: 0
         maxDistance: 0
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

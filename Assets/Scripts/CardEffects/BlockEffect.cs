@@ -14,6 +14,10 @@ public class BlockEffect : CardEffect
     [Tooltip("How many incoming hits this Block applies to.")]
     [SerializeField] private int blockCount;
 
+    /// The authored charge count, before a card entry's own adjustment - ActionContext.Amount applies
+    /// that. Read-only, the same private-field-plus-property shape as DamageEffect.Damage.
+    public int BlockCount => blockCount;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new BlockAction(ctx.Amount(blockCount)), ctx);

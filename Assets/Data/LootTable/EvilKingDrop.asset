@@ -13,16 +13,14 @@ MonoBehaviour:
   m_Name: EvilKingDrop
   m_EditorClassIdentifier: Assembly-CSharp::LootTable
   tierWeights:
-  - rarity: 1
-    weight: 45
   - rarity: 2
-    weight: 40
+    weight: 50
   - rarity: 3
-    weight: 15
+    weight: 50
   tagWeights: []
   cardWeights: []
   excludedCards: []
   guaranteedCards:
   - {fileID: 11400000, guid: b2d16f22e3045c1baf6d28e51c2f6005, type: 2}
   choiceCount: 3
-  equipmentChance: 0
+  equipmentChoiceCount: 0

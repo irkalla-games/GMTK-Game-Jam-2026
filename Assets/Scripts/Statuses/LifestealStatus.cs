@@ -1,6 +1,8 @@
 /// <summary>
 /// For as long as it lasts, every hit the carrier lands also heals the carrier for half the damage
-/// dealt. The healing counterpart to PoisonBladeStatus - see OnHitStatus, the template both share.
+/// dealt, rounded up - so any hit that lands heals something, where rounding down left a 1-damage hit
+/// healing nothing and a 3-damage one only 1. The healing counterpart to PoisonBladeStatus - see
+/// OnHitStatus, the template both share.
 ///
 /// Fires on any connecting hit, mitigated or not: a hit Shield or Block reduces to zero still counts
 /// as landing, because the blade touched skin either way - see Character.TakeDamage, which only
@@ -14,7 +16,7 @@ public class LifestealStatus : OnHitStatus
     {
         if (info.attacker == null || info.amount <= 0) { return; }
 
-        info.attacker.Heal(info.amount / 2);
+        info.attacker.Heal((info.amount + 1) / 2);
     }
 
     // stacks is remaining turns and is worth showing, unlike Taunt's bare name - the same call

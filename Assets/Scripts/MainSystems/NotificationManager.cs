@@ -36,6 +36,10 @@ public class NotificationManager : MonoBehaviour
     /// </summary>
     public bool IsShowing => panel != null && panel.activeSelf;
 
+    /// The heading of the notification last shown - read-only, so a log (the balance bot's turn log) can
+    /// say which one it dismissed. Nothing should branch on it: the text is presentation.
+    public string Title => titleText != null ? titleText.text : null;
+
     public void Show(string title, string message)
     {
         titleText.text = title;

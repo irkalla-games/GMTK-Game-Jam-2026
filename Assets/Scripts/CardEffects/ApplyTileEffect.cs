@@ -21,6 +21,15 @@ public class ApplyTileEffect : CardEffect
              + "by Wall of Force.")]
     [SerializeField] private int magnitude = 4;
 
+    /// Read-only windows onto the three fields above, the same private-field-plus-property shape as
+    /// DamageEffect.Damage. Magnitude is before a card entry's own adjustment - ActionContext.Amount
+    /// applies that; Turns is used exactly as authored.
+    public TileEffectType Effect => effect;
+
+    public int Turns => turns;
+
+    public int Magnitude => magnitude;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new TileEffectAction(effect, turns, ctx.Amount(magnitude)), ctx);

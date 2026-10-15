@@ -65,6 +65,25 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
     /// Index into the deck passed to Show, or -1 if the player cancelled.
     public int ChosenIndex { get; private set; } = -1;
 
+    /// <summary>
+    /// Whether the grid is on screen right now. Not the same question as !Resolved - that is also false
+    /// before the first Show ever happens.
+    /// </summary>
+    public bool IsShowing => root != null && root.activeSelf;
+
+    /// The deck the grid on screen was built from, index for index with ChosenIndex. Read-only, for the
+    /// balance bot, which answers this panel by calling Choose with an index into it.
+    public IReadOnlyList<CardData> ShownDeck => shownDeck;
+
+    private IReadOnlyList<CardData> shownDeck = Array.Empty<CardData>();
+
+    private Predicate<CardData> shownEligible;
+
+    /// Whether the entry at `index` can be picked - the same predicate that greys the grid out. Every
+    /// entry is eligible when Show was given none, which is the Remove screen.
+    public bool IsEligible(int index) =>
+        index >= 0 && index < shownDeck.Count && (shownEligible == null || shownEligible(shownDeck[index]));
+
     /// Starts hidden regardless of the scene's authored state - same reasoning as RewardPanel.Awake.
     protected override void Awake()
     {
@@ -88,6 +107,9 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
         ChosenIndex = -1;
 
         Clear();
+
+        shownDeck = deck ?? (IReadOnlyList<CardData>)Array.Empty<CardData>();
+        shownEligible = eligible;
 
         if (root != null) { root.SetActive(true); }
 
@@ -127,16 +149,23 @@ public class CardRemovalPanel : Singleton<CardRemovalPanel>
             eligible != null ? i => eligible(deck[i]) : null);
     }
 
-    private void Choose(int index)
+    /// <summary>
+    /// Commits to the deck entry at `index` - what a grid card's click calls. Public for the balance
+    /// bot. Refuses an ineligible index the same way the greyed-out card refuses a click, so a scripted
+    /// pick can never get past the grey-out.
+    /// </summary>
+    public void Choose(int index)
     {
-        if (Resolved) { return; }
+        if (Resolved || !IsEligible(index)) { return; }
 
         ChosenIndex = index;
         Resolved = true;
         Hide();
     }
 
-    private void Cancel()
+    /// Backs out without choosing - the Cancel button. The skip reward that opened this then re-offers
+    /// its whole reward (RewardContext.Reoffer). Public for the balance bot.
+    public void Cancel()
     {
         if (Resolved) { return; }
 

@@ -24,16 +24,19 @@ public class EquipmentLibrary : ScriptableObject
     }
 #endif
 
-    /// Every item at this exact tier that `picker` is allowed to hold, NotOffered already excluded -
-    /// mirrors CardLibrary.Offerable exactly.
-    public List<EquipmentData> Offerable(Rarity tier, Character picker)
+    /// Every item `picker` is allowed to hold, NotOffered and excludeFromRewards already excluded.
+    ///
+    /// Takes no tier, unlike CardLibrary.Offerable: every item is Legendary, so the tier a drop or a
+    /// level clear rolled says only *whether* equipment is offered (LootManager), never *which*. A
+    /// tier filter here would leave a level clear's Uncommon/Rare roll with nothing to show.
+    public List<EquipmentData> Offerable(Character picker)
     {
         List<EquipmentData> results = new();
 
         foreach (EquipmentData item in items)
         {
             if (item == null || item.excludeFromRewards) { continue; }
-            if (item.rarity != tier || item.rarity == Rarity.NotOffered) { continue; }
+            if (item.rarity == Rarity.NotOffered) { continue; }
             if (!item.CanBeUsedBy(picker)) { continue; }
 
             results.Add(item);

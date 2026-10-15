@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Ironbound Vambrace
   <description>k__BackingField: +1 Block whenever you gain Block.
-  <icon>k__BackingField: {fileID: 0}
-  <rarity>k__BackingField: 1
+  <icon>k__BackingField: {fileID: 21300000, guid: 56f95168f48a56c499e94d62aa35124c, type: 3}
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 2
   <excludeFromRewards>k__BackingField: 0

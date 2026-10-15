@@ -29,7 +29,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Vampire's Token
   <description>k__BackingField: Permanently under the effect of Lifesteal.
   <icon>k__BackingField: {fileID: 21300000, guid: f975f01657719a04eb56c8e3dda5e786, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

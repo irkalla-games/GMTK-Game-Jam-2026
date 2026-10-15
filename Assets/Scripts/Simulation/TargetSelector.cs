@@ -90,7 +90,7 @@ public static class TargetSelector
             {
                 seen++;
 
-                if (Random.Range(0, seen) == 0) { picked = candidate; }
+                if (GameDice.Range(0, seen) == 0) { picked = candidate; }
             }
 
             return picked != null;

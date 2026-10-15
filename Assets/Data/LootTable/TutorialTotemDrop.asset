@@ -19,8 +19,8 @@ MonoBehaviour:
   cardWeights: []
   excludedCards: []
   guaranteedCards:
-  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
-  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
-  - {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
+  - {fileID: 11400000, guid: 822a45b68cd0cd14696780b9cffe5517, type: 2}
+  - {fileID: 11400000, guid: 822a45b68cd0cd14696780b9cffe5517, type: 2}
+  - {fileID: 11400000, guid: 822a45b68cd0cd14696780b9cffe5517, type: 2}
   choiceCount: 3
-  equipmentChance: 0
+  equipmentChoiceCount: 0

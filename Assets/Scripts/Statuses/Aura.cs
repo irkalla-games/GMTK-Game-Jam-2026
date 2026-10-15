@@ -68,7 +68,13 @@ public class Aura : Status
 
     public override DamageInfo OnDealDamage(DamageInfo info) => projectedEffect.OnDealDamage(info);
 
+    public override DamageInfo OnStrike(DamageInfo info) => projectedEffect.OnStrike(info);
+
     public override DamageInfo OnTakeDamage(DamageInfo info) => projectedEffect.OnTakeDamage(info);
+
+    public override int BonusBlockPerHit => projectedEffect.BonusBlockPerHit;
+
+    public override int CostDiscount(Character carrier, Card card) => projectedEffect.CostDiscount(carrier, card);
 
     public override void OnDamageDealt(DamageInfo info) => projectedEffect.OnDamageDealt(info);
 

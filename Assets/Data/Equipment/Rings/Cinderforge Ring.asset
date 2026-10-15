@@ -33,7 +33,7 @@ MonoBehaviour:
     allEntries: 1
     index: 0
     matchesEffect: {fileID: 0}
-  delta: 3
+  delta: 4
   percent: 0
 --- !u!114 &11400000
 MonoBehaviour:
@@ -48,10 +48,10 @@ MonoBehaviour:
   m_Name: Cinderforge Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Cinderforge Ring
-  <description>k__BackingField: Fire cards deal +3 damage.
+  <description>k__BackingField: Fire cards deal +4 damage.
   <icon>k__BackingField: {fileID: 21300000, guid: 10277d57462221d48823507194749417, type: 3}
-  <rarity>k__BackingField: 2
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 2
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:

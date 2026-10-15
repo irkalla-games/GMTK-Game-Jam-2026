@@ -22,14 +22,14 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 8
   <rarity>k__BackingField: 0
   <tags>k__BackingField: 
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Remove all Poison from an ally and heal them for
-    the stacks removed.
+  <description>k__BackingField: Remove all negative effects from an ally and heal
+    them for the stacks removed.
   <image>k__BackingField: {fileID: 21300000, guid: 8c72bc376d41982459fee3a6fe2d0194, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 5975d00eaff525244aae0df5da6c7b95, type: 2}
+  - effect: {fileID: 11400000, guid: 11813a70396df004180425a133a4f0df, type: 2}
     aimsAt: 0
     area:
       kind: 0
@@ -41,6 +41,11 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

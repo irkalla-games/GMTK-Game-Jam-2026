@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Turns an occasion into a reward choice: a mid-battle pickup, or a hero's share of a level-clear
@@ -31,18 +32,21 @@ public class LootManager : Singleton<LootManager>
 
     [SerializeField] private CardLibrary library;
 
-    [Tooltip("The pool an equipment roll offers from - see LootTable.EquipmentChance.")]
+    [Tooltip("The pool an equipment offer draws from - a Legendary drop, or a level clear's second panel.")]
     [SerializeField] private EquipmentLibrary equipmentLibrary;
 
     [Tooltip("One button per entry on a mid-battle pickup's reward panel. A second skip option later "
              + "is a new SkipReward asset added here, nothing else changes.")]
     [SerializeField] private List<SkipReward> skipRewards = new();
 
-    [Tooltip("One button per entry on the level-clear reward panel - Skip and Remove a Card by "
-             + "default. Kept separate from skipRewards above: the two occasions offer genuinely "
-             + "different things, Heal makes no sense once the battle is already won, and Remove a "
-             + "Card needs the RewardContext.record a mid-battle pickup never sets.")]
-    [SerializeField] private List<SkipReward> levelClearSkipRewards = new();
+    [Tooltip("One button per entry on a level clear's card panel - Skip and Remove a Card. Kept "
+             + "separate from skipRewards above: Heal makes no sense once the battle is already won, "
+             + "and Remove a Card needs the RewardContext.record a mid-battle pickup never sets.")]
+    [FormerlySerializedAs("levelClearSkipRewards")]
+    [SerializeField] private List<SkipReward> levelClearCardSkips = new();
+
+    [Tooltip("One button per entry on a level clear's equipment panel - Skip and Upgrade a Card.")]
+    [SerializeField] private List<SkipReward> levelClearEquipmentSkips = new();
 
     [SerializeField] private RewardPanel panel;
 
@@ -110,16 +114,18 @@ public class LootManager : Singleton<LootManager>
             {
                 RewardContext context = new() { character = pickup.picker };
 
-                // A thin equipment pool must never leave the player facing an empty panel - the roll
-                // only takes the equipment branch when BuildEquipmentOffer actually found something,
-                // and falls through to the ordinary card offer otherwise. See LootTable.EquipmentChance.
-                List<EquipmentData> equipmentCandidates = Random.value < table.EquipmentChance
-                    ? BuildEquipmentOffer(pickup.tier, pickup.picker, table)
+                // Legendary is the equipment tier - every item is Legendary - and Uncommon and Rare are
+                // cards. A thin equipment pool must never leave the player facing an empty panel - the
+                // Legendary branch only runs
+                // when BuildEquipmentOffer actually found something, and falls through to the card
+                // offer otherwise (which widens down to Rare, since no card is Legendary).
+                List<EquipmentData> equipmentCandidates = pickup.tier == Rarity.Legendary
+                    ? BuildEquipmentOffer(pickup.picker, table)
                     : null;
 
                 if (equipmentCandidates != null && equipmentCandidates.Count > 0)
                 {
-                    yield return StartCoroutine(RunEquipmentOffer(equipmentCandidates, skipRewards, context));
+                    yield return StartCoroutine(RunEquipmentOffer(equipmentCandidates, skipRewards, context, RewardTitle(context, null)));
 
                     if (panel.ChosenEquipment != null)
                     {
@@ -135,7 +141,7 @@ public class LootManager : Singleton<LootManager>
                 {
                     List<CardData> candidates = BuildOffer(pickup.tier, pickup.picker, table);
 
-                    yield return StartCoroutine(RunOffer(candidates, skipRewards, context));
+                    yield return StartCoroutine(RunOffer(candidates, skipRewards, context, RewardTitle(context, null)));
 
                     if (panel.ChosenCard != null)
                     {
@@ -156,10 +162,15 @@ public class LootManager : Singleton<LootManager>
     }
 
     /// <summary>
-    /// Offers `hero` their share of a level-clear reward, granted straight into their PartyMember
-    /// record rather than their hand - the battle is over, there is no hand left to add to by the time
-    /// the next level's Character exists. Called once per living hero from BattleManager, in sequence,
-    /// so only one panel is ever up at a time.
+    /// Offers `hero` their share of a level-clear reward: a card panel (Skip / Remove a card), then an
+    /// equipment panel (Skip / Upgrade a card). The card panel rolls its tier on `table`; the equipment
+    /// panel needs no roll, every item being Legendary - see BuildEquipmentOffer. Both are
+    /// granted straight into the PartyMember record rather than the hero - the battle is over, and the
+    /// next level's Character is rebuilt from that record. Called once per living hero from
+    /// BattleManager, in sequence, so only one panel is ever up at a time.
+    ///
+    /// The equipment half is skipped silently when nothing is offerable (every item the hero may hold
+    /// already held) - an empty panel would be a choice with nothing in it.
     /// </summary>
     public IEnumerator OfferLevelClear(Character hero, PartyMember record, LootTable table)
     {
@@ -174,41 +185,45 @@ public class LootManager : Singleton<LootManager>
             yield break;
         }
 
-        Rarity tier = resolvedTable.Roll();
-
         if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(true); }
 
         RewardContext context = new() { character = hero, record = record };
 
-        List<EquipmentData> equipmentCandidates = Random.value < resolvedTable.EquipmentChance
-            ? BuildEquipmentOffer(tier, hero, resolvedTable)
-            : null;
+        List<CardData> cards = BuildOffer(resolvedTable.Roll(), hero, resolvedTable);
 
-        if (equipmentCandidates != null && equipmentCandidates.Count > 0)
+        yield return StartCoroutine(RunOffer(cards, levelClearCardSkips, context, RewardTitle(context, "cards")));
+
+        if (panel.ChosenCard != null && BattleManager.Instance != null)
         {
-            yield return StartCoroutine(RunEquipmentOffer(equipmentCandidates, levelClearSkipRewards, context));
+            BattleManager.Instance.RecordRunCard(hero, panel.ChosenCard);
+        }
 
-            // No Equip() call here, unlike the mid-battle pickup path - the battle is already over and
-            // `hero` will not exist next level, only its PartyMember record does. See RecordRunCard's
-            // identical asymmetry for the card path.
+        List<EquipmentData> items = BuildEquipmentOffer(hero, resolvedTable);
+
+        if (items.Count > 0)
+        {
+            context.Reoffer = false;
+
+            yield return StartCoroutine(RunEquipmentOffer(items, levelClearEquipmentSkips, context, RewardTitle(context, "equipment")));
+
+            // No Equip() call here, unlike the mid-battle pickup path - `hero` will not exist next
+            // level, only its PartyMember record does. See RecordRunCard's identical asymmetry.
             if (panel.ChosenEquipment != null && BattleManager.Instance != null)
             {
                 BattleManager.Instance.RecordRunEquipment(hero, panel.ChosenEquipment);
             }
         }
-        else
-        {
-            List<CardData> candidates = BuildOffer(tier, hero, resolvedTable);
-
-            yield return StartCoroutine(RunOffer(candidates, levelClearSkipRewards, context));
-
-            if (panel.ChosenCard != null && BattleManager.Instance != null)
-            {
-                BattleManager.Instance.RecordRunCard(hero, panel.ChosenCard);
-            }
-        }
 
         if (BattleManager.Instance != null) { BattleManager.Instance.SetInputLocked(false); }
+    }
+
+    /// "Knight's equipment", or "Knight's reward" for a mid-battle pickup (`kind` null). Kept short: at
+    /// the title's 96pt, "Knight's equipment reward" already runs into the turn counter.
+    private static string RewardTitle(RewardContext context, string kind)
+    {
+        if (context.character == null) { return null; }
+
+        return $"{context.character.DisplayName}'s {kind ?? "reward"}";
     }
 
     /// <summary>
@@ -218,14 +233,13 @@ public class LootManager : Singleton<LootManager>
     /// needs no per-occasion branching in here, only what it is granted into differs, and that is the
     /// caller's business (AddCardToHand for a pickup, nothing but the run record for a level clear).
     /// </summary>
-    private IEnumerator RunOffer(List<CardData> candidates, List<SkipReward> skips, RewardContext context)
+    private IEnumerator RunOffer(List<CardData> candidates, List<SkipReward> skips, RewardContext context, string title)
     {
         do
         {
             context.Reoffer = false;
 
-            string title = context.character != null ? $"{context.character.DisplayName}'s reward" : null;
-            panel.Show(candidates, skips, title);
+            panel.Show(candidates, skips, title, context.character);
 
             yield return new WaitUntil(() => panel.Resolved);
 
@@ -240,13 +254,12 @@ public class LootManager : Singleton<LootManager>
     /// Show/ShowEquipment: the two candidate types (CardData/EquipmentData) share no useful base beyond
     /// object, and the loop itself is twelve lines - not worth a delegate parameter to deduplicate.
     /// </summary>
-    private IEnumerator RunEquipmentOffer(List<EquipmentData> candidates, List<SkipReward> skips, RewardContext context)
+    private IEnumerator RunEquipmentOffer(List<EquipmentData> candidates, List<SkipReward> skips, RewardContext context, string title)
     {
         do
         {
             context.Reoffer = false;
 
-            string title = context.character != null ? $"{context.character.DisplayName}'s reward" : null;
             panel.ShowEquipment(candidates, context.character, skips, title);
 
             yield return new WaitUntil(() => panel.Resolved);
@@ -257,40 +270,43 @@ public class LootManager : Singleton<LootManager>
     }
 
     /// <summary>
-    /// `table.ChoiceCount` distinct items `picker` may hold, weighted uniformly at `tier` - the
-    /// equipment counterpart to BuildOffer. No guarantees, no exclusions, no tag weighting: those are
-    /// all authored on LootTable for the card pool specifically, and equipment has no tag axis to weight
-    /// on. Widens down through Rarity.Lower() the same way BuildOffer does when the pool at `tier` is
-    /// thin, and returns however many it actually found rather than padding - the caller (Drain,
-    /// OfferLevelClear) treats an empty result as "fall through to the card offer instead".
+    /// `table.EquipmentChoiceCount` distinct items `picker` may hold and does not already, drawn
+    /// uniformly from the whole pool - the equipment counterpart to BuildOffer. No tier: every item is
+    /// Legendary (see EquipmentLibrary.Offerable), so the roll that led here only decided that equipment
+    /// was offered at all. No guarantees or tag weighting either: those are authored on LootTable for
+    /// the card pool specifically. An item already equipped is left out, since taking a second copy of
+    /// it would be a dead choice. Returns however many it actually found rather than padding - Drain
+    /// treats an empty result as "offer cards instead", OfferLevelClear as "skip the equipment panel".
     /// </summary>
-    public List<EquipmentData> BuildEquipmentOffer(Rarity tier, Character picker, LootTable table)
+    public List<EquipmentData> BuildEquipmentOffer(Character picker, LootTable table)
     {
         List<EquipmentData> found = new();
 
         if (equipmentLibrary == null || table == null) { return found; }
 
-        Rarity current = tier;
+        int count = table.EquipmentChoiceCount;
 
-        // At most four tiers exist (Common..Legendary), so four attempts always bottoms out at Common -
-        // same bound BuildOffer's widening loop uses.
-        for (int attempt = 0; attempt < 4; attempt++)
+        foreach (EquipmentData item in equipmentLibrary.Offerable(picker))
         {
-            foreach (EquipmentData item in equipmentLibrary.Offerable(current, picker))
-            {
-                if (!found.Contains(item)) { found.Add(item); }
-            }
-
-            if (found.Count >= table.ChoiceCount || current == Rarity.Common) { break; }
-
-            current = current.Lower();
+            if (picker != null && Contains(picker.Equipment, item)) { continue; }
+            if (!found.Contains(item)) { found.Add(item); }
         }
 
         Shuffle(found);
 
-        if (found.Count > table.ChoiceCount) { found.RemoveRange(table.ChoiceCount, found.Count - table.ChoiceCount); }
+        if (found.Count > count) { found.RemoveRange(count, found.Count - count); }
 
         return found;
+    }
+
+    private static bool Contains(IReadOnlyList<EquipmentData> items, EquipmentData item)
+    {
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (items[i] == item) { return true; }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -397,11 +413,11 @@ public class LootManager : Singleton<LootManager>
             {
                 // Every remaining candidate weighed to zero (an authored cardWeights of 0, say) -
                 // uniform pick rather than offering nothing.
-                index = Random.Range(0, remaining.Count);
+                index = GameDice.Range(0, remaining.Count);
             }
             else
             {
-                int roll = Random.Range(0, totalWeight);
+                int roll = GameDice.Range(0, totalWeight);
                 index = remaining.Count - 1;
 
                 for (int i = 0; i < remaining.Count; i++)
@@ -426,7 +442,7 @@ public class LootManager : Singleton<LootManager>
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = GameDice.Range(0, i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
     }

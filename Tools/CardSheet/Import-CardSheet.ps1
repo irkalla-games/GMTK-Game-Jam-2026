@@ -355,6 +355,13 @@ foreach ($tab in $cardTabs) {
             $aim  = Get-Cell $row "Aim $i" 'Tile'
             $area = ConvertTo-AreaSpec (Get-Cell $row "Area $i")
 
+            $cond = ConvertFrom-ConditionText (Get-Cell $row "Cond $i")
+            if (-not $cond.ok) {
+                $problems += "'$key': Cond $i - $($cond.error)."
+                $missingEffect = $true
+                continue
+            }
+
             # Flat, not nested: Unity's JsonUtility handles List<T> of [Serializable] classes but has
             # no time for dictionaries or deep anonymous shapes, and pulling in Newtonsoft for one
             # editor script is not worth it.
@@ -366,6 +373,9 @@ foreach ($tab in $cardTabs) {
                 areaMin     = $area.min
                 areaMax     = $area.max
                 areaPattern = $area.pattern
+                condition      = $cond.condition
+                conditionBonus = $cond.amount
+                onlyWhenMet    = $cond.only
             }
             $entrySpecs += $spec
         }
@@ -378,6 +388,18 @@ foreach ($tab in $cardTabs) {
         $path += "/$key.asset"
 
         $noReward   = (Get-Cell $row 'No Reward').ToUpperInvariant() -eq 'TRUE'
+
+        # "NextToHero -1": the card costs 1 less while the condition holds. A '+' or 'only' means
+        # nothing for a cost, so either is reported rather than guessed at.
+        $costCond = ConvertFrom-ConditionText (Get-Cell $row 'Cost Cond')
+        if ($costCond.ok -and $costCond.condition -ne 0 -and ($costCond.amount -ge 0 -or $costCond.only)) {
+            $costCond.ok = $false
+            $costCond.error = "expected a discount like 'NextToHero -1'"
+        }
+        if (-not $costCond.ok) {
+            $problems += "'$key': Cost Cond - $($costCond.error)."
+            continue
+        }
         $rotatable  = (Get-Cell $row 'Rotatable').ToUpperInvariant() -eq 'TRUE'
 
         $card = [ordered]@{
@@ -399,6 +421,8 @@ foreach ($tab in $cardTabs) {
             animation      = Get-Cell $row 'Animation'
             keywords       = @(ConvertTo-KeywordSpec (Get-Cell $row 'Keywords'))
             effectEntries  = $entries
+            costCondition  = $costCond.condition
+            costDiscount   = (0 - $costCond.amount)
             sourceTab      = $tab
             action         = ''
             changed        = @()

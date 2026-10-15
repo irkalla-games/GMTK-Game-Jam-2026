@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Deepcoral Signet
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Deepcoral Signet
-  <description>k__BackingField: +2 damage dealt, -1 damage taken.
+  <description>k__BackingField: +4 damage dealt, but every hit taken deals 1 more.
   <icon>k__BackingField: {fileID: 21300000, guid: 022ad445c07608642a2be6301d005977, type: 3}
   <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
@@ -33,5 +33,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66f23c5011141814aa5579b239b7672b, type: 3}
   m_Name: DamageBonusModifier
   m_EditorClassIdentifier: Assembly-CSharp::DamageBonusModifier
-  outgoing: 2
-  incomingReduction: 1
+  outgoing: 4
+  incomingReduction: -1

@@ -1,5 +1,5 @@
 ﻿{
-    "writtenUtc":  "2026-09-03T02:13:39.7487521Z",
+    "writtenUtc":  "2026-10-09T08:46:42.3781302Z",
     "items":  [
                   {
                       "guid":  "cb28d281a6db23d40a920ce38608486e",
@@ -21,12 +21,12 @@
                                       "Key":  "Fire Mage\u0027s Hat",
                                       "Folder":  "",
                                       "Item Name":  "Fire Mage\u0027s Hat",
-                                      "Description":  "Fire cards gain a 3x3 splash.",
+                                      "Description":  "Firebolt gains a 3x3 splash.",
                                       "Rarity":  "Rare",
                                       "Class":  "Mage",
                                       "Slot":  "Hat",
                                       "No Reward":  "FALSE",
-                                      "Modifiers":  "0|CardTuningModifier|filter.tags=Fire;filter.cards=;;[0|AreaModifier|on.allEntries=TRUE;on.index=0;on.matchesEffect=;area.kind=Radius;area.radius.shape=Chebyshev;area.radius.minDistance=0;area.radius.maxDistance=1;area.pattern=]"
+                                      "Modifiers":  "0|CardTuningModifier|filter.tags=;filter.cards=Firebolt;;[0|AreaModifier|on.allEntries=TRUE;on.index=0;on.matchesEffect=;area.kind=Radius;area.radius.shape=Chebyshev;area.radius.minDistance=0;area.radius.maxDistance=1;area.radius.requiresRoute=FALSE;area.pattern=]"
                                   }
                   },
                   {
@@ -77,7 +77,7 @@
                                       "Key":  "Totem Anchor",
                                       "Folder":  "",
                                       "Item Name":  "Totem Anchor",
-                                      "Description":  "Totems you summon have +7 max health.",
+                                      "Description":  "Totems you summon have +10 max health.",
                                       "Rarity":  "Rare",
                                       "Class":  "Knight",
                                       "Slot":  "Ring",
@@ -259,7 +259,7 @@
                                       "Key":  "Glacier Band",
                                       "Folder":  "Rings",
                                       "Item Name":  "Glacier Band",
-                                      "Description":  "Permanently under the effect of Shield 2.",
+                                      "Description":  "Permanent Shield: -2 damage from every hit taken.",
                                       "Rarity":  "Uncommon",
                                       "Class":  "Any",
                                       "Slot":  "Ring",
@@ -343,7 +343,7 @@
                                       "Key":  "Rimeguard Band",
                                       "Folder":  "Rings",
                                       "Item Name":  "Rimeguard Band",
-                                      "Description":  "Permanently under the effect of Block 2.",
+                                      "Description":  "Permanent Block: -3 damage from every hit taken.",
                                       "Rarity":  "Uncommon",
                                       "Class":  "Any",
                                       "Slot":  "Ring",
@@ -371,7 +371,7 @@
                                       "Key":  "Seraph\u0027s Ward",
                                       "Folder":  "Rings",
                                       "Item Name":  "Seraph\u0027s Ward",
-                                      "Description":  "Permanently under the effect of Shield 3, and +1 Shield whenever you gain Shield.",
+                                      "Description":  "Permanent Shield: -3 damage from every hit taken, and +1 Shield whenever you gain Shield.",
                                       "Rarity":  "Legendary",
                                       "Class":  "Any",
                                       "Slot":  "Ring",
@@ -446,7 +446,7 @@
                                       "Class":  "Any",
                                       "Slot":  "Ring",
                                       "No Reward":  "FALSE",
-                                      "Modifiers":  "0|GrantBonusModifier|subject=Poison;bonus=1;;"
+                                      "Modifiers":  "0|AppliedStacksModifier|subject=Poison;bonus=1;;"
                                   }
                   },
                   {

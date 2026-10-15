@@ -24,8 +24,20 @@ public class BlockStatus : StatusEffect
     ///
     /// Against the current 3-5 enemy damage band it fully negates most hits for as long as it lasts,
     /// which is what the balance note in CLAUDE.md is about.
+    ///
+    /// The base, not the final word: a carrier's equipment can add to it (Rimeguard Band) - read
+    /// PerHitFor whenever there is a carrier to ask.
     /// </summary>
     public const int AmountPerHit = 3;
+
+    /// <summary>
+    /// What each Block takes off a hit landing on `carrier`: AmountPerHit plus whatever its equipment
+    /// and auras add (Status.BonusBlockPerHit). Per carrier, not per Block status, so every Block a
+    /// character holds - carried or a totem's aura - is worth the same, which is what keeps
+    /// DamageInfo.blockApplied a flag rather than a running best. Null carrier answers the base.
+    /// </summary>
+    public static int PerHitFor(Character carrier) =>
+        AmountPerHit + (carrier != null ? carrier.BonusBlockPerHit : 0);
 
     public BlockStatus(int stacks) : base(StatusType.Block, stacks) { }
 
@@ -40,7 +52,7 @@ public class BlockStatus : StatusEffect
 
         // No charge to spend here - the turn is what pays for this, in OnTurnStart, so every hit this
         // turn gets the same reduction regardless of consumeCharges.
-        return info.ReducedOnce(AmountPerHit);
+        return info.ReducedOnce(PerHitFor(info.target));
     }
 
     /// Self-ticking: the counter is turns remaining, so a turn passing spends one - "Block 3" lasts
@@ -56,7 +68,9 @@ public class BlockStatus : StatusEffect
 
     /// Still overridden even though the amount is fixed: the Glossary's authored bodies spell
     /// "{amount}", and this is what fills it. Without it every Block tooltip would fall back to the
-    /// entry's defaultAmount rather than the number the status actually applies.
+    /// entry's defaultAmount rather than the number the status actually applies. A caller that knows
+    /// the carrier fills {amount} first with PerHitFor (Glossary.StatusContent's `holder`), so this
+    /// base only shows where nobody is carrying it.
     public override string Describe(string template)
     {
         return base.Describe(template)?.Replace(Glossary.AmountToken, AmountPerHit.ToString());

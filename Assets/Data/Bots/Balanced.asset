@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ce6e0eefdd630b4eb81c3a5ffdec5cd, type: 3}
+  m_Name: Balanced
+  m_EditorClassIdentifier: Assembly-CSharp::BotProfile
+  data:
+    name: Balanced
+    notes: Plays whatever scores best on damage, kills, blocking what is actually
+      incoming, healing and setting up. The reference every other profile is compared
+      against.
+    weights:
+      damage: 1
+      kill: 6
+      threatRemoved: 1
+      friendlyFire: -2
+      mitigation: 1
+      mitigationSpare: 0.1
+      heal: 0.8
+      lifeSaved: 25
+      dot: 0.6
+      debuff: 1.5
+      buff: 1.5
+      totemCover: 4
+      totemBase: 2
+      summon: 0.3
+      moveSetup: 0.6
+      moveSafety: 0.6
+      loot: 8
+      auraMove: 2
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1
+      discard: -2
+      costPenalty: 0.25
+    playFirst: 
+    playFirstMinScore: 0
+    passThreshold: 0.5
+    randomness: 0
+    endTurnChance: 0.15
+    baseline: 0
+    rewards:
+      attackPick: 1
+      defensePick: 1
+      healPick: 1
+      totemPick: 1
+      summonPick: 1
+      debuffPick: 1
+      buffPick: 1
+      movePick: 0.6
+      utilityPick: 1
+      rarityBonus: 1
+      takeCardsMinValue: 4
+      healSkipBelowHp: 0.5
+      upgradeWeight: 1
+      removeWhenDeckAbove: 14
+      takeEquipment: 1

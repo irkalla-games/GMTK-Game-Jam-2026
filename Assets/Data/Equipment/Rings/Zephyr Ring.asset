@@ -15,7 +15,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Zephyr Ring
   <description>k__BackingField: Movement cards reach 1 tile further.
   <icon>k__BackingField: {fileID: 21300000, guid: 2bf6545eb4afa8f44ad8a806ab6ec1f7, type: 3}
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

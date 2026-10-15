@@ -8908,6 +8908,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 611235870}
+  - component: {fileID: 611235871}
   m_Layer: 5
   m_Name: SkipButtons
   m_TagString: Untagged
@@ -8932,8 +8933,34 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 150}
-  m_SizeDelta: {x: 600, y: 80}
+  m_SizeDelta: {x: 480, y: 196}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &611235871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 611235869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_Spacing: 16
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &617863400
 GameObject:
   m_ObjectHideFlags: 0
@@ -10387,8 +10414,26 @@ MonoBehaviour:
   panelBottomPadding: 12
   intentIcon: {fileID: 120585973}
   intentIcons: {fileID: 11400000, guid: b4c66431e4af7114b9914dacf3e4041e, type: 2}
-  followUpIconScale: 0.7
-  followUpIconGap: 4
+  intentStrip:
+    slotGapScale: 0.18
+    chevronScale: 0.36
+    followUpAlpha: 0.4
+    rowLift: 0
+    damageFontScale: 0.64
+    damageGapScale: 0.14
+    damageBoxWidthScale: 1.36
+    damageColor: {r: 1, g: 1, b: 1, a: 1}
+    badgeScale: 0.5
+    badgeOverlap: 0.55
+    badgeSpacingScale: 0.05
+    badgeNumberGapScale: 0.08
+    badgeNumberWidthScale: 0.34
+    badgeNumberFontScale: 0.4
+    maxBadges: 3
+    targetAimedBadgeColor: {r: 0.46, g: 0.12, b: 0.14, a: 0.92}
+    selfAimedBadgeColor: {r: 0.16, g: 0.32, b: 0.48, a: 0.92}
+    rollDuration: 0.5
+    rollEase: 9
 --- !u!1 &700022871
 GameObject:
   m_ObjectHideFlags: 0
@@ -12174,7 +12219,7 @@ MonoBehaviour:
   shield: {fileID: 11400000, guid: 7402495d3e66bfc41b47c4d1fc79004e, type: 2}
   slash: {fileID: 11400000, guid: d33a9e1db0e9c6e42a163a3bb49dbf0f, type: 2}
   move: {fileID: 11400000, guid: be5db39fd599473588c5ca05a015d151, type: 2}
-  healTotem: {fileID: 11400000, guid: 1b8727d4f538799408c987e9f1732674, type: 2}
+  healTotem: {fileID: 11400000, guid: 822a45b68cd0cd14696780b9cffe5517, type: 2}
   endTurnAnchor: {fileID: 893445275}
   discardPileAnchor: {fileID: 684321805}
   nextWavePanel: {fileID: 1658982287}
@@ -25989,9 +26034,11 @@ MonoBehaviour:
   equipmentLibrary: {fileID: 11400000, guid: 0592d2439ff016a4c8e68443764ee69a, type: 2}
   skipRewards:
   - {fileID: 11400000, guid: 54a8324f345943ba8145b0398faa9e6a, type: 2}
-  levelClearSkipRewards:
+  levelClearCardSkips:
   - {fileID: 11400000, guid: 92bef9ce530dd804cbd133cb2336422b, type: 2}
   - {fileID: 11400000, guid: 36cb1f7114de1a94c87b92f26636ac2c, type: 2}
+  levelClearEquipmentSkips:
+  - {fileID: 11400000, guid: 92bef9ce530dd804cbd133cb2336422b, type: 2}
   - {fileID: 11400000, guid: ef3f02c46434fcd47a8e1f9d70efa80b, type: 2}
   panel: {fileID: 1987482763}
   fallbackTable: {fileID: 11400000, guid: e2a129e76d4046c4939fe0f86f4b4b68, type: 2}
@@ -27998,7 +28045,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -81, y: 386}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 1600, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1908999916
 CanvasRenderer:
@@ -28072,7 +28119,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}

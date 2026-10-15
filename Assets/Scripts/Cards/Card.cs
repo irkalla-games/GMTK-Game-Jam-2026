@@ -13,8 +13,51 @@ public class Card
 {
     private readonly CardData data;
 
-    /// Mutable per copy: seeded from the asset, then free to change during a run.
-    public int cost;
+    /// Mutable per copy: seeded from the asset, then free to change during a run - an equipment
+    /// CostModifier writes here. The printed cost before any board condition; read `cost` for the
+    /// price actually charged.
+    public int baseCost;
+
+    /// <summary>
+    /// The character whose deck this copy belongs to, or null for a copy nobody holds - a reward or
+    /// card-removal screen's. Stamped by Character.NewCard, the one place a hero's cards are built, and
+    /// never changed: a Card object belongs to one character for the whole battle.
+    ///
+    /// What CardData.costCondition is asked about. A cost cannot take the caster as a parameter the
+    /// way an effect's condition does, because the hand, CanAfford, SpendEnergy, the card face and the
+    /// bot all read it with no play in progress.
+    /// </summary>
+    public Character Holder { get; }
+
+    /// <summary>
+    /// What this card costs to play right now: baseCost less whatever the holder's equipment takes off
+    /// (Opaline Charm, Manaflow Ring - see Character.CostDiscount) and less CardData.costDiscount while
+    /// the holder meets CardData.costCondition, never below 0.
+    ///
+    /// Computed on every read, never stored. The answer moves whenever anyone moves, gains Shield or
+    /// summons a totem, and every reader - the energy check, SpendEnergy, the card face, the bot - has to
+    /// see the same number at the moment it looks. A discounted value written into a field would be one
+    /// event away from being wrong.
+    /// </summary>
+    public int cost
+    {
+        get
+        {
+            if (baseCost <= 0) { return baseCost; }
+
+            int discount = Holder != null ? Holder.CostDiscount(this) : 0;
+            if (data.costCondition != CardCondition.None && data.costDiscount > 0 && CardConditions.Met(data.costCondition, Holder))
+            {
+                discount += data.costDiscount;
+            }
+
+            return Mathf.Max(0, baseCost - discount);
+        }
+    }
+
+    /// Whether a board condition is taking something off the printed cost right now - what tints the
+    /// cost on the card face.
+    public bool CostDiscounted => cost < baseCost;
 
     /// Also per copy, so a relic granting +1 range writes here. TargetRange is a value type, so this
     /// is a copy - writing to it can never reach back into the shared CardData asset.
@@ -192,9 +235,10 @@ public class Card
     /// Per-copy runtime instances built from data.keywords - see CardKeyword.
     private readonly List<CardKeyword> keywords = new();
 
-    public Card(CardData newData)
+    public Card(CardData newData, Character holder = null)
     {
         this.data = newData;
+        this.Holder = holder;
         ResetToAuthored();
     }
 
@@ -211,7 +255,7 @@ public class Card
     /// </summary>
     public void ResetToAuthored()
     {
-        this.cost = data.cost;
+        this.baseCost = data.cost;
         this.range = data.range;
         this.effectEntries = new List<CardEffectEntry>(data.effectEntries);
 
@@ -403,6 +447,30 @@ public class Card
         entry.aimsAt == EffectTarget.Source || entry.effect.ActsOnSource ? casterTile : target;
 
     /// <summary>
+    /// Whether `entry` takes part in a play by `source` at all right now - false only for an
+    /// onlyWhenMet entry whose condition fails.
+    ///
+    /// A failed entry is skipped outright, everywhere: it resolves nothing, claims no tile in Refusal
+    /// and shows in no preview. Skipping is the only gate that works for every effect - Draw, Energy,
+    /// Discard and Self Damage read ctx.source and ignore their targets, so handing one an empty tile
+    /// list would still let it fire (Card Lab III shipped "next to another hero: draw 1" that way for
+    /// two rounds, and it drew every time).
+    /// </summary>
+    public bool EntryLive(CardEffectEntry entry, Character source) =>
+        !entry.onlyWhenMet || CardConditions.Met(entry.condition, source);
+
+    /// <summary>
+    /// The flat adjustment `entry` resolves with when `source` plays it right now: its authored
+    /// amountDelta, plus conditionBonus while its condition holds. What every ActionContext built from
+    /// an entry passes, so a resolve, a damage preview, an intent number and the bot's measure can
+    /// never disagree about whether the bonus is on.
+    /// </summary>
+    public int EntryDelta(CardEffectEntry entry, Character source) =>
+        entry.conditionBonus != 0 && entry.condition != CardCondition.None && CardConditions.Met(entry.condition, source)
+            ? entry.amountDelta + entry.conditionBonus
+            : entry.amountDelta;
+
+    /// <summary>
     /// Why this card cannot be played onto `target` by `source`, or null if it can.
     ///
     /// Asked once per click, before anything is spent - see CardPlayManager.PlaySelectedOn - and again
@@ -444,7 +512,7 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect == null) { continue; }
+            if (entry.effect == null || !EntryLive(entry, source)) { continue; }
 
             // An area entry is legal anywhere in range, even a tile its own effect would refuse - a
             // 3x3 Fireball may be centred on empty ground as long as the blast catches an enemy
@@ -543,6 +611,7 @@ public class Card
         foreach (var entry in effectEntries)
         {
             if (entry.effect == null || entry.area.IsSingle || !entry.effect.SupportsArea) { continue; }
+            if (!EntryLive(entry, source)) { continue; }
 
             GridTile aim = EntryAim(entry, casterTile, hovered);
             if (aim == null) { continue; }
@@ -592,7 +661,7 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect is not DamageEffect) { continue; }
+            if (entry.effect is not DamageEffect || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = EntryAim(entry, casterTile, target);
             if (aim == null) { continue; }
@@ -627,7 +696,7 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect is not DamageEffect) { continue; }
+            if (entry.effect is not DamageEffect || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = EntryAim(entry, casterTile, target);
             if (aim == null) { continue; }
@@ -689,12 +758,12 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect is not DamageEffect damage) { continue; }
+            if (entry.effect is not DamageEffect damage || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
             if (aim == null) { continue; }
 
-            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, EntryDelta(entry, source), entry.amountPercent);
             int outgoing = source.ComputeOutgoingDamage(ctx.Amount(damage.Damage), shouldConsume: false);
 
             foreach (GridTile tile in EntryFootprint(source, casterTile, aim, entry))
@@ -736,7 +805,7 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect is not PushEffect) { continue; }
+            if (entry.effect is not PushEffect || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
             if (aim == null) { continue; }
@@ -772,12 +841,12 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect is not DamageEffect damage) { continue; }
+            if (entry.effect is not DamageEffect damage || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = entry.aimsAt == EffectTarget.Source ? casterTile : target;
             if (aim == null) { continue; }
 
-            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, EntryDelta(entry, source), entry.amountPercent);
             total += source.ComputeOutgoingDamage(ctx.Amount(damage.Damage), shouldConsume: false);
         }
 
@@ -809,7 +878,7 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect == null) { continue; }
+            if (entry.effect == null || !EntryLive(entry, source)) { continue; }
 
             bool selfTargeted = entry.aimsAt == EffectTarget.Source;
             GridTile aim = selfTargeted ? casterTile : target;
@@ -818,7 +887,7 @@ public class Card
             // applies above, so the two walks can never diverge on which entries they skip.
             if (aim == null) { continue; }
 
-            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, entry.amountDelta, entry.amountPercent);
+            ActionContext ctx = new(this, source, Array.Empty<GridTile>(), aim, EntryDelta(entry, source), entry.amountPercent);
 
             if (entry.effect is ApplyStatusEffect status)
             {
@@ -888,36 +957,66 @@ public class Card
 
         foreach (var entry in effectEntries)
         {
-            if (entry.effect == null) { continue; }
+            // Asked here, as the card resolves, so a condition reads where the caster stands at the
+            // moment of the play - see EntryLive for why a failed entry must be skipped, not emptied.
+            if (entry.effect == null || !EntryLive(entry, source)) { continue; }
 
             GridTile aim = EntryAim(entry, casterTile, target);
 
-            List<GridTile> landed;
+            List<GridTile> landed = Landed(entry, source, casterTile, aim, filterRefused);
 
-            if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
-            {
-                // The gate above now lets a tile through when only some entries claim it, so an entry
-                // that refuses its own aim must drop out here rather than resolve anyway - the same
-                // filter the area branch below has always run, applied to the single-tile case. Not
-                // asked when aim is null: Draw and Energy read only ctx.source and must still resolve
-                // with no target at all.
-                bool refused = filterRefused && aim != null && entry.effect.Refusal(source, aim) != null;
-
-                landed = aim != null && !refused ? new List<GridTile> { aim } : new List<GridTile>();
-            }
-            else
-            {
-                landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
-                landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
-
-                // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)
-                // and CardAnimation both read ctx.epicenter for facing/projectile/impact rather than
-                // targets[0], so this ordering is cosmetic now, not load-bearing. Kept anyway so a log
-                // or a future reader sees the clicked tile first.
-                if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
-            }
-
-            entry.effect.Resolve(new ActionContext(this, source, landed, aim, entry.amountDelta, entry.amountPercent));
+            entry.effect.Resolve(new ActionContext(this, source, landed, aim, EntryDelta(entry, source), entry.amountPercent));
         }
+    }
+
+    /// <summary>
+    /// The tiles entry `entryIndex` would land on if this card were played on `target` by `source` right
+    /// now, at the current aim - exactly the list ResolveEffects would hand that entry's effect, without
+    /// resolving anything. Empty for an entry with no effect or an index out of range.
+    ///
+    /// For anything that has to judge a play by who it would reach - the balance bot deciding whether a
+    /// shield lands on the ally who is about to be hit - rather than re-deriving footprint rules beside
+    /// this. Shares Landed with ResolveEffects, so the two can never disagree.
+    /// </summary>
+    public List<GridTile> LandedTiles(Character source, GridTile target, int entryIndex)
+    {
+        if (entryIndex < 0 || entryIndex >= effectEntries.Count) { return new List<GridTile>(); }
+
+        CardEffectEntry entry = effectEntries[entryIndex];
+
+        if (entry.effect == null || !EntryLive(entry, source)) { return new List<GridTile>(); }
+
+        GridTile casterTile = source != null ? source.Tile : null;
+
+        return Landed(entry, source, casterTile, EntryAim(entry, casterTile, target), filterRefused: true);
+    }
+
+    /// One entry's landed tiles for a real play - ResolveEffects' per-entry step, and LandedTiles' whole
+    /// answer. `entry.effect` must be non-null.
+    private List<GridTile> Landed(
+        CardEffectEntry entry, Character source, GridTile casterTile, GridTile aim, bool filterRefused)
+    {
+        if (entry.area.IsSingle || !entry.effect.SupportsArea || GridManager.Instance == null)
+        {
+            // The gate above now lets a tile through when only some entries claim it, so an entry
+            // that refuses its own aim must drop out here rather than resolve anyway - the same
+            // filter the area branch below has always run, applied to the single-tile case. Not
+            // asked when aim is null: Draw and Energy read only ctx.source and must still resolve
+            // with no target at all.
+            bool refused = filterRefused && aim != null && entry.effect.Refusal(source, aim) != null;
+
+            return aim != null && !refused ? new List<GridTile> { aim } : new List<GridTile>();
+        }
+
+        List<GridTile> landed = GridManager.Instance.GetTilesInArea(casterTile, aim, entry.area, AimOctant);
+        landed.RemoveAll(tile => entry.effect.Refusal(source, tile) != null);
+
+        // The aim tile leads the list when it survived its own filter - Perform (GameAction.cs)
+        // and CardAnimation both read ctx.epicenter for facing/projectile/impact rather than
+        // targets[0], so this ordering is cosmetic now, not load-bearing. Kept anyway so a log
+        // or a future reader sees the clicked tile first.
+        if (aim != null && landed.Remove(aim)) { landed.Insert(0, aim); }
+
+        return landed;
     }
 }

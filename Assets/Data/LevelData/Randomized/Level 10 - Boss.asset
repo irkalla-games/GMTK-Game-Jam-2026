@@ -21,7 +21,7 @@ MonoBehaviour:
     bossFrontlinePower: 0
     bossBacklinePower: 0
     reinforcementPower: 60
-    maxPowerPerEnemy: 5
+    maxPowerPerEnemy: 4
     maxPowerPerWave: 14
     waveInterval: 1
     waveIntervalJitter: 2

@@ -61,9 +61,9 @@ public readonly struct DamageInfo
 
     /// <summary>
     /// Set once a Block status has reduced this hit. Still a flag rather than a running best, because
-    /// BlockStatus.AmountPerHit is a global constant that no equipment retunes - every Block in the game
-    /// is worth the same 5, so "the strongest" and "the first" are the same status. A carried Block
-    /// charge and a totem's Block aura would otherwise both take 5 off one hit. See
+    /// the per-hit amount is decided per carrier (BlockStatus.PerHitFor), not per Block status - every
+    /// Block one character holds is worth the same, so "the strongest" and "the first" are the same
+    /// status. A carried Block charge and a totem's Block aura would otherwise both reduce one hit. See
     /// BlockStatus.OnTakeDamage, the only reader and writer.
     /// </summary>
     public readonly bool blockApplied;

@@ -386,7 +386,7 @@ public class HeroPortrait : MonoBehaviour
             for (int i = shown; i < activeStatuses.Count; i++)
             {
                 (StatusType type, int stacks, Status live, _) = activeStatuses[i];
-                glossary?.StatusContent(type, stacks, live, content);
+                glossary?.StatusContent(type, stacks, live, content, holder: Hero);
             }
 
             overflow.Show(null, $"+{hidden}");
@@ -400,7 +400,7 @@ public class HeroPortrait : MonoBehaviour
     }
 
     private TooltipContent TooltipFor(Glossary glossary, StatusType type, int stacks, Status live) =>
-        glossary == null ? null : glossary.StatusContent(type, stacks, live);
+        glossary == null ? null : glossary.StatusContent(type, stacks, live, holder: Hero);
 
     private StatusChip ChipAt(int index)
     {

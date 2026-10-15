@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Boots of Speed
   <description>k__BackingField: Decrease the cost of movement by 1.
-  <icon>k__BackingField: {fileID: 0}
-  <rarity>k__BackingField: 2
+  <icon>k__BackingField: {fileID: 21300000, guid: a041c3b2d06fa144dba8b3f135c9c7bc, type: 3}
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 4
   <excludeFromRewards>k__BackingField: 0

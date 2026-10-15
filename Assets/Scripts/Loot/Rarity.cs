@@ -11,6 +11,8 @@ public enum Rarity
     Common = 0,
     Uncommon = 1,
     Rare = 2,
+
+    /// Rolled by a LootTable, Legendary means equipment rather than cards - see LootManager.Drain.
     Legendary = 3,
 
     /// Never rolled by a LootTable and never offered as a reward - for cards that exist only to be

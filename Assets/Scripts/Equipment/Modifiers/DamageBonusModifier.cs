@@ -10,16 +10,11 @@ using UnityEngine;
 public class DamageBonusModifier : EquipmentModifier
 {
     [SerializeField] private int outgoing;
+    [Tooltip("Taken off every hit the wearer takes. Negative is a drawback: -1 means each hit lands for 1 more.")]
     [SerializeField] private int incomingReduction;
 
     public override void Project(Character carrier, List<Status> into) =>
         into.Add(new FlatDamageStatus(outgoing, incomingReduction));
 
-    public override string Describe()
-    {
-        if (outgoing != 0 && incomingReduction != 0) { return $"+{outgoing} dmg, -{incomingReduction} taken"; }
-        if (outgoing != 0) { return $"+{outgoing} damage dealt"; }
-        if (incomingReduction != 0) { return $"-{incomingReduction} damage taken"; }
-        return "No change";
-    }
+    public override string Describe() => FlatDamageStatus.DescribeAmounts(outgoing, incomingReduction);
 }

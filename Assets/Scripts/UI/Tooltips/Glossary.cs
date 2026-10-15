@@ -39,6 +39,10 @@ public class Glossary : ScriptableObject
     /// summonable things, and the effect asset is already the one place a summon's numbers live.
     private const string SummonLink = "summon:";
 
+    /// Card conditions ("Alone", "next to another hero") - keyed by CardCondition, like statuses and
+    /// keywords are by their own enums.
+    private const string ConditionLink = "condition:";
+
     /// <summary>
     /// The parts every glossary entry has. A base class rather than two independent structs because
     /// Tag, the term matching and the fallback numbers are identical for both - only the key differs.
@@ -99,6 +103,20 @@ public class Glossary : ScriptableObject
 
     [SerializeField] private List<SummonEntry> summons = new();
 
+    /// <summary>
+    /// What a card condition means - "Alone" is the one that genuinely needs saying, because players
+    /// read it as "nobody next to me" when the rule is a wider radius. {magnitude} in the body is filled
+    /// with that radius (CardConditions.AloneDistance - 1), so the sentence can never disagree with the
+    /// constant the rule actually uses.
+    /// </summary>
+    [System.Serializable]
+    public class ConditionEntry : Entry
+    {
+        public CardCondition type;
+    }
+
+    [SerializeField] private List<ConditionEntry> conditions = new();
+
     /// Built on first use from every entry's terms and thrown away by OnValidate, so editing the asset
     /// mid-play re-tags rather than serving a stale table. Null means "not built yet".
     private Regex termPattern;
@@ -134,7 +152,7 @@ public class Glossary : ScriptableObject
     /// filled into {timing}.</param>
     public TooltipContent StatusContent(StatusType type, int stacks = -1, Status live = null,
         TooltipContent into = null, int amount = -1, string subject = null, string targets = null,
-        string timing = null)
+        string timing = null, Character holder = null)
     {
         StatusEntry entry = FindStatus(type);
 
@@ -147,6 +165,11 @@ public class Glossary : ScriptableObject
         // The caller's number first, so a live status filling {stacks} afterwards cannot overwrite the
         // total the chip is actually showing.
         if (stacks >= 0) { body = body.Replace(StacksToken, stacks.ToString()); }
+
+        // Block's per-hit amount belongs to whoever carries it (Rimeguard Band adds to it), which the
+        // live status cannot know - so a caller naming the holder settles {amount} here, before
+        // BlockStatus.Describe would fill in the bare base.
+        if (amount < 0 && holder != null && type == StatusType.Block) { amount = BlockStatus.PerHitFor(holder); }
 
         if (amount >= 0) { body = body.Replace(AmountToken, amount.ToString()); }
         if (subject != null) { body = body.Replace(SubjectToken, subject); }
@@ -191,7 +214,7 @@ public class Glossary : ScriptableObject
             // matches the Block they are actually carrying rather than a generic number.
             Status live = context != null ? context.FindStatus(status) : null;
 
-            return StatusContent(status, live != null ? live.stacks : -1, live, into);
+            return StatusContent(status, live != null ? live.stacks : -1, live, into, holder: context);
         }
 
         if (linkId.StartsWith(KeywordLink) &&
@@ -200,6 +223,12 @@ public class Glossary : ScriptableObject
             KeywordEntry entry = FindKeyword(keyword);
 
             return KeywordContent(keyword, entry != null ? entry.defaultStacks : 0, into);
+        }
+
+        if (linkId.StartsWith(ConditionLink) &&
+            System.Enum.TryParse(linkId[ConditionLink.Length..], out CardCondition condition))
+        {
+            return ConditionContent(condition, into);
         }
 
         if (linkId.StartsWith(SummonLink))
@@ -212,6 +241,20 @@ public class Glossary : ScriptableObject
         }
 
         return into ?? new TooltipContent();
+    }
+
+    /// What a card condition means. The Alone radius is filled into {magnitude} from the rule's own
+    /// constant - see ConditionEntry.
+    public TooltipContent ConditionContent(CardCondition type, TooltipContent into = null)
+    {
+        ConditionEntry entry = FindCondition(type);
+        TooltipContent content = into ?? new TooltipContent();
+
+        if (entry == null) { return content; }
+
+        string body = entry.body.Replace(MagnitudeToken, (CardConditions.AloneDistance - 1).ToString());
+
+        return content.Add(Title(entry, type.ToString()), FillDefaults(entry, body));
     }
 
     /// <summary>
@@ -438,6 +481,11 @@ public class Glossary : ScriptableObject
             CollectTerms(entry, entry.type.ToString(), KeywordLink + entry.type, all);
         }
 
+        foreach (ConditionEntry entry in conditions)
+        {
+            CollectTerms(entry, entry.type.ToString(), ConditionLink + entry.type, all);
+        }
+
         foreach (SummonEntry entry in summons)
         {
             string name = SummonDisplayName(entry);
@@ -528,6 +576,16 @@ public class Glossary : ScriptableObject
     private KeywordEntry FindKeyword(CardKeywordType type)
     {
         foreach (KeywordEntry entry in keywords)
+        {
+            if (entry.type == type) { return entry; }
+        }
+
+        return null;
+    }
+
+    private ConditionEntry FindCondition(CardCondition type)
+    {
+        foreach (ConditionEntry entry in conditions)
         {
             if (entry.type == type) { return entry; }
         }

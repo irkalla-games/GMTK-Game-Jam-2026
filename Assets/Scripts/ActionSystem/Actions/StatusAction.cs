@@ -21,9 +21,12 @@ public class StatusAction : GameAction
         // Character.AppliedPotency.
         int amountBonus = ctx.source != null ? ctx.source.AppliedPotency(status) : 0;
 
+        // Wardens' Braid's extra Poison - same "asked once, of whoever is playing" reasoning as above.
+        int stackBonus = ctx.source != null ? ctx.source.AppliedStacks(status) : 0;
+
         foreach (GridTile target in ctx.targets)
         {
-            target.ApplyStatus(status, stacks, amountBonus);
+            target.ApplyStatus(status, stacks + stackBonus, amountBonus);
         }
 
         yield return new WaitForSeconds(ResolveDelay);

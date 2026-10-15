@@ -48,7 +48,9 @@ public class AppliedPotencyStatus : StatusEffect
 
         if (summon.CarriedAppliedPotency(subject) != 0) { return; }
 
-        summon.AddStatus(new AppliedPotencyStatus(subject, bonus));
+        // CarryUntypedStatus, not AddStatus: this reports StatusType.None, which AddStatus silently
+        // refuses - the totem used to come away with nothing and project the plain Weaken.
+        summon.CarryUntypedStatus(new AppliedPotencyStatus(subject, bonus));
     }
 
     public override string Describe() => $"{subject} you apply: +{bonus}";

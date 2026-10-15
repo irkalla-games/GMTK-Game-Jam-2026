@@ -22,7 +22,10 @@ public class PoisonBladeStatus : OnHitStatus
     {
         if (info.target == null) { return; }
 
-        info.target.AddStatus(StatusType.Poison, PoisonPerHit);
+        // The striker's Wardens' Braid counts here too: an on-hit proc is Poison the wearer applies.
+        int bonus = info.attacker != null ? info.attacker.AppliedStacks(StatusType.Poison) : 0;
+
+        info.target.AddStatus(StatusType.Poison, PoisonPerHit + bonus);
     }
 
     public override string Describe() => $"Poison Blade x{stacks}";

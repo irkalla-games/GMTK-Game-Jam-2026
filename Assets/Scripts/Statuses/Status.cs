@@ -126,6 +126,17 @@ public abstract class Status
     public virtual int AppliedPotency(StatusType type) => 0;
 
     /// <summary>
+    /// How many extra *stacks* of a `type` its carrier lands whenever it applies one to somebody else -
+    /// Wardens' Braid's "+1 Poison whenever you apply Poison". AppliedPotency's sibling: that one deepens
+    /// a status's size (Weaken, Vulnerable), this one adds to its count, which for Poison is the damage.
+    ///
+    /// Asked by Character.AppliedStacks, which StatusAction consults for a card and PoisonBladeStatus for
+    /// an on-hit proc. Not the same thing as OnGainStatus, which runs over the *receiver's* statuses and
+    /// so can only ever answer "statuses applied to me".
+    /// </summary>
+    public virtual int AppliedStacks(StatusType type) => 0;
+
+    /// <summary>
     /// How much this status adds to the carrier's energy refill each turn - a ring's "+1 energy each
     /// turn". Summed by Character.BonusEnergy and folded into ResetEnergy, exactly like AppliedPotency.
     /// </summary>
@@ -136,6 +147,21 @@ public abstract class Status
     /// Character.BonusHandSize, which BattleManager reads when it refills a hand up to HandSize.
     /// </summary>
     public virtual int BonusHandSize => 0;
+
+    /// <summary>
+    /// How much this status adds to what each of its carrier's Block takes off a hit - Rimeguard Band's
+    /// "your Block blocks 4 instead of 3". Summed by Character.BonusBlockPerHit; read by
+    /// BlockStatus.PerHitFor, which is the only place the per-hit number is ever decided.
+    /// </summary>
+    public virtual int BonusBlockPerHit => 0;
+
+    /// <summary>
+    /// How much this status takes off `card`'s cost for its carrier right now - Opaline Charm's "the
+    /// first Draw card you play each turn costs 0", Manaflow Ring's "the first Defence card costs 1
+    /// less". Summed by Character.CostDiscount and asked by Card.cost on every read, so the hand,
+    /// CanAfford, SpendEnergy, the card face and the bot all see the same number.
+    /// </summary>
+    public virtual int CostDiscount(Character carrier, Card card) => 0;
 
     /// <summary>
     /// Why this status stops its carrier doing anything at all, or null if it does not object. Frozen.
@@ -180,6 +206,15 @@ public abstract class Status
     /// The carrier is about to deal damage. Return the hit as this status leaves it - DamageInfo is
     /// immutable, so a status that has nothing to say returns what it was given.
     public virtual DamageInfo OnDealDamage(DamageInfo info) => info;
+
+    /// <summary>
+    /// The carrier's hit is about to land on `info.target` - Sporecap Ring's "+4 damage to Vulnerable
+    /// enemies". OnDealDamage's per-victim twin: that one runs once per swing with no target (an AoE
+    /// resolves it once, see DamageAction.Execute), so a rule that depends on *who* is hit cannot live
+    /// there. Run by Character.ComputeIncomingDamage over the attacker's statuses, ahead of the
+    /// victim's own OnTakeDamage hooks - so it reaches every real hit and every damage preview alike.
+    /// </summary>
+    public virtual DamageInfo OnStrike(DamageInfo info) => info;
 
     /// The carrier is being hit. Return it reduced, or negated outright - see DamageInfo.
     public virtual DamageInfo OnTakeDamage(DamageInfo info) => info;

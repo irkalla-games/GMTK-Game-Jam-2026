@@ -22,7 +22,7 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 8
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Apply Regeneration 4.
   <image>k__BackingField: {fileID: 21300000, guid: 121f6af9f3f2a0a498906aa5f726fc4b, type: 3}
@@ -40,6 +40,11 @@ MonoBehaviour:
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

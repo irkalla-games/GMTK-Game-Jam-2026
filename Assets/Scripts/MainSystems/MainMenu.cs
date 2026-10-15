@@ -44,7 +44,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private RunData tutorialRun;
 
     [Tooltip("Who the player is handed once the tutorial is cleared, and on which decks. The tutorial "
-             + "teaches Smite, Shield, Slash, Move and Heal Totem, so this wants to be the Knight and "
+             + "teaches Smite, Shield, Slash, Move and Spring Totem, so this wants to be the Knight and "
              + "Cleric on the starter decks that hold them - otherwise it has taught cards the player "
              + "does not have.")]
     [SerializeField] private List<PartyEntry> tutorialFollowOnParty = new();

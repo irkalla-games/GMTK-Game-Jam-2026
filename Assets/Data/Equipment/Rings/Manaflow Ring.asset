@@ -1,5 +1,26 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8677697117469947991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d714c96d597f6bb409824885429c519f, type: 3}
+  m_Name: PlayOrderDiscountModifier
+  m_EditorClassIdentifier: Assembly-CSharp::PlayOrderDiscountModifier
+  filter:
+    tags: 02000000
+    cards: []
+  anyCard: 0
+  drawCards: 0
+  fromPlay: 1
+  plays: 1
+  discount: 1
+  free: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13,41 +34,12 @@ MonoBehaviour:
   m_Name: Manaflow Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Manaflow Ring
-  <description>k__BackingField: Defence cards cost 1 less.
+  <description>k__BackingField: The first Defence card you play each turn costs 1
+    less.
   <icon>k__BackingField: {fileID: 21300000, guid: d9c2ebc998439e943a83d2197eb16e1e, type: 3}
-  <rarity>k__BackingField: 0
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
-  - {fileID: 5840524128741585765}
---- !u!114 &5840524128741585765
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 134415d8e1fb16f4e88f12ab97e3c0dc, type: 3}
-  m_Name: CardTuningModifier
-  m_EditorClassIdentifier: Assembly-CSharp::CardTuningModifier
-  filter:
-    tags: 02000000
-    cards: []
-  modifiers:
-  - {fileID: 6436193740148567954}
---- !u!114 &6436193740148567954
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f94d4c1ecc9c3a7479ace0a33c33cdbc, type: 3}
-  m_Name: CostModifier
-  m_EditorClassIdentifier: Assembly-CSharp::CostModifier
-  delta: -1
+  - {fileID: -8677697117469947991}

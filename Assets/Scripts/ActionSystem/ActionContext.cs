@@ -32,8 +32,17 @@ public class ActionContext
     private readonly int amountDelta;
     private readonly int amountPercent;
 
+    /// <summary>
+    /// True for an action a Totem reaction set off. A reaction resolves with the triggering character
+    /// as its `source`, so without this its own actions look exactly like that character acting and can
+    /// trigger reactions themselves - Thornwood's reflected hit counted as the enemy attacking again,
+    /// re-fired Thornwood, and looped until the attacker died, or forever when Block soaked every hit.
+    /// Totem.TryReact ignores these: a reaction fires once per real action and never chains.
+    /// </summary>
+    public readonly bool isReaction;
+
     public ActionContext(Card card, Character source, IReadOnlyList<GridTile> targets, GridTile epicenter,
-                          int amountDelta = 0, int amountPercent = 0)
+                          int amountDelta = 0, int amountPercent = 0, bool isReaction = false)
     {
         this.card = card;
         this.source = source;
@@ -41,11 +50,13 @@ public class ActionContext
         this.epicenter = epicenter;
         this.amountDelta = amountDelta;
         this.amountPercent = amountPercent;
+        this.isReaction = isReaction;
     }
 
     /// Convenience for the common single-tile case - the target is also the epicenter.
-    public ActionContext(Card card, Character source, GridTile target)
-        : this(card, source, target != null ? new[] { target } : Array.Empty<GridTile>(), target) { }
+    public ActionContext(Card card, Character source, GridTile target, bool isReaction = false)
+        : this(card, source, target != null ? new[] { target } : Array.Empty<GridTile>(), target,
+               isReaction: isReaction) { }
 
     public ActionContext(Card card, Character source) : this(card, source, Array.Empty<GridTile>(), null) { }
 

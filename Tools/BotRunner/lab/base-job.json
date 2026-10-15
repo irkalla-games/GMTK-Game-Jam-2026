@@ -1,0 +1,41 @@
+{
+ "version": 1,
+ "batchId": "",
+ "label": "",
+ "createdUtc": "",
+ "commit": "",
+ "dirtyTree": false,
+ "campaign": "RealRun - Random",
+ "party": [
+  {
+   "hero": "Knight",
+   "deck": ""
+  },
+  {
+   "hero": "Cleric",
+   "deck": ""
+  }
+ ],
+ "tier": 0,
+ "profiles": [],
+ "runsPerProfile": 0,
+ "baseSeed": 40000,
+ "speed": 0,
+ "turboStep": 0.25,
+ "watchSpeed": 1.0,
+ "watchPause": 0.5,
+ "outputDir": "",
+ "mode": 0,
+ "replayRunDir": "",
+ "shardIndex": 0,
+ "shardCount": 1,
+ "maxPlaysPerTurn": 40,
+ "maxEventsPerPhase": 2000,
+ "stallFrames": 600,
+ "stallSecondsWatch": 90.0,
+ "maxDecisionsPerRun": 20000,
+ "maxRunSeconds": 900.0,
+ "writeTurnLog": true,
+ "traceRng": false,
+ "exitWhenDone": true
+}

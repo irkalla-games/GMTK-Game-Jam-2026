@@ -18,12 +18,17 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 3
+    requiresRoute: 0
   <requiredClass>k__BackingField: 4
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Fortune Totem.
+  <description>k__BackingField: 'Summon Fortune Totem
+
+
+    Allies within 2: double
+    Dodge'
   <image>k__BackingField: {fileID: 21300000, guid: 541080439a688d54ea54ae4ad898abf1, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
@@ -35,9 +40,15 @@ MonoBehaviour:
         shape: 0
         minDistance: 0
         maxDistance: 0
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 0
     amountPercent: 0
+    condition: 0
+    conditionBonus: 0
+    onlyWhenMet: 0
   <animation>k__BackingField: {fileID: 0}
   <keywords>k__BackingField: []
   <upgradedForm>k__BackingField: {fileID: 0}
+  <costCondition>k__BackingField: 0
+  <costDiscount>k__BackingField: 0

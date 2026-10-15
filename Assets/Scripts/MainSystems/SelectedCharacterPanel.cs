@@ -325,7 +325,7 @@ public class SelectedCharacterPanel : MonoBehaviour
     {
         if (glossary == null) { return null; }
 
-        return glossary.StatusContent(type, stacks, live);
+        return glossary.StatusContent(type, stacks, live, holder: character);
     }
 
     /// The pool. Grows to whatever the busiest character needs and never shrinks.

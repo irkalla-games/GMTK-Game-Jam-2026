@@ -22,6 +22,7 @@ MonoBehaviour:
       shape: 1
       minDistance: 0
       maxDistance: 1
+      requiresRoute: 0
     pattern: {fileID: 0}
 --- !u!114 &11400000
 MonoBehaviour:
@@ -36,9 +37,9 @@ MonoBehaviour:
   m_Name: Fire Mage's Hat
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Fire Mage's Hat
-  <description>k__BackingField: Fire cards gain a 3x3 splash.
-  <icon>k__BackingField: {fileID: 0}
-  <rarity>k__BackingField: 2
+  <description>k__BackingField: Firebolt gains a 3x3 splash.
+  <icon>k__BackingField: {fileID: 21300000, guid: 83009dce143393144bd6b401a81bd558, type: 3}
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 2
   <slot>k__BackingField: 3
   <excludeFromRewards>k__BackingField: 0
@@ -57,7 +58,8 @@ MonoBehaviour:
   m_Name: CardTuningModifier
   m_EditorClassIdentifier: Assembly-CSharp::CardTuningModifier
   filter:
-    tags: 05000000
-    cards: []
+    tags: 
+    cards:
+    - {fileID: 11400000, guid: 000c1f73e085eb64b8d858c64dfdfcda, type: 2}
   modifiers:
   - {fileID: -9008905880171003165}

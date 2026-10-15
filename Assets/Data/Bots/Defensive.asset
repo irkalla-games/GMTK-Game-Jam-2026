@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ce6e0eefdd630b4eb81c3a5ffdec5cd, type: 3}
+  m_Name: Defensive
+  m_EditorClassIdentifier: Assembly-CSharp::BotProfile
+  data:
+    name: Defensive
+    notes: Shields, blocks and heals before anything else; attacks with what is left
+      over.
+    weights:
+      damage: 0.7
+      kill: 5
+      threatRemoved: 1.4
+      friendlyFire: -3
+      mitigation: 1.6
+      mitigationSpare: 0.3
+      heal: 1.3
+      lifeSaved: 40
+      dot: 0.5
+      debuff: 2
+      buff: 1
+      totemCover: 4
+      totemBase: 2
+      summon: 0.4
+      moveSetup: 0.4
+      moveSafety: 1
+      loot: 8
+      auraMove: 3
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1.5
+      discard: -2
+      costPenalty: 0.25
+    playFirst: 0100000002000000
+    playFirstMinScore: 0
+    passThreshold: 0.5
+    randomness: 0
+    endTurnChance: 0.15
+    baseline: 0
+    rewards:
+      attackPick: 1
+      defensePick: 1.5
+      healPick: 1.4
+      totemPick: 1
+      summonPick: 1
+      debuffPick: 1
+      buffPick: 1
+      movePick: 0.6
+      utilityPick: 1
+      rarityBonus: 1
+      takeCardsMinValue: 4
+      healSkipBelowHp: 0.5
+      upgradeWeight: 1
+      removeWhenDeckAbove: 14
+      takeEquipment: 1

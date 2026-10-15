@@ -30,7 +30,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Deathgrip Signet
   <description>k__BackingField: Killing an enemy grants 1 energy.
   <icon>k__BackingField: {fileID: 21300000, guid: 7e03974e16ec13e4ab82d88a74891d0a, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

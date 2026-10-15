@@ -1,0 +1,341 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ce6e0eefdd630b4eb81c3a5ffdec5cd, type: 3}
+  m_Name: Focus5
+  m_EditorClassIdentifier: Assembly-CSharp::BotProfile
+  data:
+    name: Focus5
+    notes: Veteran09 + focus 5 (Lab 09 V9-Focus5) with card and equipment ratings
+      re-measured from scratch in Spire Lab 11 (8,150 runs, Knight + Cleric, Normal).
+    weights:
+      damage: 0.7
+      kill: 5
+      threatRemoved: 1.4
+      friendlyFire: -3
+      mitigation: 0.9
+      mitigationSpare: 0.3
+      heal: 1.3
+      lifeSaved: 40
+      dot: 0.5
+      debuff: 2
+      buff: 1
+      totemCover: 4
+      totemBase: 2
+      summon: 0.4
+      moveSetup: 0.4
+      moveSafety: 0
+      loot: 8
+      auraMove: 3
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1.5
+      discard: -2
+      costPenalty: 0.25
+      futureThreat: 0
+      lootApproach: 0
+      exposure: 0
+      mitigationNeed: 1
+      forecast: 1.5
+      focus: 5
+      hunt: 0
+    playFirst: 
+    playFirstMinScore: 0
+    passThreshold: 0.5
+    randomness: 0
+    endTurnChance: 0.15
+    baseline: 0
+    rewards:
+      attackPick: 1
+      defensePick: 1.5
+      healPick: 1.4
+      totemPick: 1
+      summonPick: 1
+      debuffPick: 1
+      buffPick: 1
+      movePick: 0.6
+      utilityPick: 1
+      rarityBonus: 1
+      takeCardsMinValue: 5
+      healSkipBelowHp: 0.5
+      upgradeWeight: 1
+      removeWhenDeckAbove: 11
+      takeEquipment: 1
+      earlyLevels: 0
+      lateTakeCardsMinValue: 5
+      lateRemoveWhenDeckAbove: 11
+      lateLootScale: 1
+      ratingWeight: 20
+      cardRatings:
+      - card: Manaflow Ring
+        bonus: 0.528
+      - card: Lodestone Totem
+        bonus: 0.495
+      - card: Ring of Focus
+        bonus: 0.474
+      - card: Longsword
+        bonus: 0.36
+      - card: Rimeguard Band
+        bonus: 0.344
+      - card: Amber Signet
+        bonus: 0.335
+      - card: Smite Together
+        bonus: 0.292
+      - card: Deathgrip Signet
+        bonus: 0.287
+      - card: Phalanx
+        bonus: 0.226
+      - card: Bramblewreath
+        bonus: 0.219
+      - card: Sanctified Guard
+        bonus: 0.197
+      - card: Astrologer's Loop
+        bonus: 0.166
+      - card: Brothers in Arms
+        bonus: 0.142
+      - card: Anvil Totem
+        bonus: 0.141
+      - card: Ironbound Vambrace
+        bonus: 0.124
+      - card: Last Bastion
+        bonus: 0.108
+      - card: Zephyr Ring
+        bonus: 0.106
+      - card: Hermit's Smite
+        bonus: 0.094
+      - card: Guard Up
+        bonus: 0.094
+      - card: Judgement
+        bonus: 0.087
+      - card: Whirlwind
+        bonus: 0.085
+      - card: Shrine Blessing
+        bonus: 0.083
+      - card: Benediction
+        bonus: 0.082
+      - card: Vanguard's Oath
+        bonus: 0.067
+      - card: Tower Totem
+        bonus: 0.062
+      - card: Totem Anchor
+        bonus: 0.061
+      - card: Tower Shield
+        bonus: 0.059
+      - card: Opaline Charm
+        bonus: 0.058
+      - card: Echo Totem
+        bonus: 0.047
+      - card: Totem Guard
+        bonus: 0.04
+      - card: Communion
+        bonus: 0.038
+      - card: Solitary Guard
+        bonus: 0.034
+      - card: Radiant Smite
+        bonus: 0.032
+      - card: Aegis Totem
+        bonus: 0.021
+      - card: Buff
+        bonus: 0.02
+      - card: Hold the Line
+        bonus: 0.019
+      - card: Chapel Totem
+        bonus: 0.015
+      - card: Sweeping Blow
+        bonus: 0.007
+      - card: Boots of Speed
+        bonus: 0.003
+      - card: Steel Sword
+        bonus: 0.003
+      - card: Marigold Band
+        bonus: 0
+      - card: Lone Stand
+        bonus: -0.003
+      - card: Shield of Faith
+        bonus: -0.006
+      - card: Vampire's Token
+        bonus: -0.007
+      - card: Whetstone Totem
+        bonus: -0.009
+      - card: Shield Wall
+        bonus: -0.01
+      - card: Distant Grace
+        bonus: -0.013
+      - card: Guiding Smite
+        bonus: -0.014
+      - card: Poison Dagger
+        bonus: -0.016
+      - card: Touch Heal
+        bonus: -0.022
+      - card: Rally Totem
+        bonus: -0.028
+      - card: Covering Strike
+        bonus: -0.032
+      - card: Bloodied Resolve
+        bonus: -0.032
+      - card: Shield Slam
+        bonus: -0.035
+      - card: Shoulder to Shoulder
+        bonus: -0.036
+      - card: Warhorn Totem
+        bonus: -0.036
+      - card: Dread Sovereign
+        bonus: -0.042
+      - card: Adrenaline
+        bonus: -0.046
+      - card: Holy Smite
+        bonus: -0.05
+      - card: Steely Resolve
+        bonus: -0.054
+      - card: Sunder
+        bonus: -0.061
+      - card: Flanking Strike
+        bonus: -0.067
+      - card: Bloodshard Ring
+        bonus: -0.074
+      - card: Twin Totem
+        bonus: -0.077
+      - card: Rally the Line
+        bonus: -0.083
+      - card: Totem Strike
+        bonus: -0.085
+      - card: Shield Totem
+        bonus: -0.096
+      - card: Bulwark Stance
+        bonus: -0.1
+      - card: Shield Bash
+        bonus: -0.101
+      - card: Shield Strike
+        bonus: -0.104
+      - card: Taunt
+        bonus: -0.104
+      - card: Wellhead Totem
+        bonus: -0.112
+      - card: Sporecap Ring
+        bonus: -0.115
+      - card: Sanctified Ground
+        bonus: -0.118
+      - card: Thornwood Totem
+        bonus: -0.121
+      - card: Laying on of Hands
+        bonus: -0.123
+      - card: Blessed Shield
+        bonus: -0.128
+      - card: Sanctuary Totem
+        bonus: -0.128
+      - card: Strengthen
+        bonus: -0.138
+      - card: Vigil
+        bonus: -0.145
+      - card: Far Mend
+        bonus: -0.147
+      - card: Panther's Eye
+        bonus: -0.159
+      - card: Bloodpact Totem
+        bonus: -0.163
+      - card: Rejuvenate
+        bonus: -0.17
+      - card: Summon Skeleton
+        bonus: -0.17
+      - card: Bulwark Totem
+        bonus: -0.171
+      - card: Rampart Totem
+        bonus: -0.177
+      - card: Parry
+        bonus: -0.185
+      - card: Prayer Circle
+        bonus: -0.188
+      - card: Deepcoral Signet
+        bonus: -0.189
+      - card: Warcry Totem
+        bonus: -0.19
+      - card: Close Prayer
+        bonus: -0.191
+      - card: Stormsplit Ring
+        bonus: -0.203
+      - card: Bastion Totem
+        bonus: -0.204
+      - card: Wellspring Totem
+        bonus: -0.239
+      - card: Lasting Renewal
+        bonus: -0.241
+      - card: Mending Light
+        bonus: -0.282
+      - card: Bloodmoon Totem
+        bonus: -0.302
+      - card: Bloom Totem
+        bonus: -0.314
+      - card: Ward Blessing
+        bonus: -0.333
+      - card: Mend and Fortify
+        bonus: -0.353
+      - card: Sentinel Totem
+        bonus: 0.097
+      - card: Fury Totem
+        bonus: -0.015
+      - card: Momentum Totem
+        bonus: -0.037
+      - card: Spring Totem
+        bonus: -0.072
+      - card: Reinforce Totem
+        bonus: -0.114
+      - card: Beacon Totem
+        bonus: -0.145
+      - card: Warlord Totem
+        bonus: -0.155
+      exploreRewards: 0
+    adaptive: 0
+    lateWeights:
+      damage: 0.7
+      kill: 5
+      threatRemoved: 1.4
+      friendlyFire: -3
+      mitigation: 0.9
+      mitigationSpare: 0.3
+      heal: 1.3
+      lifeSaved: 40
+      dot: 0.5
+      debuff: 2
+      buff: 1
+      totemCover: 4
+      totemBase: 2
+      summon: 0.4
+      moveSetup: 0.4
+      moveSafety: 0
+      loot: 8
+      auraMove: 3
+      draw: 2.5
+      energy: 2.5
+      selfDamage: -1.5
+      discard: -2
+      costPenalty: 0.25
+      futureThreat: 0
+      lootApproach: 0
+      exposure: 0
+      mitigationNeed: 1
+      forecast: 1.5
+      focus: 5
+      hunt: 0
+    aggressiveUntil: 0.4
+    defensiveFrom: 0.8
+    lowHpGuard: 0.5
+    crowdGuard: 0
+    minAggression: 0
+    futureRoundsCap: 6
+    searchDepth: 6
+    beamWidth: 6
+    branching: 8
+    needCap: 1.5
+    needFloor: 0.1
+    forecastMoves: 12
+    countPoison: 1
+    countOnHit: 1
+    exactWeaken: 1

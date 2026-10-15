@@ -18,9 +18,10 @@ MonoBehaviour:
     shape: 1
     minDistance: 1
     maxDistance: 1
+    requiresRoute: 0
   <requiredClass>k__BackingField: 1
   <rarity>k__BackingField: 4
-  <tags>k__BackingField: 
+  <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
   <description>k__BackingField: Deals 3 more damage than Slash.
@@ -35,6 +36,7 @@ MonoBehaviour:
         shape: 0
         minDistance: 0
         maxDistance: 0
+        requiresRoute: 0
       pattern: {fileID: 0}
     amountDelta: 3
     amountPercent: 0

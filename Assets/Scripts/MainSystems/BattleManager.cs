@@ -474,7 +474,18 @@ public class BattleManager : Singleton<BattleManager>
 
     private void HandleIntentMayHaveChanged(Character _) => intentDirty = true;
 
-    private void HandleActionResolved(GameAction action, ActionContext ctx) => intentDirty = true;
+    private void HandleActionResolved(GameAction action, ActionContext ctx)
+    {
+        intentDirty = true;
+
+        // A move, push, swap, summon or death changes who is standing next to whom, and that changes
+        // what a "costs 0 next to another hero" card costs - see Card.cost. None of those raise a
+        // character event of their own once they land (Character.MoveTo deliberately stays silent: the
+        // balance bot's forecast moves bodies through it and must have no side effects), so every
+        // resolved action is the signal. Coarse on purpose, the same bargain PlayabilityChanged
+        // already strikes: listeners re-ask rather than being told what moved.
+        RaisePlayabilityChanged();
+    }
 
     [Tooltip("Looping battle track. Played through AudioManager, which survives the scene reload"
              + " between levels so the music does not restart on each one.")]
@@ -501,8 +512,9 @@ public class BattleManager : Singleton<BattleManager>
         // The seed is rolled once here rather than inside BoardVisuals so a rebuild of the same battle
         // lays down the identical floor. BuildGrid runs again on every level load, and a floor that
         // reshuffled its blocks underneath the player each time would read as the board flickering.
-        // Fully qualified: System.Random is used two lines down, so a bare `Random` here is ambiguous.
-        int floorSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        // GameDice rather than UnityEngine.Random: the tile set it picks is part of the level, so it rolls
+        // with the rules' dice - see GameDice.
+        int floorSeed = GameDice.Range(int.MinValue, int.MaxValue);
         TileSetData tileSet = CurrentLevel != null
             ? CurrentLevel.PickTileSet(new System.Random(floorSeed))
             : null;
@@ -788,7 +800,7 @@ public class BattleManager : Singleton<BattleManager>
         // simulator reports for a level is what a battle here actually rolls. Difficulty scaling
         // happens inside it; see RollFor for why that never touches the level asset.
         DifficultyTier tier = RunManager.Instance != null ? RunManager.Instance.CurrentTier : default;
-        System.Random dice = new(UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+        System.Random dice = new(GameDice.Range(int.MinValue, int.MaxValue));
 
         RolledEncounter rolled =
             EncounterRoller.RollFor(level, enemyRegistry, tier, GridManager.Instance.BoardSize, dice);
@@ -1800,6 +1812,19 @@ public class BattleManager : Singleton<BattleManager>
     /// Stops early on a Wait, so a plan shorter than `steps` is exactly as long as this enemy actually
     /// has something to do.
     /// </summary>
+    /// <summary>
+    /// What this enemy's intent row would read on the board exactly as it stands now - the same
+    /// DecidePlan LateUpdate runs, without committing anything. For a caller that has just moved a body
+    /// through Character.MoveTo to ask "where would the hits land if I stood there" (the balance bot's
+    /// move forecast), and puts it back afterwards. Read-only: nothing is locked, set or raised.
+    /// </summary>
+    public static List<Intent> ForecastPlan(Character enemy)
+    {
+        if (enemy == null || enemy.IsDead || GridManager.Instance == null) { return new List<Intent>(); }
+
+        return DecidePlan(enemy, GridManager.Instance.Read(), enemy.ActionPoints);
+    }
+
     private static List<Intent> DecidePlan(Character character, Board board, int steps)
     {
         List<Intent> plan = new(steps);

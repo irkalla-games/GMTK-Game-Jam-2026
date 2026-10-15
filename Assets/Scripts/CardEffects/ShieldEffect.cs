@@ -5,6 +5,10 @@ public class ShieldEffect : CardEffect
 {
     [SerializeField] private int shieldAmount;
 
+    /// The authored amount, before a card entry's own adjustment - ActionContext.Amount applies that.
+    /// Read-only, the same private-field-plus-property shape as DamageEffect.Damage.
+    public int ShieldAmount => shieldAmount;
+
     public override void Resolve(ActionContext ctx)
     {
         ActionManager.Instance.AddAction(new ShieldAction(ctx.Amount(shieldAmount)), ctx);

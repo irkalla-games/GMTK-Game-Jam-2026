@@ -149,6 +149,11 @@ public class CardViewer : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float unplayableTextAlpha = 0.55f;
 
+    [Tooltip("The cost number's colour while a board condition is taking something off it - Totem " +
+        "Strike next to a totem, Brothers in Arms next to another hero. The colour change is how the " +
+        "player sees the rule fire; the number alone would just look like a different card.")]
+    [SerializeField] private Color discountedCostColor = new(0.055f, 0.48f, 0.165f, 1f);
+
     [Header("Timers")]
     [Tooltip("The turns-remaining badge behind lockCounter - shown whenever Cooldown or Dormant still " +
         "has this card locked. Optional: without it a locked card still greys out via SetPlayable, it " +
@@ -227,6 +232,10 @@ public class CardViewer : MonoBehaviour
 
     private bool isPlayable = true;
 
+    /// The cost text's colour as the prefab authored it, read in Awake - what RefreshCost puts back
+    /// once a discount stops applying.
+    private Color costAuthoredColor = Color.white;
+
     /// False until SetPlayable has run once, so the first call always paints even though isPlayable
     /// already starts true. A card is dealt into a hand it may not be able to afford.
     private bool playabilityApplied;
@@ -287,6 +296,8 @@ public class CardViewer : MonoBehaviour
 
         GetComponentsInChildren(true, texts);
         foreach (TMP_Text text in texts) { textRestColors.Add(text.color); }
+
+        if (cost != null) { costAuthoredColor = cost.color; }
 
         // lockBadge/lockCounter are the second exception, for the opposite reason to border: they
         // must only ever be visible on a card SetPlayable has already dimmed, so letting the grey-out
@@ -580,7 +591,7 @@ public class CardViewer : MonoBehaviour
         // mentions it, and no asset can link to a term that does not exist.
         description.text = glossary != null ? glossary.Tag(card.description) : card.description;
 
-        cost.text = card.cost.ToString();
+        RefreshCost();
         ApplyArt();
 
         ApplyRange();
@@ -762,16 +773,7 @@ public class CardViewer : MonoBehaviour
         {
             if (texts[i] == null) { continue; }
 
-            if (value) { texts[i].color = textRestColors[i]; continue; }
-
-            // The alpha here is load-bearing, not decoration. The description is glossary-tagged, and
-            // a <color> tag overrides the RGB this sets - so the grey alone never reaches the tinted
-            // keywords. TMP does cap a tag's alpha at the base colour's, which is the one channel
-            // that still gets through; without it a greyed-out card keeps a row of bright links
-            // across its middle.
-            Color dimmed = Dimmed(textRestColors[i]);
-            dimmed.a = textRestColors[i].a * unplayableTextAlpha;
-            texts[i].color = dimmed;
+            texts[i].color = value ? textRestColors[i] : DimmedText(textRestColors[i]);
         }
 
         // After the loop above, which has just painted the border grey along with everything else.
@@ -814,6 +816,44 @@ public class CardViewer : MonoBehaviour
             lockCounter.enabled = turns > 0;
             lockCounter.text = turns.ToString();
         }
+    }
+
+    /// <summary>
+    /// Writes the cost number from Card.cost and colours it - discountedCostColor while a board
+    /// condition is taking something off it, the prefab's own colour otherwise.
+    ///
+    /// The colour goes into the cost text's rest colour rather than a &lt;color&gt; tag, so SetPlayable's
+    /// grey-out still reaches it: a discounted card the holder is Frozen out of must dim like any other.
+    /// Called by Setup and by ActiveHandViewer alongside every SetPlayable call - Card.cost is computed
+    /// live from where the holder stands, so the number changes without this card changing at all.
+    /// </summary>
+    public void RefreshCost()
+    {
+        if (card == null || cost == null) { return; }
+
+        cost.text = card.cost.ToString();
+
+        Color rest = card.CostDiscounted ? discountedCostColor : costAuthoredColor;
+        int index = texts.IndexOf(cost);
+
+        if (index >= 0) { textRestColors[index] = rest; }
+
+        cost.color = !playabilityApplied || isPlayable ? rest : DimmedText(rest);
+    }
+
+    /// <summary>
+    /// A text colour as an unplayable card shows it.
+    ///
+    /// The alpha here is load-bearing, not decoration. The description is glossary-tagged, and a
+    /// &lt;color&gt; tag overrides the RGB this sets - so the grey alone never reaches the tinted keywords.
+    /// TMP does cap a tag's alpha at the base colour's, which is the one channel that still gets
+    /// through; without it a greyed-out card keeps a row of bright links across its middle.
+    /// </summary>
+    private Color DimmedText(Color color)
+    {
+        Color dimmed = Dimmed(color);
+        dimmed.a = color.a * unplayableTextAlpha;
+        return dimmed;
     }
 
     /// Pushes a colour toward grey and then darkens it, leaving alpha alone except for the text dim.

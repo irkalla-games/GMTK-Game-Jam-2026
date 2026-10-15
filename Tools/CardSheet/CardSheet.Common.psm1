@@ -12,12 +12,14 @@
     refuses to run while the Editor holds Temp/UnityLockfile, which is essentially always. Reading is
     safe to do without it - the format is stable and every card writes identical key ordering.
 
-    Three serialization quirks this has to know about, all confirmed against the current assets:
+    Four serialization quirks this has to know about, all confirmed against the current assets:
 
       * List<enum> and bool[] serialize as a packed little-endian hex string, NOT a YAML list.
         "0200000003000000" is [Defence, Movement]; an empty list is a blank value.
       * Long strings fold at ~80 chars with a deeper-indented continuation line. A fold is a space.
       * Strings with leading/trailing whitespace get single-quoted, with '' escaping a quote.
+      * A string holding a line break is single-quoted too, the break written as a blank line - see
+        Read-YamlMapping. The totem cards' "Summon X\n\nwhat it does" descriptions are the first.
 #>
 
 Set-StrictMode -Version Latest
@@ -47,6 +49,11 @@ $script:StatusNames  = @('None', 'Strength', 'DoubleNextAttack', 'Poison', 'Froz
 
 # Assets/Scripts/TileEffects/TileEffectType.cs
 $script:TileEffectNames = @('None', 'WallOfForce', 'WallOfFlames')
+
+# Assets/Scripts/Cards/CardCondition.cs - index = the enum's int value, append only, same rule as
+# StatusNames. A missing tail entry exports as "Unknown(6)", which ConvertFrom-ConditionText then
+# rejects as a problem rather than writing a wrong condition.
+$script:ConditionNames = @('None', 'NextToTotem', 'HasShield', 'HasBlock', 'NextToHero', 'Alone')
 
 # CharacterClass is a [Flags] mask, so it needs bit handling rather than an index lookup.
 $script:ClassBits = [ordered]@{ Knight = 1; Mage = 2; Rogue = 4; Cleric = 8 }
@@ -207,6 +214,17 @@ function Get-LineIndent {
     return $i
 }
 
+function Test-SingleQuotedClosed {
+    <#
+        True once a single-quoted scalar's closing quote has been read. Inside the quotes a literal
+        quote is written doubled (''), so with the opening quote dropped and every '' pair removed,
+        any quote left over is the closing one.
+    #>
+    param([string]$Text)
+
+    return $Text.Substring(1).Replace("''", '').Contains("'")
+}
+
 function ConvertFrom-YamlScalar {
     param([string]$Text)
 
@@ -277,8 +295,27 @@ function Read-YamlMapping {
         $Index.Value++
 
         if ($rest.Trim() -ne '') {
-            # Scalar, possibly folded across following deeper-indented lines.
             $text = $rest.Trim()
+
+            # An unclosed single-quoted scalar runs until its closing quote, whatever the lines in
+            # between look like - a continuation such as "Allies within 2: gain" is text, not a key.
+            # Unity writes a line break inside a string as a blank line, so inside the quotes each
+            # blank line is a newline and any other line break folds to a space.
+            if ($text.StartsWith("'") -and -not (Test-SingleQuotedClosed $text)) {
+                $breaks = 0
+                while ($Index.Value -lt $Lines.Count) {
+                    $next = $Lines[$Index.Value].Trim()
+                    $Index.Value++
+                    if ($next -eq '') { $breaks++; continue }
+                    $text += $(if ($breaks -gt 0) { "`n" * $breaks } else { ' ' }) + $next
+                    $breaks = 0
+                    if (Test-SingleQuotedClosed $text) { break }
+                }
+                $map[$key] = ConvertFrom-YamlScalar $text
+                continue
+            }
+
+            # Scalar, possibly folded across following deeper-indented lines.
             while ($Index.Value -lt $Lines.Count) {
                 $next = $Lines[$Index.Value]
                 if ($next.Trim() -eq '') { break }
@@ -851,6 +888,81 @@ function Format-Tags {
     return ($names -join ', ')
 }
 
+# ---------------------------------------------------------------------------------------------------
+# Card conditions - "Cond N" (one effect) and "Cost Cond" (the whole card)
+#
+# One cell each rather than a column per field: an entry's condition is a name plus what it changes,
+# and "Alone +6" / "Alone only" / "NextToHero -1" reads the way the card text does. Blank means none.
+# ---------------------------------------------------------------------------------------------------
+
+function Get-ConditionNames {
+    <# The CardCondition names, None first - for scripts outside this module (the Enums tab). #>
+    return $script:ConditionNames
+}
+
+function Format-EntryCondition {
+    <# "Alone +6", "Alone only", "Alone +6 only", or '' for an unconditional entry. #>
+    param($Condition, $Bonus, $OnlyWhenMet)
+
+    $c = ConvertTo-IntOrDefault $Condition
+    if ($c -eq 0) { return '' }
+
+    $parts = @(Get-EnumName -Table $script:ConditionNames -Value $c)
+    $b = ConvertTo-IntOrDefault $Bonus
+    if ($b -gt 0) { $parts += "+$b" } elseif ($b -lt 0) { $parts += "$b" }
+    if ((ConvertTo-IntOrDefault $OnlyWhenMet) -ne 0) { $parts += 'only' }
+
+    return ($parts -join ' ')
+}
+
+function Format-CostCondition {
+    <# "NextToHero -1", or '' for a card whose cost never changes. #>
+    param($Condition, $Discount)
+
+    $c = ConvertTo-IntOrDefault $Condition
+    $d = ConvertTo-IntOrDefault $Discount
+    if ($c -eq 0 -or $d -le 0) { return '' }
+
+    return "$(Get-EnumName -Table $script:ConditionNames -Value $c) -$d"
+}
+
+function ConvertFrom-ConditionText {
+    <#
+        .SYNOPSIS
+            Parses a "Cond N" or "Cost Cond" cell. Returns @{ ok; condition; amount; only; error }.
+
+        .DESCRIPTION
+            "Alone +6" -> condition 5, amount 6. "Alone only" -> only. "NextToHero -1" -> amount -1, which
+            the Cost Cond column reads as a discount of 1. Blank -> condition 0. Anything else -> ok false,
+            so the caller reports it instead of silently writing no condition.
+    #>
+    param([string]$Text)
+
+    $result = @{ ok = $true; condition = 0; amount = 0; only = $false; error = '' }
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $result }
+
+    $tokens = @($Text.Trim() -split '\s+')
+    $name = $tokens[0]
+    $index = [array]::IndexOf($script:ConditionNames, $name)
+    if ($index -le 0) {
+        $result.ok = $false
+        $result.error = "unknown condition '$name' (one of: $(($script:ConditionNames | Select-Object -Skip 1) -join ', '))"
+        return $result
+    }
+    $result.condition = $index
+
+    foreach ($token in ($tokens | Select-Object -Skip 1)) {
+        if ($token -eq 'only') { $result.only = $true; continue }
+        if ($token -match '^[+-]\d+$') { $result.amount = [int]$token; continue }
+
+        $result.ok = $false
+        $result.error = "cannot read '$token' in '$Text' - expected +N, -N or 'only'"
+        return $result
+    }
+
+    return $result
+}
+
 function Get-CardRecord {
     <#
         .SYNOPSIS
@@ -893,6 +1005,8 @@ function Get-CardRecord {
                 EffectName = if ($null -ne $effect) { $effect.Name } elseif ($isNull) { '' } else { '<missing>' }
                 Aim        = Get-EnumName -Table $script:AimNames -Value (Get-NodeField $entry 'aimsAt')
                 Area       = Format-Area -AreaNode $area -AssetIndex $AssetIndex
+                Condition  = Format-EntryCondition -Condition (Get-NodeField $entry 'condition') `
+                                 -Bonus (Get-NodeField $entry 'conditionBonus') -OnlyWhenMet (Get-NodeField $entry 'onlyWhenMet')
                 Tiles       = Measure-AreaTiles -AreaNode $area -AssetIndex $AssetIndex
                 Descriptor  = Get-EffectDescriptor -Asset $effect
                 EffectAsset = $effect
@@ -922,13 +1036,17 @@ function Get-CardRecord {
             $record["Effect $slot"] = $entries[$i].EffectName
             $record["Aim $slot"]    = $entries[$i].Aim
             $record["Area $slot"]   = $entries[$i].Area
+            $record["Cond $slot"]   = $entries[$i].Condition
         }
         else {
             $record["Effect $slot"] = ''
             $record["Aim $slot"]    = ''
             $record["Area $slot"]   = ''
+            $record["Cond $slot"]   = ''
         }
     }
+
+    $record['Cost Cond']   = Format-CostCondition -Condition (Get-BackingField $n 'costCondition') -Discount (Get-BackingField $n 'costDiscount')
 
     $record['Keywords']    = Format-Keywords (Get-BackingField $n 'keywords')
     $record['No Reward']   = if ((ConvertTo-IntOrDefault (Get-BackingField $n 'excludeFromRewards')) -ne 0) { 'TRUE' } else { 'FALSE' }
@@ -1075,9 +1193,10 @@ function Get-CardColumns {
         'Description',
         'Range Shape', 'Range Min', 'Range Max',
         'Key', 'Class', 'Folder', 'Tags',
-        'Aim 1', 'Area 1',
-        'Aim 2', 'Area 2',
-        'Aim 3', 'Area 3',
+        'Aim 1', 'Area 1', 'Cond 1',
+        'Aim 2', 'Area 2', 'Cond 2',
+        'Aim 3', 'Area 3', 'Cond 3',
+        'Cost Cond',
         'Keywords', 'No Reward', 'Rotatable', 'Animation', 'GUID', 'Sync', 'Notes'
     )
 }
@@ -1116,6 +1235,11 @@ function ConvertTo-Comparable {
 
     # "1.0" out of a CSV round-trip is the same cost as 1.
     if ($text -match '^-?\d+\.0+$') { return ([long][double]$text).ToString() }
+
+    # "1.50" (a two-decimal export format) is the same as the "1.5" a General-format cell shows - without
+    # this a value both sides left alone reads as edited, and the merge calls a real edit a conflict.
+    # Textual on purpose: no double round-trip, so nothing is ever rounded.
+    if ($text -match '^(-?\d+\.\d*[1-9])0+$') { return $Matches[1] }
 
     return $text
 }

@@ -400,7 +400,7 @@ public class GridManager : Singleton<GridManager>
             AddIfLegal(tier, carrier, origin + ClockwiseSteps[a]);
             if (b != a) { AddIfLegal(tier, carrier, origin + ClockwiseSteps[b]); }
 
-            if (tier.Count > 0) { return tier[Random.Range(0, tier.Count)]; }
+            if (tier.Count > 0) { return tier[GameDice.Range(0, tier.Count)]; }
         }
 
         return null;

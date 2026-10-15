@@ -131,3 +131,11 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Claude tooling, docs and lab data - kept locally, out of the repo
+.claude/
+claude_plans/
+*.md
+*.md.meta
+Docs/*.patch
+Tools/BotRunner/lab/labs/

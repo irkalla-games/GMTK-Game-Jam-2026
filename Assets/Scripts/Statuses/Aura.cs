@@ -74,7 +74,7 @@ public class Aura : Status
 
     public override int BonusBlockPerHit => projectedEffect.BonusBlockPerHit;
 
-    public override bool WaivesCost(Character carrier, Card card) => projectedEffect.WaivesCost(carrier, card);
+    public override int CostDiscount(Character carrier, Card card) => projectedEffect.CostDiscount(carrier, card);
 
     public override void OnDamageDealt(DamageInfo info) => projectedEffect.OnDamageDealt(info);
 

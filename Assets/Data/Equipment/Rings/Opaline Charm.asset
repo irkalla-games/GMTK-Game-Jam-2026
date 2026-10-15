@@ -10,8 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d714c96d597f6bb409824885429c519f, type: 3}
-  m_Name: FirstDrawFreeModifier
+  m_Name: PlayOrderDiscountModifier
   m_EditorClassIdentifier: Assembly-CSharp::FirstDrawFreeModifier
+  filter:
+    tags: 
+    cards: []
+  anyCard: 0
+  drawCards: 1
+  fromPlay: 1
+  plays: 1
+  discount: 0
+  free: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

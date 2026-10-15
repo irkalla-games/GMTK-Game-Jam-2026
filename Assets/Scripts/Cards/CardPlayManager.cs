@@ -120,7 +120,8 @@ public class CardPlayManager : Singleton<CardPlayManager>
     {
         actor.SpendEnergy(card.cost);
 
-        // After the cost is read, so a card spending Opaline Charm's freebie is itself still free.
+        // After the cost is read, so a card spending a play-order discount (Opaline Charm, Manaflow
+        // Ring) is itself still charged the discounted price.
         actor.RecordPlay(card);
 
         card.ResolveEffects(actor, tile);

@@ -619,37 +619,37 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// True if anything this character carries makes `card` free right now - see Status.WaivesCost.
-    /// Card.cost asks this on every read rather than anything writing a 0 into the card, the same
-    /// "asked live, never stored" rule a board-condition discount follows.
+    /// How much everything this character carries takes off `card`'s cost right now - see
+    /// Status.CostDiscount. Card.cost asks this on every read rather than anything writing a lower
+    /// number into the card, the same "asked live, never stored" rule a board-condition discount follows.
     /// </summary>
-    public bool WaivesCost(Card card)
+    public int CostDiscount(Card card)
     {
-        if (card == null) { return false; }
+        if (card == null) { return 0; }
 
-        foreach (Status status in ActiveStatuses())
-        {
-            if (status.WaivesCost(this, card)) { return true; }
-        }
+        int total = 0;
+        foreach (Status status in ActiveStatuses()) { total += status.CostDiscount(this, card); }
 
-        return false;
+        return total;
     }
 
     /// <summary>
-    /// Whether this character has played a card with a Draw effect since the top of the round - what
-    /// Opaline Charm's "the first Draw card you play each turn costs 0" asks. Set by RecordPlay from
-    /// CardPlayManager.Commit, after the cost is paid, so the card that spends the freebie is still
-    /// charged 0; cleared by OnTurnStart.
+    /// Every card this character has played since the top of the round, in order - what a
+    /// PlayOrderDiscountModifier counts to know whether the next matching play is "the first", "the
+    /// second", and so on. Appended by RecordPlay from CardPlayManager.Commit, after the cost is paid,
+    /// so the card that spends a discount is itself still charged the discounted price; cleared by
+    /// OnTurnStart.
     ///
     /// Per-character state rather than a counter on the status: an equipment status is rebuilt on
     /// every ActiveStatuses call (EquipmentModifier.Project), so it has nowhere to remember anything.
     /// </summary>
-    public bool PlayedDrawCardThisTurn { get; private set; }
+    public IReadOnlyList<Card> PlayedThisTurn => playedThisTurn;
+    private readonly List<Card> playedThisTurn = new();
 
     /// Notes that `card` was just played - CardPlayManager.Commit's one call, below the commit point.
     public void RecordPlay(Card card)
     {
-        if (card != null && card.HasEffect<DrawEffect>()) { PlayedDrawCardThisTurn = true; }
+        if (card != null) { playedThisTurn.Add(card); }
     }
 
     /// <summary>
@@ -1223,7 +1223,7 @@ public class Character : MonoBehaviour
     /// </summary>
     public void OnTurnStart()
     {
-        PlayedDrawCardThisTurn = false;
+        playedThisTurn.Clear();
 
         foreach (Status status in ActiveStatuses()) { status.OnTurnStart(this); }
 

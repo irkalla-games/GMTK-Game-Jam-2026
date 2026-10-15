@@ -30,20 +30,30 @@ public class Card
     public Character Holder { get; }
 
     /// <summary>
-    /// What this card costs to play right now: 0 while something the holder carries waives it
-    /// (Opaline Charm - see Character.WaivesCost), else baseCost less CardData.costDiscount while the
-    /// holder meets CardData.costCondition, never below 0.
+    /// What this card costs to play right now: baseCost less whatever the holder's equipment takes off
+    /// (Opaline Charm, Manaflow Ring - see Character.CostDiscount) and less CardData.costDiscount while
+    /// the holder meets CardData.costCondition, never below 0.
     ///
     /// Computed on every read, never stored. The answer moves whenever anyone moves, gains Shield or
     /// summons a totem, and every reader - the energy check, SpendEnergy, the card face, the bot - has to
     /// see the same number at the moment it looks. A discounted value written into a field would be one
     /// event away from being wrong.
     /// </summary>
-    public int cost =>
-        baseCost > 0 && Holder != null && Holder.WaivesCost(this) ? 0
-        : data.costCondition != CardCondition.None && data.costDiscount > 0 && CardConditions.Met(data.costCondition, Holder)
-            ? Mathf.Max(0, baseCost - data.costDiscount)
-            : baseCost;
+    public int cost
+    {
+        get
+        {
+            if (baseCost <= 0) { return baseCost; }
+
+            int discount = Holder != null ? Holder.CostDiscount(this) : 0;
+            if (data.costCondition != CardCondition.None && data.costDiscount > 0 && CardConditions.Met(data.costCondition, Holder))
+            {
+                discount += data.costDiscount;
+            }
+
+            return Mathf.Max(0, baseCost - discount);
+        }
+    }
 
     /// Whether a board condition is taking something off the printed cost right now - what tints the
     /// cost on the card face.

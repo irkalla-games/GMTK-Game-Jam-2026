@@ -156,11 +156,12 @@ public abstract class Status
     public virtual int BonusBlockPerHit => 0;
 
     /// <summary>
-    /// True if this status makes `card` free for its carrier right now - Opaline Charm's "the first
-    /// Draw card you play each turn costs 0". Asked by Card.cost through Character.WaivesCost on every
-    /// read, so the hand, CanAfford, SpendEnergy, the card face and the bot all see the same number.
+    /// How much this status takes off `card`'s cost for its carrier right now - Opaline Charm's "the
+    /// first Draw card you play each turn costs 0", Manaflow Ring's "the first Defence card costs 1
+    /// less". Summed by Character.CostDiscount and asked by Card.cost on every read, so the hand,
+    /// CanAfford, SpendEnergy, the card face and the bot all see the same number.
     /// </summary>
-    public virtual bool WaivesCost(Character carrier, Card card) => false;
+    public virtual int CostDiscount(Character carrier, Card card) => 0;
 
     /// <summary>
     /// Why this status stops its carrier doing anything at all, or null if it does not object. Frozen.

@@ -24,12 +24,12 @@ MonoBehaviour:
   <tags>k__BackingField: 02000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Gain 3 Block. Draw 1. Costs 0 next to a totem.
+  <description>k__BackingField: Gain Block. Draw 1. Costs 0 next to a totem.
   <image>k__BackingField: {fileID: 21300000, guid: b9a6abe448baa5949928dd27c50a25b9, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: 0127534bcea64814bb034e9a43239154, type: 2}
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 0127534bcea64814bb034e9a43239154, type: 2}
+  - effect: {fileID: 11400000, guid: 6ed490ccaf25d284f841904809cfffd9, type: 2}
     aimsAt: 1
     area:
       kind: 0

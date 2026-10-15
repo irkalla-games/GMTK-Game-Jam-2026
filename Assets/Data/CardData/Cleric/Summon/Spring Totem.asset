@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Spring Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Spring Totem
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
     minDistance: 1
@@ -22,10 +22,13 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 8
   <rarity>k__BackingField: 2
   <tags>k__BackingField: 
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: 'Summon a Spring Totem (10 health): Regeneration
-    5 to allies nearby.'
+  <description>k__BackingField: 'Summon Spring Totem
+
+
+    Allies within 2: heal
+    5 each turn'
   <image>k__BackingField: {fileID: 21300000, guid: bff0b9bb53cb8c24c91b71670df77fe9, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

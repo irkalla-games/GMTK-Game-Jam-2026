@@ -23,8 +23,7 @@ MonoBehaviour:
   m_OverrideGlobalSceneList: 0
   m_Scenes: []
   m_HasScriptingDefines: 1
-  m_ScriptingDefines:
-  - DEBUG_TOOLS
+  m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings:
     - line: '| PlayerSettings:'
@@ -1010,7 +1009,7 @@ MonoBehaviour:
     - rid: 8882473450552426578
       type: {class: WebGLPlatformSettings, ns: UnityEditor.WebGL, asm: UnityEditor.WebGL.Extensions}
       data:
-        m_Development: 1
+        m_Development: 0
         m_ConnectProfiler: 0
         m_BuildWithDeepProfilingSupport: 0
         m_BuildWithCodeCoverage: 0

@@ -29,8 +29,8 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Cascade Ring
   <description>k__BackingField: +1 Parry whenever you gain Parry.
   <icon>k__BackingField: {fileID: 21300000, guid: 19a4b38401504674eb541bb4c6915ced, type: 3}
-  <rarity>k__BackingField: 1
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 4
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:

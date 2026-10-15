@@ -667,7 +667,7 @@ public class DebugPanel : Singleton<DebugPanel>
         {
             Status live = hero != null ? hero.FindStatus(type) : null;
 
-            body = Flatten(glossary.StatusContent(type, statusStacks, live));
+            body = Flatten(glossary.StatusContent(type, statusStacks, live, holder: hero));
         }
 
         int stacks = hero != null ? hero.StatusStacks(type) : 0;

@@ -419,7 +419,12 @@ public class CharacterSelectPanel : MonoBehaviour
 
         foreach (DeckData deck in option.Decks)
         {
-            if (deck != null && deck.AvailableTo(ownClass)) { eligible.Add(deck); }
+            if (deck == null || !deck.AvailableTo(ownClass)) { continue; }
+
+            // A Test deck is a debugging tool; a Playable build never offers it.
+            if (deck.DebugOnly && !BuildMode.DebugTools) { continue; }
+
+            eligible.Add(deck);
         }
 
         if (eligible.Count == 0) { eligible.Add(null); }

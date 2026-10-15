@@ -24,8 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: 'Summon a Chapel Totem (10 health): allies healing
-    nearby gain 1 energy.'
+  <description>k__BackingField: 'Summon Chapel Totem
+
+
+    Allies within 2: +1 energy
+    on heal'
   <image>k__BackingField: {fileID: 21300000, guid: 77651e1e8dc750844aeb605d99212b1c, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

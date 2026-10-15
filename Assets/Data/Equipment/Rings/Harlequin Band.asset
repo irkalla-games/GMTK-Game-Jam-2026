@@ -15,8 +15,8 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Harlequin Band
   <description>k__BackingField: +1 Dodge whenever you gain Dodge.
   <icon>k__BackingField: {fileID: 21300000, guid: 727d7657ba23bc542a76cb78dbff490c, type: 3}
-  <rarity>k__BackingField: 0
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 4
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:

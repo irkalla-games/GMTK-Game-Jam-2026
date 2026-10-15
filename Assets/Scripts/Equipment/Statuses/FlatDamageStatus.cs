@@ -40,18 +40,25 @@ public class FlatDamageStatus : StatusEffect
     {
         if (incomingReduction == 0 || info.negated) { return info; }
 
+        // A negative reduction is a drawback - Deepcoral Signet's "take 1 more". Same rule as the
+        // outgoing bonus above: it worsens a real hit, never turns a 0 into a 1.
+        if (incomingReduction < 0 && info.amount <= 0) { return info; }
+
         return info.Reduced(incomingReduction);
     }
 
-    public override string Describe()
-    {
-        if (outgoingBonus != 0 && incomingReduction != 0)
-        {
-            return $"+{outgoingBonus} damage dealt, -{incomingReduction} damage taken";
-        }
+    public override string Describe() => DescribeAmounts(outgoingBonus, incomingReduction);
 
-        if (outgoingBonus != 0) { return $"+{outgoingBonus} damage dealt"; }
-        if (incomingReduction != 0) { return $"-{incomingReduction} damage taken"; }
-        return "No change";
+    /// One wording for both owners - this status's tooltip and DamageBonusModifier's equipment line -
+    /// so a negative reduction reads "+1 damage taken" in both, never "--1".
+    public static string DescribeAmounts(int outgoing, int incomingReduction)
+    {
+        string dealt = outgoing != 0 ? $"{Signed(outgoing)} damage dealt" : null;
+        string taken = incomingReduction != 0 ? $"{Signed(-incomingReduction)} damage taken" : null;
+
+        if (dealt != null && taken != null) { return $"{dealt}, {taken}"; }
+        return dealt ?? taken ?? "No change";
     }
+
+    private static string Signed(int value) => value > 0 ? $"+{value}" : value.ToString();
 }

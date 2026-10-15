@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Hex Totem.
+  <description>k__BackingField: 'Summon Hex Totem
+
+
+    Enemies within 2: double
+    Weaken'
   <image>k__BackingField: {fileID: 21300000, guid: ac3a92d762093514fa3e0d68cf89c99e, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

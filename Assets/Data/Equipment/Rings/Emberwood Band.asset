@@ -32,8 +32,8 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Emberwood Band
   <description>k__BackingField: Fire cards cost 1 less.
   <icon>k__BackingField: {fileID: 21300000, guid: c3547d86c89eff541b0bdda6826b5f08, type: 3}
-  <rarity>k__BackingField: 1
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 2
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:

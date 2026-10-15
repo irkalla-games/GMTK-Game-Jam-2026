@@ -22,9 +22,13 @@ MonoBehaviour:
   <requiredClass>k__BackingField: 8
   <rarity>k__BackingField: 1
   <tags>k__BackingField: 
-  <excludeFromRewards>k__BackingField: 0
+  <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Sentinel Totem.
+  <description>k__BackingField: 'Summon Sentinel Totem
+
+
+    Taunt Enemies within
+    2'
   <image>k__BackingField: {fileID: 21300000, guid: f0998383b89a2bd4487c500b3f0abf45, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

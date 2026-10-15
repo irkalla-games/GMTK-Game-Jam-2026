@@ -114,12 +114,13 @@ public class LootManager : Singleton<LootManager>
             {
                 RewardContext context = new() { character = pickup.picker };
 
-                // Legendary is the equipment tier; Uncommon and Rare are cards. A thin equipment pool
-                // must never leave the player facing an empty panel - the Legendary branch only runs
+                // Legendary is the equipment tier - every item is Legendary - and Uncommon and Rare are
+                // cards. A thin equipment pool must never leave the player facing an empty panel - the
+                // Legendary branch only runs
                 // when BuildEquipmentOffer actually found something, and falls through to the card
                 // offer otherwise (which widens down to Rare, since no card is Legendary).
                 List<EquipmentData> equipmentCandidates = pickup.tier == Rarity.Legendary
-                    ? BuildEquipmentOffer(pickup.tier, pickup.picker, table)
+                    ? BuildEquipmentOffer(pickup.picker, table)
                     : null;
 
                 if (equipmentCandidates != null && equipmentCandidates.Count > 0)
@@ -162,13 +163,14 @@ public class LootManager : Singleton<LootManager>
 
     /// <summary>
     /// Offers `hero` their share of a level-clear reward: a card panel (Skip / Remove a card), then an
-    /// equipment panel (Skip / Upgrade a card), each with its own tier roll on `table`. Both are
+    /// equipment panel (Skip / Upgrade a card). The card panel rolls its tier on `table`; the equipment
+    /// panel needs no roll, every item being Legendary - see BuildEquipmentOffer. Both are
     /// granted straight into the PartyMember record rather than the hero - the battle is over, and the
     /// next level's Character is rebuilt from that record. Called once per living hero from
     /// BattleManager, in sequence, so only one panel is ever up at a time.
     ///
-    /// The equipment half is skipped silently when nothing is offerable (every item at and below the
-    /// rolled tier already held) - an empty panel would be a choice with nothing in it.
+    /// The equipment half is skipped silently when nothing is offerable (every item the hero may hold
+    /// already held) - an empty panel would be a choice with nothing in it.
     /// </summary>
     public IEnumerator OfferLevelClear(Character hero, PartyMember record, LootTable table)
     {
@@ -196,7 +198,7 @@ public class LootManager : Singleton<LootManager>
             BattleManager.Instance.RecordRunCard(hero, panel.ChosenCard);
         }
 
-        List<EquipmentData> items = BuildEquipmentOffer(resolvedTable.Roll(), hero, resolvedTable);
+        List<EquipmentData> items = BuildEquipmentOffer(hero, resolvedTable);
 
         if (items.Count > 0)
         {
@@ -268,36 +270,26 @@ public class LootManager : Singleton<LootManager>
     }
 
     /// <summary>
-    /// `table.EquipmentChoiceCount` distinct items `picker` may hold and does not already, weighted
-    /// uniformly at `tier` - the equipment counterpart to BuildOffer. No guarantees or tag weighting:
-    /// those are authored on LootTable for the card pool specifically. An item already equipped is left
-    /// out, since taking a second copy of it would be a dead choice. Widens down through Rarity.Lower()
-    /// the same way BuildOffer does when the pool at `tier` is thin, and returns however many it
-    /// actually found rather than padding - Drain treats an empty result as "offer cards instead",
-    /// OfferLevelClear as "skip the equipment panel".
+    /// `table.EquipmentChoiceCount` distinct items `picker` may hold and does not already, drawn
+    /// uniformly from the whole pool - the equipment counterpart to BuildOffer. No tier: every item is
+    /// Legendary (see EquipmentLibrary.Offerable), so the roll that led here only decided that equipment
+    /// was offered at all. No guarantees or tag weighting either: those are authored on LootTable for
+    /// the card pool specifically. An item already equipped is left out, since taking a second copy of
+    /// it would be a dead choice. Returns however many it actually found rather than padding - Drain
+    /// treats an empty result as "offer cards instead", OfferLevelClear as "skip the equipment panel".
     /// </summary>
-    public List<EquipmentData> BuildEquipmentOffer(Rarity tier, Character picker, LootTable table)
+    public List<EquipmentData> BuildEquipmentOffer(Character picker, LootTable table)
     {
         List<EquipmentData> found = new();
 
         if (equipmentLibrary == null || table == null) { return found; }
 
         int count = table.EquipmentChoiceCount;
-        Rarity current = tier;
 
-        // At most four tiers exist (Common..Legendary), so four attempts always bottoms out at Common -
-        // same bound BuildOffer's widening loop uses.
-        for (int attempt = 0; attempt < 4; attempt++)
+        foreach (EquipmentData item in equipmentLibrary.Offerable(picker))
         {
-            foreach (EquipmentData item in equipmentLibrary.Offerable(current, picker))
-            {
-                if (picker != null && Contains(picker.Equipment, item)) { continue; }
-                if (!found.Contains(item)) { found.Add(item); }
-            }
-
-            if (found.Count >= count || current == Rarity.Common) { break; }
-
-            current = current.Lower();
+            if (picker != null && Contains(picker.Equipment, item)) { continue; }
+            if (!found.Contains(item)) { found.Add(item); }
         }
 
         Shuffle(found);

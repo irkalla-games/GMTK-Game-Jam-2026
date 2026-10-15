@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Bramblewreath
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Bramblewreath
-  <description>k__BackingField: Attackers take 2 damage.
+  <description>k__BackingField: Attackers take 3 damage.
   <icon>k__BackingField: {fileID: 21300000, guid: b371b9dfe13ee4b4d930a7ce38614b45, type: 3}
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
@@ -33,4 +33,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c99a69bae76c0246b828d051881ebe2, type: 3}
   m_Name: ThornsModifier
   m_EditorClassIdentifier: Assembly-CSharp::ThornsModifier
-  amount: 2
+  amount: 3

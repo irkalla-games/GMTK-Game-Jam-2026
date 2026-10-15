@@ -1,5 +1,18 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-5989751170147888238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d63e5aed2cc07f458cc58cae7497b17, type: 3}
+  m_Name: BlockPerHitModifier
+  m_EditorClassIdentifier: Assembly-CSharp::BlockPerHitModifier
+  bonus: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13,25 +26,11 @@ MonoBehaviour:
   m_Name: Rimeguard Band
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Rimeguard Band
-  <description>k__BackingField: 'Permanent Block: -3 damage from every hit taken.'
+  <description>k__BackingField: Your Block blocks 4 damage per hit instead of 3.
   <icon>k__BackingField: {fileID: 21300000, guid: bc39d439ee5dc2c44a2c0b4bd881b65c, type: 3}
-  <rarity>k__BackingField: 1
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:
-  - {fileID: 8969321099661361594}
---- !u!114 &8969321099661361594
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0266da0250bfe9940afbd1081c7a231d, type: 3}
-  m_Name: StatusGrantModifier
-  m_EditorClassIdentifier: Assembly-CSharp::StatusGrantModifier
-  type: 6
-  stacks: 2
+  - {fileID: -5989751170147888238}

@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Adds flat outgoing damage while the carrier's own health meets a condition - Bloodshard Ring,
-/// Panther's Eye. Projects a ConditionalDamageStatus; see that class and DamageCondition for the
-/// thresholds available.
+/// Adds flat outgoing damage while a condition holds - Bloodshard Ring, Panther's Eye (the carrier's
+/// health), Sporecap Ring (the target is Vulnerable). Projects a ConditionalDamageStatus; see that
+/// class and DamageCondition for the conditions available.
 /// </summary>
 [CreateAssetMenu(menuName = "Equipment Modifiers/Conditional Damage")]
 public class ConditionalDamageModifier : EquipmentModifier
@@ -19,6 +19,7 @@ public class ConditionalDamageModifier : EquipmentModifier
     {
         DamageCondition.BelowHalfHealth => $"+{bonus} damage while below half health",
         DamageCondition.AtFullHealth => $"+{bonus} damage while at full health",
+        DamageCondition.TargetVulnerable => $"+{bonus} damage against Vulnerable enemies",
         _ => $"+{bonus} damage",
     };
 }

@@ -164,7 +164,7 @@ public class TutorialDirector : Singleton<TutorialDirector>
 
     private const string TotemTitle = "Place a Totem";
     private const string TotemBody =
-        "A totem stays on the board and affects anyone standing near it. Select Heal Totem.";
+        "A totem stays on the board and affects anyone standing near it. Select Spring Totem.";
 
     private const string TotemAimTitle = "Put It Next to the Knight";
     private const string TotemAimBody =

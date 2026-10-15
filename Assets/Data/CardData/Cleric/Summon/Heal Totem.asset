@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 1
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Heal Totem.
+  <description>k__BackingField: 'Summon Heal Totem
+
+
+    Allies within 2: heal 5
+    each turn'
   <image>k__BackingField: {fileID: 21300000, guid: bff0b9bb53cb8c24c91b71670df77fe9, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

@@ -697,7 +697,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 50
+  maxHealth: 90
   maxEnergy: 3
   playableCharacter: 0
   battleRole: 0
@@ -720,7 +720,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a88d8789fe23d7b4a8803cfab0721cc0, type: 2}
   - {fileID: 11400000, guid: c63bc2ac593efc9409d8b2e2b673a08d, type: 2}
   - {fileID: 11400000, guid: c63bc2ac593efc9409d8b2e2b673a08d, type: 2}
-  <Health>k__BackingField: 50
+  <Health>k__BackingField: 90
 --- !u!95 &7130099151914716108
 Animator:
   serializedVersion: 7

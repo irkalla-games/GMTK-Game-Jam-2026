@@ -15,7 +15,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Amber Signet
   <description>k__BackingField: -1 damage from every hit taken.
   <icon>k__BackingField: {fileID: 21300000, guid: daeb8dea7f8fcca4597fd2950571bf69, type: 3}
-  <rarity>k__BackingField: 0
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

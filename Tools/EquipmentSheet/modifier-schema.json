@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "writtenUtc": "2026-10-12T08:25:29.4866545Z",
+    "writtenUtc": "2026-10-15T19:58:26.0257493Z",
     "unityVersion": "6000.5.4f1",
     "types": [
         {
@@ -206,6 +206,28 @@
             ]
         },
         {
+            "name": "BlockPerHitModifier",
+            "kind": "equipment",
+            "menuName": "Equipment Modifiers/Block Per Hit",
+            "fields": [
+                {
+                    "path": "bonus",
+                    "serializedPath": "bonus",
+                    "kind": "int",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Added to what each Block takes off a hit (BlockStatus.AmountPerHit, 3).",
+                    "truncated": false
+                }
+            ]
+        },
+        {
             "name": "CardTuningModifier",
             "kind": "equipment",
             "menuName": "Equipment Modifiers/Card Tuning",
@@ -290,11 +312,13 @@
                     "enumType": "DamageCondition",
                     "enumNames": [
                         "BelowHalfHealth",
-                        "AtFullHealth"
+                        "AtFullHealth",
+                        "TargetVulnerable"
                     ],
                     "enumValues": [
                         0,
-                        1
+                        1,
+                        2
                     ],
                     "isFlags": false,
                     "objectType": "",
@@ -350,7 +374,7 @@
                     "enumValues": [],
                     "isFlags": false,
                     "objectType": "",
-                    "tooltip": "",
+                    "tooltip": "Taken off every hit the wearer takes. Negative is a drawback: -1 means each hit lands for 1 more.",
                     "truncated": false
                 }
             ]
@@ -568,6 +592,151 @@
                     "isFlags": false,
                     "objectType": "",
                     "tooltip": "",
+                    "truncated": false
+                }
+            ]
+        },
+        {
+            "name": "PlayOrderDiscountModifier",
+            "kind": "equipment",
+            "menuName": "Equipment Modifiers/Play Order Discount",
+            "fields": [
+                {
+                    "path": "filter.tags",
+                    "serializedPath": "filter.tags",
+                    "kind": "enum",
+                    "role": "",
+                    "isList": true,
+                    "listEncoding": "packedHex",
+                    "enumType": "CardTag",
+                    "enumNames": [
+                        "None",
+                        "Attack",
+                        "Defence",
+                        "Movement",
+                        "Poison",
+                        "Fire",
+                        "Summon",
+                        "Healing"
+                    ],
+                    "enumValues": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                    ],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "",
+                    "truncated": false
+                },
+                {
+                    "path": "filter.cards",
+                    "serializedPath": "filter.cards",
+                    "kind": "object",
+                    "role": "",
+                    "isList": true,
+                    "listEncoding": "sequence",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "CardData",
+                    "tooltip": "",
+                    "truncated": false
+                },
+                {
+                    "path": "anyCard",
+                    "serializedPath": "anyCard",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Match every card, whatever the filter says.",
+                    "truncated": false
+                },
+                {
+                    "path": "drawCards",
+                    "serializedPath": "drawCards",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Also match any card with a Draw effect.",
+                    "truncated": false
+                },
+                {
+                    "path": "fromPlay",
+                    "serializedPath": "fromPlay",
+                    "kind": "int",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "The first matching play each turn that is discounted - 1 is the first.",
+                    "truncated": false
+                },
+                {
+                    "path": "plays",
+                    "serializedPath": "plays",
+                    "kind": "int",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "How many matching plays in a row are discounted, starting at fromPlay.",
+                    "truncated": false
+                },
+                {
+                    "path": "discount",
+                    "serializedPath": "discount",
+                    "kind": "int",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "Energy taken off a discounted play. Ignored when free.",
+                    "truncated": false
+                },
+                {
+                    "path": "free",
+                    "serializedPath": "free",
+                    "kind": "bool",
+                    "role": "",
+                    "isList": false,
+                    "listEncoding": "",
+                    "enumType": "",
+                    "enumNames": [],
+                    "enumValues": [],
+                    "isFlags": false,
+                    "objectType": "",
+                    "tooltip": "A discounted play costs 0, whatever its printed cost.",
                     "truncated": false
                 }
             ]

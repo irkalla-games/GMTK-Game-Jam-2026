@@ -74,6 +74,7 @@ public sealed class BotCardInfo
                     break;
                 case HealEffect:
                 case CleansePoisonEffect:
+                case CleanseEffect:
                     info.Mark(BotPlayCategory.Heal);
                     break;
                 case SummonEffect summon:
@@ -183,6 +184,7 @@ public sealed class BotCardInfo
                     raw += ctx.Amount(heal.RiderAmount) * w.heal * area;
                     break;
                 case CleansePoisonEffect:
+                case CleanseEffect:
                     raw += 3f * w.heal;
                     break;
                 case DrawEffect draw:

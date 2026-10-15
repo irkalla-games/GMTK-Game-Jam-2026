@@ -15,7 +15,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Longsword
   <description>k__BackingField: Attack cards gain +1 range.
   <icon>k__BackingField: {fileID: 21300000, guid: 8d6b7005c0b907c418e96c6394be40f2, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 1
   <excludeFromRewards>k__BackingField: 0

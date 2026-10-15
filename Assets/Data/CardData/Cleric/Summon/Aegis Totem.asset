@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Aegis Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Aegis Totem
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
     minDistance: 1
@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Aegis Totem.
+  <description>k__BackingField: 'Summon Aegis Totem
+
+
+    Allies within 2: Block
+    +3 stronger'
   <image>k__BackingField: {fileID: 21300000, guid: 38e551c5146b4244490b4a3db31e6f2c, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

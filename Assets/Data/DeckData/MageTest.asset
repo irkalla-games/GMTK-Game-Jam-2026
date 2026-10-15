@@ -21,3 +21,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 400da0a1fb8039847bb2c4bfc31f38d7, type: 2}
   locked: 0
   unlockId: 
+  debugOnly: 1

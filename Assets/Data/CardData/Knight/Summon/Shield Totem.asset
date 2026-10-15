@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Shield Totem.
+  <description>k__BackingField: 'Summon Shield Totem
+
+
+    Allies within 2: 3 Shield
+    on attack'
   <image>k__BackingField: {fileID: 21300000, guid: 77fd5bec43ac7dd4b9f6cfc05a22b4bf, type: 3}
   <effects>k__BackingField:
   - {fileID: 11400000, guid: aaaa1117bbbb2228cccc3339dddd444a, type: 2}

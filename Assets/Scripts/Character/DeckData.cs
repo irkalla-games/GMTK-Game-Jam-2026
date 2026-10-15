@@ -39,6 +39,10 @@ public class DeckData : ScriptableObject
              + "should have this set explicitly.")]
     [SerializeField] private string unlockId;
 
+    [Tooltip("On: the select screen offers this deck only in Build Mode Debug (BuildMode.DebugTools) - "
+             + "for the *Test decks. Off by default, same reasoning as locked.")]
+    [SerializeField] private bool debugOnly;
+
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
 
     public string Description => description;
@@ -50,6 +54,9 @@ public class DeckData : ScriptableObject
     public bool Locked => locked;
 
     public string UnlockId => string.IsNullOrWhiteSpace(unlockId) ? name : unlockId;
+
+    /// Whether only a Debug build may offer this deck at the select screen - see the field's tooltip.
+    public bool DebugOnly => debugOnly;
 
     /// Whether `characterClass` may start with this deck - Any on either side always matches, same
     /// rule CardData.CanBeUsedBy applies between a card and a character.

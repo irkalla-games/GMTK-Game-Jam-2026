@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Stormsplit Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Stormsplit Ring
-  <description>k__BackingField: +1 damage per Strength stack you hold.
+  <description>k__BackingField: +3 damage per Strength stack you hold.
   <icon>k__BackingField: {fileID: 21300000, guid: 3621c0205771b634bb94c51069734246, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
@@ -34,4 +34,4 @@ MonoBehaviour:
   m_Name: ScalingDamageModifier
   m_EditorClassIdentifier: Assembly-CSharp::ScalingDamageModifier
   subject: 1
-  perStack: 1
+  perStack: 3

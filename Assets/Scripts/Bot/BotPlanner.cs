@@ -717,7 +717,7 @@ public static class BotPlanner
                 case BlockEffect block:
                     foreach (Character ally in Occupants(landed, ours: true))
                     {
-                        m.Ops.Add(new BotOp(BotOp.Kind.Charges, ally, ctx.Amount(block.BlockCount), BlockStatus.AmountPerHit));
+                        m.Ops.Add(new BotOp(BotOp.Kind.Charges, ally, ctx.Amount(block.BlockCount), BlockStatus.PerHitFor(ally)));
                     }
 
                     break;
@@ -740,6 +740,22 @@ public static class BotPlanner
                     {
                         int poison = ally.StatusStacks(StatusType.Poison);
                         f.heal += Mathf.Min(40, poison * (poison + 1) / 2);
+                    }
+
+                    break;
+                case CleanseEffect:
+                    // Poison counts as above (the ticks it will no longer deal); every other curse as a
+                    // buff stack taken off; and the heal for the total, up to the health missing.
+                    foreach (Character ally in Occupants(landed, ours: true))
+                    {
+                        int poison = ally.StatusStacks(StatusType.Poison);
+                        int total = 0;
+
+                        foreach (StatusType curse in CleanseEffect.Curses) { total += ally.StatusStacks(curse); }
+
+                        f.heal += Mathf.Min(40, poison * (poison + 1) / 2);
+                        f.heal += Mathf.Min(ally.MaxHealth - ally.Health, total);
+                        f.buff += total - poison;
                     }
 
                     break;
@@ -1107,7 +1123,7 @@ public static class BotPlanner
                 if (!enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Charges, target, stacks, int.MaxValue)); }
                 return;
             case StatusType.Block:
-                if (!enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Charges, target, stacks, BlockStatus.AmountPerHit)); }
+                if (!enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Charges, target, stacks, BlockStatus.PerHitFor(target))); }
                 return;
             case StatusType.Shield:
                 if (!enemy) { m.Ops.Add(new BotOp(BotOp.Kind.Shield, target, stacks)); }

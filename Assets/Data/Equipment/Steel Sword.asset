@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Steel Sword
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Steel Sword
-  <description>k__BackingField: +1 damage on every attack.
+  <description>k__BackingField: +2 damage on every attack.
   <icon>k__BackingField: {fileID: 21300000, guid: 7fd65bec72697b74daf109f5f66373fe, type: 3}
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 1
   <excludeFromRewards>k__BackingField: 0
@@ -33,5 +33,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66f23c5011141814aa5579b239b7672b, type: 3}
   m_Name: DamageBonusModifier
   m_EditorClassIdentifier: Assembly-CSharp::DamageBonusModifier
-  outgoing: 1
+  outgoing: 2
   incomingReduction: 0

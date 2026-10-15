@@ -15,8 +15,8 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Manaflow Ring
   <description>k__BackingField: Defence cards cost 1 less.
   <icon>k__BackingField: {fileID: 21300000, guid: d9c2ebc998439e943a83d2197eb16e1e, type: 3}
-  <rarity>k__BackingField: 0
-  <requiredClass>k__BackingField: 0
+  <rarity>k__BackingField: 3
+  <requiredClass>k__BackingField: 1
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
   <modifiers>k__BackingField:

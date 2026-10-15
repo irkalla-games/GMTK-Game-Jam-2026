@@ -207,7 +207,7 @@ public class PartySheetColumn : MonoBehaviour
             Status live = hero.FindStatus(type);
 
             TooltipContent content = glossary != null
-                ? glossary.StatusContent(type, stacks, live)
+                ? glossary.StatusContent(type, stacks, live, holder: hero)
                 : null;
 
             string title = content != null && content.Entries.Count > 0

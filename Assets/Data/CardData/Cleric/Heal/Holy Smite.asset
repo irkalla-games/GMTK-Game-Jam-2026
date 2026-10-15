@@ -24,11 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Deal 7 damage. Heal 4.
+  <description>k__BackingField: Deal 8 damage. Heal 4.
   <image>k__BackingField: {fileID: 21300000, guid: 0b64e5a3e2633ca4cacb769b32375c36, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
-  - effect: {fileID: 11400000, guid: 5e680a6c51d3ffd428265490d6a1e1d8, type: 2}
+  - effect: {fileID: 11400000, guid: ecb84d8108edde84f8eef282d5a80b23, type: 2}
     aimsAt: 0
     area:
       kind: 0

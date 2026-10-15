@@ -15,7 +15,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Astrologer's Loop
   <description>k__BackingField: +1 card drawn each turn.
   <icon>k__BackingField: {fileID: 21300000, guid: 3109af30c55a06d469e2206d30d0dd84, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

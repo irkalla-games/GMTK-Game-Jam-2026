@@ -119,6 +119,10 @@ public class CardPlayManager : Singleton<CardPlayManager>
     public static void Commit(Character actor, Card card, GridTile tile)
     {
         actor.SpendEnergy(card.cost);
+
+        // After the cost is read, so a card spending Opaline Charm's freebie is itself still free.
+        actor.RecordPlay(card);
+
         card.ResolveEffects(actor, tile);
 
         // After ResolveEffects, not before - the rotation the player dialled in is exactly what has

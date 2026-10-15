@@ -50,10 +50,10 @@ MonoBehaviour:
     defaultAmount: 1
     type: 5
   - title: BLOCK
-    body: Reduces damage taken by 3 for {stacks} turns
+    body: Reduces damage taken by {amount} for {stacks} turns
     terms: []
     defaultStacks: 1
-    defaultAmount: 5
+    defaultAmount: 3
     type: 6
   - title: PARRY
     body: Negates all damage and reflects the damage back for the next {stacks} turns.

@@ -339,7 +339,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character
   handSize: 5
-  maxHealth: 10
+  maxHealth: 20
   maxEnergy: 0
   playableCharacter: 3
   battleRole: 0
@@ -355,7 +355,7 @@ MonoBehaviour:
   itemDropPrefab: {fileID: 0}
   lootTable: {fileID: 0}
   deck: []
-  <Health>k__BackingField: 10
+  <Health>k__BackingField: 20
 --- !u!114 &8489926487802519349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -376,11 +376,6 @@ MonoBehaviour:
   affects: 1
   auras:
   - type: 12
-    stacks: 1
-    subject: 0
-    magnitude: 0
-    timing: 0
-  - type: 8
     stacks: 1
     subject: 0
     magnitude: 0

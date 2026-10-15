@@ -15,7 +15,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Ring of Focus
   <description>k__BackingField: +1 energy each turn.
   <icon>k__BackingField: {fileID: 21300000, guid: e9b6e34148732404ab5864aea4e7f24d, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

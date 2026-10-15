@@ -24,15 +24,14 @@ MonoBehaviour:
   <tags>k__BackingField: 01000000
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Deal 1 damage and apply 3 Poison to everything within
-    1 tile.
+  <description>k__BackingField: Deal 1 damage and apply 2 Poison.
   <image>k__BackingField: {fileID: 0}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:
   - effect: {fileID: 11400000, guid: 894788a7c2284a7bbab8841b42d5bfb6, type: 2}
     aimsAt: 0
     area:
-      kind: 1
+      kind: 0
       radius:
         shape: 1
         minDistance: 0
@@ -47,7 +46,7 @@ MonoBehaviour:
   - effect: {fileID: 11400000, guid: bcae4299ca2f3dc41acf722b1fdc6b13, type: 2}
     aimsAt: 0
     area:
-      kind: 1
+      kind: 0
       radius:
         shape: 1
         minDistance: 0

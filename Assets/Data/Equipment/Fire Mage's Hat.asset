@@ -39,7 +39,7 @@ MonoBehaviour:
   <equipmentName>k__BackingField: Fire Mage's Hat
   <description>k__BackingField: Firebolt gains a 3x3 splash.
   <icon>k__BackingField: {fileID: 21300000, guid: 83009dce143393144bd6b401a81bd558, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 2
   <slot>k__BackingField: 3
   <excludeFromRewards>k__BackingField: 0

@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Rot Totem.
+  <description>k__BackingField: 'Summon Rot Totem
+
+
+    Enemies within 2: gain 4
+    Poison each turn'
   <image>k__BackingField: {fileID: 21300000, guid: 1fd010a3adf6fdc4c8c496a601b792dc, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

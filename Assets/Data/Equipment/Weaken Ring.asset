@@ -30,7 +30,7 @@ MonoBehaviour:
   <description>k__BackingField: The Weaken you apply cuts 1 deeper - your totems
     included.
   <icon>k__BackingField: {fileID: 21300000, guid: 5c43af9fc8739294f87141681bbafcb3, type: 3}
-  <rarity>k__BackingField: 1
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 2
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0

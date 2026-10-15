@@ -149,6 +149,20 @@ public abstract class Status
     public virtual int BonusHandSize => 0;
 
     /// <summary>
+    /// How much this status adds to what each of its carrier's Block takes off a hit - Rimeguard Band's
+    /// "your Block blocks 4 instead of 3". Summed by Character.BonusBlockPerHit; read by
+    /// BlockStatus.PerHitFor, which is the only place the per-hit number is ever decided.
+    /// </summary>
+    public virtual int BonusBlockPerHit => 0;
+
+    /// <summary>
+    /// True if this status makes `card` free for its carrier right now - Opaline Charm's "the first
+    /// Draw card you play each turn costs 0". Asked by Card.cost through Character.WaivesCost on every
+    /// read, so the hand, CanAfford, SpendEnergy, the card face and the bot all see the same number.
+    /// </summary>
+    public virtual bool WaivesCost(Character carrier, Card card) => false;
+
+    /// <summary>
     /// Why this status stops its carrier doing anything at all, or null if it does not object. Frozen.
     ///
     /// A gate, not a notification, which is why it is not one of the OnX hooks. Those fire when
@@ -191,6 +205,15 @@ public abstract class Status
     /// The carrier is about to deal damage. Return the hit as this status leaves it - DamageInfo is
     /// immutable, so a status that has nothing to say returns what it was given.
     public virtual DamageInfo OnDealDamage(DamageInfo info) => info;
+
+    /// <summary>
+    /// The carrier's hit is about to land on `info.target` - Sporecap Ring's "+4 damage to Vulnerable
+    /// enemies". OnDealDamage's per-victim twin: that one runs once per swing with no target (an AoE
+    /// resolves it once, see DamageAction.Execute), so a rule that depends on *who* is hit cannot live
+    /// there. Run by Character.ComputeIncomingDamage over the attacker's statuses, ahead of the
+    /// victim's own OnTakeDamage hooks - so it reaches every real hit and every damage preview alike.
+    /// </summary>
+    public virtual DamageInfo OnStrike(DamageInfo info) => info;
 
     /// The carrier is being hit. Return it reduced, or negated outright - see DamageInfo.
     public virtual DamageInfo OnTakeDamage(DamageInfo info) => info;

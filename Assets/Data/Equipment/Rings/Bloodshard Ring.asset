@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Bloodshard Ring
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   <equipmentName>k__BackingField: Bloodshard Ring
-  <description>k__BackingField: +3 damage while below half health.
+  <description>k__BackingField: +4 damage while below half health.
   <icon>k__BackingField: {fileID: 21300000, guid: a87d25c5ff2c3d24a93994e954f5bf9c, type: 3}
-  <rarity>k__BackingField: 2
+  <rarity>k__BackingField: 3
   <requiredClass>k__BackingField: 0
   <slot>k__BackingField: 0
   <excludeFromRewards>k__BackingField: 0
@@ -34,4 +34,4 @@ MonoBehaviour:
   m_Name: ConditionalDamageModifier
   m_EditorClassIdentifier: Assembly-CSharp::ConditionalDamageModifier
   condition: 0
-  bonus: 3
+  bonus: 4

@@ -603,6 +603,56 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
+    /// How much equipment and auras add to what each of this character's Block takes off a hit -
+    /// Rimeguard Band's +1. Read through BlockStatus.PerHitFor, never added up anywhere else.
+    /// </summary>
+    public int BonusBlockPerHit
+    {
+        get
+        {
+            int total = 0;
+
+            foreach (Status status in ActiveStatuses()) { total += status.BonusBlockPerHit; }
+
+            return total;
+        }
+    }
+
+    /// <summary>
+    /// True if anything this character carries makes `card` free right now - see Status.WaivesCost.
+    /// Card.cost asks this on every read rather than anything writing a 0 into the card, the same
+    /// "asked live, never stored" rule a board-condition discount follows.
+    /// </summary>
+    public bool WaivesCost(Card card)
+    {
+        if (card == null) { return false; }
+
+        foreach (Status status in ActiveStatuses())
+        {
+            if (status.WaivesCost(this, card)) { return true; }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether this character has played a card with a Draw effect since the top of the round - what
+    /// Opaline Charm's "the first Draw card you play each turn costs 0" asks. Set by RecordPlay from
+    /// CardPlayManager.Commit, after the cost is paid, so the card that spends the freebie is still
+    /// charged 0; cleared by OnTurnStart.
+    ///
+    /// Per-character state rather than a counter on the status: an equipment status is rebuilt on
+    /// every ActiveStatuses call (EquipmentModifier.Project), so it has nowhere to remember anything.
+    /// </summary>
+    public bool PlayedDrawCardThisTurn { get; private set; }
+
+    /// Notes that `card` was just played - CardPlayManager.Commit's one call, below the commit point.
+    public void RecordPlay(Card card)
+    {
+        if (card != null && card.HasEffect<DrawEffect>()) { PlayedDrawCardThisTurn = true; }
+    }
+
+    /// <summary>
     /// Runs a hit through every OnTakeDamage hook and returns what survives, without touching Health -
     /// the incoming counterpart to ComputeOutgoingDamage.
     ///
@@ -620,6 +670,15 @@ public class Character : MonoBehaviour
     public DamageInfo ComputeIncomingDamage(int amount, Character attacker, bool shouldConsume)
     {
         DamageInfo info = new(attacker, this, amount, consumeCharges: shouldConsume);
+
+        // The attacker's per-victim rules first (Sporecap Ring's "+4 to Vulnerable enemies") - the
+        // only point a swing meets the body it lands on, since ComputeOutgoingDamage runs once per
+        // swing with no target. Ahead of this character's own hooks so Block and Shield see the full
+        // hit. See Status.OnStrike.
+        if (attacker != null)
+        {
+            foreach (Status status in attacker.ActiveStatuses()) { info = status.OnStrike(info); }
+        }
 
         foreach (Status status in ActiveStatuses())
         {
@@ -1164,6 +1223,8 @@ public class Character : MonoBehaviour
     /// </summary>
     public void OnTurnStart()
     {
+        PlayedDrawCardThisTurn = false;
+
         foreach (Status status in ActiveStatuses()) { status.OnTurnStart(this); }
 
         PruneExpired();

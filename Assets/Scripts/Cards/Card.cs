@@ -30,8 +30,9 @@ public class Card
     public Character Holder { get; }
 
     /// <summary>
-    /// What this card costs to play right now: baseCost, less CardData.costDiscount while the holder
-    /// meets CardData.costCondition, never below 0.
+    /// What this card costs to play right now: 0 while something the holder carries waives it
+    /// (Opaline Charm - see Character.WaivesCost), else baseCost less CardData.costDiscount while the
+    /// holder meets CardData.costCondition, never below 0.
     ///
     /// Computed on every read, never stored. The answer moves whenever anyone moves, gains Shield or
     /// summons a totem, and every reader - the energy check, SpendEnergy, the card face, the bot - has to
@@ -39,7 +40,8 @@ public class Card
     /// event away from being wrong.
     /// </summary>
     public int cost =>
-        data.costCondition != CardCondition.None && data.costDiscount > 0 && CardConditions.Met(data.costCondition, Holder)
+        baseCost > 0 && Holder != null && Holder.WaivesCost(this) ? 0
+        : data.costCondition != CardCondition.None && data.costDiscount > 0 && CardConditions.Met(data.costCondition, Holder)
             ? Mathf.Max(0, baseCost - data.costDiscount)
             : baseCost;
 

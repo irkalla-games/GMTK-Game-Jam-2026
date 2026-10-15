@@ -152,7 +152,7 @@ public class Glossary : ScriptableObject
     /// filled into {timing}.</param>
     public TooltipContent StatusContent(StatusType type, int stacks = -1, Status live = null,
         TooltipContent into = null, int amount = -1, string subject = null, string targets = null,
-        string timing = null)
+        string timing = null, Character holder = null)
     {
         StatusEntry entry = FindStatus(type);
 
@@ -165,6 +165,11 @@ public class Glossary : ScriptableObject
         // The caller's number first, so a live status filling {stacks} afterwards cannot overwrite the
         // total the chip is actually showing.
         if (stacks >= 0) { body = body.Replace(StacksToken, stacks.ToString()); }
+
+        // Block's per-hit amount belongs to whoever carries it (Rimeguard Band adds to it), which the
+        // live status cannot know - so a caller naming the holder settles {amount} here, before
+        // BlockStatus.Describe would fill in the bare base.
+        if (amount < 0 && holder != null && type == StatusType.Block) { amount = BlockStatus.PerHitFor(holder); }
 
         if (amount >= 0) { body = body.Replace(AmountToken, amount.ToString()); }
         if (subject != null) { body = body.Replace(SubjectToken, subject); }
@@ -209,7 +214,7 @@ public class Glossary : ScriptableObject
             // matches the Block they are actually carrying rather than a generic number.
             Status live = context != null ? context.FindStatus(status) : null;
 
-            return StatusContent(status, live != null ? live.stacks : -1, live, into);
+            return StatusContent(status, live != null ? live.stacks : -1, live, into, holder: context);
         }
 
         if (linkId.StartsWith(KeywordLink) &&

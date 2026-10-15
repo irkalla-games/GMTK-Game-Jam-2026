@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Warcry Totem
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   <cardName>k__BackingField: Warcry Totem
-  <cost>k__BackingField: 2
+  <cost>k__BackingField: 1
   <range>k__BackingField:
     shape: 1
     minDistance: 1
@@ -24,7 +24,11 @@ MonoBehaviour:
   <tags>k__BackingField: 
   <excludeFromRewards>k__BackingField: 0
   <rotatableAim>k__BackingField: 0
-  <description>k__BackingField: Summon a Warcry Totem.
+  <description>k__BackingField: 'Summon Warcry Totem
+
+
+    Allies within 2: double
+    Strength'
   <image>k__BackingField: {fileID: 21300000, guid: a179f80f9aa175144b0f3a5599cf5f5c, type: 3}
   <effects>k__BackingField: []
   <effectEntries>k__BackingField:

@@ -20,8 +20,8 @@ public class EquipmentData : ScriptableObject
 
     [field: SerializeField] public Sprite icon { get; private set; }
 
-    [field: Tooltip("How good this item is as a reward. NotOffered keeps it out of every LootTable and "
-                    + "reward panel.")]
+    [field: Tooltip("Every item is Legendary - equipment has no tiers, and an offer draws from the whole "
+                    + "pool (see EquipmentLibrary.Offerable). NotOffered keeps it out of every reward panel.")]
     [field: SerializeField] public Rarity rarity { get; private set; }
 
     [field: Tooltip("Which character may hold this item. Any means everyone.")]

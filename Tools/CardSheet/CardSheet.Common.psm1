@@ -12,12 +12,14 @@
     refuses to run while the Editor holds Temp/UnityLockfile, which is essentially always. Reading is
     safe to do without it - the format is stable and every card writes identical key ordering.
 
-    Three serialization quirks this has to know about, all confirmed against the current assets:
+    Four serialization quirks this has to know about, all confirmed against the current assets:
 
       * List<enum> and bool[] serialize as a packed little-endian hex string, NOT a YAML list.
         "0200000003000000" is [Defence, Movement]; an empty list is a blank value.
       * Long strings fold at ~80 chars with a deeper-indented continuation line. A fold is a space.
       * Strings with leading/trailing whitespace get single-quoted, with '' escaping a quote.
+      * A string holding a line break is single-quoted too, the break written as a blank line - see
+        Read-YamlMapping. The totem cards' "Summon X\n\nwhat it does" descriptions are the first.
 #>
 
 Set-StrictMode -Version Latest
@@ -212,6 +214,17 @@ function Get-LineIndent {
     return $i
 }
 
+function Test-SingleQuotedClosed {
+    <#
+        True once a single-quoted scalar's closing quote has been read. Inside the quotes a literal
+        quote is written doubled (''), so with the opening quote dropped and every '' pair removed,
+        any quote left over is the closing one.
+    #>
+    param([string]$Text)
+
+    return $Text.Substring(1).Replace("''", '').Contains("'")
+}
+
 function ConvertFrom-YamlScalar {
     param([string]$Text)
 
@@ -282,8 +295,27 @@ function Read-YamlMapping {
         $Index.Value++
 
         if ($rest.Trim() -ne '') {
-            # Scalar, possibly folded across following deeper-indented lines.
             $text = $rest.Trim()
+
+            # An unclosed single-quoted scalar runs until its closing quote, whatever the lines in
+            # between look like - a continuation such as "Allies within 2: gain" is text, not a key.
+            # Unity writes a line break inside a string as a blank line, so inside the quotes each
+            # blank line is a newline and any other line break folds to a space.
+            if ($text.StartsWith("'") -and -not (Test-SingleQuotedClosed $text)) {
+                $breaks = 0
+                while ($Index.Value -lt $Lines.Count) {
+                    $next = $Lines[$Index.Value].Trim()
+                    $Index.Value++
+                    if ($next -eq '') { $breaks++; continue }
+                    $text += $(if ($breaks -gt 0) { "`n" * $breaks } else { ' ' }) + $next
+                    $breaks = 0
+                    if (Test-SingleQuotedClosed $text) { break }
+                }
+                $map[$key] = ConvertFrom-YamlScalar $text
+                continue
+            }
+
+            # Scalar, possibly folded across following deeper-indented lines.
             while ($Index.Value -lt $Lines.Count) {
                 $next = $Lines[$Index.Value]
                 if ($next.Trim() -eq '') { break }
